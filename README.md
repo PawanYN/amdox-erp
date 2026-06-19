@@ -6,17 +6,83 @@ Welcome to the **Amdox ERP** monorepo workspace. This project uses `pnpm` worksp
 
 ## Workspace Structure
 
-The monorepo is organized as follows:
-- **`apps/`**: Main products and services.
-  - [`apps/web/`](file:///d:/amdox-erp/apps/web): Next.js 15 frontend application.
-  - [`apps/api/`](file:///d:/amdox-erp/apps/api): NestJS 11 backend REST API application.
-  - [`apps/ml-service/`](file:///d:/amdox-erp/apps/ml-service): Python FastAPI machine learning forecasting service.
-- **`packages/`**: Shared libraries and modules.
-  - [`packages/db/`](file:///d:/amdox-erp/packages/db): Shared Prisma database schema & client.
-  - [`packages/ui/`](file:///d:/amdox-erp/packages/ui): Shared UI component library.
-  - [`packages/types/`](file:///d:/amdox-erp/packages/types): Shared TypeScript types.
-  - [`packages/config/`](file:///d:/amdox-erp/packages/config): Shared linting and TS configurations.
-- **`docs/`**: Architectural documentation & system specs.
+Here is the exact current folder and file structure of our monorepo:
+
+```text
+amdox-erp/
+├── .github/
+│   └── workflows/
+├── apps/
+│   ├── api/
+│   │   └── .gitkeep
+│   ├── ml-service/
+│   └── web/
+│       ├── public/
+│       ├── src/
+│       │   ├── app/
+│       │   │   ├── (auth)/
+│       │   │   │   └── .gitkeep
+│       │   │   ├── (dashboard)/
+│       │   │   │   ├── finance/
+│       │   │   │   │   └── .gitkeep
+│       │   │   │   ├── hr/
+│       │   │   │   │   └── .gitkeep
+│       │   │   │   ├── scm/
+│       │   │   │   │   └── .gitkeep
+│       │   │   │   └── settings/
+│       │   │   │       └── .gitkeep
+│       │   │   ├── favicon.ico
+│       │   │   ├── layout.tsx
+│       │   │   └── page.tsx
+│       │   ├── components/
+│       │   │   └── .gitkeep
+│       │   ├── hooks/
+│       │   │   └── .gitkeep
+│       │   ├── lib/
+│       │   │   └── .gitkeep
+│       │   ├── stores/
+│       │   │   └── .gitkeep
+│       │   └── styles/
+│       │       └── globals.css
+│       ├── next-env.d.ts
+│       ├── next.config.ts
+│       ├── package-lock.json
+│       ├── package.json
+│       ├── postcss.config.mjs
+│       ├── README.md
+│       └── tsconfig.json
+├── docs/
+│   ├── adr/
+│   │   └── .gitkeep
+│   ├── api/
+│   │   └── openapi.yaml
+│   ├── c4/
+│   │   ├── component.md
+│   │   ├── component_clean.md
+│   │   ├── container.md
+│   │   └── context.md
+│   ├── erd/
+│   │   ├── Data_Processing_and_Model.png
+│   │   └── database-erd.md
+│   ├── frontend_development.md
+│   └── monorepo_structure.md
+├── packages/
+│   ├── config/
+│   │   └── .gitkeep
+│   ├── db/
+│   │   └── .gitkeep
+│   ├── types/
+│   │   └── .gitkeep
+│   └── ui/
+│       └── .gitkeep
+├── scripts/
+│   └── .gitkeep
+├── .gitignore
+├── package.json
+├── pnpm-workspace.yaml
+├── tsconfig.json
+└── turbo.json
+```
 
 ---
 
