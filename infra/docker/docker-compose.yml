@@ -1,0 +1,157 @@
+## ==============================================
+## Amdox ERP — Local Development Stack
+## ==============================================
+## Usage:
+##   docker compose up -d          → start all services
+##   docker compose down           → stop all services
+##   docker compose down -v        → stop + delete data volumes
+##   docker compose logs -f api-db → tail logs for one service
+## ==============================================
+
+services:
+
+  # ─────────────────────────────────────
+  # PostgreSQL 17 — Primary Database
+  # ─────────────────────────────────────
+  api-db:
+    image: postgres:17-alpine
+    container_name: amdox-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${DB_USER:-amdox}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-amdox_dev_123}
+      POSTGRES_DB: ${DB_NAME:-amdox_erp}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/docker/init-scripts:/docker-entrypoint-initdb.d  # optional init SQL
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-amdox} -d ${DB_NAME:-amdox_erp}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - amdox-network
+
+  # ─────────────────────────────────────
+  # Redis 8 — Cache, Sessions, BullMQ
+  # ─────────────────────────────────────
+  redis:
+    image: redis:8-alpine
+    container_name: amdox-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - amdox-network
+
+  # ─────────────────────────────────────
+  # Keycloak 25 — Identity Provider (SSO)
+  # ─────────────────────────────────────
+  keycloak:
+    image: quay.io/keycloak/keycloak:25.0
+    container_name: amdox-keycloak
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://api-db:5432/${DB_NAME:-amdox_erp}
+      KC_DB_USERNAME: ${DB_USER:-amdox}
+      KC_DB_PASSWORD: ${DB_PASSWORD:-amdox_dev_123}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_HEALTH_ENABLED: "true"
+      KC_HOSTNAME_STRICT: "false"
+      KC_HTTP_ENABLED: "true"
+    command: start-dev
+    depends_on:
+      api-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - amdox-network
+
+  # ─────────────────────────────────────
+  # Elasticsearch 8 — Full-Text Search
+  # ─────────────────────────────────────
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    container_name: amdox-elasticsearch
+    restart: unless-stopped
+    ports:
+      - "9200:9200"
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false         # disabled for local dev only
+      - xpack.security.http.ssl.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m       # limit memory for dev machines
+      - cluster.name=amdox-dev
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\\|yellow\"'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - amdox-network
+
+  # ─────────────────────────────────────
+  # Redis Commander — Redis GUI (optional)
+  # ─────────────────────────────────────
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: amdox-redis-ui
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    profiles:
+      - tools    # only starts with: docker compose --profile tools up
+    networks:
+      - amdox-network
+
+  # ─────────────────────────────────────
+  # Bull Board — BullMQ Job Dashboard (optional)
+  # ─────────────────────────────────────
+  # Note: Bull Board is typically served from the NestJS API itself.
+  # Mount it at /admin/queues in the API app during dev.
+
+# ─────────────────────────────────────
+# Volumes — persistent data across restarts
+# ─────────────────────────────────────
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  elasticsearch_data:
+    driver: local
+
+# ─────────────────────────────────────
+# Network — all services communicate here
+# ─────────────────────────────────────
+networks:
+  amdox-network:
+    driver: bridge

@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build caches and outputs
+.next/
+out/
+dist/
+.turbo/
+*.tsbuildinfo
+
+# Version control
+.git/
+.github/
+
+# Local configuration files
+.env
+.env*.local
+
+# Logs and system files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+Thumbs.db
