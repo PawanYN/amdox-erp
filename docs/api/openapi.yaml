@@ -1,0 +1,1502 @@
+openapi: 3.1.0
+info:
+  title: Amdox AI-Powered Cloud ERP Suite
+  version: 1.0.0
+  description: |
+    Multi-tenant ERP API — Finance, HR, Supply Chain, Auth, Audit.
+    All endpoints require JWT Bearer token with tenantId claim.
+    Tenant context is injected automatically by the API Gateway layer.
+  contact:
+    name: Amdox Engineering
+    email: engineering@amdox.tech
+  license:
+    name: Proprietary
+    identifier: LicenseRef-Amdox-Proprietary
+
+servers:
+  - url: https://api.amdox.tech/v1
+    description: Production
+  - url: https://staging-api.amdox.tech/v1
+    description: Staging
+  - url: http://localhost:3001/v1
+    description: Local Development
+
+# ==========================================
+# SECURITY — JWT Bearer + Tenant Context
+# ==========================================
+security:
+  - BearerAuth: []
+
+components:
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        RS256 JWT issued by Keycloak. Must contain:
+        - sub (userId)
+        - tenant_id (tenantId)
+        - roles[] (RBAC roles)
+
+  # ==========================================
+  # SHARED SCHEMAS
+  # ==========================================
+  schemas:
+
+    # --- Pagination ---
+    PaginationMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 142
+        totalPages:
+          type: integer
+          example: 8
+
+    PaginationQuery:
+      type: object
+      properties:
+        page:
+          type: integer
+          default: 1
+        limit:
+          type: integer
+          default: 20
+          maximum: 100
+        sortBy:
+          type: string
+        sortOrder:
+          type: string
+          enum: [asc, desc]
+          default: desc
+
+    # --- Error ---
+    ErrorResponse:
+      type: object
+      required: [statusCode, message, error]
+      properties:
+        statusCode:
+          type: integer
+        message:
+          type: string
+        error:
+          type: string
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+
+    # --- Common Fields ---
+    BaseEntity:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    # ==========================================
+    # AUTH SCHEMAS
+    # ==========================================
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+
+    LoginResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        expiresIn:
+          type: integer
+          example: 3600
+        user:
+          $ref: '#/components/schemas/UserSummary'
+
+    TokenRefreshRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+
+    UserSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+
+    # ==========================================
+    # FINANCE SCHEMAS
+    # ==========================================
+    Account:
+      allOf:
+        - $ref: '#/components/schemas/BaseEntity'
+        - type: object
+          properties:
+            code:
+              type: string
+              example: "1000"
+            name:
+              type: string
+              example: "Cash and Cash Equivalents"
+            type:
+              type: string
+              enum: [asset, liability, equity, revenue, expense]
+            isActive:
+              type: boolean
+            parentId:
+              type: string
+              format: uuid
+              nullable: true
+
+    CreateAccountRequest:
+      type: object
+      required: [code, name, type]
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+          enum: [asset, liability, equity, revenue, expense]
+        parentId:
+          type: string
+          format: uuid
+          nullable: true
+
+    JournalEntry:
+      allOf:
+        - $ref: '#/components/schemas/BaseEntity'
+        - type: object
+          properties:
+            entryNumber:
+              type: string
+            entryDate:
+              type: string
+              format: date
+            description:
+              type: string
+            status:
+              type: string
+              enum: [draft, posted, reversed]
+            currency:
+              type: string
+              example: "USD"
+            exchangeRate:
+              type: number
+            lines:
+              type: array
+              items:
+                $ref: '#/components/schemas/JournalLine'
+
+    JournalLine:
+      type: object
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        debitAmount:
+          type: number
+          example: 5000.00
+        creditAmount:
+          type: number
+          example: 0
+        memo:
+          type: string
+
+    CreateJournalEntryRequest:
+      type: object
+      required: [entryDate, description, currency, lines]
+      properties:
+        entryDate:
+          type: string
+          format: date
+        description:
+          type: string
+        currency:
+          type: string
+        lines:
+          type: array
+          minItems: 2
+          items:
+            $ref: '#/components/schemas/JournalLine'
+          description: "SUM(debits) must equal SUM(credits)"
+
+    Invoice:
+      allOf:
+        - $ref: '#/components/schemas/BaseEntity'
+        - type: object
+          properties:
+            invoiceNumber:
+              type: string
+            direction:
+              type: string
+              enum: [payable, receivable]
+            vendorId:
+              type: string
+              format: uuid
+              nullable: true
+            amount:
+              type: number
+            currency:
+              type: string
+            status:
+              type: string
+              enum: [draft, pending, approved, paid, overdue]
+            issueDate:
+              type: string
+              format: date
+            dueDate:
+              type: string
+              format: date
+            purchaseOrderId:
+              type: string
+              format: uuid
+              nullable: true
+
+    # ==========================================
+    # HR SCHEMAS
+    # ==========================================
+    Employee:
+      allOf:
+        - $ref: '#/components/schemas/BaseEntity'
+        - type: object
+          properties:
+            employeeCode:
+              type: string
+            firstName:
+              type: string
+            lastName:
+              type: string
+            email:
+              type: string
+            hireDate:
+              type: string
+              format: date
+            departmentId:
+              type: string
+              format: uuid
+            managerId:
+              type: string
+              format: uuid
+              nullable: true
+            employmentType:
+              type: string
+              enum: [full_time, part_time, contract]
+            status:
+              type: string
+              enum: [active, on_leave, terminated]
+
+    CreateEmployeeRequest:
+      type: object
+      required: [firstName, lastName, email, hireDate, departmentId, employmentType]
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+        hireDate:
+          type: string
+          format: date
+        departmentId:
+          type: string
+          format: uuid
+        managerId:
+          type: string
+          format: uuid
+        employmentType:
+          type: string
+          enum: [full_time, part_time, contract]
+
+    LeaveRequest:
+      type: object
+      required: [leaveType, startDate, endDate]
+      properties:
+        leaveType:
+          type: string
+          enum: [annual, sick, maternity, paternity, unpaid]
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        reason:
+          type: string
+
+    PayrollRunResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseEntity'
+        - type: object
+          properties:
+            period:
+              type: string
+              example: "2026-04"
+            status:
+              type: string
+              enum: [draft, processing, completed, failed]
+            employeeCount:
+              type: integer
+            totalGross:
+              type: number
+            totalNet:
+              type: number
+
+    # ==========================================
+    # SUPPLY CHAIN SCHEMAS
+    # ==========================================
+    Vendor:
+      allOf:
+        - $ref: '#/components/schemas/BaseEntity'
+        - type: object
+          properties:
+            name:
+              type: string
+            code:
+              type: string
+            email:
+              type: string
+            status:
+              type: string
+              enum: [active, inactive, blacklisted]
+            paymentTerms:
+              type: string
+              enum: [net_30, net_60, net_90]
+
+    PurchaseOrder:
+      allOf:
+        - $ref: '#/components/schemas/BaseEntity'
+        - type: object
+          properties:
+            poNumber:
+              type: string
+            vendorId:
+              type: string
+              format: uuid
+            status:
+              type: string
+              enum: [draft, submitted, approved, received, cancelled]
+            totalAmount:
+              type: number
+            currency:
+              type: string
+            orderDate:
+              type: string
+              format: date
+            lines:
+              type: array
+              items:
+                $ref: '#/components/schemas/PurchaseOrderLine'
+
+    PurchaseOrderLine:
+      type: object
+      properties:
+        inventoryItemId:
+          type: string
+          format: uuid
+        quantity:
+          type: number
+        unitPrice:
+          type: number
+
+    InventoryItem:
+      allOf:
+        - $ref: '#/components/schemas/BaseEntity'
+        - type: object
+          properties:
+            sku:
+              type: string
+            name:
+              type: string
+            category:
+              type: string
+            currentStock:
+              type: number
+            reorderPoint:
+              type: number
+            unit:
+              type: string
+              example: "pcs"
+            unitCost:
+              type: number
+
+    # ==========================================
+    # AUDIT SCHEMA
+    # ==========================================
+    AuditLogEntry:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        entity:
+          type: string
+          example: "Invoice"
+        entityId:
+          type: string
+          format: uuid
+        action:
+          type: string
+          enum: [create, update, delete, approve]
+        previousValue:
+          type: object
+        newValue:
+          type: object
+        ipAddress:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+  # ==========================================
+  # SHARED RESPONSES
+  # ==========================================
+  responses:
+    BadRequest:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Missing or invalid JWT
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Insufficient permissions (RBAC)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Resource not found (or not in this tenant)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+# ==========================================
+# API PATHS — ORGANIZED BY MODULE
+# ==========================================
+paths:
+
+  # ==========================================
+  # HEALTH & SYSTEM
+  # ==========================================
+  /health/live:
+    get:
+      tags: [System]
+      summary: Liveness probe
+      description: Returns 200 if the API process is running. Used by Kubernetes liveness probe.
+      security: []
+      responses:
+        '200':
+          description: Alive
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  /health/ready:
+    get:
+      tags: [System]
+      summary: Readiness probe
+      description: Returns 200 if DB, Redis, and Elasticsearch are reachable. Used by Kubernetes readiness probe.
+      security: []
+      responses:
+        '200':
+          description: Ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ready
+                  db:
+                    type: string
+                    example: connected
+                  redis:
+                    type: string
+                    example: connected
+                  elasticsearch:
+                    type: string
+                    example: connected
+
+  # ==========================================
+  # AUTH (F-01)
+  # ==========================================
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login with email/password
+      description: Returns JWT access + refresh token. For SSO, redirect to /auth/sso/{provider}.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/sso/{provider}:
+    get:
+      tags: [Auth]
+      summary: Initiate SSO login
+      description: Redirects to IdP (Azure AD / Google Workspace) for SAML/OIDC login.
+      security: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [azure-ad, google, saml]
+      responses:
+        '302':
+          description: Redirect to IdP
+
+  /auth/sso/callback:
+    post:
+      tags: [Auth]
+      summary: SSO callback
+      description: Receives SAML assertion or OIDC code, validates, returns JWT.
+      security: []
+      responses:
+        '200':
+          description: SSO login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access token
+      description: Rotates refresh token (old one is blacklisted in Redis).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout
+      description: Blacklists refresh token in Redis.
+      responses:
+        '204':
+          description: Logged out
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Get current user profile
+      responses:
+        '200':
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSummary'
+
+  # ==========================================
+  # FINANCE — GL (F-02)
+  # ==========================================
+  /finance/accounts:
+    get:
+      tags: [Finance - GL]
+      summary: List chart of accounts
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [asset, liability, equity, revenue, expense]
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Account list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Account'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+    post:
+      tags: [Finance - GL]
+      summary: Create account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAccountRequest'
+      responses:
+        '201':
+          description: Account created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /finance/journal-entries:
+    get:
+      tags: [Finance - GL]
+      summary: List journal entries
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, posted, reversed]
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Journal entry list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/JournalEntry'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+    post:
+      tags: [Finance - GL]
+      summary: Create journal entry
+      description: |
+        Creates a double-entry journal entry. Validation rule:
+        SUM(debitAmount) must equal SUM(creditAmount) across all lines.
+        Entry is created in 'draft' status. Use POST /journal-entries/{id}/post to post it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateJournalEntryRequest'
+      responses:
+        '201':
+          description: Journal entry created (draft)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JournalEntry'
+        '400':
+          description: Validation error (debits != credits, locked period, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /finance/journal-entries/{id}/post:
+    post:
+      tags: [Finance - GL]
+      summary: Post a draft journal entry
+      description: Changes status from draft to posted. Fails if fiscal period is locked.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Journal entry posted
+        '409':
+          description: Period is locked
+
+  /finance/periods:
+    get:
+      tags: [Finance - GL]
+      summary: List fiscal periods
+      responses:
+        '200':
+          description: Period list
+
+  /finance/periods/{id}/lock:
+    post:
+      tags: [Finance - GL]
+      summary: Lock a fiscal period
+      description: Prevents new journal entries in this period. Requires TenantAdmin role.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Period locked
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /finance/fx-rates:
+    get:
+      tags: [Finance - GL]
+      summary: Get current FX rates
+      description: Returns latest rates fetched from ECB/OpenExchangeRates.
+      parameters:
+        - name: base
+          in: query
+          schema:
+            type: string
+            default: USD
+      responses:
+        '200':
+          description: FX rates
+
+  # ==========================================
+  # FINANCE — AP/AR (F-03)
+  # ==========================================
+  /finance/invoices:
+    get:
+      tags: [Finance - AP/AR]
+      summary: List invoices (payable + receivable)
+      parameters:
+        - name: direction
+          in: query
+          schema:
+            type: string
+            enum: [payable, receivable]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, pending, approved, paid, overdue]
+      responses:
+        '200':
+          description: Invoice list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Invoice'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+    post:
+      tags: [Finance - AP/AR]
+      summary: Create invoice
+      responses:
+        '201':
+          description: Invoice created
+
+  /finance/invoices/{id}/match:
+    post:
+      tags: [Finance - AP/AR]
+      summary: 3-way match (PO + Goods Receipt + Invoice)
+      description: |
+        Attempts automatic matching. If PO amount, GR quantity,
+        and invoice amount align within tolerance, auto-approves.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Match result (approved / manual_review)
+
+  /finance/invoices/{id}/payments:
+    post:
+      tags: [Finance - AP/AR]
+      summary: Record payment against invoice
+      responses:
+        '201':
+          description: Payment recorded
+
+  /finance/reports/aging:
+    get:
+      tags: [Finance - AP/AR]
+      summary: Aging report (AR or AP)
+      parameters:
+        - name: direction
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [payable, receivable]
+      responses:
+        '200':
+          description: Aging buckets (current, 30, 60, 90, 90+)
+
+  # ==========================================
+  # HR (F-04)
+  # ==========================================
+  /hr/employees:
+    get:
+      tags: [HR]
+      summary: List employees
+      parameters:
+        - name: departmentId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, on_leave, terminated]
+      responses:
+        '200':
+          description: Employee list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Employee'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+    post:
+      tags: [HR]
+      summary: Create employee
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEmployeeRequest'
+      responses:
+        '201':
+          description: Employee created
+
+  /hr/employees/{id}:
+    get:
+      tags: [HR]
+      summary: Get employee by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Employee detail
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [HR]
+      summary: Update employee
+      responses:
+        '200':
+          description: Employee updated
+
+  /hr/employees/{id}/org-chart:
+    get:
+      tags: [HR]
+      summary: Get reporting hierarchy for employee
+      description: Returns manager chain (upward) and direct reports (downward).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Org chart tree
+
+  /hr/departments:
+    get:
+      tags: [HR]
+      summary: List departments
+      responses:
+        '200':
+          description: Department list
+    post:
+      tags: [HR]
+      summary: Create department
+      responses:
+        '201':
+          description: Department created
+
+  /hr/leave-requests:
+    get:
+      tags: [HR]
+      summary: List leave requests
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, approved, rejected, cancelled]
+        - name: employeeId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Leave request list
+    post:
+      tags: [HR]
+      summary: Submit leave request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LeaveRequest'
+      responses:
+        '201':
+          description: Leave request submitted (pending)
+
+  /hr/leave-requests/{id}/approve:
+    post:
+      tags: [HR]
+      summary: Approve leave request
+      description: State machine transition — pending → approved. Requires Manager role.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Leave approved
+
+  /hr/leave-requests/{id}/reject:
+    post:
+      tags: [HR]
+      summary: Reject leave request
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Leave rejected
+
+  /hr/attendance:
+    post:
+      tags: [HR]
+      summary: Record clock-in/clock-out
+      responses:
+        '201':
+          description: Attendance recorded
+    get:
+      tags: [HR]
+      summary: List attendance records
+      parameters:
+        - name: employeeId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Attendance list
+
+  /hr/payroll/run:
+    post:
+      tags: [HR - Payroll]
+      summary: Initiate payroll run
+      description: |
+        Kicks off async BullMQ job for gross-to-net calculation.
+        Returns job ID for polling. Saga pattern with compensating transactions.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [period]
+              properties:
+                period:
+                  type: string
+                  example: "2026-04"
+      responses:
+        '202':
+          description: Payroll run initiated (async)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  payrollRunId:
+                    type: string
+                    format: uuid
+                  jobId:
+                    type: string
+                  status:
+                    type: string
+                    example: processing
+
+  /hr/payroll/runs/{id}:
+    get:
+      tags: [HR - Payroll]
+      summary: Get payroll run status + summary
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Payroll run details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayrollRunResponse'
+
+  /hr/payroll/runs/{id}/payslips:
+    get:
+      tags: [HR - Payroll]
+      summary: List payslips for a payroll run
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Payslip list with PDF download URLs
+
+  # ==========================================
+  # SUPPLY CHAIN (F-05)
+  # ==========================================
+  /scm/vendors:
+    get:
+      tags: [Supply Chain]
+      summary: List vendors
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, inactive, blacklisted]
+      responses:
+        '200':
+          description: Vendor list
+    post:
+      tags: [Supply Chain]
+      summary: Create vendor
+      responses:
+        '201':
+          description: Vendor created
+
+  /scm/vendors/{id}:
+    get:
+      tags: [Supply Chain]
+      summary: Get vendor by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Vendor detail
+    patch:
+      tags: [Supply Chain]
+      summary: Update vendor
+      responses:
+        '200':
+          description: Vendor updated
+
+  /scm/purchase-orders:
+    get:
+      tags: [Supply Chain]
+      summary: List purchase orders
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, submitted, approved, received, cancelled]
+        - name: vendorId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: PO list
+    post:
+      tags: [Supply Chain]
+      summary: Create purchase order
+      responses:
+        '201':
+          description: PO created (draft)
+
+  /scm/purchase-orders/{id}/submit:
+    post:
+      tags: [Supply Chain]
+      summary: Submit PO for approval
+      description: State transition — draft → submitted.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: PO submitted
+
+  /scm/purchase-orders/{id}/approve:
+    post:
+      tags: [Supply Chain]
+      summary: Approve PO
+      description: State transition — submitted → approved. Requires Manager role.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: PO approved
+
+  /scm/goods-receipts:
+    post:
+      tags: [Supply Chain]
+      summary: Record goods receipt against PO
+      responses:
+        '201':
+          description: Goods receipt recorded
+
+  /scm/inventory:
+    get:
+      tags: [Supply Chain]
+      summary: List inventory items
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: belowReorderPoint
+          in: query
+          description: Filter items where currentStock < reorderPoint
+          schema:
+            type: boolean
+        - name: warehouseId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Inventory list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/InventoryItem'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+    post:
+      tags: [Supply Chain]
+      summary: Create inventory item
+      responses:
+        '201':
+          description: Item created
+
+  /scm/inventory/{id}/stock:
+    get:
+      tags: [Supply Chain]
+      summary: Get real-time stock level for item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Current stock level + reorder status
+
+  # ==========================================
+  # AUDIT (F-09)
+  # ==========================================
+  /audit/logs:
+    get:
+      tags: [Audit]
+      summary: Query audit logs
+      description: Immutable, append-only. Supports time-range and entity filtering.
+      parameters:
+        - name: entity
+          in: query
+          schema:
+            type: string
+            example: Invoice
+        - name: entityId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: userId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: action
+          in: query
+          schema:
+            type: string
+            enum: [create, update, delete, approve]
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Audit log entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuditLogEntry'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+
+  /audit/logs/verify:
+    post:
+      tags: [Audit]
+      summary: Verify audit log integrity
+      description: Validates hash chain — detects if any log entry was tampered with.
+      responses:
+        '200':
+          description: Integrity check result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  isValid:
+                    type: boolean
+                  brokenAtId:
+                    type: string
+                    format: uuid
+                    nullable: true
+
+  # ==========================================
+  # GDPR (F-09)
+  # ==========================================
+  /gdpr/data-subject-request:
+    post:
+      tags: [GDPR]
+      summary: Submit data subject request
+      description: Right to access / right to erasure. Must be fulfilled within 72 hours.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, subjectEmail]
+              properties:
+                type:
+                  type: string
+                  enum: [access, erasure, portability]
+                subjectEmail:
+                  type: string
+                  format: email
+      responses:
+        '202':
+          description: Request accepted, processing async
+
+  # ==========================================
+  # NOTIFICATIONS (F-10 — MVP email only)
+  # ==========================================
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: List notifications for current user
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [queued, sent, failed, read]
+        - name: channel
+          in: query
+          schema:
+            type: string
+            enum: [in_app, email]
+      responses:
+        '200':
+          description: Notification list
+
+  /notifications/{id}/read:
+    post:
+      tags: [Notifications]
+      summary: Mark notification as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Marked as read
+
+  /notifications/preferences:
+    get:
+      tags: [Notifications]
+      summary: Get user notification preferences
+      responses:
+        '200':
+          description: Channel preferences per event type
+    put:
+      tags: [Notifications]
+      summary: Update notification preferences
+      responses:
+        '200':
+          description: Preferences updated

@@ -1,0 +1,45 @@
+# Temporary architect design and workspace source files
+tem/
+
+# Node dependencies
+node_modules/
+.pnpm-store/
+
+# Next.js build outputs
+.next/
+out/
+
+# NestJS / TypeScript build outputs
+dist/
+*.tsbuildinfo
+
+# Python virtual environment and cache (for ml-service)
+.venv/
+venv/
+ENV/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Environment variables (never commit secrets)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.sync
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE settings
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
