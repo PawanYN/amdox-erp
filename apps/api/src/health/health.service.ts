@@ -13,10 +13,12 @@ export class HealthService {
     let esStatus = 'disconnected';
 
     // 1. Check Database using our shared @amdox/db client
+    console.log('API HealthCheck DATABASE_URL:', process.env.DATABASE_URL);
     try {
       await prisma.$queryRaw`SELECT 1`;
       dbStatus = 'connected';
     } catch (error) {
+      console.error('API HealthCheck Prisma error:', error);
       dbStatus = 'disconnected';
     }
 

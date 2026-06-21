@@ -2,9 +2,11 @@
   "name": "@amdox/db",
   "version": "0.1.0",
   "private": true,
-  "main": "src/client.ts",
-  "types": "src/client.ts",
+  "main": "dist/client.js",
+  "types": "dist/client.d.ts",
   "scripts": {
+    "build": "tsc",
+    "prepare": "pnpm build",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "ts-node prisma/seed.ts"
