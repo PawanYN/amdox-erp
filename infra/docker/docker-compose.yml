@@ -25,7 +25,7 @@ services:
       POSTGRES_DB: ${DB_NAME:-amdox_erp}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./infra/docker/init-scripts:/docker-entrypoint-initdb.d  # optional init SQL
+      - ./init-scripts:/docker-entrypoint-initdb.d  # optional init SQL
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-amdox} -d ${DB_NAME:-amdox_erp}"]
       interval: 10s
