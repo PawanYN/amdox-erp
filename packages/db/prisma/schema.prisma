@@ -1,0 +1,561 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// =============================
+// MULTI-TENANCY & AUTH
+// =============================
+
+model Tenant {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String
+  slug      String    @unique
+  plan      String    // "free | pro | enterprise"
+  settings  Json      // "tenant-level config"
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime? // "soft-delete"
+
+  // Relations
+  users          User[]
+  roles          Role[]
+  userRoles      UserRole[]
+  accounts       Account[]
+  journalEntries JournalEntry[]
+  journalLines   JournalLine[]
+  fiscalPeriods  FiscalPeriod[]
+  invoices       Invoice[]
+  employees      Employee[]
+  departments    Department[]
+  vendors        Vendor[]
+  warehouses     Warehouse[]
+  notifications  Notification[]
+  auditLogs      AuditLog[]
+
+  @@index([deletedAt])
+}
+
+model User {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String    @db.Uuid
+  email       String    @unique
+  firstName   String
+  lastName    String
+  keycloakId  String    @unique
+  mfaMethod   String    @default("none") // "totp | sms | none"
+  isActive    Boolean   @default(true)
+  lastLoginAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  // Relations
+  tenant          Tenant         @relation(fields: [tenantId], references: [id])
+  userRoles       UserRole[]
+  createdEntries  JournalEntry[] @relation("CreatedBy")
+  approvedEntries JournalEntry[] @relation("ApprovedBy")
+  employees       Employee[]
+  notifications   Notification[]
+  auditLogs       AuditLog[]
+  lockedPeriods   FiscalPeriod[] @relation("LockedPeriods")
+  initiatedPayrolls PayrollRun[] @relation("InitiatedPayrolls")
+  poCreated       PurchaseOrder[] @relation("POCreatedBy")
+  poApproved      PurchaseOrder[] @relation("POApprovedBy")
+  grReceived      GoodsReceipt[] @relation("GRReceivedBy")
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+}
+
+model Role {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @db.Uuid
+  name        String   // "SuperAdmin | TenantAdmin | Manager | Viewer"
+  permissions Json     // "granular permission set"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  tenant    Tenant     @relation(fields: [tenantId], references: [id])
+  userRoles UserRole[]
+
+  @@index([tenantId])
+}
+
+model UserRole {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @db.Uuid
+  roleId     String   @db.Uuid
+  tenantId   String   @db.Uuid
+  assignedAt DateTime @default(now())
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id])
+  role   Role   @relation(fields: [roleId], references: [id])
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+}
+
+// =============================
+// FINANCE — GL, AP, AR
+// =============================
+
+model Account {
+  id        String    @id @default(uuid()) @db.Uuid
+  tenantId  String    @db.Uuid
+  code      String    @unique // e.g. 1000, 2000, 3000
+  name      String    // "Cash, Accounts Receivable, etc"
+  type      String    // "asset | liability | equity | revenue | expense"
+  subType   String    // "current_asset | fixed_asset | etc"
+  isActive  Boolean   @default(true)
+  parentId  String?   @db.Uuid
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // Relations
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  parent       Account?      @relation("AccountHierarchy", fields: [parentId], references: [id])
+  children     Account[]     @relation("AccountHierarchy")
+  journalLines JournalLine[]
+
+  @@index([tenantId])
+}
+
+model JournalEntry {
+  id           String    @id @default(uuid()) @db.Uuid
+  tenantId     String    @db.Uuid
+  entryNumber  String    @unique // auto-generated sequence
+  entryDate    DateTime  @db.Date
+  description  String
+  status       String    @default("draft") // "draft | posted | reversed"
+  periodId     String    @db.Uuid
+  currency     String    // "ISO 4217 code"
+  exchangeRate Decimal   @db.Decimal(18, 4) // FX rate at posting time
+  createdById  String    @db.Uuid
+  approvedById String?   @db.Uuid
+  postedAt     DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relations
+  tenant       Tenant       @relation(fields: [tenantId], references: [id])
+  period       FiscalPeriod @relation(fields: [periodId], references: [id])
+  createdBy    User         @relation("CreatedBy", fields: [createdById], references: [id])
+  approvedBy   User?        @relation("ApprovedBy", fields: [approvedById], references: [id])
+  journalLines JournalLine[]
+
+  @@index([tenantId])
+  @@index([tenantId, entryDate])
+}
+
+model JournalLine {
+  id             String  @id @default(uuid()) @db.Uuid
+  journalEntryId String  @db.Uuid
+  accountId      String  @db.Uuid
+  tenantId       String  @db.Uuid
+  debitAmount    Decimal @db.Decimal(18, 4) // zero if credit line
+  creditAmount   Decimal @db.Decimal(18, 4) // zero if debit line
+  memo           String?
+  lineOrder      Int
+
+  // Relations
+  journalEntry JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  account      Account      @relation(fields: [accountId], references: [id])
+  tenant       Tenant       @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+}
+
+model FiscalPeriod {
+  id         String    @id @default(uuid()) @db.Uuid
+  tenantId   String    @db.Uuid
+  name       String    // e.g. Jan 2026, Q1 2026
+  startDate  DateTime  @db.Date
+  endDate    DateTime  @db.Date
+  isLocked   Boolean   @default(false) // period close flag
+  lockedById String?   @db.Uuid // who locked it
+  lockedAt   DateTime?
+  createdAt  DateTime  @default(now())
+
+  // Relations
+  tenant         Tenant         @relation(fields: [tenantId], references: [id])
+  lockedBy       User?          @relation("LockedPeriods", fields: [lockedById], references: [id])
+  journalEntries JournalEntry[]
+
+  @@index([tenantId])
+}
+
+model Invoice {
+  id              String    @id @default(uuid()) @db.Uuid
+  tenantId        String    @db.Uuid
+  invoiceNumber   String    @unique
+  direction       String    // "payable | receivable"
+  vendorId        String?   @db.Uuid // null if receivable
+  customerId      String?   @db.Uuid // null if payable
+  amount          Decimal   @db.Decimal(18, 4)
+  currency        String
+  exchangeRate    Decimal   @db.Decimal(18, 4)
+  status          String    @default("draft") // "draft | pending | approved | paid | overdue"
+  issueDate       DateTime  @db.Date
+  dueDate         DateTime  @db.Date
+  purchaseOrderId String?   @db.Uuid // for 3-way matching
+  goodsReceiptId  String?   @db.Uuid // for 3-way matching
+  ocrRawData      String?   @db.Text // OCR extraction result
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  // Relations
+  tenant        Tenant         @relation(fields: [tenantId], references: [id])
+  vendor        Vendor?        @relation(fields: [vendorId], references: [id])
+  purchaseOrder PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
+  goodsReceipt  GoodsReceipt?  @relation(fields: [goodsReceiptId], references: [id])
+  payments      Payment[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+}
+
+model Payment {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @db.Uuid
+  invoiceId   String   @db.Uuid
+  amount      Decimal  @db.Decimal(18, 4)
+  currency    String
+  method      String   // "bank_transfer | cheque | card"
+  paymentDate DateTime @db.Date
+  reference   String   // bank reference number
+  createdAt   DateTime @default(now())
+
+  // Relations
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+
+  @@index([tenantId])
+}
+
+// =============================
+// HR & PAYROLL
+// =============================
+
+model Employee {
+  id              String    @id @default(uuid()) @db.Uuid
+  tenantId        String    @db.Uuid
+  userId          String?   @db.Uuid // linked login account (nullable)
+  employeeCode    String    @unique
+  firstName       String
+  lastName        String
+  email           String
+  phone           String
+  dateOfBirth     DateTime  @db.Date
+  hireDate        DateTime  @db.Date
+  terminationDate DateTime? @db.Date // null if active
+  departmentId    String?   @db.Uuid
+  managerId       String?   @db.Uuid // self-ref for org chart
+  employmentType  String    // "full_time | part_time | contract"
+  status          String    @default("active") // "active | on_leave | terminated"
+  bankDetails     Json      // encrypted at rest
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  // Relations
+  tenant            Tenant         @relation(fields: [tenantId], references: [id])
+  user              User?          @relation(fields: [userId], references: [id])
+  department        Department?    @relation("DepartmentEmployees", fields: [departmentId], references: [id])
+  manager           Employee?      @relation("OrgChart", fields: [managerId], references: [id])
+  subordinates      Employee[]     @relation("OrgChart")
+  leaveRequests     LeaveRequest[]
+  attendances       Attendance[]
+  payslips          Payslip[]
+  headedDepartments Department[]   @relation("DepartmentHead")
+
+  @@index([tenantId])
+}
+
+model Department {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @db.Uuid
+  name      String
+  code      String
+  headId    String?  @db.Uuid // department head (Employee)
+  parentId  String?  @db.Uuid // for org hierarchy
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  tenant    Tenant       @relation(fields: [tenantId], references: [id])
+  head      Employee?    @relation("DepartmentHead", fields: [headId], references: [id])
+  parent    Department?  @relation("DepartmentHierarchy", fields: [parentId], references: [id])
+  children  Department[] @relation("DepartmentHierarchy")
+  employees Employee[]   @relation("DepartmentEmployees")
+
+  @@index([tenantId])
+}
+
+model LeaveRequest {
+  id           String    @id @default(uuid()) @db.Uuid
+  tenantId     String    @db.Uuid
+  employeeId   String    @db.Uuid
+  leaveType    String    // "annual | sick | maternity | etc"
+  startDate    DateTime  @db.Date
+  endDate      DateTime  @db.Date
+  days         Decimal   @db.Decimal(8, 2)
+  status       String    @default("pending") // "pending | approved | rejected | cancelled"
+  approvedById String?   @db.Uuid
+  reason       String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relations
+  employee Employee @relation(fields: [employeeId], references: [id])
+
+  @@index([tenantId])
+}
+
+model Attendance {
+  id            String    @id @default(uuid()) @db.Uuid
+  tenantId      String    @db.Uuid
+  employeeId    String    @db.Uuid
+  workDate      DateTime  @db.Date
+  clockIn       DateTime
+  clockOut      DateTime?
+  hoursWorked   Decimal?  @db.Decimal(8, 2)
+  overtimeHours Decimal?  @db.Decimal(8, 2)
+  source        String    // "manual | biometric | api"
+  createdAt     DateTime  @default(now())
+
+  // Relations
+  employee Employee @relation(fields: [employeeId], references: [id])
+
+  @@index([tenantId])
+  @@index([tenantId, employeeId, workDate])
+}
+
+model PayrollRun {
+  id              String    @id @default(uuid()) @db.Uuid
+  tenantId        String    @db.Uuid
+  period          String    // e.g. "2026-04"
+  status          String    @default("draft") // "draft | processing | completed | failed"
+  runDate         DateTime  @db.Date
+  employeeCount   Int
+  totalGross      Decimal   @db.Decimal(18, 4)
+  totalDeductions Decimal   @db.Decimal(18, 4)
+  totalNet        Decimal   @db.Decimal(18, 4)
+  initiatedById   String    @db.Uuid
+  jobId           String    // "BullMQ job reference"
+  completedAt     DateTime?
+  createdAt       DateTime  @default(now())
+
+  // Relations
+  initiatedBy User      @relation("InitiatedPayrolls", fields: [initiatedById], references: [id])
+  payslips    Payslip[]
+
+  @@index([tenantId])
+}
+
+model Payslip {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @db.Uuid
+  payrollRunId String   @db.Uuid
+  employeeId   String   @db.Uuid
+  grossSalary  Decimal  @db.Decimal(18, 4)
+  deductions   Json     // tax, PF, ESI, etc — region-specific
+  earnings     Json     // base, HRA, bonus, etc
+  netSalary    Decimal  @db.Decimal(18, 4)
+  pdfUrl       String   // S3 path to generated payslip
+  createdAt    DateTime @default(now())
+
+  // Relations
+  payrollRun PayrollRun @relation(fields: [payrollRunId], references: [id])
+  employee   Employee   @relation(fields: [employeeId], references: [id])
+
+  @@index([tenantId])
+}
+
+// =============================
+// SUPPLY CHAIN & INVENTORY
+// =============================
+
+model Vendor {
+  id           String    @id @default(uuid()) @db.Uuid
+  tenantId     String    @db.Uuid
+  name         String
+  code         String    @unique
+  email        String
+  phone        String
+  address      Json
+  status       String    @default("active") // "active | inactive | blacklisted"
+  paymentTerms String    // "net_30 | net_60 | etc"
+  rating       Decimal   @db.Decimal(3, 2) // performance score
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  // Relations
+  tenant         Tenant          @relation(fields: [tenantId], references: [id])
+  purchaseOrders PurchaseOrder[]
+  invoices       Invoice[]
+
+  @@index([tenantId])
+}
+
+model PurchaseOrder {
+  id                   String    @id @default(uuid()) @db.Uuid
+  tenantId             String    @db.Uuid
+  poNumber             String    @unique
+  vendorId             String    @db.Uuid
+  status               String    @default("draft") // "draft | submitted | approved | received | cancelled"
+  totalAmount          Decimal   @db.Decimal(18, 4)
+  currency             String
+  orderDate            DateTime  @db.Date
+  expectedDeliveryDate DateTime  @db.Date
+  createdById          String    @db.Uuid
+  approvedById         String?   @db.Uuid
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  // Relations
+  vendor             Vendor              @relation(fields: [vendorId], references: [id])
+  createdBy          User                @relation("POCreatedBy", fields: [createdById], references: [id])
+  approvedBy         User?               @relation("POApprovedBy", fields: [approvedById], references: [id])
+  purchaseOrderLines PurchaseOrderLine[]
+  goodsReceipts      GoodsReceipt[]
+  invoices           Invoice[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+}
+
+model PurchaseOrderLine {
+  id              String  @id @default(uuid()) @db.Uuid
+  purchaseOrderId String  @db.Uuid
+  inventoryItemId String  @db.Uuid
+  tenantId        String  @db.Uuid // RLS filter
+  quantity        Decimal @db.Decimal(18, 4)
+  unitPrice       Decimal @db.Decimal(18, 4)
+  lineTotal       Decimal @db.Decimal(18, 4)
+  lineOrder       Int
+
+  // Relations
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  inventoryItem InventoryItem @relation(fields: [inventoryItemId], references: [id])
+
+  @@index([tenantId])
+}
+
+model GoodsReceipt {
+  id              String    @id @default(uuid()) @db.Uuid
+  tenantId        String    @db.Uuid
+  purchaseOrderId String    @db.Uuid
+  receiptDate     DateTime  @db.Date
+  status          String    // "partial | complete"
+  receivedById    String    @db.Uuid
+  notes           String?
+  createdAt       DateTime  @default(now())
+
+  // Relations
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  receivedBy    User          @relation("GRReceivedBy", fields: [receivedById], references: [id])
+  invoices      Invoice[]
+
+  @@index([tenantId])
+}
+
+model InventoryItem {
+  id              String    @id @default(uuid()) @db.Uuid
+  tenantId        String    @db.Uuid
+  sku             String    @unique
+  name            String
+  description     String?
+  category        String
+  unit            String    // "pcs | kg | litre | etc"
+  currentStock    Decimal   @db.Decimal(18, 4)
+  reorderPoint    Decimal   @db.Decimal(18, 4) // auto-PO trigger threshold
+  reorderQuantity Decimal   @db.Decimal(18, 4)
+  costingMethod   String    // "FIFO | weighted_avg"
+  unitCost        Decimal   @db.Decimal(18, 4)
+  warehouseId     String    @db.Uuid
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  // Relations
+  warehouse          Warehouse           @relation(fields: [warehouseId], references: [id])
+  purchaseOrderLines PurchaseOrderLine[]
+
+  @@index([tenantId])
+  @@index([tenantId, sku])
+}
+
+model Warehouse {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @db.Uuid
+  name      String
+  code      String
+  address   Json
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  tenant         Tenant          @relation(fields: [tenantId], references: [id])
+  inventoryItems InventoryItem[]
+
+  @@index([tenantId])
+}
+
+// =============================
+// NOTIFICATIONS & AUDIT
+// =============================
+
+model Notification {
+  id         String    @id @default(uuid()) @db.Uuid
+  tenantId   String    @db.Uuid
+  userId     String    @db.Uuid // recipient
+  channel    String    // "in_app | email | sms | webhook"
+  eventType  String    // "invoice.approved | po.created | etc"
+  title      String
+  body       String    @db.Text
+  status     String    @default("queued") // "queued | sent | failed | read"
+  retryCount Int       @default(0) // max 3
+  jobId      String    // BullMQ reference
+  sentAt     DateTime?
+  readAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([tenantId])
+}
+
+model AuditLog {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @db.Uuid
+  userId        String   @db.Uuid // who performed the action
+  entity        String   // "Invoice | Employee | PurchaseOrder | etc"
+  entityId      String   @db.Uuid // which record
+  action        String   // "create | update | delete | approve"
+  previousValue Json?    // snapshot before change
+  newValue      Json?    // snapshot after change
+  ipAddress     String
+  userAgent     String
+  hashChain     String   // SHA-256 hash of previous log — tamper detection
+  createdAt     DateTime @default(now()) // append-only — no updatedAt
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([tenantId])
+  @@index([tenantId, createdAt])
+}

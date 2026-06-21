@@ -86,24 +86,72 @@ amdox-erp/
 
 ---
 
-## Running the Frontend Only
+## Getting Started (Local Development Setup)
 
-If you are a frontend developer and want to run the frontend without booting up the backend or databases locally, use one of these two options:
+Follow these steps to configure your environment and boot up the development stack:
 
-### Option 1: Run from Root using Filters (Recommended)
-This runs the web app while watching and compiling shared package dependencies automatically:
+### Step 1: Start Databases & Services
+Boot up the infrastructure dependencies (PostgreSQL, Redis, Keycloak) running locally in Docker containers:
 ```bash
-# Using pnpm workspace filtering
-pnpm --filter web dev
-
-# OR using Turborepo filtering
-pnpm turbo run dev --filter=web
+docker compose -f infra/docker/docker-compose.yml up -d
 ```
 
-### Option 2: Navigate and Run inside the Web Folder
+### Step 2: Configure Environment Variables
+Initialize your local environment file by copying the template:
 ```bash
-cd apps/web
+cp .env.example .env
+```
+
+### Step 3: Run Database Migrations (Create Tables)
+Run the migration script against the PostgreSQL container to physically create the 24 ERP database tables:
+```bash
+pnpm db:migrate
+```
+
+---
+
+## Running the Application
+
+Once your databases are initialized, you can launch the application services using one of these workflows:
+
+### Option A: Run the Entire Stack (Recommended)
+This starts both the **Next.js Web Frontend** and **NestJS API Backend** concurrently:
+```bash
 pnpm dev
 ```
 
-For more details on connecting to a remote staging API or setting up local mocks, see [docs/frontend_development.md](file:///d:/amdox-erp/docs/frontend_development.md).
+### Option B: Run the Frontend Only
+If you are only working on user interface components and do not need a local backend database:
+```bash
+# From the project root (recommended)
+pnpm --filter web dev
+
+# OR navigate to the folder directly
+cd apps/web
+pnpm dev
+```
+*Note: Refer to [docs/frontend_development.md](file:///d:/amdox-erp/docs/frontend_development.md) for pointing your local frontend to remote staging APIs.*
+
+### Option C: Run the Backend Only
+If you are only working on API endpoints:
+```bash
+pnpm --filter api dev
+```
+
+---
+
+## Database Management & Tools
+
+### Visual Database Browser (Prisma Studio)
+To visually inspect, search, and edit database records (opens a browser app at `http://localhost:5555`):
+```bash
+pnpm --filter @amdox/db exec prisma studio
+```
+
+### Shared Database Workspace Scripts
+All database actions are centralized under the `@amdox/db` package. You can run these commands from the root:
+* **`pnpm db:generate`** — Re-generates the database client types after schema changes.
+* **`pnpm db:migrate`** — Applies schema changes and updates the database tables.
+* **`pnpm db:seed`** — Seeds the database with development mock data.
+
+
