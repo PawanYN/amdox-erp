@@ -13,47 +13,29 @@ amdox-erp/
 ├── .github/
 │   └── workflows/
 ├── apps/
-│   ├── api/
-│   │   └── .gitkeep
+│   ├── api/                           # NestJS Backend API (Initialized Structure)
+│   │   ├── src/
+│   │   │   ├── audit/
+│   │   │   ├── auth/
+│   │   │   ├── common/
+│   │   │   ├── finance/
+│   │   │   ├── health/
+│   │   │   ├── hr/
+│   │   │   ├── notification/
+│   │   │   └── scm/
+│   │   └── test/
 │   ├── ml-service/
-│   └── web/
+│   └── web/                           # Next.js Frontend
 │       ├── public/
 │       ├── src/
 │       │   ├── app/
-│       │   │   ├── (auth)/
-│       │   │   │   └── .gitkeep
-│       │   │   ├── (dashboard)/
-│       │   │   │   ├── finance/
-│       │   │   │   │   └── .gitkeep
-│       │   │   │   ├── hr/
-│       │   │   │   │   └── .gitkeep
-│       │   │   │   ├── scm/
-│       │   │   │   │   └── .gitkeep
-│       │   │   │   └── settings/
-│       │   │   │       └── .gitkeep
-│       │   │   ├── favicon.ico
-│       │   │   ├── layout.tsx
-│       │   │   └── page.tsx
 │       │   ├── components/
-│       │   │   └── .gitkeep
 │       │   ├── hooks/
-│       │   │   └── .gitkeep
 │       │   ├── lib/
-│       │   │   └── .gitkeep
 │       │   ├── stores/
-│       │   │   └── .gitkeep
 │       │   └── styles/
-│       │       └── globals.css
-│       ├── next-env.d.ts
-│       ├── next.config.ts
-│       ├── package-lock.json
-│       ├── package.json
-│       ├── postcss.config.mjs
-│       ├── README.md
-│       └── tsconfig.json
 ├── docs/
 │   ├── adr/
-│   │   └── .gitkeep
 │   ├── api/
 │   │   └── openapi.yaml
 │   ├── c4/
@@ -69,14 +51,19 @@ amdox-erp/
 ├── packages/
 │   ├── config/
 │   │   └── .gitkeep
-│   ├── db/
-│   │   └── .gitkeep
+│   ├── db/                            # Shared Database Package
+│   │   ├── prisma/
+│   │   │   └── schema.prisma          # Prisma Schema with all 24 entities
+│   │   ├── src/
+│   │   │   └── client.ts              # Prisma Client Singleton
+│   │   ├── package.json
+│   │   └── tsconfig.json
 │   ├── types/
 │   │   └── .gitkeep
 │   └── ui/
 │       └── .gitkeep
 ├── scripts/
-│   └── .gitkeep
+│   └── create-api-dirs.ps1
 ├── .gitignore
 ├── package.json
 ├── pnpm-workspace.yaml
