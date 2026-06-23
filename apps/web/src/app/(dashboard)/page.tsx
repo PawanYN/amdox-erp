@@ -1,6 +1,14 @@
 "use client";
-
 import { useState } from "react";
+import ChartOfAccounts from "../../components/dashboard/Finance/ChartOfAccounts";
+import JournalEntries from "../../components/dashboard/Finance/JournalEntries";
+import Invoices from "../../components/dashboard/Finance/Invoices";
+import AgingReport from "../../components/dashboard/Finance/AgingReport";
+import Leads from "../../components/dashboard/CRM/Leads";
+import Customers from "../../components/dashboard/CRM/Customers";
+import Opportunities from "../../components/dashboard/CRM/Opportunities";
+import ReportsDashboard from "../../components/dashboard/Reports/ReportsDashboard";
+
 import {
   LayoutDashboard,
   Wallet,
@@ -32,27 +40,31 @@ const ROLES: Record<
 > = {
   executive: {
     label: "Executive",
-    sections: ["home", "finance", "hr", "scm"],
+    sections: ["home", "finance", "crm", "hr", "scm"],
     dept: "Executive Office",
   },
+
   finance: {
     label: "Finance Team",
-    sections: ["home", "finance"],
+    sections: ["home", "finance", "crm"],
     dept: "Finance",
   },
+
   hr: {
     label: "HR & Payroll",
-    sections: ["home", "hr"],
+    sections: ["home", "crm", "hr"],
     dept: "Human Resources",
   },
+
   scm: {
     label: "Supply Chain Mgr",
-    sections: ["home", "scm"],
+    sections: ["home", "crm", "scm"],
     dept: "Supply Chain",
   },
+
   it: {
     label: "IT Administrator",
-    sections: ["home", "finance", "hr", "scm", "settings"],
+    sections: ["home", "finance", "crm", "hr", "scm","reports", "settings"],
     dept: "IT Administration",
   },
 };
@@ -93,6 +105,16 @@ const NAV: NavSection[] = [
     ],
   },
   {
+  id: "crm",
+  icon: Users,
+  label: "CRM",
+  children: [
+    { id: "crm-leads", label: "Leads", day: "Day 14" },
+    { id: "crm-customers", label: "Customers", day: "Day 14" },
+    { id: "crm-opportunities", label: "Opportunities", day: "Day 15" },
+  ],
+},
+  {
     id: "hr",
     icon: Users,
     label: "HR",
@@ -113,8 +135,17 @@ const NAV: NavSection[] = [
       { id: "scm-inventory", label: "Inventory", day: "Day 13" },
     ],
   },
+
+  {
+  id: "reports",
+  icon: LayoutDashboard,
+  label: "Reports",
+  leaf: true,
+},
   { id: "notifications", icon: Bell, label: "Notifications", leaf: true },
   { id: "settings", icon: Settings, label: "Settings", leaf: true },
+
+  
 ];
 
 interface TopBarProps {
@@ -342,8 +373,36 @@ function Sidebar({
 interface EmptyContentProps {
   activePage: string;
 }
-
 function EmptyContent({ activePage }: EmptyContentProps) {
+  // Finance Pages
+  if (activePage === "finance-accounts") {
+    return <ChartOfAccounts />;
+  }
+
+  if (activePage === "finance-journal") {
+    return <JournalEntries />;
+  }
+
+  if (activePage === "finance-invoices") {
+  return <Invoices />;
+}
+if (activePage === "finance-aging") {
+  return <AgingReport />;
+}
+if (activePage === "crm-leads") {
+  return <Leads />;
+}
+if (activePage === "crm-customers") {
+  return <Customers />;
+}
+if (activePage === "crm-opportunities") {
+  return <Opportunities />;
+}
+if (activePage === "reports") {
+  return <ReportsDashboard />;
+}
+
+  // Default Placeholder Pages
   const allItems = NAV.flatMap((n) => (n.children || [n]) as NavItem[]);
   const current = allItems.find((i) => i.id === activePage);
   const label = current?.label || "Home";
@@ -355,7 +414,11 @@ function EmptyContent({ activePage }: EmptyContentProps) {
         <div className="mx-auto h-11 w-11 rounded-lg border border-dashed border-[#D8D5CC] flex items-center justify-center">
           <span className="h-2 w-2 rounded-full bg-[#D8D5CC]" />
         </div>
-        <p className="mt-4 text-[#14171F] font-medium text-sm">{label}</p>
+
+        <p className="mt-4 text-[#14171F] font-medium text-sm">
+          {label}
+        </p>
+
         <p className="mt-1 text-xs text-[#8A8678]">
           {day
             ? `Scheduled to build on ${day} — empty placeholder for now.`
@@ -383,15 +446,16 @@ export default function App() {
       <TopBar role={role} setRole={setRole} activePage={activePage} />
 
       <div className="flex-1 flex overflow-hidden">
-        <Sidebar
-          role={role}
-          activePage={activePage}
-          onSelect={setActivePage}
-          collapsed={collapsed}
-          setCollapsed={setCollapsed}
-        />
-        <EmptyContent activePage={activePage} />
-      </div>
+  <Sidebar
+    role={role}
+    activePage={activePage}
+    onSelect={setActivePage}
+    collapsed={collapsed}
+    setCollapsed={setCollapsed}
+  />
+
+  <EmptyContent activePage={activePage} />
+</div>
     </div>
   );
 }
