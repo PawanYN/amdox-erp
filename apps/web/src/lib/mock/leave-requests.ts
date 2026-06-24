@@ -1,0 +1,48 @@
+import { LeaveRequest } from "../types";
+
+export const mockLeaveRequests: LeaveRequest[] = [
+  {
+    id: "LR-001",
+    employeeId: "EMP-104",
+    employeeName: "Sneha Iyer",
+    leaveType: "Sick Leave",
+    fromDate: "2026-06-23",
+    toDate: "2026-06-24",
+    days: 2,
+    reason: "Fever, advised rest by doctor",
+    status: "Pending",
+  },
+  {
+    id: "LR-002",
+    employeeId: "EMP-103",
+    employeeName: "Vikram Singh",
+    leaveType: "Earned Leave",
+    fromDate: "2026-07-01",
+    toDate: "2026-07-05",
+    days: 5,
+    reason: "Family trip",
+    status: "Approved",
+  },
+  {
+    id: "LR-003",
+    employeeId: "EMP-101",
+    employeeName: "Aarav Sharma",
+    leaveType: "Casual Leave",
+    fromDate: "2026-06-20",
+    toDate: "2026-06-20",
+    days: 1,
+    reason: "Personal work",
+    status: "Rejected",
+  },
+  {
+    id: "LR-004",
+    employeeId: "EMP-102",
+    employeeName: "Riya Patel",
+    leaveType: "Earned Leave",
+    fromDate: "2026-06-28",
+    toDate: "2026-06-29",
+    days: 2,
+    reason: "Sister's wedding function",
+    status: "Pending",
+  },
+];
