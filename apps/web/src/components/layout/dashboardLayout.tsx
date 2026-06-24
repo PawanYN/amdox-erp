@@ -73,9 +73,9 @@ const NAV: NavSection[] = [
     label: "Finance",
     children: [
       { id: "/finance/accounts", label: "Chart of Accounts", day: "Day 8" },
-      { id: "/finance/journal", label: "Journal Entries", day: "Day 8" },
+      { id: "/finance/journal-entries", label: "Journal Entries", day: "Day 8" },
       { id: "/finance/invoices", label: "Invoices (AP/AR)", day: "Day 9" },
-      { id: "/finance/aging", label: "Aging Report", day: "Day 9" },
+      { id: "/finance/aging-report", label: "Aging Report", day: "Day 9" },
     ],
   },
   {
