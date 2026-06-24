@@ -84,7 +84,7 @@ const NAV: NavSection[] = [
     label: "HR",
     children: [
       { id: "/hr/employees", label: "Employees", day: "Day 10" },
-      { id: "/hr/leave", label: "Leave Requests", day: "Day 10" },
+      { id: "/hr/leave-requests", label: "Leave Requests", day: "Day 10" },
       { id: "/hr/attendance", label: "Attendance", day: "Day 10" },
       { id: "/hr/payroll", label: "Payroll", day: "Day 11" },
     ],
