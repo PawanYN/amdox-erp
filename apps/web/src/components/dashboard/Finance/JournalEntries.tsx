@@ -4,56 +4,54 @@ export default function JournalEntries() {
       id: "JE-001",
       date: "2026-06-20",
       description: "Office Rent Payment",
+      debit: "Rent Expense",
+      credit: "Cash",
       amount: "₹50,000",
-      status: "Posted",
+      locked: true,
     },
     {
       id: "JE-002",
       date: "2026-06-21",
       description: "Vendor Invoice",
+      debit: "Inventory",
+      credit: "Accounts Payable",
       amount: "₹25,000",
-      status: "Draft",
+      locked: false,
     },
     {
       id: "JE-003",
       date: "2026-06-22",
       description: "Salary Expense",
+      debit: "Salary Expense",
+      credit: "Cash",
       amount: "₹1,20,000",
-      status: "Posted",
+      locked: true,
     },
   ];
 
   return (
-    <div className="p-8 bg-gray-100 min-h-screen w-full text-black">
+    <div className="p-8 bg-gray-50 min-h-screen">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-slate-900">
+        <h1 className="text-3xl font-bold text-gray-800">
           Journal Entries
         </h1>
 
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
-          Create Entry
+        <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow">
+          + New Journal Entry
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-xl shadow overflow-hidden">
         <table className="w-full">
-          <thead className="bg-slate-100">
+          <thead className="bg-gray-100">
             <tr>
-              <th className="p-4 text-left text-slate-800 font-semibold">
-                Entry ID
-              </th>
-              <th className="p-4 text-left text-slate-800 font-semibold">
-                Date
-              </th>
-              <th className="p-4 text-left text-slate-800 font-semibold">
-                Description
-              </th>
-              <th className="p-4 text-left text-slate-800 font-semibold">
-                Amount
-              </th>
-              <th className="p-4 text-left text-slate-800 font-semibold">
-                Status
-              </th>
+              <th className="px-4 py-3 text-left">Entry ID</th>
+              <th className="px-4 py-3 text-left">Date</th>
+              <th className="px-4 py-3 text-left">Description</th>
+              <th className="px-4 py-3 text-left">Debit</th>
+              <th className="px-4 py-3 text-left">Credit</th>
+              <th className="px-4 py-3 text-left">Amount</th>
+              <th className="px-4 py-3 text-left">Status</th>
             </tr>
           </thead>
 
@@ -61,34 +59,27 @@ export default function JournalEntries() {
             {entries.map((entry) => (
               <tr
                 key={entry.id}
-                className="border-t hover:bg-gray-50 transition"
+                className="border-t hover:bg-gray-50"
               >
-                <td className="p-4 text-slate-900 font-medium">
-                  {entry.id}
-                </td>
-
-                <td className="p-4 text-slate-700">
-                  {entry.date}
-                </td>
-
-                <td className="p-4 text-slate-700">
-                  {entry.description}
-                </td>
-
-                <td className="p-4 text-slate-700 font-medium">
+                <td className="px-4 py-3">{entry.id}</td>
+                <td className="px-4 py-3">{entry.date}</td>
+                <td className="px-4 py-3">{entry.description}</td>
+                <td className="px-4 py-3">{entry.debit}</td>
+                <td className="px-4 py-3">{entry.credit}</td>
+                <td className="px-4 py-3 font-semibold">
                   {entry.amount}
                 </td>
 
-                <td className="p-4">
-                  <span
-                    className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      entry.status === "Posted"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-yellow-100 text-yellow-700"
-                    }`}
-                  >
-                    {entry.status}
-                  </span>
+                <td className="px-4 py-3">
+                  {entry.locked ? (
+                    <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-sm">
+                      🔒 Locked
+                    </span>
+                  ) : (
+                    <span className="bg-green-100 text-green-600 px-3 py-1 rounded-full text-sm">
+                      Editable
+                    </span>
+                  )}
                 </td>
               </tr>
             ))}
