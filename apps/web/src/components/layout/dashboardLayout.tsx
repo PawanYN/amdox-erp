@@ -66,7 +66,7 @@ interface NavSection {
 }
 
 const NAV: NavSection[] = [
-  { id: "/", icon: LayoutDashboard, label: "Home", leaf: true },
+  { id: "/home", icon: LayoutDashboard, label: "Home", leaf: true },
   {
     id: "finance",
     icon: Wallet,
