@@ -8,6 +8,10 @@ import Leads from "../../components/dashboard/CRM/Leads";
 import Customers from "../../components/dashboard/CRM/Customers";
 import Opportunities from "../../components/dashboard/CRM/Opportunities";
 import ReportsDashboard from "../../components/dashboard/Reports/ReportsDashboard";
+import Inventory from "@/components/dashboard/SCM/Inventory";
+import PurchaseOrders from "@/components/dashboard/SCM/PurchaseOrders";
+import Vendors from "@/components/dashboard/SCM/Vendors";
+
 
 import {
   LayoutDashboard,
@@ -130,9 +134,9 @@ const NAV: NavSection[] = [
     icon: Package,
     label: "Supply Chain",
     children: [
-      { id: "scm-vendors", label: "Vendors", day: "Day 12" },
-      { id: "scm-po", label: "Purchase Orders", day: "Day 12" },
-      { id: "scm-inventory", label: "Inventory", day: "Day 13" },
+        { id: "scm-inventory", label: "Inventory", day: "Day 13" },
+        { id: "scm-po", label: "PurchaseOrders", day: "Day 12" },
+        { id: "scm-vendors", label: "Vendors", day: "Day 12" }
     ],
   },
 
@@ -401,6 +405,15 @@ if (activePage === "crm-opportunities") {
 if (activePage === "reports") {
   return <ReportsDashboard />;
 }
+if (activePage === "scm-inventory") {
+  return <Inventory />;
+}
+if (activePage === "scm-po") {
+  return <PurchaseOrders />;
+}
+if (activePage === "scm-vendors") {
+  return <Vendors />;
+}
 
   // Default Placeholder Pages
   const allItems = NAV.flatMap((n) => (n.children || [n]) as NavItem[]);
@@ -418,7 +431,7 @@ if (activePage === "reports") {
         <p className="mt-4 text-[#14171F] font-medium text-sm">
           {label}
         </p>
-
+       
         <p className="mt-1 text-xs text-[#8A8678]">
           {day
             ? `Scheduled to build on ${day} — empty placeholder for now.`
