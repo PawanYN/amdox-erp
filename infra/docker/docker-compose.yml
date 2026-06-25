@@ -63,14 +63,14 @@ services:
     container_name: amdox-keycloak
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "8180:8080"
     environment:
       KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://api-db:5432/${DB_NAME:-amdox_erp}
-      KC_DB_USERNAME: ${DB_USER:-amdox}
-      KC_DB_PASSWORD: ${DB_PASSWORD:-amdox_dev_123}
-      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
-      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_DB_URL: jdbc:postgresql://api-db:5432/amdox_erp
+      KC_DB_USERNAME: amdox
+      KC_DB_PASSWORD: amdox_dev_123
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
       KC_HEALTH_ENABLED: "true"
       KC_HOSTNAME_STRICT: "false"
       KC_HTTP_ENABLED: "true"

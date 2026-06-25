@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
 import "../styles/globals.css";
+import { KeycloakProvider } from "../components/KeycloakProvider";
 
 export const metadata: Metadata = {
   title: "Amdox ERP Suite",
   description: "AI-powered cloud enterprise resource planning suite",
 };
-
-import { Providers } from "../components/providers";
 
 export default function RootLayout({
   children,
@@ -14,11 +13,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       <body className="antialiased">
-        <Providers>
+        <KeycloakProvider>
           {children}
-        </Providers>
+        </KeycloakProvider>
       </body>
     </html>
   );
