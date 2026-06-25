@@ -75,25 +75,43 @@ amdox-erp/
 
 ## Getting Started (Local Development Setup)
 
-Follow these steps to configure your environment and boot up the development stack:
+Follow these exact steps to configure your environment, set up the database, and configure Keycloak for local testing.
 
 ### Step 1: Start Databases & Services
-Boot up the infrastructure dependencies (PostgreSQL, Redis, Keycloak) running locally in Docker containers:
+Boot up PostgreSQL, Redis, and Keycloak running locally in Docker containers:
 ```bash
 docker compose -f infra/docker/docker-compose.yml up -d
 ```
 
 ### Step 2: Configure Environment Variables
-Initialize your local environment file by copying the template:
+Initialize your local environment files by copying the provided templates:
 ```bash
+# 1. Setup the main project variables
 cp .env.example .env
+
+# 2. Setup the Prisma database variables (CRITICAL)
+# This uses the `erp` schema to keep it safely separated from Keycloak!
+cd packages/db
+cp .env.example .env
+cd ../..
 ```
 
-### Step 3: Run Database Migrations (Create Tables)
-Run the migration script against the PostgreSQL container to physically create the 24 ERP database tables:
-```bash
-npx pnpm db:migrate
+### Step 3: Setup Keycloak (SSO)
+Run the automated script to configure Keycloak. This will create the `amdox-erp` realm, the client app, and a dummy user (`erp-admin` / password: `password123`):
+```powershell
+# Run this from the root directory
+.\scripts\setup-keycloak.ps1
 ```
+
+### Step 4: Build Database & Insert Dummy Data
+Now we need to tell Prisma to build the tables and insert our dummy Tenant and `erp-admin` User so you can actually log in.
+```bash
+cd packages/db
+npx prisma db push
+npm run db:seed
+cd ../..
+```
+*(Note: Do not skip Step 2's `.env` file before running this, or Prisma might accidentally delete Keycloak's tables!)*
 
 ---
 
