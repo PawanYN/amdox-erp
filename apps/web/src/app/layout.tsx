@@ -6,6 +6,8 @@ export const metadata: Metadata = {
   description: "AI-powered cloud enterprise resource planning suite",
 };
 
+import { Providers } from "../components/providers";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -14,7 +16,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
-        {children}
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   );
