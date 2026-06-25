@@ -1,0 +1,48 @@
+import { PayrollRecord } from "../types";
+
+export const mockPayroll: PayrollRecord[] = [
+  {
+    id: "PR-001",
+    employeeId: "EMP-101",
+    employeeName: "Aarav Sharma",
+    payPeriod: "Jun 2026",
+    grossPay: 95000,
+    deductions: 14250,
+    netPay: 80750,
+    status: "Processed",
+    payslipUrl: "/mock-payslips/EMP-101-jun-2026.pdf",
+  },
+  {
+    id: "PR-002",
+    employeeId: "EMP-102",
+    employeeName: "Riya Patel",
+    payPeriod: "Jun 2026",
+    grossPay: 110000,
+    deductions: 16500,
+    netPay: 93500,
+    status: "Processed",
+    payslipUrl: "/mock-payslips/EMP-102-jun-2026.pdf",
+  },
+  {
+    id: "PR-003",
+    employeeId: "EMP-103",
+    employeeName: "Vikram Singh",
+    payPeriod: "Jun 2026",
+    grossPay: 88000,
+    deductions: 13200,
+    netPay: 74800,
+    status: "Pending",
+    payslipUrl: null,
+  },
+  {
+    id: "PR-004",
+    employeeId: "EMP-104",
+    employeeName: "Sneha Iyer",
+    payPeriod: "Jun 2026",
+    grossPay: 35000,
+    deductions: 1750,
+    netPay: 33250,
+    status: "Pending",
+    payslipUrl: null,
+  },
+];
