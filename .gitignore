@@ -43,3 +43,7 @@ Thumbs.db
 *.njsproj
 *.sln
 *.swp
+
+# Auto-generated API specs
+openapi-spec.json
+postman_collection.json
