@@ -7,20 +7,23 @@ export class HealthService {
     return { status: 'ok' };
   }
 
+  async checkDb() {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      return { status: 'connected' };
+    } catch (error) {
+      console.error('API HealthCheck Prisma error:', error);
+      return { status: 'disconnected', error: (error as Error).message };
+    }
+  }
+
   async checkReadiness() {
-    let dbStatus = 'disconnected';
     let redisStatus = 'disconnected';
     let esStatus = 'disconnected';
 
-    // 1. Check Database using our shared @amdox/db client
-    console.log('API HealthCheck DATABASE_URL:', process.env.DATABASE_URL);
-    try {
-      await prisma.$queryRaw`SELECT 1`;
-      dbStatus = 'connected';
-    } catch (error) {
-      console.error('API HealthCheck Prisma error:', error);
-      dbStatus = 'disconnected';
-    }
+    // 1. Check Database using our specific method
+    const dbCheck = await this.checkDb();
+    const dbStatus = dbCheck.status;
 
     // 2. Check Redis (Placeholder for future setup)
     try {

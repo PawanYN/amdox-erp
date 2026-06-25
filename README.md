@@ -159,4 +159,20 @@ All database actions are centralized under the `@amdox/db` package. You can run 
 * **`npx pnpm db:migrate`** — Applies schema changes and updates the database tables.
 * **`npx pnpm db:seed`** — Seeds the database with development mock data.
 
+---
+
+## API Documentation & Testing
+
+### Interactive Swagger UI
+When the NestJS API is running locally, it automatically generates a live, interactive Swagger documentation page. 
+You can view all available endpoints, required payloads, and test them directly from your browser:
+* **URL:** [http://localhost:3001/api-docs](http://localhost:3001/api-docs)
+
+### Auto-generated Postman Collection
+The API automatically generates an OpenAPI specification file (`openapi-spec.json`) when it starts up. You can instantly convert this into a ready-to-use Postman collection for your team:
+```bash
+npx pnpm --filter api run postman
+```
+This generates a `postman_collection.json` file inside the `apps/api` folder which you can import directly into Postman to test all routes.
+
 

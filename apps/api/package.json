@@ -7,7 +7,8 @@
     "start": "nest start",
     "dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/main"
+    "start:prod": "node dist/main",
+    "postman": "openapi-to-postmanv2 -s openapi-spec.json -o postman_collection.json -p"
   },
   "dependencies": {
     "@amdox/db": "workspace:*",

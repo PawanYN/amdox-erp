@@ -1,5 +1,6 @@
 import * as dotenv from 'dotenv';
 import * as path from 'path';
+import * as fs from 'fs';
 
 // Load environment variables from the root .env file
 dotenv.config();
@@ -25,7 +26,13 @@ async function bootstrap() {
     .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  SwaggerModule.setup('api-docs', app, document);
+
+  // Auto-generate the OpenAPI spec for Postman
+  fs.writeFileSync(
+    path.join(process.cwd(), 'openapi-spec.json'),
+    JSON.stringify(document, null, 2)
+  );
 
   // Set up port from env or default to 3001
   const port = process.env.PORT || 3001;

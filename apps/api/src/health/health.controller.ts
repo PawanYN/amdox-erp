@@ -21,4 +21,14 @@ export class HealthController {
       return res.status(HttpStatus.SERVICE_UNAVAILABLE).json(result);
     }
   }
+
+  @Get('db')
+  async getDb(@Res() res: Response) {
+    const result = await this.healthService.checkDb();
+    if (result.status === 'connected') {
+      return res.status(HttpStatus.OK).json(result);
+    } else {
+      return res.status(HttpStatus.SERVICE_UNAVAILABLE).json(result);
+    }
+  }
 }
