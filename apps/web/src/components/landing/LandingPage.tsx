@@ -1,6 +1,8 @@
 "use client";
 
+import { useKeycloak } from "../KeycloakProvider";
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   ArrowRight,
   Lock,
@@ -162,6 +164,9 @@ function Hero({ onLoginClick }: HeroProps) {
           <button className="px-5 py-2.5 rounded-md border border-[#D8D5CC] text-sm font-medium text-[#14171F] hover:bg-[#F4F2EC] transition-colors">
             Request Demo
           </button>
+          <Link href="/home" className="inline-flex items-center px-5 py-2.5 rounded-md border border-[#D8D5CC] text-sm font-medium text-[#14171F] bg-[#F4F2EC] hover:bg-[#E4E2DC] transition-colors">
+            Bypass to Dashboard
+          </Link>
         </div>
       </div>
       <DashboardPreview />
@@ -233,20 +238,16 @@ function LoginPlaceholder({ onBack }: LoginPlaceholderProps) {
 }
 
 export default function LandingPage() {
-  const [page, setPage] = useState("landing"); // "landing" | "login"
+  const { login } = useKeycloak();
 
   return (
     <div style={{ fontFamily: "'IBM Plex Sans', sans-serif" }}>
       <style>{FONT_IMPORT}</style>
-      {page === "landing" ? (
-        <div className="bg-white min-h-screen">
-          <Nav onLoginClick={() => setPage("login")} />
-          <Hero onLoginClick={() => setPage("login")} />
-          <ModulesRow />
-        </div>
-      ) : (
-        <LoginPlaceholder onBack={() => setPage("landing")} />
-      )}
+      <div className="bg-white min-h-screen">
+        <Nav onLoginClick={login} />
+        <Hero onLoginClick={login} />
+        <ModulesRow />
+      </div>
     </div>
   );
 }

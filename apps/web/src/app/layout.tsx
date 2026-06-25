@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "../styles/globals.css";
+import { KeycloakProvider } from "../components/KeycloakProvider";
 
 export const metadata: Metadata = {
   title: "Amdox ERP Suite",
@@ -14,7 +15,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
-        {children}
+        <KeycloakProvider>
+          {children}
+        </KeycloakProvider>
       </body>
     </html>
   );
