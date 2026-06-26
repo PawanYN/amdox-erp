@@ -1,28 +1,46 @@
 /**
+ * ============================================================================
  * SERVICE: payroll.service.ts
+ * ============================================================================
  * 
- * Business logic for HR payroll. Handles payroll runs, payslip generation and
- * employee payroll aggregation.
+ * WHAT THIS FILE DOES:
+ * This service controls the HR Payroll lifecycle. It manages initiating 
+ * payroll runs for a specific month and fetching historical payslips.
+ * 
+ * HOW IT IS IMPLEMENTED (NOW WITH BULLMQ!):
+ * - `enqueuePayrollRun`: When an HR admin triggers a payroll run, this 
+ *   function no longer does the heavy lifting itself! Instead, it creates a 
+ *   `PayrollRun` record in the database with status `PROCESSING`, and pushes 
+ *   a fast, reliable message into the `payroll` Redis queue via BullMQ. 
+ * - The actual heavy calculation (gross-to-net, PDF generation) is handled 
+ *   asynchronously by our background worker (`payroll.processor.ts`).
+ * - This ensures the API immediately returns HTTP 202 to the frontend, 
+ *   keeping the UI snappy even if we are processing 10,000 employees.
+ * 
+ * RELEVANT CONTEXT FOR NEW DEVS:
+ * BullMQ uses Redis to guarantee that jobs are not lost if the Node.js server 
+ * crashes. If a crash happens mid-payroll, BullMQ will simply retry the job!
+ * ============================================================================
  */
-import { Injectable, BadRequestException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
-import { PrismaClient, PayrollRunStatus, EmploymentStatus } from '@amdox/db';
-
-interface PayrollRow {
-  employeeId: string;
-  employeeName: string;
-  grossPay: number;
-  deductions: number;
-  netPay: number;
-  payslipUrl: string | null;
-}
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { PrismaClient, PayrollRunStatus } from '@amdox/db';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { PayslipGenerator } from './payslip-generator';
 
 @Injectable()
 export class PayrollService {
   private prisma = new PrismaClient();
 
+  constructor(
+    @InjectQueue('payroll') private payrollQueue: Queue,
+    private payslipGenerator: PayslipGenerator
+  ) {}
+
   async enqueuePayrollRun(tenantId: string, payPeriod: string) {
     const period = this.normalizePayPeriod(payPeriod);
 
+    // Create the tracker record
     const payrollRun = await this.prisma.payrollRun.create({
       data: {
         tenantId,
@@ -32,11 +50,19 @@ export class PayrollService {
       },
     });
 
-    void this.processPayrollRun(payrollRun.id, tenantId, period.start, period.end, period.label);
+    // Enqueue the background job to BullMQ
+    await this.payrollQueue.add('run', {
+      payrollRunId: payrollRun.id,
+      tenantId,
+      start: period.start,
+      end: period.end,
+      label: period.label,
+    });
 
     return {
       payrollRunId: payrollRun.id,
       status: 'processing',
+      message: 'Payroll run queued successfully in the background.'
     };
   }
 
@@ -118,110 +144,16 @@ export class PayrollService {
       throw new NotFoundException('Payslip not found');
     }
 
-    return this.createPdfBuffer(payslip.employee.fullName, payslip.payrollRun.periodLabel, {
-      grossPay: Number(payslip.grossPay),
-      deductions: Number(payslip.deductions),
-      netPay: Number(payslip.netPay),
-    });
-  }
-
-  private async processPayrollRun(payrollRunId: string, tenantId: string, start: Date, end: Date, label: string) {
-    try {
-      const employees = await this.prisma.employee.findMany({
-        where: {
-          tenantId,
-          status: EmploymentStatus.ACTIVE,
-        },
-        include: {
-          contracts: {
-            where: {
-              startDate: { lte: end },
-              OR: [
-                { endDate: null },
-                { endDate: { gte: start } },
-              ],
-            },
-            orderBy: { startDate: 'desc' },
-          },
-        },
-      });
-
-      const employeeIds = employees.map((employee) => employee.id);
-      const attendanceRecords = await this.prisma.attendanceRecord.findMany({
-        where: {
-          tenantId,
-          employeeId: { in: employeeIds },
-          clockIn: { gte: start, lt: end },
-          clockOut: { not: null },
-        },
-      });
-
-      const payslipRows = employees
-        .map((employee) => {
-          const contract = employee.contracts[0];
-          if (!contract) {
-            return null;
-          }
-
-          const relevantRecords = attendanceRecords.filter((record) => record.employeeId === employee.id);
-          const overtimeMins = relevantRecords.reduce((sum, record) => sum + record.overtimeMins, 0);
-          const overtimeHours = overtimeMins / 60;
-
-          const salary = Number(contract.salary);
-          const monthlyHours = 160;
-          const hourlyRate = salary / monthlyHours;
-          const overtimePay = overtimeHours * hourlyRate * 1.5;
-          const grossPay = Number((salary + overtimePay).toFixed(4));
-          const deductions = Number((grossPay * 0.12).toFixed(4));
-          const netPay = Number((grossPay - deductions).toFixed(4));
-
-          return {
-            employeeId: employee.id,
-            employeeName: employee.fullName,
-            grossPay,
-            deductions,
-            netPay,
-            payslipUrl: `/hr/payroll/${employee.id}/payslip`,
-          };
-        })
-        .filter((row): row is PayrollRow => row !== null);
-
-      const createdPayslips = await this.prisma.$transaction(
-        payslipRows.map((row) =>
-          this.prisma.payslip.create({
-            data: {
-              tenantId,
-              payrollRunId,
-              employeeId: row.employeeId,
-              grossPay: row.grossPay,
-              deductions: row.deductions,
-              netPay: row.netPay,
-              pdfUrl: row.payslipUrl,
-            },
-          }),
-        ),
-      );
-
-      const totalNetPay = createdPayslips.reduce((sum, payslip) => sum + Number(payslip.netPay), 0);
-
-      await this.prisma.payrollRun.update({
-        where: { id: payrollRunId },
-        data: {
-          totalNetPay: totalNetPay.toFixed(4),
-          status: PayrollRunStatus.COMPLETED,
-          completedAt: new Date(),
-        },
-      });
-    } catch (error) {
-      await this.prisma.payrollRun.update({
-        where: { id: payrollRunId },
-        data: {
-          status: PayrollRunStatus.FAILED,
-          completedAt: new Date(),
-        },
-      });
-      console.error('Payroll run failed:', error);
-    }
+    // Return the dynamically generated PDF buffer using proper pdfkit
+    return this.payslipGenerator.generatePdfBuffer(
+      payslip.employee.fullName,
+      payslip.payrollRun.periodLabel,
+      {
+        grossPay: Number(payslip.grossPay),
+        deductions: Number(payslip.deductions),
+        netPay: Number(payslip.netPay),
+      }
+    );
   }
 
   private normalizePayPeriod(payPeriod: string) {
@@ -253,48 +185,5 @@ export class PayrollService {
 
     return { start, end, label };
   }
-
-  private createPdfBuffer(employeeName: string, payPeriod: string, amounts: { grossPay: number; deductions: number; netPay: number }) {
-    const lines = [
-      `Amdox ERP Payslip`,
-      `Employee: ${employeeName}`,
-      `Pay Period: ${payPeriod}`,
-      `Gross Pay: ₹${amounts.grossPay.toFixed(2)}`,
-      `Deductions: ₹${amounts.deductions.toFixed(2)}`,
-      `Net Pay: ₹${amounts.netPay.toFixed(2)}`,
-    ];
-
-    const escape = (text: string) => text.replace(/([\\()])/g, '\\$1');
-    const contentLines = lines
-      .map((line, index) => `40 ${760 - index * 20} Td (${escape(line)}) Tj`)
-      .join('\n');
-    const contentStream = `BT /F1 12 Tf\n${contentLines}\nET\n`;
-
-    const objects = [
-      '%PDF-1.1\n',
-      `1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n`,
-      `2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n`,
-      `3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n`,
-      `4 0 obj\n<< /Length ${Buffer.byteLength(contentStream, 'utf8')} >>\nstream\n${contentStream}endstream\nendobj\n`,
-      `5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n`,
-    ];
-
-    let offset = 0;
-    const xrefEntries: string[] = ['0000000000 65535 f \n'];
-    const bodyParts: Buffer[] = [];
-
-    for (const object of objects) {
-      const buffer = Buffer.from(object, 'utf8');
-      bodyParts.push(buffer);
-      xrefEntries.push(offset.toString().padStart(10, '0') + ' 00000 n \n');
-      offset += buffer.length;
-    }
-
-    const body = Buffer.concat(bodyParts);
-    const xrefStart = body.length;
-    const xrefHeader = Buffer.from(`xref\n0 ${objects.length + 1}\n${xrefEntries.join('')}`, 'utf8');
-    const trailer = Buffer.from(`trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF\n`, 'utf8');
-
-    return Buffer.concat([body, xrefHeader, trailer]);
-  }
 }
+

@@ -224,6 +224,7 @@ model Tenant {
   stockLevels     StockLevel[]
   stockMovements  StockMovement[]
   reorderRules    ReorderRule[]
+  taxSlabs        TaxSlab[]
 
   forecastModels  ForecastModel[]
   forecastPredictions ForecastPrediction[]
@@ -632,6 +633,18 @@ model Employee {
   @@index([departmentId])
 }
 
+model TaxSlab {
+  id        String   @id @default(uuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  name      String
+  minSalary Decimal  @db.Decimal(18, 4)
+  maxSalary Decimal? @db.Decimal(18, 4)
+  rate      Decimal  @db.Decimal(10, 4) // e.g. 0.12 for 12%
+
+  @@index([tenantId])
+}
+
 model EmploymentContract {
   id          String   @id @default(uuid())
   tenantId    String
@@ -768,6 +781,7 @@ model Vendor {
 
   purchaseOrders PurchaseOrder[]
   invoices       Invoice[]
+  products       Product[]
 
   @@index([tenantId])
 }
@@ -782,6 +796,7 @@ model Warehouse {
 
   stockLevels    StockLevel[]
   stockMovements StockMovement[]
+  goodsReceipts  GoodsReceipt[]
 
   @@index([tenantId])
 }
@@ -803,6 +818,9 @@ model Product {
   reorderRules        ReorderRule[]
   purchaseOrderLines  PurchaseOrderLine[]
   forecastPredictions ForecastPrediction[]
+
+  defaultVendorId     String?
+  defaultVendor       Vendor?  @relation(fields: [defaultVendorId], references: [id])
 
   @@unique([tenantId, sku])
   @@index([tenantId])
@@ -867,6 +885,8 @@ model GoodsReceipt {
   tenant          Tenant        @relation(fields: [tenantId], references: [id])
   purchaseOrderId String
   purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  warehouseId     String
+  warehouse       Warehouse     @relation(fields: [warehouseId], references: [id])
   receivedAt      DateTime      @default(now())
   notes           String?
 

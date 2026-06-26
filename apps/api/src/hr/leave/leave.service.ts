@@ -1,11 +1,14 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaClient, LeaveStatus } from '@amdox/db';
 import { CreateLeaveDto } from '../dto/create-leave.dto';
 import { ApproveLeaveDto } from '../dto/approve-leave.dto';
+import { LeaveStateMachine } from './leave-state-machine';
 
 @Injectable()
 export class LeaveService {
   private prisma = new PrismaClient();
+
+  constructor(private readonly leaveStateMachine: LeaveStateMachine) {}
 
   async createRequest(tenantId: string, createLeaveDto: CreateLeaveDto) {
     const start = new Date(createLeaveDto.startDate);
@@ -19,10 +22,10 @@ export class LeaveService {
       data: {
         tenantId,
         employeeId: createLeaveDto.employeeId,
-        leaveTypeId: createLeaveDto.leaveType, // Note: In reality we should update the DTO to leaveTypeId
+        leaveTypeId: createLeaveDto.leaveType, 
         startDate: start,
         endDate: end,
-        status: LeaveStatus.PENDING, // State Machine: Initial state
+        status: LeaveStatus.PENDING,
       },
     });
   }
@@ -34,7 +37,6 @@ export class LeaveService {
     });
   }
 
-  // STATE MACHINE: Transitions 'PENDING' to 'APPROVED' or 'REJECTED'
   async approveOrReject(tenantId: string, leaveId: string, approveLeaveDto: ApproveLeaveDto, isTenantAdmin: boolean) {
     const leave = await this.prisma.leaveRequest.findUnique({
       where: { id: leaveId },
@@ -45,14 +47,13 @@ export class LeaveService {
       throw new NotFoundException('Leave request not found.');
     }
 
-    if (leave.status !== LeaveStatus.PENDING) {
-      throw new BadRequestException(`Cannot change status. Leave is already ${leave.status}.`);
-    }
-
-    // Enforcement of Business Rule #1: Only Direct Manager or Admin can approve
-    if (!isTenantAdmin && leave.employee.managerId !== approveLeaveDto.managerEmployeeId) {
-      throw new ForbiddenException('Only the direct manager can approve this leave request.');
-    }
+    // Delegate business rule enforcement to the State Machine
+    this.leaveStateMachine.validateTransition(
+      leave, 
+      approveLeaveDto.status as unknown as LeaveStatus, 
+      approveLeaveDto.managerEmployeeId, 
+      isTenantAdmin
+    );
 
     return this.prisma.leaveRequest.update({
       where: { id: leaveId },
@@ -63,3 +64,4 @@ export class LeaveService {
     });
   }
 }
+
