@@ -9,7 +9,7 @@
  * ============================================================================
  */
 import { Injectable } from '@nestjs/common';
-import * as PDFDocument from 'pdfkit';
+import PDFDocument = require('pdfkit');
 
 @Injectable()
 export class PayslipGenerator {
@@ -34,12 +34,12 @@ export class PayslipGenerator {
           .moveDown();
 
         // Employee Info
-        doc
-          .fontSize(12)
-          .font('Helvetica')
-          .text(`Employee Name: ${employeeName}`)
-          .text(`Pay Period: ${payPeriod}`)
-          .moveDown();
+        doc.fontSize(16).text('PAYSLIP', { align: 'center' });
+        doc.moveDown();
+
+        doc.fontSize(12).fillColor('gray').text(`Employee Name: ${employeeName}`);
+        doc.fillColor('black').text(`Pay Period: ${payPeriod}`);
+        doc.moveDown();
 
         // Financials
         doc
@@ -54,7 +54,8 @@ export class PayslipGenerator {
           .moveDown(2)
           .fontSize(10)
           .font('Helvetica-Oblique')
-          .text('This is a computer generated document and requires no signature.', { align: 'center', color: 'gray' });
+          .fillColor('gray')
+          .text('This is a computer generated document and requires no signature.', { align: 'center' });
 
         doc.end();
       } catch (err) {

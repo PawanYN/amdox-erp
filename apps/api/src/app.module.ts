@@ -6,6 +6,8 @@ import { ScmModule } from './scm/scm.module';
 import { AppController } from './app.controller';
 import { RedisModule } from './common/redis/redis.module';
 import { BullModule } from '@nestjs/bullmq';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -16,6 +18,8 @@ import { BullModule } from '@nestjs/bullmq';
         port: parseInt(process.env.REDIS_PORT || '6379', 10),
       },
     }),
+    EventEmitterModule.forRoot(),
+    ScheduleModule.forRoot(),
     HealthModule, 
     FinanceModule, 
     HrModule, 
