@@ -3,6 +3,7 @@ import { HealthModule } from './health/health.module';
 import { FinanceModule } from './finance/finance.module';
 import { HrModule } from './hr/hr.module';
 import { ScmModule } from './scm/scm.module';
+import { PmModule } from './pm/pm.module';
 import { AppController } from './app.controller';
 import { RedisModule } from './common/redis/redis.module';
 import { BullModule } from '@nestjs/bullmq';
@@ -23,7 +24,8 @@ import { ScheduleModule } from '@nestjs/schedule';
     HealthModule, 
     FinanceModule, 
     HrModule, 
-    ScmModule
+    ScmModule,
+    PmModule
   ],
   controllers: [AppController],
 })
