@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Amdox ERP — Detailed Flow</title>
+<style>
+  :root{
+    --navy:#1b2a4a; --ink:#1b2330; --sub:#5b6675; --line:#e2e5ea;
+    --blue:#eaf2fb; --blue-b:#a9c6e8; --blue-d:#3b6db5;
+    --amber:#fff3e0; --amber-b:#f0c282; --amber-d:#d98a2b;
+    --teal:#e6f7f3; --teal-b:#8fd6c2; --teal-d:#1e9c79;
+    --coral:#fdeaea; --coral-b:#e9a7a7; --coral-d:#c95c5c;
+    --purple:#f1ecfa; --purple-b:#c3aee8; --purple-d:#7a51c9;
+    --green:#eaf7ec; --green-b:#a8d8ae; --green-d:#3a9b4a;
+    --yellow:#fff9e0; --yellow-b:#e8d98a;
+    --gray:#f4f5f7; --gray-b:#cfd3da;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;padding:30px;background:#f5f6f9;font-family:'Segoe UI',Arial,sans-serif;color:var(--ink);font-size:12px;}
+  .sheet{max-width:1400px;margin:0 auto;}
+  h1{text-align:center;font-size:27px;color:var(--navy);margin:0 0 4px;letter-spacing:.4px;}
+  .sub{text-align:center;font-size:13.5px;color:var(--sub);margin:0 0 8px;}
+  .legend-key{text-align:center;font-size:11px;color:var(--sub);margin:0 0 18px;}
+  .legend-key span{display:inline-block;margin:0 8px;padding:2px 8px;border-radius:4px;border:1px solid;}
+  .bar{background:var(--navy);color:#fff;padding:10px 16px;border-radius:6px;font-size:15px;font-weight:600;margin:26px 0 16px;text-align:center;}
+  .bar.alt{background:#2b4470;}
+
+  .stage{border-radius:10px;border:1px solid;padding:0;margin-bottom:6px;overflow:hidden;}
+  .stage-head{padding:9px 12px;display:flex;align-items:center;gap:9px;font-weight:700;font-size:13px;color:#fff;}
+  .stage-num{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:11px;}
+  .stage-body{padding:11px 13px;background:#fff;}
+  .grid3{display:grid;grid-template-columns:1.1fr 1fr 1.15fr;gap:0;}
+  .cell{padding:4px 12px;border-right:1px solid var(--line);}
+  .cell:last-child{border-right:none;}
+  .cell h5{margin:0 0 5px;font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--sub);}
+  .cell ul{margin:0;padding-left:15px;}
+  .cell li{margin:2.5px 0;line-height:1.35;}
+  .tag{display:inline-block;background:var(--gray);border:1px solid var(--gray-b);border-radius:4px;padding:1px 6px;margin:2px 3px 2px 0;font-size:10px;font-family:'Consolas',monospace;}
+
+  .arrow{display:flex;align-items:center;gap:8px;margin:2px 0 8px 14px;font-size:10.5px;color:var(--sub);flex-wrap:wrap;}
+  .arrow .glyph{color:#9aa3b0;font-size:16px;}
+  .arrow .payload{background:#fffceb;border:1px solid #ecdd9a;border-radius:5px;padding:2px 8px;font-family:'Consolas',monospace;font-size:10px;color:#6b5d1f;}
+  .arrow .evt{background:#f1ecfa;border:1px solid #c3aee8;border-radius:5px;padding:2px 8px;font-family:'Consolas',monospace;font-size:10px;color:#7a51c9;font-weight:700;}
+  .arrow .tbl{background:#e6f7f3;border:1px solid #8fd6c2;border-radius:5px;padding:2px 8px;font-family:'Consolas',monospace;font-size:10px;color:#1e9c79;}
+  .arrow .lbl{font-size:9.5px;color:#9aa3b0;text-transform:uppercase;letter-spacing:.4px;}
+
+  /* START / END chain markers */
+  .marker{display:inline-flex;align-items:center;gap:6px;border-radius:20px;padding:4px 14px;font-size:11px;font-weight:700;margin:4px 0;}
+  .marker.start{background:#e6f7f3;border:1.5px solid #1e9c79;color:#157a5f;}
+  .marker.end{background:#fdeaea;border:1.5px solid #c95c5c;color:#a23b3b;}
+  .marker .dot{width:9px;height:9px;border-radius:50%;}
+  .marker.start .dot{background:#1e9c79;}
+  .marker.end .dot{background:#c95c5c;}
+  .marker .evname{font-family:'Consolas',monospace;font-weight:400;font-size:10px;opacity:.85;}
+  .chain-line{margin:4px 0 4px 14px;}
+
+  /* user persona tags */
+  .users{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;padding-top:9px;border-top:1px dashed #d8dce3;}
+  .users-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:#9aa3b0;width:100%;margin-bottom:2px;}
+  .utag{display:inline-flex;flex-direction:column;background:#eef1f6;border:1px solid #cfd6e2;border-left:3px solid #5b6675;border-radius:5px;padding:4px 9px;max-width:230px;}
+  .utag b{font-size:10px;color:#2b3a52;}
+  .utag span{font-size:9px;color:#5b6675;line-height:1.25;margin-top:1px;}
+  .utag.exec{border-left-color:#7a51c9;} .utag.fin{border-left-color:#1e9c79;}
+  .utag.hr{border-left-color:#3a9b4a;} .utag.scm{border-left-color:#d98a2b;}
+  .utag.pm{border-left-color:#c95c5c;} .utag.it{border-left-color:#3b6db5;}
+
+  /* PM connections hub box */
+  .pm-hub{border:2px solid #c3aee8;border-radius:12px;background:#faf8fe;padding:18px;}
+  .pm-hub-grid{display:grid;grid-template-columns:1fr 90px 1fr;gap:0;align-items:center;}
+  .pm-center{background:#7a51c9;color:#fff;border-radius:12px;padding:16px 10px;text-align:center;}
+  .pm-center b{font-size:14px;} .pm-center span{font-size:10px;opacity:.9;display:block;margin-top:4px;line-height:1.3;}
+  .pm-spoke{border-radius:10px;padding:11px 13px;border:1px solid;margin:8px 0;}
+  .pm-spoke h5{margin:0 0 5px;font-size:12px;display:flex;align-items:center;gap:6px;}
+  .pm-spoke p{margin:3px 0;font-size:10.5px;line-height:1.4;}
+  .pm-spoke .dir{display:inline-block;font-family:monospace;font-size:9.5px;background:#fff;border:1px solid #ccc;border-radius:4px;padding:1px 6px;margin-top:4px;}
+  .pm-spoke .ev{font-family:monospace;font-size:9.5px;color:#7a51c9;}
+  .pm-spoke.hr{background:#eaf7ec;border-color:#a8d8ae;} .pm-spoke.hr h5{color:#2e7d3a;}
+  .pm-spoke.scm{background:#fff3e0;border-color:#f0c282;} .pm-spoke.scm h5{color:#b06d1a;}
+  .pm-spoke.fin{background:#e6f7f3;border-color:#8fd6c2;} .pm-spoke.fin h5{color:#157a5f;}
+  .pm-arrow-row{display:flex;align-items:center;justify-content:center;font-size:10px;color:#7a51c9;font-weight:700;height:100%;flex-direction:column;gap:2px;}
+  .pm-arrow-glyph{font-size:22px;color:#a98fd8;line-height:1;}
+  .pm-summary{margin-top:14px;background:#f1ecfa;border:1px solid #c3aee8;border-radius:8px;padding:11px 14px;font-size:11px;line-height:1.5;}
+  .pm-ddd{margin-top:8px;background:#fff8e6;border:1px solid #e8d98a;border-radius:8px;padding:10px 13px;font-size:10.5px;line-height:1.45;color:#6b5d1f;}
+
+  /* stage colors */
+  .s-blue{border-color:var(--blue-b);} .s-blue .stage-head{background:var(--blue-d);}
+  .s-amber{border-color:var(--amber-b);} .s-amber .stage-head{background:var(--amber-d);}
+  .s-teal{border-color:var(--teal-b);} .s-teal .stage-head{background:var(--teal-d);}
+  .s-coral{border-color:var(--coral-b);} .s-coral .stage-head{background:var(--coral-d);}
+  .s-purple{border-color:var(--purple-b);} .s-purple .stage-head{background:var(--purple-d);}
+  .s-green{border-color:var(--green-b);} .s-green .stage-head{background:var(--green-d);}
+
+  .parallel-wrap{display:flex;gap:16px;flex-wrap:wrap;}
+  .parallel-box{flex:1 1 480px;border:1.5px dashed #b9c0cc;border-radius:10px;padding:14px;}
+  .parallel-box h4{margin:0 0 12px;font-size:13.5px;}
+  .mini{border-radius:8px;border:1px solid;padding:8px 10px;margin-bottom:6px;}
+  .mini h5{margin:0 0 4px;font-size:11.5px;}
+  .mini .tags{margin-top:4px;}
+  .note{margin-top:8px;background:#fffceb;border:1px solid #ecdd9a;border-radius:7px;padding:8px 10px;font-size:10.5px;color:#5b5430;}
+  .note.pm{background:#f5eefc;border-color:#d3bdf0;color:#4a2f6b;}
+  .mini-arrow{display:flex;align-items:center;gap:6px;margin:1px 0 5px 8px;font-size:9.5px;color:var(--sub);flex-wrap:wrap;}
+  .mini-arrow .g{color:#9aa3b0;}
+  .mini-arrow .e{background:#f1ecfa;border:1px solid #c3aee8;border-radius:4px;padding:1px 6px;font-family:'Consolas',monospace;font-size:9px;color:#7a51c9;font-weight:700;}
+  .mini-arrow .t{background:#e6f7f3;border:1px solid #8fd6c2;border-radius:4px;padding:1px 6px;font-family:'Consolas',monospace;font-size:9px;color:#1e9c79;}
+  .mini-marker{display:inline-flex;align-items:center;gap:5px;border-radius:16px;padding:3px 10px;font-size:9.5px;font-weight:700;margin:2px 0;}
+  .mini-marker.s{background:#e6f7f3;border:1.5px solid #1e9c79;color:#157a5f;}
+  .mini-marker.en{background:#fdeaea;border:1.5px solid #c95c5c;color:#a23b3b;}
+  .mini-marker .d{width:7px;height:7px;border-radius:50%;}
+  .mini-marker.s .d{background:#1e9c79;}
+  .mini-marker.en .d{background:#c95c5c;}
+
+  .support-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+  .support{border-radius:9px;border:1px solid;padding:11px 13px;}
+  .support h4{margin:0 0 7px;font-size:12.5px;}
+  .support .tags{margin-top:6px;}
+
+  .two-col{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;}
+  .two-col>div{flex:1 1 480px;}
+  .dep-table{width:100%;border-collapse:collapse;font-size:10.6px;}
+  .dep-table td{padding:5px 8px;border-bottom:1px solid var(--line);vertical-align:top;}
+  .dep-table tr:nth-child(odd){background:#f7f5fa;}
+  .dep-table .k{font-weight:700;white-space:nowrap;font-family:'Consolas',monospace;font-size:10px;}
+  .dep-table .ev{color:var(--purple-d);font-family:'Consolas',monospace;font-size:9.5px;}
+
+  .summary-box{background:#eef3fb;border:1px solid #c3d3ec;border-radius:9px;padding:14px 16px;}
+  .summary-box div{margin:7px 0;line-height:1.4;}
+  .takeaway{background:var(--navy);color:#fff;border-radius:9px;padding:16px 18px;margin-top:14px;text-align:center;}
+  .takeaway p{margin:5px 0;opacity:.92;line-height:1.45;}
+  .stack-legend{font-size:10px;color:var(--sub);margin-top:4px;}
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <h1>AMDOX ERP — DETAILED MODULE FLOW</h1>
+  <p class="sub">Data on every arrow · Tech stack per module · Sub-steps inside each stage</p>
+  <p class="legend-key">
+    <span style="background:var(--blue);border-color:var(--blue-b);">Auth</span>
+    <span style="background:var(--amber);border-color:var(--amber-b);">Supply Chain</span>
+    <span style="background:var(--teal);border-color:var(--teal-b);">Finance</span>
+    <span style="background:var(--coral);border-color:var(--coral-b);">Sales/AR</span>
+    <span style="background:var(--green);border-color:var(--green-b);">HR</span>
+    <span style="background:var(--purple);border-color:var(--purple-b);">Cross-cutting</span>
+  </p>
+
+  <!-- ============ SECTION 1 ============ -->
+  <div class="bar">1. MAIN BUSINESS FLOW — Procure → Deliver → Cash (each stage: sub-steps · data in/out · tech)</div>
+
+  <div class="chain-line"><span class="marker start"><span class="dot"></span>START — PROCURE-TO-PAY CHAIN <span class="evname">trigger: user.login</span></span></div>
+
+  <!-- Stage 1 -->
+  <div class="stage s-blue">
+    <div class="stage-head"><span class="stage-num">1</span> Auth / Tenant Context &nbsp;·&nbsp; Dept: IT / Security</div>
+    <div class="stage-body"><div class="grid3">
+      <div class="cell"><h5>Sub-steps</h5><ul>
+        <li>Keycloak OIDC login + MFA</li>
+        <li>Verify JWT against JWKS</li>
+        <li>Resolve role from <code>UserRole</code></li>
+        <li>Inject <code>tenantId</code> into request</li>
+      </ul></div>
+      <div class="cell"><h5>Data in → out</h5><ul>
+        <li><b>In:</b> code + state</li>
+        <li><b>Out:</b> <code>{ sub, tenantId, role }</code></li>
+        <li>httpOnly session cookie</li>
+      </ul></div>
+      <div class="cell"><h5>Tech / Tables</h5>
+        <span class="tag">Tenant</span><span class="tag">User</span><span class="tag">Role</span><span class="tag">UserRole</span>
+        <div class="tags"><span class="tag">Keycloak 25</span><span class="tag">Redis (session)</span><span class="tag">NestJS Guard</span></div>
+      </div>
+    </div>
+    <div class="users"><span class="users-lbl">Who works here</span>
+      <span class="utag it"><b>IT Administrator</b><span>Configures tenants, SSO, security policies, audit access</span></span>
+    </div></div>
+  </div>
+  <div class="arrow"><span class="glyph">↓</span><span class="lbl">passes</span><span class="payload">tenantId + userId</span><span class="lbl">via</span><span class="evt">RLS middleware</span><span class="lbl">into</span><span class="tbl">every query</span></div>
+
+  <!-- Stage 2 -->
+  <div class="stage s-amber">
+    <div class="stage-head"><span class="stage-num">2</span> SCM — Purchase Requisition &nbsp;·&nbsp; Dept: Supply Chain</div>
+    <div class="stage-body"><div class="grid3">
+      <div class="cell"><h5>Sub-steps</h5><ul>
+        <li>Read <code>currentStock</code> vs <code>reorderPoint</code></li>
+        <li>If below → auto-draft PR</li>
+        <li>Pick <code>reorderQuantity</code></li>
+      </ul></div>
+      <div class="cell"><h5>Data in → out</h5><ul>
+        <li><b>In:</b> InventoryItem rows</li>
+        <li><b>Out:</b> draft PO <code>{ vendorId, items[] }</code></li>
+        <li>emits <code>inventory.low_stock</code></li>
+      </ul></div>
+      <div class="cell"><h5>Tech / Tables</h5>
+        <span class="tag">InventoryItem</span><span class="tag">Warehouse</span>
+        <div class="tags"><span class="tag">Elasticsearch (item search)</span><span class="tag">BullMQ cron</span></div>
+      </div>
+    </div>
+    <div class="users"><span class="users-lbl">Who works here</span>
+      <span class="utag scm"><b>Supply Chain Manager</b><span>Reviews stock, approves auto-raised requisitions, demand planning</span></span>
+    </div></div>
+  </div>
+  <div class="arrow"><span class="glyph">↓</span><span class="lbl">event</span><span class="evt">inventory.low_stock</span><span class="lbl">creates</span><span class="tbl">PurchaseOrder (draft)</span></div>
+
+  <!-- Stage 3 -->
+  <div class="stage s-amber">
+    <div class="stage-head"><span class="stage-num">3</span> SCM — Vendor PO &nbsp;·&nbsp; Dept: Procurement</div>
+    <div class="stage-body"><div class="grid3">
+      <div class="cell"><h5>Sub-steps</h5><ul>
+        <li>Vendor master lookup</li>
+        <li>Manager approves → <code>status: approved</code></li>
+        <li>Send PO via vendor portal API</li>
+      </ul></div>
+      <div class="cell"><h5>Data in → out</h5><ul>
+        <li><b>In:</b> draft PO + <code>vendorId</code></li>
+        <li><b>Out:</b> <code>poNumber</code>, lines, total</li>
+        <li>emits <code>po.created</code></li>
+      </ul></div>
+      <div class="cell"><h5>Tech / Tables</h5>
+        <span class="tag">Vendor</span><span class="tag">PurchaseOrder</span><span class="tag">PurchaseOrderLine</span>
+        <div class="tags"><span class="tag">AWS SES (vendor email)</span></div>
+      </div>
+    </div>
+    <div class="users"><span class="users-lbl">Who works here</span>
+      <span class="utag scm"><b>Supply Chain Manager</b><span>Manages vendors, approves PO, sends order to supplier</span></span>
+    </div></div>
+  </div>
+  <div class="arrow"><span class="glyph">↓</span><span class="lbl">event</span><span class="evt">po.created</span><span class="lbl">→ vendor ships →</span><span class="tbl">GoodsReceipt</span></div>
+
+  <!-- Stage 4 -->
+  <div class="stage s-amber">
+    <div class="stage-head"><span class="stage-num">4</span> SCM — Goods Receipt &amp; Inventory &nbsp;·&nbsp; Dept: Warehouse</div>
+    <div class="stage-body"><div class="grid3">
+      <div class="cell"><h5>Sub-steps</h5><ul>
+        <li>Record GR (partial / complete)</li>
+        <li>Increment <code>currentStock</code></li>
+        <li>FIFO cost layer update</li>
+      </ul></div>
+      <div class="cell"><h5>Data in → out</h5><ul>
+        <li><b>In:</b> PO + received qty</li>
+        <li><b>Out:</b> <code>GoodsReceipt { poId, qty }</code></li>
+        <li>updated inventory levels</li>
+      </ul></div>
+      <div class="cell"><h5>Tech / Tables</h5>
+        <span class="tag">GoodsReceipt</span><span class="tag">InventoryItem</span>
+        <div class="tags"><span class="tag">PostgreSQL txn</span></div>
+      </div>
+    </div>
+    <div class="users"><span class="users-lbl">Who works here</span>
+      <span class="utag scm"><b>Supply Chain Manager</b><span>Confirms goods received, updates inventory &amp; warehouse stock</span></span>
+    </div></div>
+  </div>
+  <div class="arrow"><span class="glyph">↓</span><span class="lbl">event</span><span class="evt">goods.received</span><span class="lbl">passes</span><span class="tbl">PurchaseOrder + GoodsReceipt</span><span class="lbl">→ 3-way match</span></div>
+
+  <!-- Stage 5 -->
+  <div class="stage s-teal">
+    <div class="stage-head"><span class="stage-num">5</span> Finance — AP Invoice (3-way match) &nbsp;·&nbsp; Dept: Finance</div>
+    <div class="stage-body"><div class="grid3">
+      <div class="cell"><h5>Sub-steps</h5><ul>
+        <li>OCR invoice → <code>ocrRawData</code></li>
+        <li>Match Invoice ↔ PO ↔ GR</li>
+        <li>Within tolerance → auto-approve</li>
+        <li>Else → manual_review queue</li>
+      </ul></div>
+      <div class="cell"><h5>Data in → out</h5><ul>
+        <li><b>In:</b> <code>purchaseOrderId</code>, <code>goodsReceiptId</code></li>
+        <li><b>Out:</b> <code>Invoice { status: approved }</code></li>
+        <li>emits <code>invoice.approved</code></li>
+      </ul></div>
+      <div class="cell"><h5>Tech / Tables</h5>
+        <span class="tag">Invoice</span><span class="tag">PurchaseOrder</span><span class="tag">GoodsReceipt</span>
+        <div class="tags"><span class="tag">OCR service</span><span class="tag">Outbox pattern</span></div>
+      </div>
+    </div>
+    <div class="users"><span class="users-lbl">Who works here</span>
+      <span class="utag fin"><b>Finance Team</b><span>Reviews flagged invoices, handles manual_review exceptions, AP automation</span></span>
+    </div></div>
+  </div>
+  <div class="arrow"><span class="glyph">↓</span><span class="lbl">event</span><span class="evt">invoice.approved</span><span class="lbl">posts</span><span class="tbl">JournalEntry + JournalLine</span><span class="lbl">(debit = credit)</span></div>
+
+  <!-- Stage 6 -->
+  <div class="stage s-teal">
+    <div class="stage-head"><span class="stage-num">6</span> Finance — General Ledger &nbsp;·&nbsp; Dept: Finance</div>
+    <div class="stage-body"><div class="grid3">
+      <div class="cell"><h5>Sub-steps</h5><ul>
+        <li>Create <code>JournalEntry</code> + lines</li>
+        <li>Validate debits = credits</li>
+        <li>Apply FX rate (multi-currency)</li>
+        <li>Check <code>FiscalPeriod.isLocked</code></li>
+      </ul></div>
+      <div class="cell"><h5>Data in → out</h5><ul>
+        <li><b>In:</b> approved Invoice</li>
+        <li><b>Out:</b> balanced <code>JournalLine[]</code></li>
+        <li>posted to <code>Account</code> codes</li>
+      </ul></div>
+      <div class="cell"><h5>Tech / Tables</h5>
+        <span class="tag">Account</span><span class="tag">JournalEntry</span><span class="tag">JournalLine</span><span class="tag">FiscalPeriod</span>
+        <div class="tags"><span class="tag">FX API (ECB)</span></div>
+      </div>
+    </div>
+    <div class="users"><span class="users-lbl">Who works here</span>
+      <span class="utag fin"><b>Finance Team</b><span>GL management, multi-currency reconciliation, period close lock</span></span>
+    </div></div>
+  </div>
+
+  <div class="chain-line"><span class="marker end"><span class="dot"></span>END — PROCURE-TO-PAY <span class="evname">result: balanced GL posting</span></span></div>
+
+  <!-- ===== ORDER TO CASH ===== -->
+  <div class="bar" style="margin-top:22px;">1b. ORDER → CASH (Customer side)</div>
+
+  <div class="chain-line"><span class="marker start"><span class="dot"></span>START — ORDER-TO-CASH CHAIN <span class="evname">trigger: sales.order_placed</span></span></div>
+
+  <div class="stage s-coral">
+    <div class="stage-head"><span class="stage-num">7</span> Sales Order &nbsp;·&nbsp; Dept: Sales</div>
+    <div class="stage-body"><div class="grid3">
+      <div class="cell"><h5>Sub-steps</h5><ul>
+        <li>Confirm customer order</li>
+        <li>Price + delivery date check</li>
+        <li>Reserve finished stock</li>
+      </ul></div>
+      <div class="cell"><h5>Data in → out</h5><ul>
+        <li><b>In:</b> customer order</li>
+        <li><b>Out:</b> <code>{ customerId, items[] }</code></li>
+      </ul></div>
+      <div class="cell"><h5>Tech / Tables</h5>
+        <span class="tag">InventoryItem</span>
+        <div class="tags"><span class="tag">PostgreSQL</span></div>
+      </div>
+    </div>
+    <div class="users"><span class="users-lbl">Who works here</span>
+      <span class="utag fin"><b>Finance / Sales Team</b><span>Confirms customer orders, checks pricing &amp; stock availability</span></span>
+    </div></div>
+  </div>
+  <div class="arrow"><span class="glyph">↓</span><span class="lbl">event</span><span class="evt">sales.confirmed</span><span class="lbl">creates</span><span class="tbl">Invoice (receivable)</span></div>
+
+  <div class="stage s-coral">
+    <div class="stage-head"><span class="stage-num">8</span> Finance — AR Invoice &nbsp;·&nbsp; Dept: Finance</div>
+    <div class="stage-body"><div class="grid3">
+      <div class="cell"><h5>Sub-steps</h5><ul>
+        <li>Generate receivable invoice</li>
+        <li>Send to customer</li>
+        <li>Track aging buckets (30/60/90)</li>
+      </ul></div>
+      <div class="cell"><h5>Data in → out</h5><ul>
+        <li><b>In:</b> sales order</li>
+        <li><b>Out:</b> <code>Invoice { customerId, dueDate }</code></li>
+        <li>emits <code>invoice.issued</code></li>
+      </ul></div>
+      <div class="cell"><h5>Tech / Tables</h5>
+        <span class="tag">Invoice</span>
+        <div class="tags"><span class="tag">AWS SES</span></div>
+      </div>
+    </div>
+    <div class="users"><span class="users-lbl">Who works here</span>
+      <span class="utag fin"><b>Finance Team</b><span>AR automation, sends invoices, tracks aging &amp; collections</span></span>
+    </div></div>
+  </div>
+  <div class="arrow"><span class="glyph">↓</span><span class="lbl">event</span><span class="evt">invoice.issued</span><span class="lbl">→ customer pays →</span><span class="tbl">Payment</span></div>
+
+  <div class="stage s-coral">
+    <div class="stage-head"><span class="stage-num">9</span> Payment &amp; Reconciliation &nbsp;·&nbsp; Dept: Finance</div>
+    <div class="stage-body"><div class="grid3">
+      <div class="cell"><h5>Sub-steps</h5><ul>
+        <li>Record <code>Payment</code> against invoice</li>
+        <li>Reconcile bank feed</li>
+        <li>Update invoice → <code>status: paid</code></li>
+      </ul></div>
+      <div class="cell"><h5>Data in → out</h5><ul>
+        <li><b>In:</b> <code>invoiceId</code> + bank ref</li>
+        <li><b>Out:</b> <code>Payment</code> + GL entry</li>
+        <li>emits <code>payment.received</code></li>
+      </ul></div>
+      <div class="cell"><h5>Tech / Tables</h5>
+        <span class="tag">Payment</span><span class="tag">Invoice</span><span class="tag">JournalEntry</span>
+        <div class="tags"><span class="tag">Bank API</span></div>
+      </div>
+    </div>
+    <div class="users"><span class="users-lbl">Who works here</span>
+      <span class="utag fin"><b>Finance Team</b><span>Records payments, reconciles bank feed against receivables</span></span>
+    </div></div>
+  </div>
+
+  <div class="chain-line"><span class="marker end"><span class="dot"></span>END — ORDER-TO-CASH <span class="evname">result: payment.received → reconciled</span></span></div>
+
+  <!-- ============ SECTION 2: PARALLEL ============ -->
+  <div class="bar">2. PARALLEL FLOWS — run continuously, feed Finance</div>
+  <div class="parallel-wrap">
+    <div class="parallel-box">
+      <h4>👤 HR FLOW (Runs Parallel)</h4>
+      <div class="mini-marker s"><span class="d"></span>START <span style="font-weight:400;font-family:monospace;">trigger: hr.employee_hired</span></div>
+      <div class="mini" style="background:var(--green);border-color:var(--green-b);">
+        <h5>1 · Hire &amp; Employee Master</h5>
+        Recruitment → onboarding → <code>Employee</code> (nullable <code>userId</code>) → org chart via <code>managerId</code>
+        <div class="tags"><span class="tag">Employee</span><span class="tag">Department</span></div>
+      </div>
+      <div class="mini-arrow"><span class="g">↓</span><span class="e">employee.active</span><span class="g">passes</span><span class="t">Employee.id</span></div>
+      <div class="mini" style="background:var(--green);border-color:var(--green-b);">
+        <h5>2 · Leave &amp; Attendance</h5>
+        Leave state machine (draft→approved) · daily attendance feeds payroll
+        <div class="tags"><span class="tag">LeaveRequest</span><span class="tag">Attendance</span></div>
+      </div>
+      <div class="mini-arrow"><span class="g">↓</span><span class="e">attendance.finalised</span><span class="g">passes</span><span class="t">Attendance + LeaveRequest</span></div>
+      <div class="mini" style="background:var(--green);border-color:var(--green-b);">
+        <h5>3 · Payroll Run (Saga + BullMQ)</h5>
+        Tax engine → gross/net calc → multi-step saga, compensating txn on failure
+        <div class="tags"><span class="tag">PayrollRun</span><span class="tag">BullMQ</span><span class="tag">Redis</span></div>
+      </div>
+      <div class="mini-arrow"><span class="g">↓</span><span class="e">payroll.calculated</span><span class="g">passes</span><span class="t">PayrollRun.id</span></div>
+      <div class="mini" style="background:var(--green);border-color:var(--green-b);">
+        <h5>4 · Payslip &amp; Payment</h5>
+        PDF payslip gen → bank file → emits <code>payroll.completed</code>
+        <div class="tags"><span class="tag">Payslip</span></div>
+      </div>
+      <div class="mini-marker en"><span class="d"></span>END <span style="font-weight:400;font-family:monospace;">→ payroll.completed → feeds GL</span></div>
+      <div class="note">HR → Finance: salary cost posts to GL as <code>JournalEntry</code>. Finance executes the actual bank payment run.</div>
+      <div class="users"><span class="users-lbl">Who works here</span>
+        <span class="utag hr"><b>HR &amp; Payroll Team</b><span>Employee lifecycle, attendance, runs payroll, compliance (PF/ESI/tax)</span></span>
+      </div>
+    </div>
+
+    <div class="parallel-box">
+      <h4>📁 PROJECT MANAGEMENT (Runs Parallel) — <b>V2, de-scoped from MVP</b></h4>
+      <div class="mini-marker s"><span class="d"></span>START <span style="font-weight:400;font-family:monospace;">trigger: project.created</span></div>
+      <div class="mini" style="background:var(--purple);border-color:var(--purple-b);">
+        <h5>1 · Create Project</h5>
+        Define scope · budget · timeline
+      </div>
+      <div class="mini-arrow"><span class="g">↓</span><span class="e">project.scoped</span><span class="g">passes</span><span class="t">Project.id + budget</span></div>
+      <div class="mini" style="background:var(--purple);border-color:var(--purple-b);">
+        <h5>2 · Tasks / Milestones</h5>
+        WBS · DAG dependency validation · Gantt (D3)
+      </div>
+      <div class="mini-arrow"><span class="g">↓</span><span class="e">tasks.defined</span><span class="g">passes</span><span class="t">Task[] (DAG)</span></div>
+      <div class="mini" style="background:var(--purple);border-color:var(--purple-b);">
+        <h5>3 · Resource Allocation</h5>
+        Assign employees · utilisation heatmap
+      </div>
+      <div class="mini-arrow"><span class="g">↓</span><span class="e">resources.assigned</span><span class="g">passes</span><span class="t">Employee.id ↔ Task.id</span></div>
+      <div class="mini" style="background:var(--purple);border-color:var(--purple-b);">
+        <h5>4 · Budget Tracking</h5>
+        Planned vs actual · variance alerts
+      </div>
+      <div class="mini-marker en"><span class="d"></span>END <span style="font-weight:400;font-family:monospace;">→ project.closed → cost to Finance</span></div>
+      <div class="note pm">PM coordinates with SCM, HR &amp; Finance for resources, cost, timelines. MVP ships 6 core modules only.</div>
+      <div class="users"><span class="users-lbl">Who works here</span>
+        <span class="utag pm"><b>Project Manager</b><span>Resource allocation, milestone tracking, budget vs actual management</span></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ PM CONNECTIONS HUB ============ -->
+  <div class="bar">2b. HOW PROJECT MANAGEMENT CONNECTS TO HR · SCM · FINANCE</div>
+  <p style="text-align:center;font-size:11.5px;color:var(--sub);margin:-6px 0 14px;">PM doesn't do the work itself — it <b>coordinates</b> the other three around a project. HR supplies people, SCM supplies materials, Finance supplies/tracks money.</p>
+
+  <div class="pm-hub">
+    <div class="pm-hub-grid">
+
+      <!-- LEFT: HR + SCM spokes -->
+      <div>
+        <div class="pm-spoke hr">
+          <h5>🟢 PM ← HR &nbsp;(people)</h5>
+          <p>PM assigns team members to project tasks → reads from HR's <code>Employee</code> table. "Resource allocation" = picking which employees work on which task.</p>
+          <p>The <b>utilisation heatmap</b> shows if someone is overloaded (on too many projects at once).</p>
+          <span class="dir">HR → PM</span> <span class="ev">project.resource_needed</span>
+        </div>
+        <div class="pm-spoke scm">
+          <h5>🟠 PM → SCM &nbsp;(materials)</h5>
+          <p>A project often needs physical items (e.g. construction needs cement, steel). PM signals the need → SCM raises the PO and procures it.</p>
+          <p>This is exactly when a <b>manual requisition</b> gets raised — the project is the reason.</p>
+          <span class="dir">PM → SCM</span> <span class="ev">project.material_requested</span>
+        </div>
+      </div>
+
+      <!-- CENTER: arrows + PM hub -->
+      <div class="pm-arrow-row">
+        <span class="pm-arrow-glyph">⇄</span>
+        <div class="pm-center" style="width:100%;margin:8px 0;">
+          <b>PM</b>
+          <span>Project Management (the coordinator)</span>
+        </div>
+        <span class="pm-arrow-glyph">⇄</span>
+      </div>
+
+      <!-- RIGHT: Finance spoke -->
+      <div>
+        <div class="pm-spoke fin">
+          <h5>🟦 PM ↔ Finance &nbsp;(money)</h5>
+          <p>Every project has a <b>budget</b> (planned spend).</p>
+          <p>As it runs, real costs pile up: salaries of assigned employees (HR → Finance payroll) + materials bought (SCM → Finance invoices).</p>
+          <p>Finance feeds those <b>actual costs</b> back → PM compares <b>planned vs actual</b> → fires variance alerts if over budget.</p>
+          <span class="dir">PM ⇄ Finance</span> <span class="ev">budget.set / cost.reported</span>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="pm-summary">
+      <b>One-line summary:</b> &nbsp; PM ← HR = staff the project &nbsp;·&nbsp; PM → SCM = procure project supplies &nbsp;·&nbsp; PM ⇄ Finance = track if the project stays profitable. The salary cost flows HR → Finance → PM, and material cost flows SCM → Finance → PM, so Finance is the meeting point where PM sees total real spend vs budget.
+    </div>
+
+    <div class="pm-ddd">
+      ⚠ <b>Architecture note (DDD):</b> PM <b>never queries</b> HR / SCM / Finance databases directly. It talks to them only through <b>domain events</b> (e.g. PM emits <code>project.resource_needed</code>, HR responds). This keeps the modules loosely coupled — PM doesn't break if HR's internal schema changes.
+    </div>
+  </div>
+
+  <!-- ============ SECTION 3: SUPPORT ============ -->
+  <div class="bar">3. SUPPORTING MODULES — always on, not sequential</div>
+  <div class="support-grid">
+    <div class="support" style="background:var(--blue);border-color:var(--blue-b);">
+      <h4>Multi-Tenant Auth (SSO)</h4>
+      SAML 2.0 / OIDC · MFA per tenant · tenant isolation · RBAC + ABAC
+      <div class="tags"><span class="tag">Keycloak</span><span class="tag">Redis</span></div>
+    </div>
+    <div class="support" style="background:var(--coral);border-color:var(--coral-b);">
+      <h4>AI Demand Forecasting</h4>
+      Prophet (SKU) + LSTM (high-volume) · MLflow versioning · weekly retrain
+      <div class="tags"><span class="tag">FastAPI</span><span class="tag">PyTorch</span><span class="tag">Redis cache</span></div>
+    </div>
+    <div class="support" style="background:var(--yellow);border-color:var(--yellow-b);">
+      <h4>Business Intelligence</h4>
+      Dashboard builder (JSON) · drill-down · scheduled PDF/Excel · SSE refresh
+      <div class="tags"><span class="tag">Recharts</span><span class="tag">ECharts</span><span class="tag">SSE</span></div>
+      <div class="users"><span class="users-lbl">Who works here</span>
+        <span class="utag exec"><b>C-Suite / Executive</b><span>Real-time dashboards, KPI monitoring, board-level reports</span></span>
+      </div>
+    </div>
+    <div class="support" style="background:var(--purple);border-color:var(--purple-b);">
+      <h4>Notification Engine</h4>
+      Listens to domain events · in-app/email/SMS/webhook (HMAC) · DLQ + retry (max 3)
+      <div class="tags"><span class="tag">Notification</span><span class="tag">BullMQ</span><span class="tag">Socket.io</span></div>
+    </div>
+    <div class="support" style="background:var(--coral);border-color:var(--coral-b);">
+      <h4>Audit &amp; Compliance</h4>
+      Append-only · SHA-256 <code>hashChain</code> tamper detection · GDPR / SOC2
+      <div class="tags"><span class="tag">AuditLog</span><span class="tag">TimescaleDB</span></div>
+    </div>
+    <div class="support" style="background:var(--green);border-color:var(--green-b);">
+      <h4>API Gateway</h4>
+      JWT validation · tenant context inject · Redis rate-limit · global exception filter
+      <div class="tags"><span class="tag">NestJS</span><span class="tag">nestjs-throttler</span></div>
+    </div>
+  </div>
+
+  <!-- ============ SECTION 4 + 5/6 ============ -->
+  <div class="two-col" style="margin-top:26px;">
+    <div>
+      <div class="bar alt">4. DEPENDENCIES &amp; DOMAIN EVENTS</div>
+      <table class="dep-table">
+        <tr><td class="k">Auth → All</td><td>tenant + role context required everywhere</td></tr>
+        <tr><td class="k">SCM PR → PO</td><td>PO needs approved requisition <span class="ev">inventory.low_stock</span></td></tr>
+        <tr><td class="k">PO → GR → Inventory</td><td>stock updates after receipt <span class="ev">po.created</span></td></tr>
+        <tr><td class="k">PO+GR → AP</td><td>3-way match needs all three present</td></tr>
+        <tr><td class="k">AP/AR → GL</td><td>journal entries derived from invoices <span class="ev">invoice.approved</span></td></tr>
+        <tr><td class="k">Sales → AR</td><td>AR invoice needs confirmed order</td></tr>
+        <tr><td class="k">Attendance → Payroll</td><td>payroll needs attendance + leave first</td></tr>
+        <tr><td class="k">Payroll → GL</td><td>salary cost posts to ledger <span class="ev">payroll.completed</span></td></tr>
+        <tr><td class="k">All → Notification</td><td>events fan out to channels</td></tr>
+        <tr><td class="k">All → Audit</td><td>every write logged immutably</td></tr>
+        <tr><td class="k">SCM → Forecasting</td><td>model consumes historical SCM data</td></tr>
+        <tr><td class="k">All → BI</td><td>read models feed dashboards (CQRS)</td></tr>
+      </table>
+      <p class="stack-legend">(A → B means B depends on A · <span style="color:var(--purple-d);font-family:monospace;">purple</span> = domain event name)</p>
+    </div>
+
+    <div>
+      <div class="bar alt">5. SUMMARY</div>
+      <div class="summary-box">
+        <div>🔑 <b>Login:</b> Keycloak verifies identity → backend resolves tenant + role from <code>UserRole</code>.</div>
+        <div>📋 <b>Plan:</b> Low stock auto-raises PR → approved PO → vendor portal.</div>
+        <div>📦 <b>Receive:</b> Goods receipt updates inventory → triggers AP 3-way match.</div>
+        <div>💰 <b>Post:</b> Approved invoice → balanced GL journal entry (debit = credit).</div>
+        <div>🛒 <b>Sell:</b> Sales order → AR invoice → payment → bank reconcile.</div>
+        <div>👥 <b>Parallel:</b> HR payroll (saga) + PM (V2) both feed Finance.</div>
+        <div>⭐ <b>Always-on:</b> Forecasting, BI, Notification, Audit, Gateway.</div>
+      </div>
+      <div class="takeaway">
+        <p><b>24 tables, every one carries <code style="color:#ffd54a;">tenantId</code></b> — row-level security at the Prisma middleware layer, no cross-tenant leakage.</p>
+        <p>Modules never query each other's DB — they talk only through <b>domain events</b> (EventEmitter2 + Outbox pattern).</p>
+        <p style="font-weight:600;margin-top:8px;">😊 UUID keys (no IDOR) · soft-delete (GDPR) · hash-chained audit · saga rollback.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
