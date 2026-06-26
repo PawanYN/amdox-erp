@@ -1,0 +1,249 @@
+{
+  "info": {
+    "name": "AMDox-ERP HR API",
+    "description": "Complete Postman collection for all HR endpoints (Employee, Department, Attendance, Leave).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "BASE_URL",
+      "value": "http://localhost:3001"
+    },
+    {
+      "key": "TOKEN",
+      "value": "paste_your_jwt_here"
+    },
+    {
+      "key": "EMP_ID",
+      "value": "employee_uuid_here"
+    },
+    {
+      "key": "DEPT_ID",
+      "value": "department_uuid_here"
+    },
+    {
+      "key": "LEAVE_ID",
+      "value": "leave_uuid_here"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Get Keycloak Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "grant_type", "value": "password", "type": "text" },
+                { "key": "client_id", "value": "amdox-client", "type": "text" },
+                { "key": "username", "value": "testuser", "type": "text" },
+                { "key": "password", "value": "password123", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "http://localhost:8080/auth/realms/amdox/protocol/openid-connect/token",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["auth", "realms", "amdox", "protocol", "openid-connect", "token"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Employee",
+      "item": [
+        {
+          "name": "Create Employee",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"hireDate\": \"2024-01-15T00:00:00.000Z\",\n  \"departmentId\": \"{{DEPT_ID}}\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/employees",
+              "host": ["{{BASE_URL}}"],
+              "path": ["employees"]
+            }
+          }
+        },
+        {
+          "name": "Get All Employees",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/employees",
+              "host": ["{{BASE_URL}}"],
+              "path": ["employees"]
+            }
+          }
+        },
+        {
+          "name": "Get Employee by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/employees/{{EMP_ID}}",
+              "host": ["{{BASE_URL}}"],
+              "path": ["employees", "{{EMP_ID}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Department",
+      "item": [
+        {
+          "name": "Create Department",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Engineering\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/departments",
+              "host": ["{{BASE_URL}}"],
+              "path": ["departments"]
+            }
+          }
+        },
+        {
+          "name": "Get All Departments",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/departments",
+              "host": ["{{BASE_URL}}"],
+              "path": ["departments"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Attendance",
+      "item": [
+        {
+          "name": "Clock In",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employeeId\": \"{{EMP_ID}}\",\n  \"source\": \"web\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/attendance/clock-in",
+              "host": ["{{BASE_URL}}"],
+              "path": ["attendance", "clock-in"]
+            }
+          }
+        },
+        {
+          "name": "Clock Out",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/attendance/clock-out/{{EMP_ID}}",
+              "host": ["{{BASE_URL}}"],
+              "path": ["attendance", "clock-out", "{{EMP_ID}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Leave",
+      "item": [
+        {
+          "name": "Create Leave Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employeeId\": \"{{EMP_ID}}\",\n  \"leaveType\": \"annual-uuid-here\",\n  \"startDate\": \"2024-08-01T00:00:00.000Z\",\n  \"endDate\": \"2024-08-05T00:00:00.000Z\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/leave",
+              "host": ["{{BASE_URL}}"],
+              "path": ["leave"]
+            }
+          }
+        },
+        {
+          "name": "Get My Leave Requests",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/leave/my-requests/{{EMP_ID}}",
+              "host": ["{{BASE_URL}}"],
+              "path": ["leave", "my-requests", "{{EMP_ID}}"]
+            }
+          }
+        },
+        {
+          "name": "Approve Leave Request",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"APPROVED\",\n  \"managerEmployeeId\": \"{{EMP_ID}}\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/leave/{{LEAVE_ID}}/approve",
+              "host": ["{{BASE_URL}}"],
+              "path": ["leave", "{{LEAVE_ID}}", "approve"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -36,8 +36,8 @@ export class KeycloakStrategy extends PassportStrategy(Strategy, 'keycloak') {
     }
 
     // 2. Fetch the user ALONG WITH their assigned roles and tenant
-    const user = await this.prisma.user.findUnique({
-      where: { keycloakId: payload.sub },
+    const user = await this.prisma.user.findFirst({
+      where: { ssoSubject: payload.sub },
       include: {
         tenant: true,
         userRoles: {
