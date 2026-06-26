@@ -13,9 +13,23 @@ import { LeaveController } from './leave/leave.controller';
 import { LeaveService } from './leave/leave.service';
 import { AttendanceController } from './attendance/attendance.controller';
 import { AttendanceService } from './attendance/attendance.service';
+import { PayrollController } from './payroll/payroll.controller';
+import { PayrollService } from './payroll/payroll.service';
 
 @Module({
-  controllers: [DepartmentController, EmployeeController, LeaveController, AttendanceController],
-  providers: [DepartmentService, EmployeeService, LeaveService, AttendanceService],
+  controllers: [
+    DepartmentController,
+    EmployeeController,
+    LeaveController,
+    AttendanceController,
+    PayrollController,
+  ],
+  providers: [
+    DepartmentService,
+    EmployeeService,
+    LeaveService,
+    AttendanceService,
+    PayrollService,
+  ],
 })
 export class HrModule { }
