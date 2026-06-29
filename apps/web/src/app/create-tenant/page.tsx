@@ -36,8 +36,9 @@ export default function CreateTenantPage() {
         throw new Error(data.message || "Failed to create tenant");
       }
 
+      localStorage.setItem("tenant_slug", formData.slug);
       setSuccess(true);
-      setTimeout(() => router.push("/home"), 3000);
+      setTimeout(() => router.push("/login"), 3000);
     } catch (err: any) {
       setError(err.message);
     } finally {

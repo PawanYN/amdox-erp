@@ -61,7 +61,7 @@ export class TenantService implements OnModuleInit {
         realm: slug,
         clientId: 'amdox-erp-web',
         enabled: true,
-        publicClient: false,
+        publicClient: true,
         secret: 'amdox-secret-123', // In prod, generate a secure UUID
         standardFlowEnabled: true,
         directAccessGrantsEnabled: true,

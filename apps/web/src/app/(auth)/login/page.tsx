@@ -34,7 +34,7 @@ export default function LoginPage() {
       // Build the Keycloak login URL for this tenant's realm
       const kcBase = process.env.NEXT_PUBLIC_KEYCLOAK_URL || "http://localhost:8180";
       const clientId = process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID || "amdox-erp-web";
-      const redirectUri = encodeURIComponent(`${window.location.origin}/`);
+      const redirectUri = encodeURIComponent(`${window.location.origin}/home`);
 
       const loginUrl = `${kcBase}/realms/${cleanSlug}/protocol/openid-connect/auth?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}&scope=openid`;
 

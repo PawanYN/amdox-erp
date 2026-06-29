@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import keycloak from "../../lib/keycloak";
 import {
   LayoutDashboard,
   Wallet,
@@ -137,6 +138,10 @@ const NAV: NavSection[] = [
  * and a dropdown to switch the current active persona (simulating user login).
  */
 function TopBar({ role, setRole, activePage }: { role: string; setRole: (r: string) => void; activePage: string }) {
+  const user = keycloak?.tokenParsed;
+  const username = user?.preferred_username || "User";
+  const userInitials = username.substring(0, 2).toUpperCase();
+
   const allItems = NAV.flatMap((n) => (n.children || [{ id: n.id, label: n.label, day: "" }]));
   const current = allItems.find((i) => i.id === activePage) || { id: "/", label: "Home", day: "" };
   const parentSection = NAV.find((n) => n.children?.some((c) => c.id === activePage));
@@ -186,10 +191,19 @@ function TopBar({ role, setRole, activePage }: { role: string; setRole: (r: stri
         ))}
       </select>
 
-      <div className="flex items-center gap-2 px-3 h-full">
-        <span className="font-medium">Pawan</span>
-        <div className="h-5 w-5 rounded-full bg-[#D9A85C] text-[#14171F] flex items-center justify-center">
-          <User size={12} />
+      <div 
+        onClick={() => {
+          if (confirm("Are you sure you want to sign out?")) {
+            localStorage.removeItem("tenant_slug");
+            keycloak?.logout();
+          }
+        }}
+        className="flex items-center gap-2 px-3 h-full cursor-pointer hover:bg-gray-800"
+        title="Click to sign out"
+      >
+        <span className="font-medium">{username}</span>
+        <div className="h-5 w-5 rounded-full bg-[#D9A85C] text-[#14171F] flex items-center justify-center text-[10px] font-bold">
+          {userInitials}
         </div>
       </div>
     </header>

@@ -3,6 +3,7 @@
 import { useKeycloak } from "../KeycloakProvider";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   Lock,
@@ -233,6 +234,15 @@ function LoginPlaceholder({ onBack }: LoginPlaceholderProps) {
 }
 
 export default function LandingPage() {
+  const { authenticated } = useKeycloak();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (authenticated) {
+      router.push("/home");
+    }
+  }, [authenticated, router]);
+
   return (
     <div style={{ fontFamily: "'IBM Plex Sans', sans-serif" }}>
       <style>{FONT_IMPORT}</style>
