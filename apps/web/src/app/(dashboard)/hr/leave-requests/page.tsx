@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Plus, CalendarDays, Clock, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { mockLeaveRequests } from "@/lib/mock/leave-requests";
+import { mockLeaveRequests } from "@/lib/mock/hr";
 import { LeaveRequest } from "@/lib/types";
 import { currentUser } from "@/lib/current-user";
 import { LeaveForm } from "./leave-form";

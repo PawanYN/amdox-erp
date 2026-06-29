@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Clock as ClockIcon, LogOut, Timer, TrendingUp, Calendar, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, Table, THead, TH, TBody, TR, TD, EmptyState } from "@/components/ui/table";
-import { mockAttendance, STANDARD_SHIFT_HOURS } from "@/lib/mock/attendance";
+import { DataTable, ColumnDef } from "@/components/ui/data-table";
+import { mockAttendance, STANDARD_SHIFT_HOURS } from "@/lib/mock/hr";
 import { currentUser } from "@/lib/current-user";
 
 function formatTime(date: Date): string {
@@ -54,6 +55,59 @@ export default function AttendancePage() {
 
   const totalHoursThisWeek = records.slice(0, 5).reduce((sum, r) => sum + (r.totalHours ?? 0), 0);
   const overtimeCount = records.filter((r) => r.overtimeHours != null).length;
+
+  const columns: ColumnDef<typeof mockAttendance[0]>[] = [
+    {
+      header: "Employee",
+      cell: (rec) => (
+        <div className="flex items-center gap-2.5">
+          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+            {rec.employeeName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+          </div>
+          <span className="font-semibold text-ink">{rec.employeeName}</span>
+        </div>
+      ),
+    },
+    {
+      header: "Date",
+      cell: (rec) => (
+        <span className="text-xs font-medium text-muted bg-canvas border border-line rounded-lg px-2.5 py-1">
+          {rec.date}
+        </span>
+      ),
+    },
+    {
+      header: "Clock In",
+      className: "text-sm font-medium text-ink",
+      cell: (rec) => rec.clockIn ?? "—",
+    },
+    {
+      header: "Clock Out",
+      className: "text-sm font-medium text-ink",
+      cell: (rec) => rec.clockOut ?? "—",
+    },
+    {
+      header: "Total Hours",
+      cell: (rec) => (
+        rec.totalHours != null ? (
+          <span className="text-sm font-semibold text-ink">{rec.totalHours} hrs</span>
+        ) : "—"
+      ),
+    },
+    {
+      header: "Overtime",
+      cell: (rec) => (
+        rec.overtimeHours != null ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-1 text-xs font-semibold text-amber-700 shadow-[0_0_8px_rgba(245,158,11,0.15)]">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+            +{rec.overtimeHours} hrs
+          </span>
+        ) : (
+          <span className="text-muted">—</span>
+        )
+      ),
+    },
+  ];
 
   return (
     <div>
@@ -147,62 +201,7 @@ export default function AttendancePage() {
       </div>
 
       <div className="mt-6 animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
-        <Card>
-          <Table>
-            <THead>
-              <TH>Employee</TH>
-              <TH>Date</TH>
-              <TH>Clock In</TH>
-              <TH>Clock Out</TH>
-              <TH>Total Hours</TH>
-              <TH>Overtime</TH>
-            </THead>
-            <TBody>
-              {records.length === 0 ? (
-                <tr>
-                  <td colSpan={6}>
-                    <EmptyState message="No attendance records yet." />
-                  </td>
-                </tr>
-              ) : (
-                records.map((rec) => (
-                  <TR key={rec.id}>
-                    <TD>
-                      <div className="flex items-center gap-2.5">
-                        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white text-xs font-bold shadow-sm">
-                          {rec.employeeName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-                        </div>
-                        <span className="font-semibold text-ink">{rec.employeeName}</span>
-                      </div>
-                    </TD>
-                    <TD>
-                      <span className="text-xs font-medium text-muted bg-canvas border border-line rounded-lg px-2.5 py-1">
-                        {rec.date}
-                      </span>
-                    </TD>
-                    <TD className="text-sm font-medium text-ink">{rec.clockIn ?? "—"}</TD>
-                    <TD className="text-sm font-medium text-ink">{rec.clockOut ?? "—"}</TD>
-                    <TD>
-                      {rec.totalHours != null ? (
-                        <span className="text-sm font-semibold text-ink">{rec.totalHours} hrs</span>
-                      ) : "—"}
-                    </TD>
-                    <TD>
-                      {rec.overtimeHours != null ? (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-1 text-xs font-semibold text-amber-700 shadow-[0_0_8px_rgba(245,158,11,0.15)]">
-                          <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                          +{rec.overtimeHours} hrs
-                        </span>
-                      ) : (
-                        <span className="text-muted">—</span>
-                      )}
-                    </TD>
-                  </TR>
-                ))
-              )}
-            </TBody>
-          </Table>
-        </Card>
+        <DataTable data={records} columns={columns} keyExtractor={(rec) => rec.id} emptyMessage="No attendance records yet." />
       </div>
     </div>
   );

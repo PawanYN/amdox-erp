@@ -5,46 +5,69 @@ import { Plus, Users, UserCheck, UserMinus, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge, statusToTone } from "@/components/ui/badge";
 import { Card, Table, THead, TH, TBody, TR, TD, EmptyState } from "@/components/ui/table";
-import { mockEmployees } from "@/lib/mock/employees";
+import { DataTable, ColumnDef } from "@/components/ui/data-table";
+import { StatCard } from "@/components/ui/stat-card";
+import { mockEmployees } from "@/lib/mock/hr";
 import { Employee } from "@/lib/types";
 import { EmployeeForm } from "./employee-form";
 import { OrgChart } from "./org-chart";
 
 type ViewMode = "list" | "org-chart";
 
-function StatCard({
-  label,
-  value,
-  icon,
-  gradient,
-  delay = "0s",
-}: {
-  label: string;
-  value: string | number;
-  icon: React.ReactNode;
-  gradient: string;
-  delay?: string;
-}) {
-  return (
-    <div
-      className="animate-fade-in-up rounded-2xl border border-line bg-card p-5 shadow-card hover:shadow-card-hover transition-all duration-300 hover:-translate-y-0.5 group"
-      style={{ animationDelay: delay }}
-    >
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted/70">{label}</p>
-          <p className="mt-2 text-3xl font-bold text-ink">{value}</p>
-        </div>
-        <div className={`flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br ${gradient} text-white shadow-[0_4px_12px_rgba(0,0,0,0.15)] group-hover:scale-110 transition-transform duration-300`}>
-          {icon}
-        </div>
-      </div>
-    </div>
-  );
-}
+
 
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>(mockEmployees);
+
+  const columns: ColumnDef<Employee>[] = [
+    {
+      header: "ID",
+      cell: (emp) => (
+        <span className="font-mono text-xs font-bold text-brand-purple bg-violet-50 border border-violet-100 rounded-lg px-2 py-1">
+          {emp.id}
+        </span>
+      ),
+    },
+    {
+      header: "Name",
+      cell: (emp) => (
+        <div className="flex items-center gap-2.5">
+          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-violet-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+            {emp.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+          </div>
+          <span className="font-semibold text-ink">{emp.name}</span>
+        </div>
+      ),
+    },
+    {
+      header: "Department",
+      cell: (emp) => (
+        <span className="text-xs font-medium text-muted bg-canvas border border-line rounded-lg px-2.5 py-1">
+          {emp.department}
+        </span>
+      ),
+    },
+    {
+      header: "Designation",
+      className: "text-muted text-sm",
+      cell: (emp) => emp.designation,
+    },
+    {
+      header: "Reports To",
+      className: "text-muted text-sm",
+      cell: (emp) => {
+        const manager = employees.find((e) => e.id === emp.reportsToId);
+        return manager?.name ?? "—";
+      },
+    },
+    {
+      header: "Status",
+      cell: (emp) => (
+        <Badge tone={statusToTone(emp.status)}>{emp.status}</Badge>
+      ),
+    },
+  ];
+
   const [view, setView] = useState<ViewMode>("list");
   const [formOpen, setFormOpen] = useState(false);
 
@@ -115,58 +138,7 @@ export default function EmployeesPage() {
 
       <div className="mt-4 animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
         {view === "list" ? (
-          <Card>
-            <Table>
-              <THead>
-                <TH>ID</TH>
-                <TH>Name</TH>
-                <TH>Department</TH>
-                <TH>Designation</TH>
-                <TH>Reports To</TH>
-                <TH>Status</TH>
-              </THead>
-              <TBody>
-                {visibleEmployees.length === 0 ? (
-                  <tr>
-                    <td colSpan={6}>
-                      <EmptyState message="No employees yet. Add the first one to get started." />
-                    </td>
-                  </tr>
-                ) : (
-                  visibleEmployees.map((emp) => {
-                    const manager = employees.find((e) => e.id === emp.reportsToId);
-                    return (
-                      <TR key={emp.id}>
-                        <TD>
-                          <span className="font-mono text-xs font-bold text-brand-purple bg-violet-50 border border-violet-100 rounded-lg px-2 py-1">
-                            {emp.id}
-                          </span>
-                        </TD>
-                        <TD>
-                          <div className="flex items-center gap-2.5">
-                            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-violet-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold shadow-sm">
-                              {emp.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-                            </div>
-                            <span className="font-semibold text-ink">{emp.name}</span>
-                          </div>
-                        </TD>
-                        <TD>
-                          <span className="text-xs font-medium text-muted bg-canvas border border-line rounded-lg px-2.5 py-1">
-                            {emp.department}
-                          </span>
-                        </TD>
-                        <TD className="text-muted text-sm">{emp.designation}</TD>
-                        <TD className="text-muted text-sm">{manager?.name ?? "—"}</TD>
-                        <TD>
-                          <Badge tone={statusToTone(emp.status)}>{emp.status}</Badge>
-                        </TD>
-                      </TR>
-                    );
-                  })
-                )}
-              </TBody>
-            </Table>
-          </Card>
+          <DataTable data={visibleEmployees} columns={columns} keyExtractor={(emp) => emp.id} emptyMessage="No employees yet. Add the first one to get started." />
         ) : (
           <Card>
             <OrgChart employees={employees} />

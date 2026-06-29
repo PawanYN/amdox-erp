@@ -5,7 +5,8 @@ import { Play, Loader2, Download, Wallet, DollarSign, TrendingDown, CheckCircle 
 import { Button } from "@/components/ui/button";
 import { Badge, statusToTone } from "@/components/ui/badge";
 import { Card, Table, THead, TH, TBody, TR, TD, EmptyState } from "@/components/ui/table";
-import { mockPayroll } from "@/lib/mock/payroll";
+import { DataTable, ColumnDef } from "@/components/ui/data-table";
+import { mockPayroll } from "@/lib/mock/hr";
 import { PayrollRecord } from "@/lib/types";
 import { PayslipModal } from "./payslip-modal";
 
@@ -27,6 +28,66 @@ export default function PayrollPage() {
   const totalNet = records.reduce((s, r) => s + r.netPay, 0);
   const totalDeductions = records.reduce((s, r) => s + r.deductions, 0);
   const processedCount = records.filter((r) => r.status === "Processed").length;
+
+  const columns: ColumnDef<PayrollRecord>[] = [
+    {
+      header: "Employee",
+      cell: (rec) => (
+        <div className="flex items-center gap-2.5">
+          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+            {rec.employeeName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+          </div>
+          <span className="font-semibold text-ink">{rec.employeeName}</span>
+        </div>
+      ),
+    },
+    {
+      header: "Pay Period",
+      cell: (rec) => (
+        <span className="text-xs font-medium text-muted bg-canvas border border-line rounded-lg px-2.5 py-1">
+          {rec.payPeriod}
+        </span>
+      ),
+    },
+    {
+      header: "Gross Pay",
+      className: "text-sm font-medium text-ink",
+      cell: (rec) => formatINR(rec.grossPay),
+    },
+    {
+      header: "Deductions",
+      cell: (rec) => (
+        <span className="text-sm font-semibold text-red-500">-{formatINR(rec.deductions)}</span>
+      ),
+    },
+    {
+      header: "Net Pay",
+      cell: (rec) => (
+        <span className="text-sm font-bold text-emerald-700">{formatINR(rec.netPay)}</span>
+      ),
+    },
+    {
+      header: "Status",
+      cell: (rec) => <Badge tone={statusToTone(rec.status)}>{rec.status}</Badge>,
+    },
+    {
+      header: "Payslip",
+      cell: (rec) => {
+        if (rec.status === "Processed") {
+          return (
+            <button
+              onClick={() => setPreviewRecord(rec)}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-violet-50 border border-violet-200 px-3 py-1.5 text-xs font-semibold text-brand-purple hover:bg-violet-100 transition-all hover:shadow-sm hover:-translate-y-0.5 active:scale-95"
+            >
+              <Download size={12} />
+              Payslip
+            </button>
+          );
+        }
+        return <span className="text-muted">—</span>;
+      },
+    },
+  ];
 
   return (
     <div>
@@ -85,69 +146,7 @@ export default function PayrollPage() {
       </div>
 
       <div className="mt-6 animate-fade-in-up" style={{ animationDelay: "0.15s" }}>
-        <Card>
-          <Table>
-            <THead>
-              <TH>Employee</TH>
-              <TH>Pay Period</TH>
-              <TH>Gross Pay</TH>
-              <TH>Deductions</TH>
-              <TH>Net Pay</TH>
-              <TH>Status</TH>
-              <TH>Payslip</TH>
-            </THead>
-            <TBody>
-              {records.length === 0 ? (
-                <tr>
-                  <td colSpan={7}>
-                    <EmptyState message="No payroll records for this period yet." />
-                  </td>
-                </tr>
-              ) : (
-                records.map((rec) => (
-                  <TR key={rec.id}>
-                    <TD>
-                      <div className="flex items-center gap-2.5">
-                        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-xs font-bold shadow-sm">
-                          {rec.employeeName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-                        </div>
-                        <span className="font-semibold text-ink">{rec.employeeName}</span>
-                      </div>
-                    </TD>
-                    <TD>
-                      <span className="text-xs font-medium text-muted bg-canvas border border-line rounded-lg px-2.5 py-1">
-                        {rec.payPeriod}
-                      </span>
-                    </TD>
-                    <TD className="text-sm font-medium text-ink">{formatINR(rec.grossPay)}</TD>
-                    <TD>
-                      <span className="text-sm font-semibold text-red-500">-{formatINR(rec.deductions)}</span>
-                    </TD>
-                    <TD>
-                      <span className="text-sm font-bold text-emerald-700">{formatINR(rec.netPay)}</span>
-                    </TD>
-                    <TD>
-                      <Badge tone={statusToTone(rec.status)}>{rec.status}</Badge>
-                    </TD>
-                    <TD>
-                      {rec.status === "Processed" ? (
-                        <button
-                          onClick={() => setPreviewRecord(rec)}
-                          className="inline-flex items-center gap-1.5 rounded-xl bg-violet-50 border border-violet-200 px-3 py-1.5 text-xs font-semibold text-brand-purple hover:bg-violet-100 transition-all hover:shadow-sm hover:-translate-y-0.5 active:scale-95"
-                        >
-                          <Download size={12} />
-                          Payslip
-                        </button>
-                      ) : (
-                        <span className="text-muted">—</span>
-                      )}
-                    </TD>
-                  </TR>
-                ))
-              )}
-            </TBody>
-          </Table>
-        </Card>
+        <DataTable data={records} columns={columns} keyExtractor={(rec) => rec.id} emptyMessage="No payroll records for this period yet." />
       </div>
 
       <PayslipModal record={previewRecord} onClose={() => setPreviewRecord(null)} />

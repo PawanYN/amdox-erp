@@ -18,7 +18,7 @@ export function Table({ children }: { children: ReactNode }) {
 
 export function THead({ children }: { children: ReactNode }) {
   return (
-    <thead className="border-b border-line bg-gradient-to-r from-canvas to-white">
+    <thead className="border-b border-line bg-gradient-to-r from-canvas via-white to-canvas sticky top-0 z-10 backdrop-blur-sm">
       <tr>{children}</tr>
     </thead>
   );
@@ -38,7 +38,7 @@ export function TBody({ children }: { children: ReactNode }) {
 
 export function TR({ children }: { children: ReactNode }) {
   return (
-    <tr className="tr-hover hover:bg-canvas/70 group">
+    <tr className="tr-hover hover:bg-canvas/90 group transition-colors duration-150 cursor-default">
       {children}
     </tr>
   );

@@ -64,3 +64,86 @@ export interface CurrentUser {
   name: string;
   role: UserRole;
 }
+
+// --- SCM Types ---
+
+export type InventoryStatus = "In Stock" | "Low Stock" | "Out of Stock";
+
+export interface InventoryItem {
+  id: string; // e.g. "ITM-001"
+  name: string;
+  category: string;
+  stock: number;
+  minStock: number;
+  unitPrice: number;
+  status: InventoryStatus;
+}
+
+export type POStatus = "Draft" | "Sent" | "Fulfilled" | "Cancelled";
+
+export interface PurchaseOrder {
+  id: string;
+  vendorId: string;
+  vendorName: string;
+  date: string;
+  amount: number;
+  status: POStatus;
+}
+
+export type VendorStatus = "Active" | "Inactive";
+
+export interface Vendor {
+  id: string;
+  name: string;
+  contactPerson: string;
+  email: string;
+  phone: string;
+  rating: number; // 1 to 5
+  status: VendorStatus;
+}
+
+// --- Finance Types ---
+
+export type AccountType = "Asset" | "Liability" | "Equity" | "Revenue" | "Expense";
+
+export interface Account {
+  id: string; // e.g. "1010"
+  name: string;
+  type: AccountType;
+  balance: number;
+}
+
+export type JournalStatus = "Draft" | "Posted";
+
+export interface JournalEntry {
+  id: string;
+  date: string;
+  description: string;
+  debitAccount: string;
+  creditAccount: string;
+  amount: number;
+  status: JournalStatus;
+}
+
+export type InvoiceStatus = "Draft" | "Sent" | "Paid" | "Overdue";
+
+export interface Invoice {
+  id: string;
+  clientId: string;
+  clientName: string;
+  date: string;
+  dueDate: string;
+  amount: number;
+  status: InvoiceStatus;
+}
+
+export interface AgingRecord {
+  clientId: string;
+  clientName: string;
+  current: number;
+  days30: number; // 1-30 Days
+  days60: number; // 31-60 Days
+  days90: number; // 61-90 Days
+  days90Plus: number; // 90+ Days
+  total: number;
+}
