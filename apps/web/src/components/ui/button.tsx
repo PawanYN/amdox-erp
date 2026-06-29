@@ -4,7 +4,7 @@ type ButtonVariant = "primary" | "success" | "danger" | "ghost" | "outline";
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary:
-    "bg-gradient-to-r from-brand-purple to-brand-violet text-white hover:from-brand-violet hover:to-brand-purple shadow-[0_2px_12px_rgba(108,71,255,0.4)] hover:shadow-[0_4px_20px_rgba(108,71,255,0.55)] hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none",
+    "bg-gradient-to-r from-violet-500 to-purple-600 text-white hover:from-violet-400 hover:to-purple-500 shadow-[0_2px_12px_rgba(108,71,255,0.4)] hover:shadow-[0_4px_20px_rgba(108,71,255,0.55)] hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none",
   success:
     "bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-400 hover:to-teal-400 shadow-[0_2px_12px_rgba(16,185,129,0.35)] hover:shadow-[0_4px_20px_rgba(16,185,129,0.5)] hover:-translate-y-0.5 disabled:opacity-50",
   danger:
@@ -12,7 +12,7 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   ghost:
     "bg-transparent text-muted hover:bg-canvas hover:text-ink disabled:opacity-50",
   outline:
-    "bg-white text-ink border border-line hover:border-brand-purple/40 hover:text-brand-purple hover:-translate-y-0.5 shadow-sm hover:shadow disabled:opacity-50",
+    "bg-white text-ink border border-line hover:border-purple-600/40 hover:text-purple-600 hover:-translate-y-0.5 shadow-sm hover:shadow disabled:opacity-50",
 };
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

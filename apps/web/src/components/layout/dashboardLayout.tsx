@@ -18,15 +18,22 @@ import {
   User,
   PanelLeftClose,
   PanelLeftOpen,
+  FolderKanban,
 } from "lucide-react";
 
+/**
+ * ROLES dictionary defines the personas available in the app.
+ * Each persona has a label (display name), a department, and
+ * a list of sections (route prefixes) they are allowed to access.
+ * This is used to simulate RBAC (Role-Based Access Control) in the frontend.
+ */
 const ROLES: Record<
   string,
   { label: string; sections: string[]; dept: string }
 > = {
   executive: {
     label: "Executive",
-    sections: ["/", "finance", "hr", "scm"],
+    sections: ["/", "finance", "hr", "scm", "projects"],
     dept: "Executive Office",
   },
   finance: {
@@ -44,9 +51,14 @@ const ROLES: Record<
     sections: ["/", "scm"],
     dept: "Supply Chain",
   },
+  pm: {
+    label: "Project Manager",
+    sections: ["/", "projects"],
+    dept: "Project Management",
+  },
   it: {
     label: "IT Administrator",
-    sections: ["/", "finance", "hr", "scm", "settings"],
+    sections: ["/", "finance", "hr", "scm", "projects", "settings"],
     dept: "IT Administration",
   },
 };
@@ -65,6 +77,11 @@ interface NavSection {
   children?: NavChild[];
 }
 
+/**
+ * NAV array defines the structure of the sidebar navigation.
+ * Each top-level item can either be a `leaf` (direct link) or contain `children` (sub-routes).
+ * The `id` matches the route path, which is cross-referenced with `ROLES` to determine visibility.
+ */
 const NAV: NavSection[] = [
   { id: "/home", icon: LayoutDashboard, label: "Home", leaf: true },
   {
@@ -99,10 +116,26 @@ const NAV: NavSection[] = [
       { id: "/scm/inventory", label: "Inventory", day: "Day 13" },
     ],
   },
+  {
+    id: "projects",
+    icon: FolderKanban,
+    label: "Projects",
+    children: [
+      { id: "/projects/overview", label: "Overview", day: "V2" },
+      { id: "/projects/tasks", label: "Tasks & Milestones", day: "V2" },
+      { id: "/projects/resources", label: "Resource Allocation", day: "V2" },
+      { id: "/projects/budget", label: "Budget Tracking", day: "V2" },
+    ],
+  },
   { id: "/notifications", icon: Bell, label: "Notifications", leaf: true },
   { id: "/settings", icon: Settings, label: "Settings", leaf: true },
 ];
 
+/**
+ * TopBar component renders the top navigation header.
+ * It contains the application title, breadcrumbs, search/notification actions,
+ * and a dropdown to switch the current active persona (simulating user login).
+ */
 function TopBar({ role, setRole, activePage }: { role: string; setRole: (r: string) => void; activePage: string }) {
   const allItems = NAV.flatMap((n) => (n.children || [{ id: n.id, label: n.label, day: "" }]));
   const current = allItems.find((i) => i.id === activePage) || { id: "/", label: "Home", day: "" };
@@ -163,10 +196,15 @@ function TopBar({ role, setRole, activePage }: { role: string; setRole: (r: stri
   );
 }
 
+/**
+ * Sidebar component renders the left-hand navigation menu.
+ * It dynamically filters the `NAV` items based on the currently selected `role`'s allowed `sections`.
+ * It handles state for collapsing the sidebar and expanding/collapsing sub-menus.
+ */
 function Sidebar({ role, activePage, collapsed, setCollapsed }: { role: string; activePage: string; collapsed: boolean; setCollapsed: any }) {
   const router = useRouter();
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    finance: true, hr: true, scm: true
+    finance: true, hr: true, scm: true, projects: true
   });
   const visibleSections = ROLES[role].sections;
 
@@ -253,6 +291,11 @@ function Sidebar({ role, activePage, collapsed, setCollapsed }: { role: string; 
   );
 }
 
+/**
+ * DashboardLayout is the root layout wrapper for all authenticated dashboard pages.
+ * It manages the global state for the active persona (`role`) and sidebar collapse state.
+ * This layout wraps around the specific page content passed via `children`.
+ */
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState("executive");
   const [collapsed, setCollapsed] = useState(false);
