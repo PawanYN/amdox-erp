@@ -49,9 +49,14 @@ export function KeycloakProvider({ children }: { children: ReactNode }) {
       value={{
         initialized,
         authenticated,
-        token: keycloak.token,
-        login: () => keycloak.login(),
-        logout: () => keycloak.logout(),
+        token: keycloak?.token,
+        login: () => keycloak?.login(),
+        logout: () => {
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("tenant_slug");
+          }
+          keycloak?.logout();
+        },
       }}
     >
       {children}

@@ -28,6 +28,9 @@ export default function LoginPage() {
         return;
       }
 
+      // Save tenant slug for keycloak.ts initialization
+      localStorage.setItem("tenant_slug", cleanSlug);
+
       // Build the Keycloak login URL for this tenant's realm
       const kcBase = process.env.NEXT_PUBLIC_KEYCLOAK_URL || "http://localhost:8180";
       const clientId = process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID || "amdox-erp-web";

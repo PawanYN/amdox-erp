@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit, InternalServerErrorException, ConflictException, Logger } from '@nestjs/common';
+import { Injectable, OnModuleInit, InternalServerErrorException, ConflictException, NotFoundException, Logger } from '@nestjs/common';
 import KcAdminClient from '@keycloak/keycloak-admin-client';
 import { prisma } from '@amdox/db';
 import { CreateTenantDto } from './dto/create-tenant.dto';
@@ -160,38 +160,150 @@ export class TenantService implements OnModuleInit {
     });
   }
 
-  async getSsoConfig(tenantId: string) {
+  async verifyRealmExists(realm: string) {
+    try {
+      const exists = await this.kcAdminClient.realms.findOne({ realm });
+      if (!exists) {
+        throw new NotFoundException(`Keycloak Realm '${realm}' does not exist.`);
+      }
+    } catch (err) {
+      throw new NotFoundException(`Keycloak Realm '${realm}' does not exist or is unreachable.`);
+    }
+  }
+
+  async getKeycloakConfig(tenantId: string) {
+    await this.verifyRealmExists(tenantId);
     try {
       const realm = await this.kcAdminClient.realms.findOne({ realm: tenantId });
       if (!realm) return { error: 'Keycloak Realm not found for this tenant' };
 
       return {
-        enabled: realm.enabled,
-        realmUrl: `${process.env.KEYCLOAK_BASE_URL || 'http://localhost:8080'}/realms/${tenantId}`,
-        ssoSessionIdleTimeout: realm.ssoSessionIdleTimeout || 1800,
-        ssoSessionMaxLifespan: realm.ssoSessionMaxLifespan || 36000,
-        otpPolicyType: realm.otpPolicyType || 'totp',
+        login: {
+          registrationAllowed: realm.registrationAllowed ?? false,
+          resetPasswordAllowed: realm.resetPasswordAllowed ?? false,
+          rememberMe: realm.rememberMe ?? false,
+          registrationEmailAsUsername: realm.registrationEmailAsUsername ?? false,
+          loginWithEmailAllowed: realm.loginWithEmailAllowed ?? true,
+          duplicateEmailsAllowed: realm.duplicateEmailsAllowed ?? false,
+          verifyEmail: realm.verifyEmail ?? false,
+          editUsernameAllowed: realm.editUsernameAllowed ?? false,
+        },
+        smtpServer: realm.smtpServer || {},
+        sessions: {
+          ssoSessionIdleTimeout: realm.ssoSessionIdleTimeout ?? 1800,
+          ssoSessionMaxLifespan: realm.ssoSessionMaxLifespan ?? 36000,
+          ssoSessionIdleTimeoutRememberMe: realm.ssoSessionIdleTimeoutRememberMe ?? 0,
+          ssoSessionMaxLifespanRememberMe: realm.ssoSessionMaxLifespanRememberMe ?? 0,
+          clientSessionIdleTimeout: realm.clientSessionIdleTimeout ?? 0,
+          clientSessionMaxLifespan: realm.clientSessionMaxLifespan ?? 0,
+          offlineSessionIdleTimeout: realm.offlineSessionIdleTimeout ?? 2592000,
+          offlineSessionMaxLifespanEnabled: realm.offlineSessionMaxLifespanEnabled ?? false,
+          accessCodeLifespanUserAction: realm.accessCodeLifespanUserAction ?? 300,
+          accessCodeLifespan: realm.accessCodeLifespan ?? 1800,
+        },
+        tokens: {
+          defaultSignatureAlgorithm: realm.defaultSignatureAlgorithm || 'RS256',
+          oauth2DeviceCodeLifespan: realm.oauth2DeviceCodeLifespan ?? 600,
+          oauth2DevicePollingInterval: realm.oauth2DevicePollingInterval ?? 5,
+          revokeRefreshToken: realm.revokeRefreshToken ?? false,
+          accessTokenLifespan: realm.accessTokenLifespan ?? 300,
+          accessTokenLifespanForImplicitFlow: realm.accessTokenLifespanForImplicitFlow ?? 900,
+          clientLoginTimeout: (realm as any).clientLoginTimeout ?? 60,
+          actionTokenGeneratedByUserLifespan: realm.actionTokenGeneratedByUserLifespan ?? 300,
+          actionTokenGeneratedByAdminLifespan: realm.actionTokenGeneratedByAdminLifespan ?? 43200,
+        }
       };
     } catch (error) {
-      this.logger.error(`Failed to fetch SSO config from Keycloak for ${tenantId}:`, (error as Error).message);
+      this.logger.error(`Failed to fetch full Keycloak config for ${tenantId}:`, (error as Error).message);
       return { error: 'Failed to communicate with Identity Provider' };
     }
   }
 
-  async updateSsoConfig(tenantId: string, ssoData: any) {
+  async updateKeycloakConfig(tenantId: string, data: any) {
+    await this.verifyRealmExists(tenantId);
     try {
-      await this.kcAdminClient.realms.update(
-        { realm: tenantId },
-        {
-          ssoSessionIdleTimeout: ssoData.ssoSessionIdleTimeout,
-          ssoSessionMaxLifespan: ssoData.ssoSessionMaxLifespan,
-        }
-      );
-      return this.getSsoConfig(tenantId);
+      const payload: any = {};
+      if (data.login) Object.assign(payload, data.login);
+      if (data.smtpServer) payload.smtpServer = data.smtpServer;
+      if (data.sessions) Object.assign(payload, data.sessions);
+      if (data.tokens) {
+        Object.assign(payload, data.tokens);
+        delete payload.clientLoginTimeout;
+      }
+
+      await this.kcAdminClient.realms.update({ realm: tenantId }, payload);
+      return { success: true };
     } catch (error) {
-      this.logger.error(`Failed to update SSO config in Keycloak for ${tenantId}:`, (error as Error).message);
+      this.logger.error(`Failed to update Keycloak config for ${tenantId}:`, (error as Error).message);
       return { error: 'Failed to update Identity Provider configuration' };
     }
   }
+
+  async getRequiredActions(tenantId: string) {
+    await this.verifyRealmExists(tenantId);
+    try {
+      return await this.kcAdminClient.authenticationManagement.getRequiredActions({ realm: tenantId } as any);
+    } catch (error) {
+      this.logger.error(`Failed to fetch required actions for ${tenantId}:`, (error as Error).message);
+      return [];
+    }
+  }
+
+  async updateRequiredAction(tenantId: string, alias: string, data: any) {
+    await this.verifyRealmExists(tenantId);
+    try {
+      await this.kcAdminClient.authenticationManagement.updateRequiredAction(
+        { realm: tenantId, alias },
+        data
+      );
+      return { success: true };
+    } catch (error) {
+      this.logger.error(`Failed to update required action ${alias} for ${tenantId}:`, (error as Error).message);
+      return { error: 'Failed to update required action' };
+    }
+  }
+
+  async getIdentityProviders(tenantId: string) {
+    await this.verifyRealmExists(tenantId);
+    try {
+      return await this.kcAdminClient.identityProviders.find({ realm: tenantId });
+    } catch (error) {
+      this.logger.error(`Failed to fetch identity providers for ${tenantId}:`, (error as Error).message);
+      return [];
+    }
+  }
+
+  async createIdentityProvider(tenantId: string, provider: any) {
+    await this.verifyRealmExists(tenantId);
+    try {
+      await this.kcAdminClient.identityProviders.create({ realm: tenantId }, provider);
+      return { success: true };
+    } catch (error) {
+      this.logger.error(`Failed to create identity provider for ${tenantId}:`, (error as Error).message);
+      return { error: 'Failed to create identity provider' };
+    }
+  }
+
+  async deleteIdentityProvider(tenantId: string, alias: string) {
+    await this.verifyRealmExists(tenantId);
+    try {
+      await this.kcAdminClient.identityProviders.del({ realm: tenantId, alias });
+      return { success: true };
+    } catch (error) {
+      this.logger.error(`Failed to delete identity provider ${alias} for ${tenantId}:`, (error as Error).message);
+      return { error: 'Failed to delete identity provider' };
+    }
+  }
+
+  async getAuthenticationFlows(tenantId: string) {
+    await this.verifyRealmExists(tenantId);
+    try {
+      return await this.kcAdminClient.authenticationManagement.getFlows({ realm: tenantId });
+    } catch (error) {
+      this.logger.error(`Failed to fetch auth flows for ${tenantId}:`, (error as Error).message);
+      return [];
+    }
+  }
+
 }
  
