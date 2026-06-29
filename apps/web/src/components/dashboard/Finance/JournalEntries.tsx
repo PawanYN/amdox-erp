@@ -1,5 +1,19 @@
+"use client";
+
+import { useState } from "react";
+
+type JournalEntry = {
+  id: string;
+  date: string;
+  description: string;
+  debit: string;
+  credit: string;
+  amount: string;
+  locked: boolean;
+};
+
 export default function JournalEntries() {
-  const entries = [
+  const [entries, setEntries] = useState<JournalEntry[]>([
     {
       id: "JE-001",
       date: "2026-06-20",
@@ -18,68 +32,102 @@ export default function JournalEntries() {
       amount: "₹25,000",
       locked: false,
     },
-    {
-      id: "JE-003",
-      date: "2026-06-22",
-      description: "Salary Expense",
-      debit: "Salary Expense",
-      credit: "Cash",
-      amount: "₹1,20,000",
-      locked: true,
-    },
-  ];
+  ]);
+
+  const [showModal, setShowModal] = useState(false);
+  const [search, setSearch] = useState("");
+  const [form, setForm] = useState({
+    date: "",
+    description: "",
+    debit: "",
+    credit: "",
+    amount: "",
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+    setForm({ ...form, [e.target.name]: e.target.value });
+
+  const handleSave = () => {
+    if (Object.values(form).some(v => !v)) {
+      alert("Please fill all fields");
+      return;
+    }
+    setEntries([
+      ...entries,
+      {
+        id: `JE-${String(entries.length + 1).padStart(3, "0")}`,
+        ...form,
+        amount: `₹${Number(form.amount).toLocaleString("en-IN")}`,
+        locked: false,
+      },
+    ]);
+    setForm({ date:"",description:"",debit:"",credit:"",amount:""});
+    setShowModal(false);
+  };
+
+  const filtered = entries.filter(e =>
+    [e.id,e.description,e.debit,e.credit].join(" ").toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">
-          Journal Entries
-        </h1>
+      {showModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
+          <div className="bg-white rounded-xl p-6 w-[500px]">
+            <h2 className="text-2xl font-bold mb-4">New Journal Entry</h2>
+            <div className="space-y-3">
+              <input className="w-full border p-3 rounded" type="date" name="date" value={form.date} onChange={handleChange}/>
+              <input className="w-full border p-3 rounded" placeholder="Description" name="description" value={form.description} onChange={handleChange}/>
+              <input className="w-full border p-3 rounded" placeholder="Debit Account" name="debit" value={form.debit} onChange={handleChange}/>
+              <input className="w-full border p-3 rounded" placeholder="Credit Account" name="credit" value={form.credit} onChange={handleChange}/>
+              <input className="w-full border p-3 rounded" type="number" placeholder="Amount" name="amount" value={form.amount} onChange={handleChange}/>
+            </div>
+            <div className="flex justify-end gap-2 mt-5">
+              <button onClick={()=>setShowModal(false)} className="border px-4 py-2 rounded">Cancel</button>
+              <button onClick={handleSave} className="bg-green-600 text-white px-4 py-2 rounded">Save</button>
+            </div>
+          </div>
+        </div>
+      )}
 
-        <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow">
-          + New Journal Entry
-        </button>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Journal Entries</h1>
+        <button onClick={()=>setShowModal(true)} className="bg-green-600 text-white px-4 py-2 rounded-lg">+ New Journal Entry</button>
       </div>
+
+      <input
+        className="border rounded-lg p-3 mb-4 w-full"
+        placeholder="Search..."
+        value={search}
+        onChange={(e)=>setSearch(e.target.value)}
+      />
 
       <div className="bg-white rounded-xl shadow overflow-hidden">
         <table className="w-full">
           <thead className="bg-gray-100">
             <tr>
-              <th className="px-4 py-3 text-left">Entry ID</th>
-              <th className="px-4 py-3 text-left">Date</th>
-              <th className="px-4 py-3 text-left">Description</th>
-              <th className="px-4 py-3 text-left">Debit</th>
-              <th className="px-4 py-3 text-left">Credit</th>
-              <th className="px-4 py-3 text-left">Amount</th>
-              <th className="px-4 py-3 text-left">Status</th>
+              <th className="p-3 text-left">ID</th>
+              <th className="p-3 text-left">Date</th>
+              <th className="p-3 text-left">Description</th>
+              <th className="p-3 text-left">Debit</th>
+              <th className="p-3 text-left">Credit</th>
+              <th className="p-3 text-left">Amount</th>
+              <th className="p-3 text-left">Status</th>
             </tr>
           </thead>
-
           <tbody>
-            {entries.map((entry) => (
-              <tr
-                key={entry.id}
-                className="border-t hover:bg-gray-50"
-              >
-                <td className="px-4 py-3">{entry.id}</td>
-                <td className="px-4 py-3">{entry.date}</td>
-                <td className="px-4 py-3">{entry.description}</td>
-                <td className="px-4 py-3">{entry.debit}</td>
-                <td className="px-4 py-3">{entry.credit}</td>
-                <td className="px-4 py-3 font-semibold">
-                  {entry.amount}
-                </td>
-
-                <td className="px-4 py-3">
-                  {entry.locked ? (
-                    <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-sm">
-                      🔒 Locked
-                    </span>
-                  ) : (
-                    <span className="bg-green-100 text-green-600 px-3 py-1 rounded-full text-sm">
-                      Editable
-                    </span>
-                  )}
+            {filtered.map(entry=>(
+              <tr key={entry.id} className="border-t">
+                <td className="p-3">{entry.id}</td>
+                <td className="p-3">{entry.date}</td>
+                <td className="p-3">{entry.description}</td>
+                <td className="p-3">{entry.debit}</td>
+                <td className="p-3">{entry.credit}</td>
+                <td className="p-3">{entry.amount}</td>
+                <td className="p-3">
+                  {entry.locked
+                    ? <span className="bg-red-100 text-red-600 px-2 py-1 rounded-full">🔒 Locked</span>
+                    : <span className="bg-green-100 text-green-600 px-2 py-1 rounded-full">Editable</span>}
                 </td>
               </tr>
             ))}
