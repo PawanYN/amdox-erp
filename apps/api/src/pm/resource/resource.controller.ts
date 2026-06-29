@@ -1,7 +1,12 @@
-import { Controller, Post, Body, Req, Get, Param } from '@nestjs/common';
+import { Controller, Post, Body, Req, Get, Param, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { ResourceService } from './resource.service';
 import { AllocateResourceDto } from '../dto/allocate-resource.dto';
 
+@ApiTags('Project Management - Resources')
+@ApiBearerAuth()
+@UseGuards(AuthGuard('keycloak'))
 @Controller('pm/resources')
 export class ResourceController {
   constructor(private readonly resourceService: ResourceService) {}

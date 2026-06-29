@@ -8,13 +8,20 @@ dotenv.config({ path: path.join(__dirname, '../../../.env') });
 dotenv.config({ path: path.join(__dirname, '../../../../.env') });
 
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger as NestLogger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { Logger } from 'nestjs-pino';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
   
+  // Use Pino as the core logger for NestJS
+  app.useLogger(app.get(Logger));
+  
+  // Enable CORS so the Next.js frontend can make requests
+  app.enableCors();
+
   // Enforce strict validation rules across the entire API
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
 
@@ -37,6 +44,7 @@ async function bootstrap() {
   // Set up port from env or default to 3001
   const port = process.env.PORT || 3001;
   await app.listen(port);
-  console.log(`Application is running on: http://localhost:${port}`);
+  
+  NestLogger.log(`Application is running on: http://localhost:${port}`, 'Bootstrap');
 }
 bootstrap();

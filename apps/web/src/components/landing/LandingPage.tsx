@@ -105,11 +105,7 @@ function DashboardPreview() {
   );
 }
 
-interface NavProps {
-  onLoginClick: () => void;
-}
-
-function Nav({ onLoginClick }: NavProps) {
+function Nav() {
   return (
     <nav className="flex items-center justify-between px-8 py-5 border-b border-[#E4E2DC]">
       <span
@@ -124,21 +120,17 @@ function Nav({ onLoginClick }: NavProps) {
         <a href="#about" className="hover:text-[#14171F]">About</a>
         <a href="#contact" className="hover:text-[#14171F]">Contact</a>
       </div>
-      <button
-        onClick={onLoginClick}
+      <Link
+        href="/login"
         className="text-sm font-medium px-4 py-2 rounded-md border border-[#1E3A5F] text-[#1E3A5F] hover:bg-[#1E3A5F] hover:text-white transition-colors"
       >
         Login
-      </button>
+      </Link>
     </nav>
   );
 }
 
-interface HeroProps {
-  onLoginClick: () => void;
-}
-
-function Hero({ onLoginClick }: HeroProps) {
+function Hero() {
   return (
     <section className="px-8 py-20 max-w-7xl mx-auto grid md:grid-cols-2 gap-12 items-center">
       <div>
@@ -154,18 +146,21 @@ function Hero({ onLoginClick }: HeroProps) {
           Manage HR, Payroll, Inventory, Projects and Analytics from a single
           intelligent platform.
         </p>
-        <div className="mt-7 flex gap-3">
-          <button
-            onClick={onLoginClick}
+        <div className="mt-7 flex gap-3 flex-wrap">
+          <Link
+            href="/login"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-[#1E3A5F] text-white text-sm font-medium hover:bg-[#16304d] transition-colors"
           >
             Get Started <ArrowRight size={15} />
-          </button>
+          </Link>
           <button className="px-5 py-2.5 rounded-md border border-[#D8D5CC] text-sm font-medium text-[#14171F] hover:bg-[#F4F2EC] transition-colors">
             Request Demo
           </button>
           <Link href="/home" className="inline-flex items-center px-5 py-2.5 rounded-md border border-[#D8D5CC] text-sm font-medium text-[#14171F] bg-[#F4F2EC] hover:bg-[#E4E2DC] transition-colors">
             Bypass to Dashboard
+          </Link>
+          <Link href="/create-tenant" className="inline-flex items-center px-5 py-2.5 rounded-md border border-[#1E3A5F] text-sm font-medium text-[#1E3A5F] bg-white hover:bg-[#F4F2EC] transition-colors">
+            Create Tenant
           </Link>
         </div>
       </div>
@@ -238,14 +233,12 @@ function LoginPlaceholder({ onBack }: LoginPlaceholderProps) {
 }
 
 export default function LandingPage() {
-  const { login } = useKeycloak();
-
   return (
     <div style={{ fontFamily: "'IBM Plex Sans', sans-serif" }}>
       <style>{FONT_IMPORT}</style>
       <div className="bg-white min-h-screen">
-        <Nav onLoginClick={login} />
-        <Hero onLoginClick={login} />
+        <Nav />
+        <Hero />
         <ModulesRow />
       </div>
     </div>

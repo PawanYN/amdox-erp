@@ -1,8 +1,10 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleDestroy, OnModuleInit, Logger } from '@nestjs/common';
 import { Redis } from 'ioredis';
 
 @Injectable()
 export class RedisService extends Redis implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(RedisService.name);
+
   constructor() {
     // Connect to the local Redis container from our docker-compose
     super({
@@ -12,8 +14,8 @@ export class RedisService extends Redis implements OnModuleInit, OnModuleDestroy
   }
 
   onModuleInit() {
-    this.on('connect', () => console.log('✅ Connected to Redis for Cache & Blacklisting'));
-    this.on('error', (err) => console.error('❌ Redis Connection Error:', err));
+    this.on('connect', () => this.logger.log('✅ Connected to Redis for Cache & Blacklisting'));
+    this.on('error', (err) => this.logger.error('❌ Redis Connection Error:', err));
   }
 
   onModuleDestroy() {

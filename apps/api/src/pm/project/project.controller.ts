@@ -1,15 +1,20 @@
-import { Controller, Post, Body, Req } from '@nestjs/common';
+import { Controller, Post, Body, Req, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { ProjectService } from './project.service';
 import { CreateProjectDto } from '../dto/create-project.dto';
 import { CreateTaskDto } from '../dto/create-task.dto';
 
+@ApiTags('Project Management - Projects')
+@ApiBearerAuth()
+@UseGuards(AuthGuard('keycloak'))
 @Controller('pm/projects')
 export class ProjectController {
-  constructor(private readonly projectService: ProjectService) {}
+  constructor(private readonly projectService: ProjectService) { }
 
   @Post()
   createProject(@Req() req: any, @Body() dto: CreateProjectDto) {
-    const tenantId = req.tenantId || 'default-tenant-id'; 
+    const tenantId = req.tenantId || 'default-tenant-id';
     return this.projectService.createProject(tenantId, dto);
   }
 
