@@ -1,7 +1,15 @@
 @import "tailwindcss";
 
+@theme {
+  --color-brand-purple: #6D28D9;
+  --color-ink: #14171F;
+  --color-muted: #8A8678;
+  --color-line: #E4E2DC;
+  --color-canvas: #FAFAF9;
+}
+
 body {
-  background-color: #f9fafb;
-  color: #111827;
+  background-color: var(--color-canvas, #f9fafb);
+  color: var(--color-ink, #111827);
   font-family: system-ui, -apple-system, sans-serif;
 }

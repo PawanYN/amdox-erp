@@ -10,7 +10,7 @@ export default function DashboardHome() {
   const [profile, setProfile] = useState<any>(null);
   const [balances, setBalances] = useState<any[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
-  
+
   const [leaveType, setLeaveType] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -27,7 +27,7 @@ export default function DashboardHome() {
       const payload = JSON.parse(atob(token.split(".")[1]));
       name = payload.name || payload.preferred_username || "Unknown";
       email = payload.email || "Unknown";
-      
+
       const roles = payload.realm_access?.roles || [];
       if (roles.includes("tenant_admin") || roles.includes("TENANT_ADMIN")) {
         role = "Tenant Admin";
@@ -46,7 +46,7 @@ export default function DashboardHome() {
     const fetchData = async () => {
       try {
         const headers = { Authorization: `Bearer ${token}` };
-        
+
         // Fetch Profile
         const profRes = await fetch("http://localhost:3001/employees/me", { headers });
         if (profRes.ok) {
@@ -62,7 +62,7 @@ export default function DashboardHome() {
               // Set default leave type for the form
               if (b.length > 0) setLeaveType(b[0].leaveTypeId);
             }
-            
+
             const reqRes = await fetch(`http://localhost:3001/leave/my-requests/${profData.id}`, { headers });
             if (reqRes.ok) setRequests(await reqRes.json());
           }
@@ -96,7 +96,7 @@ export default function DashboardHome() {
         setStartDate("");
         setEndDate("");
         // Refresh requests
-        const reqRes = await fetch(`http://localhost:3001/leave/my-requests/${profile.id}`, { 
+        const reqRes = await fetch(`http://localhost:3001/leave/my-requests/${profile.id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (reqRes.ok) setRequests(await reqRes.json());
@@ -178,7 +178,7 @@ export default function DashboardHome() {
             <div className="border border-line rounded-xl p-5 bg-white shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-semibold text-ink">Recent Leave Requests</h2>
-                <button 
+                <button
                   onClick={() => setShowLeaveForm(!showLeaveForm)}
                   className="text-xs font-semibold text-white bg-brand-purple px-3 py-1.5 rounded-lg hover:bg-brand-purple/90 transition-colors"
                 >
@@ -192,7 +192,7 @@ export default function DashboardHome() {
                   <div className="grid grid-cols-2 gap-3 mb-3">
                     <div className="col-span-2">
                       <label className="text-[10px] text-muted font-semibold uppercase">Leave Type</label>
-                      <select 
+                      <select
                         className="w-full text-sm border border-line rounded p-1.5 mt-1 bg-white"
                         value={leaveType}
                         onChange={(e) => setLeaveType(e.target.value)}
@@ -204,8 +204,8 @@ export default function DashboardHome() {
                     </div>
                     <div>
                       <label className="text-[10px] text-muted font-semibold uppercase">Start Date</label>
-                      <input 
-                        type="date" 
+                      <input
+                        type="date"
                         className="w-full text-sm border border-line rounded p-1.5 mt-1 bg-white"
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
@@ -213,15 +213,15 @@ export default function DashboardHome() {
                     </div>
                     <div>
                       <label className="text-[10px] text-muted font-semibold uppercase">End Date</label>
-                      <input 
-                        type="date" 
+                      <input
+                        type="date"
                         className="w-full text-sm border border-line rounded p-1.5 mt-1 bg-white"
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
                       />
                     </div>
                   </div>
-                  <button 
+                  <button
                     onClick={submitLeave}
                     disabled={isSubmitting || !startDate || !endDate || !leaveType}
                     className="w-full py-2 bg-ink text-white text-xs font-semibold rounded hover:bg-ink/90 transition-colors disabled:opacity-50"
@@ -242,11 +242,10 @@ export default function DashboardHome() {
                             {new Date(req.startDate).toLocaleDateString()} - {new Date(req.endDate).toLocaleDateString()}
                           </p>
                         </div>
-                        <span className={`px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider ${
-                          req.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-700' :
+                        <span className={`px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider ${req.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-700' :
                           req.status === 'REJECTED' ? 'bg-rose-100 text-rose-700' :
-                          'bg-amber-100 text-amber-700'
-                        }`}>
+                            'bg-amber-100 text-amber-700'
+                          }`}>
                           {req.status}
                         </span>
                       </div>
