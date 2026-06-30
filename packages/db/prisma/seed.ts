@@ -12,7 +12,7 @@ async function main() {
     create: {
       name: 'Amdox Corporation',
       slug: 'amdox-erp',
-      plan: 'enterprise',
+      plan: 'ENTERPRISE',
       settings: { theme: 'dark' },
     },
   });
@@ -43,13 +43,17 @@ async function main() {
 
   // 3. Create the User (matching your Keycloak ID)
   const user = await prisma.user.upsert({
-    where: { keycloakId: 'cc73ff3c-761c-480e-a7f1-ba3dc70c14f6' },
+    where: {
+      tenantId_email: {
+        tenantId: tenant.id,
+        email: 'pawannannaware16@gmail.com',
+      },
+    },
     update: {},
     create: {
       email: 'pawannannaware16@gmail.com',
-      firstName: 'PAWAN',
-      lastName: 'NANNAWARE',
-      keycloakId: 'cc73ff3c-761c-480e-a7f1-ba3dc70c14f6',
+      fullName: 'PAWAN NANNAWARE',
+      ssoSubject: 'cc73ff3c-761c-480e-a7f1-ba3dc70c14f6',
       tenantId: tenant.id,
     },
   });

@@ -24,8 +24,8 @@ export class RolesGuard implements CanActivate {
       return false;
     }
 
-    // Extract the list of role names the user actually has
-    const userRoleNames = user.userRoles.map((ur: any) => ur.role.name);
+    // Extract the list of role names the user actually has (normalize by stripping spaces)
+    const userRoleNames = user.userRoles.map((ur: any) => ur.role.name.replace(/\s+/g, ''));
 
     // Check if the user has AT LEAST ONE of the required roles
     return requiredRoles.some((role) => userRoleNames.includes(role));

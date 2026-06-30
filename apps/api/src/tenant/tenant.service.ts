@@ -48,6 +48,7 @@ export class TenantService implements OnModuleInit {
     }
 
     // 2. KEYCLOAK ORCHESTRATION (Layer 1 Isolation)
+    let kcUserId: string | undefined;
     try {
       // Create Realm
       await this.kcAdminClient.realms.create({
@@ -77,6 +78,7 @@ export class TenantService implements OnModuleInit {
         enabled: true,
         emailVerified: true,
       });
+      kcUserId = kcUser.id;
 
       // Set Password in Keycloak
       await this.kcAdminClient.users.resetPassword({
@@ -104,7 +106,7 @@ export class TenantService implements OnModuleInit {
             create: {
               email: adminEmail,
               fullName: 'Tenant Admin',
-              // We'll leave ssoSubject null or map it to kcUser.id if needed
+              ssoSubject: kcUserId,
             },
           },
           // Create default roles for this tenant
@@ -126,6 +128,12 @@ export class TenantService implements OnModuleInit {
       const adminRole = newTenant.roles.find(r => r.systemRole === 'TENANT_ADMIN');
       const adminUser = newTenant.users[0];
 
+      // Logs with Orange ANSI Color (\x1b[38;5;208m)
+      this.logger.log(`Tenant created: \x1b[38;5;208m${newTenant.name}\x1b[0m`);
+      if (adminUser) {
+        this.logger.log(`User created: \x1b[38;5;208m${adminUser.fullName} (${adminUser.email})\x1b[0m`);
+      }
+
       if (adminRole && adminUser) {
         await prisma.userRole.create({
           data: {
@@ -144,15 +152,30 @@ export class TenantService implements OnModuleInit {
     }
   }
 
+  async getTenant(idOrSlug: string) {
+    const tenant = await prisma.tenant.findFirst({
+      where: {
+        OR: [
+          { id: idOrSlug },
+          { slug: idOrSlug }
+        ]
+      }
+    });
+    if (!tenant) {
+      throw new NotFoundException(`Tenant not found for id/slug: ${idOrSlug}`);
+    }
+    return tenant;
+  }
+
   async getTenantConfig(tenantId: string) {
-    const tenant = await prisma.tenant.findUnique({ where: { slug: tenantId } });
-    if (!tenant) return { error: 'Tenant not found' };
+    const tenant = await this.getTenant(tenantId);
     return tenant;
   }
 
   async updateTenantConfig(tenantId: string, updateData: any) {
+    const tenant = await this.getTenant(tenantId);
     return prisma.tenant.update({
-      where: { slug: tenantId },
+      where: { id: tenant.id },
       data: {
         name: updateData.name,
         // other updatable fields...
@@ -172,9 +195,10 @@ export class TenantService implements OnModuleInit {
   }
 
   async getKeycloakConfig(tenantId: string) {
-    await this.verifyRealmExists(tenantId);
+    const tenant = await this.getTenant(tenantId);
+    await this.verifyRealmExists(tenant.slug);
     try {
-      const realm = await this.kcAdminClient.realms.findOne({ realm: tenantId });
+      const realm = await this.kcAdminClient.realms.findOne({ realm: tenant.slug });
       if (!realm) return { error: 'Keycloak Realm not found for this tenant' };
 
       return {
@@ -214,13 +238,14 @@ export class TenantService implements OnModuleInit {
         }
       };
     } catch (error) {
-      this.logger.error(`Failed to fetch full Keycloak config for ${tenantId}:`, (error as Error).message);
+      this.logger.error(`Failed to fetch full Keycloak config for ${tenant.slug}:`, (error as Error).message);
       return { error: 'Failed to communicate with Identity Provider' };
     }
   }
 
   async updateKeycloakConfig(tenantId: string, data: any) {
-    await this.verifyRealmExists(tenantId);
+    const tenant = await this.getTenant(tenantId);
+    await this.verifyRealmExists(tenant.slug);
     try {
       const payload: any = {};
       if (data.login) Object.assign(payload, data.login);
@@ -231,76 +256,82 @@ export class TenantService implements OnModuleInit {
         delete payload.clientLoginTimeout;
       }
 
-      await this.kcAdminClient.realms.update({ realm: tenantId }, payload);
+      await this.kcAdminClient.realms.update({ realm: tenant.slug }, payload);
       return { success: true };
     } catch (error) {
-      this.logger.error(`Failed to update Keycloak config for ${tenantId}:`, (error as Error).message);
+      this.logger.error(`Failed to update Keycloak config for ${tenant.slug}:`, (error as Error).message);
       return { error: 'Failed to update Identity Provider configuration' };
     }
   }
 
   async getRequiredActions(tenantId: string) {
-    await this.verifyRealmExists(tenantId);
+    const tenant = await this.getTenant(tenantId);
+    await this.verifyRealmExists(tenant.slug);
     try {
-      return await this.kcAdminClient.authenticationManagement.getRequiredActions({ realm: tenantId } as any);
+      return await this.kcAdminClient.authenticationManagement.getRequiredActions({ realm: tenant.slug } as any);
     } catch (error) {
-      this.logger.error(`Failed to fetch required actions for ${tenantId}:`, (error as Error).message);
+      this.logger.error(`Failed to fetch required actions for ${tenant.slug}:`, (error as Error).message);
       return [];
     }
   }
 
   async updateRequiredAction(tenantId: string, alias: string, data: any) {
-    await this.verifyRealmExists(tenantId);
+    const tenant = await this.getTenant(tenantId);
+    await this.verifyRealmExists(tenant.slug);
     try {
       await this.kcAdminClient.authenticationManagement.updateRequiredAction(
-        { realm: tenantId, alias },
+        { realm: tenant.slug, alias },
         data
       );
       return { success: true };
     } catch (error) {
-      this.logger.error(`Failed to update required action ${alias} for ${tenantId}:`, (error as Error).message);
+      this.logger.error(`Failed to update required action ${alias} for ${tenant.slug}:`, (error as Error).message);
       return { error: 'Failed to update required action' };
     }
   }
 
   async getIdentityProviders(tenantId: string) {
-    await this.verifyRealmExists(tenantId);
+    const tenant = await this.getTenant(tenantId);
+    await this.verifyRealmExists(tenant.slug);
     try {
-      return await this.kcAdminClient.identityProviders.find({ realm: tenantId });
+      return await this.kcAdminClient.identityProviders.find({ realm: tenant.slug });
     } catch (error) {
-      this.logger.error(`Failed to fetch identity providers for ${tenantId}:`, (error as Error).message);
+      this.logger.error(`Failed to fetch identity providers for ${tenant.slug}:`, (error as Error).message);
       return [];
     }
   }
 
   async createIdentityProvider(tenantId: string, provider: any) {
-    await this.verifyRealmExists(tenantId);
+    const tenant = await this.getTenant(tenantId);
+    await this.verifyRealmExists(tenant.slug);
     try {
-      await this.kcAdminClient.identityProviders.create({ realm: tenantId }, provider);
+      await this.kcAdminClient.identityProviders.create({ realm: tenant.slug }, provider);
       return { success: true };
     } catch (error) {
-      this.logger.error(`Failed to create identity provider for ${tenantId}:`, (error as Error).message);
+      this.logger.error(`Failed to create identity provider for ${tenant.slug}:`, (error as Error).message);
       return { error: 'Failed to create identity provider' };
     }
   }
 
   async deleteIdentityProvider(tenantId: string, alias: string) {
-    await this.verifyRealmExists(tenantId);
+    const tenant = await this.getTenant(tenantId);
+    await this.verifyRealmExists(tenant.slug);
     try {
-      await this.kcAdminClient.identityProviders.del({ realm: tenantId, alias });
+      await this.kcAdminClient.identityProviders.del({ realm: tenant.slug, alias });
       return { success: true };
     } catch (error) {
-      this.logger.error(`Failed to delete identity provider ${alias} for ${tenantId}:`, (error as Error).message);
+      this.logger.error(`Failed to delete identity provider ${alias} for ${tenant.slug}:`, (error as Error).message);
       return { error: 'Failed to delete identity provider' };
     }
   }
 
   async getAuthenticationFlows(tenantId: string) {
-    await this.verifyRealmExists(tenantId);
+    const tenant = await this.getTenant(tenantId);
+    await this.verifyRealmExists(tenant.slug);
     try {
-      return await this.kcAdminClient.authenticationManagement.getFlows({ realm: tenantId });
+      return await this.kcAdminClient.authenticationManagement.getFlows({ realm: tenant.slug });
     } catch (error) {
-      this.logger.error(`Failed to fetch auth flows for ${tenantId}:`, (error as Error).message);
+      this.logger.error(`Failed to fetch auth flows for ${tenant.slug}:`, (error as Error).message);
       return [];
     }
   }

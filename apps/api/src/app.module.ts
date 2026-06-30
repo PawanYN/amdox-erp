@@ -12,6 +12,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TenantContextMiddleware } from './common/middleware/tenant-context.middleware';
+import { AuthModule } from './auth/auth.module';
 
 import { LoggerModule } from 'nestjs-pino';
 
@@ -39,7 +40,8 @@ import { LoggerModule } from 'nestjs-pino';
     ScmModule,
     PmModule,
     TenantModule,
-    AuditModule
+    AuditModule,
+    AuthModule
   ],
   controllers: [AppController],
 })

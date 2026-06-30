@@ -5,8 +5,8 @@ import { TenantService } from './tenant.service';
 import { CreateTenantDto } from './dto/create-tenant.dto';
 
 @ApiTags('Tenant Configuration')
-// @ApiBearerAuth()
-// @UseGuards(AuthGuard('keycloak'))
+@ApiBearerAuth()
+@UseGuards(AuthGuard('keycloak'))
 @Controller('tenant')
 export class TenantController {
   constructor(private readonly tenantService: TenantService) { }
