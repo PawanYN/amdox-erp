@@ -61,3 +61,13 @@ Either:
 1. Add columns for `phone`, `dateOfBirth`, `employmentType`, and `bankDetails` to the `Employee` model in [schema.prisma](file:///w:/amdox-erp/packages/db/prisma/schema.prisma) and run a migration.
 2. Or clean up the `CreateEmployeeDto` to only include database-supported fields.
 
+
+### Leave Types (Frontend vs Backend)
+- **Frontend** lists the following leave types: `Sick Leave`, `Earned Leave`, `Casual Leave`, `Unpaid Leave`.
+- **Backend** (`CreateLeaveDto`) expects the following enum values: `annual`, `sick`, `maternity`, `unpaid`.
+- **Temporary Resolution**: During the initial API integration (Task: Leave Creation), the frontend maps the values as follows to satisfy the backend without crashing:
+  - `Earned Leave` -> `annual`
+  - `Casual Leave` -> `annual`
+  - `Sick Leave` -> `sick`
+  - `Unpaid Leave` -> `unpaid`
+- **Action Required**: The product/design team needs to unify these leave types across the stack so they map 1:1.

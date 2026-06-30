@@ -24,7 +24,6 @@ async function bootstrap() {
 
   // Enforce strict validation rules across the entire API
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
-
   // Generate the interactive API Menu (Swagger UI)
   const config = new DocumentBuilder()
     .setTitle('Amdox ERP API')

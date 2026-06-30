@@ -5,6 +5,7 @@ import { Plus, CalendarDays, Clock, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { mockLeaveRequests } from "@/lib/mock/hr";
 import { LeaveRequest } from "@/lib/types";
+import { apiClient } from "@/lib/api/client";
 import { currentUser } from "@/lib/current-user";
 import { LeaveForm } from "./leave-form";
 import { LeaveTable } from "./leave-table";
@@ -13,9 +14,43 @@ export default function LeaveRequestsPage() {
   const [requests, setRequests] = useState<LeaveRequest[]>(mockLeaveRequests);
   const [formOpen, setFormOpen] = useState(false);
 
-  function handleCreate(newRequest: Omit<LeaveRequest, "id" | "status">) {
-    const id = `LR-${String(requests.length + 1).padStart(3, "0")}`;
-    setRequests((prev) => [{ ...newRequest, id, status: "Pending" }, ...prev]);
+  async function handleCreate(newRequest: Omit<LeaveRequest, "id" | "status">) {
+    const leaveTypeMap: Record<string, string> = {
+      "Earned Leave": "annual",
+      "Casual Leave": "annual",
+      "Sick Leave": "sick",
+      "Unpaid Leave": "unpaid",
+    };
+
+    const payload = {
+      employeeId: String(newRequest.employeeId || ""),
+      leaveType: String(leaveTypeMap[String(newRequest.leaveType)] || "annual"),
+      startDate: String(newRequest.fromDate || ""),
+      endDate: String(newRequest.toDate || ""),
+      reason: String(newRequest.reason || "No reason provided"),
+    };
+
+    try {
+      const res = await apiClient("/leave", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      const created = res.data || res;
+
+      setRequests((prev) => [
+        { 
+          ...newRequest, 
+          id: created.id || `LR-${String(prev.length + 1).padStart(3, "0")}`, 
+          status: created.status || "Pending" 
+        }, 
+        ...prev
+      ]);
+      
+      setFormOpen(false);
+    } catch (err: any) {
+      const errMsg = err.response?.data?.message || err.message || "Failed to create leave request.";
+      alert(`Error: ${errMsg}`);
+    }
   }
 
   function handleApprove(id: string) {

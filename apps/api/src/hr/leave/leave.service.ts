@@ -18,11 +18,27 @@ export class LeaveService {
       throw new BadRequestException('End date cannot be before start date.');
     }
 
+    const typeMapping: Record<string, string> = {
+      annual: 'Annual Leave',
+      sick: 'Sick Leave',
+      maternity: 'Maternity Leave',
+      unpaid: 'Unpaid Leave'
+    };
+
+    const dbLeaveTypeName = typeMapping[createLeaveDto.leaveType];
+    const leaveTypeRecord = await this.prisma.leaveType.findFirst({
+      where: { tenantId, name: dbLeaveTypeName }
+    });
+
+    if (!leaveTypeRecord) {
+      throw new BadRequestException(`Leave type '${dbLeaveTypeName}' not found for this tenant.`);
+    }
+
     return this.prisma.leaveRequest.create({
       data: {
         tenantId,
         employeeId: createLeaveDto.employeeId,
-        leaveTypeId: createLeaveDto.leaveType, 
+        leaveTypeId: leaveTypeRecord.id,
         startDate: start,
         endDate: end,
         status: LeaveStatus.PENDING,

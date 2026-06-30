@@ -14,6 +14,7 @@ export default function DashboardHome() {
   const [leaveType, setLeaveType] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [reason, setReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Decode basic info from token for fallback and role determination
@@ -60,7 +61,7 @@ export default function DashboardHome() {
               const b = await balRes.json();
               setBalances(b);
               // Set default leave type for the form
-              if (b.length > 0) setLeaveType(b[0].leaveTypeId);
+              if (b.length > 0) setLeaveType(b[0].leaveType.name);
             }
 
             const reqRes = await fetch(`http://localhost:3001/leave/my-requests/${profData.id}`, { headers });
@@ -86,15 +87,17 @@ export default function DashboardHome() {
         },
         body: JSON.stringify({
           employeeId: profile.id,
-          leaveType,
+          leaveType: leaveType.toLowerCase().includes('sick') ? 'sick' : 'annual',
           startDate,
-          endDate
+          endDate,
+          reason: reason || "Leave requested from quick-apply widget"
         })
       });
       if (res.ok) {
         setShowLeaveForm(false);
         setStartDate("");
         setEndDate("");
+        setReason("");
         // Refresh requests
         const reqRes = await fetch(`http://localhost:3001/leave/my-requests/${profile.id}`, {
           headers: { Authorization: `Bearer ${token}` }
@@ -198,7 +201,7 @@ export default function DashboardHome() {
                         onChange={(e) => setLeaveType(e.target.value)}
                       >
                         {balances.map(b => (
-                          <option key={b.leaveType.id} value={b.leaveType.id}>{b.leaveType.name}</option>
+                          <option key={b.leaveType.id} value={b.leaveType.name}>{b.leaveType.name}</option>
                         ))}
                       </select>
                     </div>
@@ -218,6 +221,16 @@ export default function DashboardHome() {
                         className="w-full text-sm border border-line rounded p-1.5 mt-1 bg-white"
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="text-[10px] text-muted font-semibold uppercase">Reason</label>
+                      <input
+                        type="text"
+                        placeholder="Brief reason (optional)"
+                        className="w-full text-sm border border-line rounded p-1.5 mt-1 bg-white"
+                        value={reason}
+                        onChange={(e) => setReason(e.target.value)}
                       />
                     </div>
                   </div>
