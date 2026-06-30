@@ -11,7 +11,8 @@ import { RedisModule } from './common/redis/redis.module';
 import { BullModule } from '@nestjs/bullmq';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
-import { TenantContextMiddleware } from './common/middleware/tenant-context.middleware';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { TenantContextInterceptor } from './common/interceptors/tenant-context.interceptor';
 import { AuthModule } from './auth/auth.module';
 
 import { LoggerModule } from 'nestjs-pino';
@@ -20,6 +21,26 @@ import { LoggerModule } from 'nestjs-pino';
   imports: [
     LoggerModule.forRoot({
       pinoHttp: {
+        serializers: {
+          req(req) {
+            let auth = req.headers.authorization;
+            if (auth && auth.startsWith('Bearer ')) {
+              const token = auth.replace('Bearer ', '');
+              if (token.length > 10) {
+                auth = `Bearer ${token.substring(0, 3)}...${token.substring(token.length - 3)}`;
+              }
+            }
+            return {
+              method: req.method,
+              url: req.url,
+              auth,
+              tenantId: req.headers['x-tenant-id']
+            };
+          },
+          res(res) {
+            return { statusCode: res.statusCode };
+          }
+        },
         transport: process.env.NODE_ENV !== 'production'
           ? { target: 'pino-pretty', options: { singleLine: true, colorize: true } }
           : undefined,
@@ -44,9 +65,11 @@ import { LoggerModule } from 'nestjs-pino';
     AuthModule
   ],
   controllers: [AppController],
+  providers: [
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: TenantContextInterceptor,
+    }
+  ]
 })
-export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer.apply(TenantContextMiddleware).forRoutes('*');
-  }
-}
+export class AppModule {}

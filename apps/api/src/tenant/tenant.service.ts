@@ -186,9 +186,10 @@ export class TenantService implements OnModuleInit {
         credential: { temporary: true, type: 'password', value: tempPassword },
       });
 
+      console.log(`\x1b[33m[KEYCLOAK USER PROVISIONED] Created KC User: ${kcUserId} for ${email}\x1b[0m`);
+
       // 3. Log password in BOLD DARK PINK (ANSI: \x1b[1;38;5;198m ... \x1b[0m)
       this.logger.log(`\x1b[1;38;5;198m[NEW EMPLOYEE LOGIN] Email: ${email} | Temporary Password: ${tempPassword}\x1b[0m`);
-
     } catch (error) {
       this.logger.error('Failed to provision Keycloak user for employee:', error);
       throw new InternalServerErrorException('Failed to create Keycloak user');
@@ -209,6 +210,7 @@ export class TenantService implements OnModuleInit {
           ssoSubject: kcUserId,
         }
       });
+      console.log(`\x1b[34m[PRISMA USER PROVISIONED] Created Prisma User: ${newUser.id} for ${email}\x1b[0m`);
 
       if (employeeRole) {
         await prisma.userRole.create({
@@ -218,11 +220,21 @@ export class TenantService implements OnModuleInit {
             roleId: employeeRole.id,
           }
         });
+        console.log(`\x1b[38;2;99;102;241m[PRISMA USER ROLE] Assigned Role ${employeeRole.name} to User ${newUser.id}\x1b[0m`);
       }
 
       return newUser.id;
-    } catch (error) {
-      this.logger.error('Failed to provision Prisma user for employee:', error);
+    } catch (error: any) {
+      if (kcUserId) {
+        console.log(`\x1b[31m[ROLLBACK] Prisma creation failed. Deleting Keycloak User: ${kcUserId}\x1b[0m`);
+        try {
+          await this.kcAdminClient.users.del({ realm: tenant.slug, id: kcUserId });
+        } catch (kcErr) {
+          console.error(`\x1b[31m[CRITICAL] Failed to rollback Keycloak user: ${kcUserId}\x1b[0m`);
+        }
+      }
+      this.logger.error('Failed to provision Prisma user for employee: ' + (error.message || error));
+      if (error.stack) this.logger.error(error.stack);
       throw new InternalServerErrorException('Failed to create Prisma user');
     }
   }

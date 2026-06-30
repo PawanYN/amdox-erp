@@ -82,7 +82,7 @@ export class KeycloakStrategy extends PassportStrategy(Strategy, 'keycloak') {
       throw new UnauthorizedException('User not found in database');
     }
 
-    console.log(`[AuthStrategy] User authenticated successfully: ${user.email} (Tenant: ${user.tenant.name})`);
+    console.log(`\x1b[1;92m[AuthStrategy] User authenticated successfully: ${user.email} (Tenant: ${user.tenant.name})\x1b[0m`);
     return user; 
   }
 }

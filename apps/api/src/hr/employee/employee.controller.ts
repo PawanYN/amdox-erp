@@ -17,6 +17,7 @@ export class EmployeeController {
   @Roles('SuperAdmin', 'TenantAdmin', 'Manager')
   @Post()
   create(@Req() req: any, @Body() createEmployeeDto: CreateEmployeeDto) {
+    console.log(`\x1b[1;93m[EMPLOYEE POST REQUEST] Received payload: ${JSON.stringify(createEmployeeDto, null, 2)}\x1b[0m`);
     return this.employeeService.create(req.user.tenantId, createEmployeeDto);
   }
 

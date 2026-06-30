@@ -22,13 +22,14 @@ export class EmployeeService {
         managerId: createEmployeeDto.managerId,
       },
     });
+    console.log(`\x1b[32m[PRISMA EMPLOYEE CREATED] Inserted Employee ID: ${employee.id} (${employee.fullName})\x1b[0m`);
 
     const defaultLeaveTypes = await this.prisma.leaveType.findMany({
       where: { tenantId }
     });
     
     if (defaultLeaveTypes.length > 0) {
-      await this.prisma.leaveBalance.createMany({
+      const result = await this.prisma.leaveBalance.createMany({
         data: defaultLeaveTypes.map(lt => ({
           tenantId,
           employeeId: employee.id,
@@ -36,6 +37,7 @@ export class EmployeeService {
           balanceDays: lt.name === 'Annual Leave' ? 14 : lt.name === 'Sick Leave' ? 6 : 0,
         }))
       });
+      console.log(`\x1b[35m[PRISMA LEAVE BALANCES] Seeded ${result.count} leave balance records for Employee ${employee.id}\x1b[0m`);
     }
 
     try {
@@ -45,19 +47,27 @@ export class EmployeeService {
         createEmployeeDto.firstName + ' ' + createEmployeeDto.lastName
       );
 
-      return await this.prisma.employee.update({
+      const updatedEmployee = await this.prisma.employee.update({
         where: { id: employee.id },
         data: { userId },
       });
+      console.log(`\x1b[38;2;99;102;241m[EMPLOYEE CREATED] ${JSON.stringify(updatedEmployee, null, 2)}\x1b[0m`);
+      return updatedEmployee;
     } catch (err) {
-      // If provisioning fails, we still return the employee (or we could rollback, but returning for now)
-      return employee;
+      // Rollback: delete the leave balances and employee if provisioning fails
+      await this.prisma.leaveBalance.deleteMany({
+        where: { employeeId: employee.id }
+      });
+      await this.prisma.employee.delete({
+        where: { id: employee.id }
+      });
+      throw err;
     }
   }
 
   async findAll(tenantId: string) {
     return this.prisma.employee.findMany({
-      where: { tenantId },
+      where: { tenantId, deletedAt: null },
       include: { department: true, manager: true },
     });
   }
@@ -99,8 +109,12 @@ export class EmployeeService {
 
   async remove(tenantId: string, id: string) {
     await this.findOne(tenantId, id);
-    return this.prisma.employee.delete({
+    return this.prisma.employee.update({
       where: { id },
+      data: {
+        deletedAt: new Date(),
+        status: 'TERMINATED'
+      }
     });
   }
 }
