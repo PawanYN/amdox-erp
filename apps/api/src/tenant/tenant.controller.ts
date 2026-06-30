@@ -6,7 +6,6 @@ import { CreateTenantDto } from './dto/create-tenant.dto';
 
 @ApiTags('Tenant Configuration')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('keycloak'))
 @Controller('tenant')
 export class TenantController {
   constructor(private readonly tenantService: TenantService) { }
@@ -24,6 +23,7 @@ export class TenantController {
   }
 
   @Get('config')
+  @UseGuards(AuthGuard('keycloak'))
   async getTenantConfig(@Req() req: any) {
     // Extracted by our middleware or guard
     const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] || 'default-tenant-id';
@@ -31,6 +31,7 @@ export class TenantController {
   }
 
   @Put('config')
+  @UseGuards(AuthGuard('keycloak'))
   async updateTenantConfig(@Req() req: any, @Body() updateData: any) {
     const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] || 'default-tenant-id';
     return this.tenantService.updateTenantConfig(tenantId, updateData);
@@ -39,48 +40,56 @@ export class TenantController {
 
 
   @Get('keycloak-config')
+  @UseGuards(AuthGuard('keycloak'))
   async getKeycloakConfig(@Req() req: any) {
     const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] || 'default-tenant-id';
     return this.tenantService.getKeycloakConfig(tenantId);
   }
 
   @Put('keycloak-config')
+  @UseGuards(AuthGuard('keycloak'))
   async updateKeycloakConfig(@Req() req: any, @Body() updateData: any) {
     const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] || 'default-tenant-id';
     return this.tenantService.updateKeycloakConfig(tenantId, updateData);
   }
 
   @Get('required-actions')
+  @UseGuards(AuthGuard('keycloak'))
   async getRequiredActions(@Req() req: any) {
     const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] || 'default-tenant-id';
     return this.tenantService.getRequiredActions(tenantId);
   }
 
   @Put('required-actions/:alias')
+  @UseGuards(AuthGuard('keycloak'))
   async updateRequiredAction(@Req() req: any, @Param('alias') alias: string, @Body() updateData: any) {
     const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] || 'default-tenant-id';
     return this.tenantService.updateRequiredAction(tenantId, alias, updateData);
   }
 
   @Get('identity-providers')
+  @UseGuards(AuthGuard('keycloak'))
   async getIdentityProviders(@Req() req: any) {
     const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] || 'default-tenant-id';
     return this.tenantService.getIdentityProviders(tenantId);
   }
 
   @Post('identity-providers')
+  @UseGuards(AuthGuard('keycloak'))
   async createIdentityProvider(@Req() req: any, @Body() provider: any) {
     const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] || 'default-tenant-id';
     return this.tenantService.createIdentityProvider(tenantId, provider);
   }
 
   @Delete('identity-providers/:alias')
+  @UseGuards(AuthGuard('keycloak'))
   async deleteIdentityProvider(@Req() req: any, @Param('alias') alias: string) {
     const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] || 'default-tenant-id';
     return this.tenantService.deleteIdentityProvider(tenantId, alias);
   }
 
   @Get('authentication-flows')
+  @UseGuards(AuthGuard('keycloak'))
   async getAuthenticationFlows(@Req() req: any) {
     const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] || 'default-tenant-id';
     return this.tenantService.getAuthenticationFlows(tenantId);

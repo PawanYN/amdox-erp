@@ -44,3 +44,20 @@ All tenant config and Keycloak methods were updated to resolve this tenant objec
 
 ### Proposed Permanent Fix
 Consistently pass either `id` or `slug` down from the controllers depending on the operation type, rather than mixing them up, and remove the dual-lookup fallback from `TenantService`.
+
+---
+
+## 3. Employee DTO vs. Database Schema Mismatch
+
+### Description
+The `CreateEmployeeDto` expects fields that do not exist in the database `Employee` model:
+- **DTO Fields:** `phone`, `dateOfBirth`, `employmentType`, `bankDetails`
+- **Database Model Fields:** Missing.
+
+Currently, `EmployeeService.create` silently discards these fields during creation, meaning they are not stored.
+
+### Proposed Permanent Fix
+Either:
+1. Add columns for `phone`, `dateOfBirth`, `employmentType`, and `bankDetails` to the `Employee` model in [schema.prisma](file:///w:/amdox-erp/packages/db/prisma/schema.prisma) and run a migration.
+2. Or clean up the `CreateEmployeeDto` to only include database-supported fields.
+

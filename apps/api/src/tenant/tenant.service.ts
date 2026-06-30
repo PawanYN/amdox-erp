@@ -114,7 +114,14 @@ export class TenantService implements OnModuleInit {
             create: [
               { name: 'Tenant Admin', systemRole: 'TENANT_ADMIN' },
               { name: 'Manager', systemRole: 'MANAGER' },
-              { name: 'Viewer', systemRole: 'VIEWER' }
+              { name: 'Viewer', systemRole: 'VIEWER' },
+              { name: 'Employee', systemRole: 'EMPLOYEE' }
+            ]
+          },
+          leaveTypes: {
+            create: [
+              { name: 'Annual Leave', accrualRate: 1.16 },
+              { name: 'Sick Leave', accrualRate: 0.5 }
             ]
           }
         },
@@ -149,6 +156,74 @@ export class TenantService implements OnModuleInit {
     } catch (error) {
       this.logger.error('Database provisioning failed:', error);
       throw new InternalServerErrorException('Failed to provision database for Tenant');
+    }
+  }
+
+  async provisionEmployeeUser(tenantId: string, email: string, fullName: string) {
+    const tenant = await this.getTenant(tenantId);
+    
+    // Generate a temporary password
+    const tempPassword = 'Amdox' + Math.floor(1000 + Math.random() * 9000) + '!';
+
+    let kcUserId: string | undefined;
+    try {
+      // 1. Create User in Keycloak
+      const kcUser = await this.kcAdminClient.users.create({
+        realm: tenant.slug,
+        username: email,
+        email: email,
+        firstName: fullName.split(' ')[0] || '',
+        lastName: fullName.split(' ').slice(1).join(' ') || '',
+        enabled: true,
+        emailVerified: true,
+      });
+      kcUserId = kcUser.id;
+
+      // 2. Set temporary password
+      await this.kcAdminClient.users.resetPassword({
+        realm: tenant.slug,
+        id: kcUser.id,
+        credential: { temporary: true, type: 'password', value: tempPassword },
+      });
+
+      // 3. Log password in BOLD DARK PINK (ANSI: \x1b[1;38;5;198m ... \x1b[0m)
+      this.logger.log(`\x1b[1;38;5;198m[NEW EMPLOYEE LOGIN] Email: ${email} | Temporary Password: ${tempPassword}\x1b[0m`);
+
+    } catch (error) {
+      this.logger.error('Failed to provision Keycloak user for employee:', error);
+      throw new InternalServerErrorException('Failed to create Keycloak user');
+    }
+
+    // 4. Create User in Prisma
+    try {
+      // Find the Employee role ID for this tenant
+      const employeeRole = await prisma.role.findFirst({
+        where: { tenantId: tenant.id, systemRole: 'EMPLOYEE' }
+      });
+
+      const newUser = await prisma.user.create({
+        data: {
+          tenantId: tenant.id,
+          email,
+          fullName,
+          ssoSubject: kcUserId,
+        }
+      });
+
+      if (employeeRole) {
+        await prisma.userRole.create({
+          data: {
+            tenantId: tenant.id,
+            userId: newUser.id,
+            roleId: employeeRole.id,
+          }
+        });
+      }
+
+      return newUser.id;
+    } catch (error) {
+      this.logger.error('Failed to provision Prisma user for employee:', error);
+      throw new InternalServerErrorException('Failed to create Prisma user');
     }
   }
 

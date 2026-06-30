@@ -21,11 +21,14 @@ import { PayrollProcessor } from './payroll/payroll.processor';
 import { PayslipGenerator } from './payroll/payslip-generator';
 import { LeaveStateMachine } from './leave/leave-state-machine';
 
+import { TenantModule } from '../tenant/tenant.module';
+
 @Module({
   imports: [
     BullModule.registerQueue({
       name: 'payroll',
     }),
+    TenantModule,
   ],
   controllers: [
     DepartmentController,

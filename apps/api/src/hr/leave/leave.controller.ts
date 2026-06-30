@@ -26,6 +26,12 @@ export class LeaveController {
     return this.leaveService.getMyRequests(req.user.tenantId, employeeId);
   }
 
+  @Roles('Employee', 'Manager', 'TenantAdmin', 'SuperAdmin')
+  @Get('my-balances/:employeeId')
+  getMyBalances(@Req() req: any, @Param('employeeId') employeeId: string) {
+    return this.leaveService.getMyBalances(req.user.tenantId, employeeId);
+  }
+
   @Roles('Manager', 'TenantAdmin', 'SuperAdmin')
   @Patch(':id/approve')
   approveOrReject(@Req() req: any, @Param('id') id: string, @Body() approveLeaveDto: ApproveLeaveDto) {

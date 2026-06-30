@@ -38,6 +38,7 @@ enum SystemRole {
   TENANT_ADMIN
   MANAGER
   VIEWER
+  EMPLOYEE
 }
 
 enum AccountType {
@@ -590,6 +591,8 @@ model Department {
   tenantId  String
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   name      String
+  code      String
+  headId    String?
   parentId  String?
   parent    Department? @relation("DeptHierarchy", fields: [parentId], references: [id])
   children  Department[] @relation("DeptHierarchy")

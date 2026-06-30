@@ -33,7 +33,15 @@ export class LeaveService {
   async getMyRequests(tenantId: string, employeeId: string) {
     return this.prisma.leaveRequest.findMany({
       where: { tenantId, employeeId },
+      include: { leaveType: true },
       orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async getMyBalances(tenantId: string, employeeId: string) {
+    return this.prisma.leaveBalance.findMany({
+      where: { tenantId, employeeId },
+      include: { leaveType: true },
     });
   }
 

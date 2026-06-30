@@ -1,23 +1,87 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus, Users, UserCheck, UserMinus, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge, statusToTone } from "@/components/ui/badge";
-import { Card, Table, THead, TH, TBody, TR, TD, EmptyState } from "@/components/ui/table";
+import { Card } from "@/components/ui/table";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { StatCard } from "@/components/ui/stat-card";
-import { mockEmployees } from "@/lib/mock/hr";
 import { Employee } from "@/lib/types";
+import { useKeycloak } from "@/components/KeycloakProvider";
 import { EmployeeForm } from "./employee-form";
 import { OrgChart } from "./org-chart";
 
 type ViewMode = "list" | "org-chart";
 
-
-
 export default function EmployeesPage() {
-  const [employees, setEmployees] = useState<Employee[]>(mockEmployees);
+  const { token, initialized } = useKeycloak();
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [view, setView] = useState<ViewMode>("list");
+  const [formOpen, setFormOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const getHeaders = () => {
+    const slug = typeof window !== "undefined" ? (localStorage.getItem("tenant_slug") || "company-b") : "company-b";
+    return {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+      "x-tenant-id": slug,
+    };
+  };
+
+  const fetchEmployees = async () => {
+    if (!token) return;
+    try {
+      if (typeof window !== "undefined") {
+        const { default: keycloak } = await import("@/lib/keycloak");
+        if (keycloak) await keycloak.updateToken(30);
+      }
+      const res = await fetch("http://localhost:3001/employees", { headers: getHeaders() });
+      if (res.ok) {
+        const data = await res.json();
+        const mapped = data.map((emp: any) => ({
+          id: emp.id,
+          name: emp.fullName,
+          email: emp.email,
+          phone: emp.phone || "",
+          department: emp.department?.name || "No Department",
+          designation: emp.designation || "",
+          contractType: (emp.contractType || "Full-time") as any,
+          startDate: emp.hireDate ? new Date(emp.hireDate).toISOString().split('T')[0] : "",
+          reportsToId: emp.managerId || null,
+          status: (emp.status || "ACTIVE") === "ACTIVE" ? "Active" : "Inactive",
+        }));
+        setEmployees(mapped);
+      }
+    } catch (err) {
+      console.error("Failed to fetch employees:", err);
+    }
+  };
+
+  const fetchDepartments = async () => {
+    if (!token) return;
+    try {
+      if (typeof window !== "undefined") {
+        const { default: keycloak } = await import("@/lib/keycloak");
+        if (keycloak) await keycloak.updateToken(30);
+      }
+      const res = await fetch("http://localhost:3001/departments", { headers: getHeaders() });
+      if (res.ok) {
+        setDepartments(await res.json());
+      }
+    } catch (err) {
+      console.error("Failed to fetch departments:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (initialized && token) {
+      fetchEmployees();
+      fetchDepartments();
+    }
+  }, [initialized, token]);
 
   const columns: ColumnDef<Employee>[] = [
     {
@@ -50,7 +114,7 @@ export default function EmployeesPage() {
     {
       header: "Designation",
       className: "text-muted text-sm",
-      cell: (emp) => emp.designation,
+      cell: (emp) => emp.designation || "—",
     },
     {
       header: "Reports To",
@@ -68,20 +132,46 @@ export default function EmployeesPage() {
     },
   ];
 
-  const [view, setView] = useState<ViewMode>("list");
-  const [formOpen, setFormOpen] = useState(false);
-
   const potentialManagers = employees;
   const visibleEmployees = employees.filter((e) => e.id !== "EMP-100");
   const activeCount = visibleEmployees.filter((e) => e.status === "Active").length;
   const inactiveCount = visibleEmployees.filter((e) => e.status !== "Active").length;
 
-  function handleCreate(newEmployee: Omit<Employee, "id" | "status">) {
-    const id = `EMP-${100 + employees.length + 1}`;
-    setEmployees((prev) => [
-      ...prev,
-      { ...newEmployee, id, status: "Active" },
-    ]);
+  async function handleCreate(newEmployee: Omit<Employee, "id" | "status">) {
+    setLoading(true);
+    try {
+      const parts = newEmployee.name.trim().split(" ");
+      const firstName = parts[0] || "";
+      const lastName = parts.slice(1).join(" ") || "";
+      
+      const res = await fetch("http://localhost:3001/employees", {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          email: newEmployee.email,
+          phone: newEmployee.phone,
+          dateOfBirth: "1990-01-01", 
+          hireDate: newEmployee.startDate || new Date().toISOString().split("T")[0],
+          employmentType: newEmployee.contractType.toLowerCase().replace("-", "_") as any,
+          departmentId: newEmployee.department, 
+          managerId: newEmployee.reportsToId || null,
+        }),
+      });
+
+      if (res.ok) {
+        await fetchEmployees();
+      } else {
+        const errJson = await res.json();
+        alert(`Failed to save employee: ${errJson.message || "Unknown error"}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error contacting the backend server.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -93,7 +183,7 @@ export default function EmployeesPage() {
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-[0_4px_12px_rgba(108,71,255,0.3)]">
               <Users size={16} />
             </div>
-            <h1 className="text-2xl font-bold text-ink">Employees</h1>
+            <h1 className="text-2xl font-bold text-ink font-display">Employees</h1>
           </div>
           <p className="text-sm text-muted ml-10">
             Personal info, contracts, department &amp; reporting hierarchy
@@ -150,6 +240,7 @@ export default function EmployeesPage() {
         open={formOpen}
         onClose={() => setFormOpen(false)}
         managers={potentialManagers}
+        departments={departments}
         onCreate={handleCreate}
       />
     </div>

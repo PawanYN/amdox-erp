@@ -26,6 +26,13 @@ export class EmployeeController {
     return this.employeeService.findAll(req.user.tenantId);
   }
 
+  @Roles('Employee', 'SuperAdmin', 'TenantAdmin', 'Manager', 'Viewer')
+  @Get('me')
+  getMe(@Req() req: any) {
+    // req.user is the Prisma User record loaded by KeycloakStrategy
+    return this.employeeService.findMe(req.user.tenantId, req.user.id);
+  }
+
   @Roles('SuperAdmin', 'TenantAdmin', 'Manager', 'Viewer')
   @Get(':id')
   findOne(@Req() req: any, @Param('id') id: string) {
