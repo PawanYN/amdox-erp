@@ -37,6 +37,9 @@ export function KeycloakProvider({ children }: { children: ReactNode }) {
       .then((auth) => {
         setAuthenticated(auth);
         setInitialized(true);
+        if (auth && window.location.search.includes('code=')) {
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
       })
       .catch((err) => {
         console.error("Keycloak initialization failed", err);
@@ -54,8 +57,12 @@ export function KeycloakProvider({ children }: { children: ReactNode }) {
         logout: () => {
           if (typeof window !== "undefined") {
             localStorage.removeItem("tenant_slug");
+            keycloak?.logout({
+              redirectUri: `${window.location.origin}/`,
+            });
+          } else {
+            keycloak?.logout();
           }
-          keycloak?.logout();
         },
       }}
     >
