@@ -75,4 +75,34 @@ export class AttendanceService {
       },
     });
   }
+
+  async getStatus(tenantId: string, employeeId: string) {
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+
+    const record = await this.prisma.attendanceRecord.findFirst({
+      where: {
+        tenantId,
+        employeeId,
+        clockIn: { gte: startOfDay, lt: endOfDay },
+      },
+    });
+    return { clockedIn: !!record && !record.clockOut, record };
+  }
+
+  async getMyRecords(tenantId: string, employeeId: string) {
+    return this.prisma.attendanceRecord.findMany({
+      where: { tenantId, employeeId },
+      orderBy: { clockIn: 'desc' },
+    });
+  }
+
+  async getAllRecords(tenantId: string) {
+    return this.prisma.attendanceRecord.findMany({
+      where: { tenantId },
+      include: { employee: true },
+      orderBy: { clockIn: 'desc' },
+    });
+  }
 }

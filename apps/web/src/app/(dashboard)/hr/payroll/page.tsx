@@ -1,27 +1,68 @@
 "use client";
 
-import { useState } from "react";
-import { Play, Loader2, Download, Wallet, DollarSign, TrendingDown, CheckCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Play, Loader2, Download, Wallet, DollarSign, TrendingDown, CheckCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge, statusToTone } from "@/components/ui/badge";
 import { Card, Table, THead, TH, TBody, TR, TD, EmptyState } from "@/components/ui/table";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
-import { mockPayroll } from "@/lib/mock/hr";
 import { PayrollRecord } from "@/lib/types";
 import { PayslipModal } from "./payslip-modal";
+import { useKeycloak } from "@/components/KeycloakProvider";
 
 function formatINR(amount: number): string {
   return `₹${amount.toLocaleString("en-IN")}`;
 }
 
 export default function PayrollPage() {
-  const [records] = useState<PayrollRecord[]>(mockPayroll);
+  const { token } = useKeycloak();
+  const [records, setRecords] = useState<PayrollRecord[]>([]);
   const [isRunning, setIsRunning] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [previewRecord, setPreviewRecord] = useState<PayrollRecord | null>(null);
 
-  function handleRunPayroll() {
+  const fetchPayroll = async () => {
+    if (!token) return;
+    setIsRefreshing(true);
+    try {
+      const res = await fetch("http://localhost:3001/hr/payroll?period=2026-06", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const { data } = await res.json();
+        setRecords(data);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPayroll();
+  }, [token]);
+
+  async function handleRunPayroll() {
+    if (!token) return;
     setIsRunning(true);
-    setTimeout(() => setIsRunning(false), 2000);
+    try {
+      const res = await fetch("http://localhost:3001/hr/payroll/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ payPeriod: "2026-06" })
+      });
+      if (res.ok) {
+        await fetchPayroll();
+      } else {
+        const err = await res.json();
+        alert(err.message || "Failed to run payroll");
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsRunning(false);
+    }
   }
 
   const totalGross = records.reduce((s, r) => s + r.grossPay, 0);
@@ -104,13 +145,23 @@ export default function PayrollPage() {
             Gross-to-net calculation, batch runs &amp; payslips
           </p>
         </div>
-        <Button
-          icon={isRunning ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
-          onClick={handleRunPayroll}
-          disabled={isRunning}
-        >
-          {isRunning ? "Running payroll…" : "Run Payroll — Jun 2026"}
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            icon={<RefreshCw size={16} className={isRefreshing ? "animate-spin" : ""} />}
+            onClick={fetchPayroll}
+            disabled={isRefreshing}
+          >
+            Refresh
+          </Button>
+          <Button
+            icon={isRunning ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
+            onClick={handleRunPayroll}
+            disabled={isRunning}
+          >
+            {isRunning ? "Queuing payroll…" : "Run Payroll — Jun 2026"}
+          </Button>
+        </div>
       </div>
 
       {/* KPI Cards */}

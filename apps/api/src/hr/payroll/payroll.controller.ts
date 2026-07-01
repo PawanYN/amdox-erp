@@ -19,7 +19,7 @@ import { RunPayrollDto } from '../dto/run-payroll.dto';
 export class PayrollController {
   constructor(private readonly payrollService: PayrollService) {}
 
-  @Roles('Manager', 'TenantAdmin')
+  @Roles('Manager', 'TenantAdmin', 'Tenant Admin')
   @Post('run')
   async runPayroll(@Req() req: any, @Body() runPayrollDto: RunPayrollDto) {
     const result = await this.payrollService.enqueuePayrollRun(req.user.tenantId, runPayrollDto.payPeriod);
@@ -30,25 +30,25 @@ export class PayrollController {
     };
   }
 
-  @Roles('Manager', 'TenantAdmin', 'Employee')
+  @Roles('Manager', 'TenantAdmin', 'Tenant Admin', 'Employee')
   @Get()
   async getPayroll(@Req() req: any, @Query('period') period: string) {
     return { data: await this.payrollService.findPayrollByPeriod(req.user.tenantId, period) };
   }
 
-  @Roles('Manager', 'TenantAdmin')
+  @Roles('Manager', 'TenantAdmin', 'Tenant Admin')
   @Get('runs/:id')
   async getPayrollRun(@Req() req: any, @Param('id') id: string) {
     return await this.payrollService.getPayrollRun(req.user.tenantId, id);
   }
 
-  @Roles('Manager', 'TenantAdmin')
+  @Roles('Manager', 'TenantAdmin', 'Tenant Admin')
   @Get('runs/:id/payslips')
   async getPayrollRunPayslips(@Req() req: any, @Param('id') id: string) {
     return { data: await this.payrollService.getPayslipsForRun(req.user.tenantId, id) };
   }
 
-  @Roles('Manager', 'TenantAdmin')
+  @Roles('Manager', 'TenantAdmin', 'Tenant Admin')
   @Get(':payslipId/payslip')
   async downloadPayslip(@Req() req: any, @Param('payslipId') payslipId: string, @Res() res: Response) {
     const pdfBuffer = await this.payrollService.getPayslipPdf(req.user.tenantId, payslipId);

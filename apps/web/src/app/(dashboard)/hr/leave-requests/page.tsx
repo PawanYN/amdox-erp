@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, CalendarDays, Clock, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { mockLeaveRequests } from "@/lib/mock/hr";
@@ -11,8 +11,34 @@ import { LeaveForm } from "./leave-form";
 import { LeaveTable } from "./leave-table";
 
 export default function LeaveRequestsPage() {
-  const [requests, setRequests] = useState<LeaveRequest[]>(mockLeaveRequests);
+  const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [formOpen, setFormOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadRequests() {
+      try {
+        const data = await apiClient("/leave/all-requests");
+        const formatted = data.map((d: any) => ({
+          id: d.id,
+          employeeId: d.employeeId,
+          employeeName: d.employee?.fullName || "Unknown",
+          leaveType: d.leaveType?.name || "Leave",
+          fromDate: new Date(d.startDate).toISOString().split("T")[0],
+          toDate: new Date(d.endDate).toISOString().split("T")[0],
+          days: Math.max(1, Math.ceil((new Date(d.endDate).getTime() - new Date(d.startDate).getTime()) / (1000 * 60 * 60 * 24))),
+          reason: d.reason || "No reason",
+          status: d.status.charAt(0).toUpperCase() + d.status.slice(1).toLowerCase(),
+        }));
+        setRequests(formatted);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadRequests();
+  }, []);
 
   async function handleCreate(newRequest: Omit<LeaveRequest, "id" | "status">) {
     const leaveTypeMap: Record<string, string> = {
@@ -53,12 +79,28 @@ export default function LeaveRequestsPage() {
     }
   }
 
-  function handleApprove(id: string) {
-    setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: "Approved" } : r)));
+  async function handleApprove(id: string) {
+    try {
+      await apiClient(`/leave/${id}/approve`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: "approved", managerEmployeeId: currentUser.employeeId }),
+      });
+      setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: "Approved" } : r)));
+    } catch (err: any) {
+      alert(`Error approving leave: ${err.message}`);
+    }
   }
 
-  function handleReject(id: string) {
-    setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: "Rejected" } : r)));
+  async function handleReject(id: string) {
+    try {
+      await apiClient(`/leave/${id}/approve`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: "rejected", managerEmployeeId: currentUser.employeeId }),
+      });
+      setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: "Rejected" } : r)));
+    } catch (err: any) {
+      alert(`Error rejecting leave: ${err.message}`);
+    }
   }
 
   const pending = requests.filter((r) => r.status === "Pending").length;

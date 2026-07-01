@@ -1,7 +1,7 @@
 "use client";
 
 import { useKeycloak } from "@/components/KeycloakProvider";
-import { User, Shield, Calendar, Clock, ArrowRight, FileText } from "lucide-react";
+import { User, Shield, Calendar, Clock, ArrowRight, FileText, Zap, LogOut } from "lucide-react";
 import { useState, useEffect } from "react";
 
 export default function DashboardHome() {
@@ -16,6 +16,9 @@ export default function DashboardHome() {
   const [endDate, setEndDate] = useState("");
   const [reason, setReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [clockedIn, setClockedIn] = useState(false);
+  const [todaysClockIn, setTodaysClockIn] = useState<Date | null>(null);
 
   // Decode basic info from token for fallback and role determination
   let name = "Loading...";
@@ -56,6 +59,13 @@ export default function DashboardHome() {
 
           // If it's an employee (has an ID), fetch leaves
           if (profData.id) {
+            const statusRes = await fetch(`http://localhost:3001/attendance/status/${profData.id}`, { headers });
+            if (statusRes.ok) {
+               const s = await statusRes.json();
+               setClockedIn(s.clockedIn);
+               if (s.record?.clockIn) setTodaysClockIn(new Date(s.record.clockIn));
+            }
+
             const balRes = await fetch(`http://localhost:3001/leave/my-balances/${profData.id}`, { headers });
             if (balRes.ok) {
               const b = await balRes.json();
@@ -74,6 +84,45 @@ export default function DashboardHome() {
     };
     fetchData();
   }, [token]);
+
+  const handleClockIn = async () => {
+    if (!profile?.id) return;
+    try {
+      const res = await fetch("http://localhost:3001/attendance/clock-in", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ employeeId: profile.id, source: "api" })
+      });
+      if (res.ok) {
+        setClockedIn(true);
+        setTodaysClockIn(new Date());
+      } else {
+        const err = await res.json();
+        alert(err.message || "Failed to clock in");
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleClockOut = async () => {
+    if (!profile?.id) return;
+    try {
+      const res = await fetch(`http://localhost:3001/attendance/clock-out/${profile.id}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setClockedIn(false);
+        setTodaysClockIn(null);
+      } else {
+        const err = await res.json();
+        alert(err.message || "Failed to clock out");
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const submitLeave = async () => {
     if (!profile?.id || !leaveType || !startDate || !endDate) return;
@@ -134,30 +183,78 @@ export default function DashboardHome() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Profile Details Card */}
-        <div className="col-span-1 border border-line rounded-xl p-5 bg-white shadow-sm">
-          <h2 className="text-sm font-semibold text-ink mb-4 flex items-center gap-2">
-            <FileText size={16} className="text-muted" /> Profile Details
-          </h2>
-          <div className="space-y-4">
-            <div>
-              <p className="text-[10px] text-muted font-semibold uppercase tracking-wider">Department</p>
-              <p className="text-sm text-ink font-medium mt-0.5">
-                {isAdmin ? "Administration" : (profile?.department?.name || "N/A")}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] text-muted font-semibold uppercase tracking-wider">Manager</p>
-              <p className="text-sm text-ink font-medium mt-0.5">
-                {isAdmin ? "N/A" : (profile?.manager?.fullName || "N/A")}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] text-muted font-semibold uppercase tracking-wider">System Access</p>
-              <p className="text-sm text-ink font-medium mt-0.5">
-                {isAdmin ? "Full Access" : "Restricted (Employee)"}
-              </p>
+        <div className="col-span-1 space-y-6">
+          <div className="border border-line rounded-xl p-5 bg-white shadow-sm">
+            <h2 className="text-sm font-semibold text-ink mb-4 flex items-center gap-2">
+              <FileText size={16} className="text-muted" /> Profile Details
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <p className="text-[10px] text-muted font-semibold uppercase tracking-wider">Department</p>
+                <p className="text-sm text-ink font-medium mt-0.5">
+                  {isAdmin ? "Administration" : (profile?.department?.name || "N/A")}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] text-muted font-semibold uppercase tracking-wider">Manager</p>
+                <p className="text-sm text-ink font-medium mt-0.5">
+                  {isAdmin ? "N/A" : (profile?.manager?.fullName || "N/A")}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] text-muted font-semibold uppercase tracking-wider">System Access</p>
+                <p className="text-sm text-ink font-medium mt-0.5">
+                  {isAdmin ? "Full Access" : "Restricted (Employee)"}
+                </p>
+              </div>
             </div>
           </div>
+
+          {/* Clock In / Out Widget */}
+          {!isAdmin && (
+            <div
+              className={`flex flex-col rounded-xl border p-5 shadow-sm transition-all duration-300 ${
+                clockedIn
+                  ? "border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50"
+                  : "border-line bg-gradient-to-r from-canvas to-white"
+              }`}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all duration-300 ${
+                  clockedIn
+                    ? "bg-gradient-to-br from-emerald-400 to-teal-500 text-white shadow-sm"
+                    : "bg-canvas border border-line text-muted"
+                }`}>
+                  {clockedIn ? <Zap size={18} fill="white" /> : <Clock size={18} />}
+                </div>
+                <div>
+                  <p className={`text-sm font-bold ${clockedIn ? "text-emerald-700" : "text-ink"}`}>
+                    {clockedIn ? "You're clocked in" : "Ready to work?"}
+                  </p>
+                  <p className={`text-xs ${clockedIn ? "text-emerald-600" : "text-muted"}`}>
+                    {clockedIn && todaysClockIn
+                      ? `Clocked in at ${todaysClockIn.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                      : "Not clocked in yet"}
+                  </p>
+                </div>
+              </div>
+              {clockedIn ? (
+                <button 
+                  onClick={handleClockOut}
+                  className="w-full flex items-center justify-center gap-2 py-2 bg-rose-50 text-rose-600 border border-rose-200 text-xs font-semibold rounded hover:bg-rose-100 transition-colors"
+                >
+                  <LogOut size={14} /> Clock Out
+                </button>
+              ) : (
+                <button 
+                  onClick={handleClockIn}
+                  className="w-full flex items-center justify-center gap-2 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold rounded hover:bg-emerald-100 transition-colors"
+                >
+                  <Clock size={14} /> Clock In
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Leave Management Section - Hidden for Admins */}

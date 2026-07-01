@@ -54,6 +54,14 @@ export class LeaveService {
     });
   }
 
+  async getAllRequests(tenantId: string) {
+    return this.prisma.leaveRequest.findMany({
+      where: { tenantId },
+      include: { leaveType: true, employee: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   async getMyBalances(tenantId: string, employeeId: string) {
     return this.prisma.leaveBalance.findMany({
       where: { tenantId, employeeId },
@@ -71,10 +79,12 @@ export class LeaveService {
       throw new NotFoundException('Leave request not found.');
     }
 
+    const targetStatus = approveLeaveDto.status.toUpperCase() as LeaveStatus;
+
     // Delegate business rule enforcement to the State Machine
     this.leaveStateMachine.validateTransition(
       leave, 
-      approveLeaveDto.status as unknown as LeaveStatus, 
+      targetStatus, 
       approveLeaveDto.managerEmployeeId, 
       isTenantAdmin
     );
@@ -82,7 +92,7 @@ export class LeaveService {
     return this.prisma.leaveRequest.update({
       where: { id: leaveId },
       data: {
-        status: approveLeaveDto.status as any,
+        status: targetStatus,
         approvedAt: new Date(),
       },
     });

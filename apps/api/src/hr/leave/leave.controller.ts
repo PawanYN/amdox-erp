@@ -26,16 +26,26 @@ export class LeaveController {
     return this.leaveService.getMyRequests(req.user.tenantId, employeeId);
   }
 
+  @Roles('Manager', 'TenantAdmin', 'SuperAdmin')
+  @Get('all-requests')
+  getAllRequests(@Req() req: any) {
+    return this.leaveService.getAllRequests(req.user.tenantId);
+  }
+
   @Roles('Employee', 'Manager', 'TenantAdmin', 'SuperAdmin')
   @Get('my-balances/:employeeId')
   getMyBalances(@Req() req: any, @Param('employeeId') employeeId: string) {
     return this.leaveService.getMyBalances(req.user.tenantId, employeeId);
   }
 
-  @Roles('Manager', 'TenantAdmin', 'SuperAdmin')
+  @Roles('Manager', 'TenantAdmin', 'Tenant Admin', 'SuperAdmin')
   @Patch(':id/approve')
   approveOrReject(@Req() req: any, @Param('id') id: string, @Body() approveLeaveDto: ApproveLeaveDto) {
-    const isTenantAdmin = req.user.roles.includes('TenantAdmin') || req.user.roles.includes('SuperAdmin');
+    const roles = req.user?.roles || [];
+    const isTenantAdmin = roles.includes('TenantAdmin') || roles.includes('Tenant Admin') || roles.includes('SuperAdmin');
+    
+    console.log(`[LeaveController] Approving leave ${id}. User roles:`, roles, `| isTenantAdmin:`, isTenantAdmin);
+    
     return this.leaveService.approveOrReject(req.user.tenantId, id, approveLeaveDto, isTenantAdmin);
   }
 }

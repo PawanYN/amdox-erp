@@ -19,15 +19,23 @@ export class RolesGuard implements CanActivate {
 
     const { user } = context.switchToHttp().getRequest();
     
+    console.log('[RolesGuard] User Object from token:', user ? 'Exists' : 'Missing', user?.userRoles ? 'Has roles' : 'No roles');
+    
     // Safety check: if user or userRoles isn't attached, deny access
     if (!user || !user.userRoles) {
+      console.log('[RolesGuard] Denied: Missing user or userRoles array');
       return false;
     }
 
     // Extract the list of role names the user actually has (normalize by stripping spaces)
     const userRoleNames = user.userRoles.map((ur: any) => ur.role.name.replace(/\s+/g, ''));
 
+    console.log('[RolesGuard] Required Roles:', requiredRoles);
+    console.log('[RolesGuard] User Roles (normalized):', userRoleNames);
+
     // Check if the user has AT LEAST ONE of the required roles
-    return requiredRoles.some((role) => userRoleNames.includes(role));
+    const hasRole = requiredRoles.some((role) => userRoleNames.includes(role));
+    console.log('[RolesGuard] Access Granted?', hasRole);
+    return hasRole;
   }
 }
