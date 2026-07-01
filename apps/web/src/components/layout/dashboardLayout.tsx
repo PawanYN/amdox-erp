@@ -116,6 +116,8 @@ const NAV: NavSection[] = [
     children: [
       { id: "/scm/vendors", label: "Vendors", day: "Day 12" },
       { id: "/scm/purchase-orders", label: "Purchase Orders", day: "Day 12" },
+      { id: "/scm/goods-receipt", label: "Goods Receipt", day: "Day 13" },
+      { id: "/scm/invoices", label: "AP Invoices", day: "Day 13" },
       { id: "/scm/inventory", label: "Inventory", day: "Day 13" },
     ],
   },

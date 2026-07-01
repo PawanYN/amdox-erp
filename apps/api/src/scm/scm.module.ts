@@ -16,7 +16,14 @@ import { PurchaseService } from './purchase/purchase.service';
 import { ReorderController } from './automation/reorder.controller';
 import { ReorderAutomationService } from './automation/reorder.service';
 
+import { BullModule } from '@nestjs/bullmq';
+
 @Module({
+  imports: [
+    BullModule.registerQueue({
+      name: 'scm-events',
+    }),
+  ],
   controllers: [
     VendorController,
     ProductController,

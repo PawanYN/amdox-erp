@@ -11,12 +11,8 @@ import { GlService } from './gl/gl.service';
 import { FxRateService } from './fx/fx-rate.service';
 import { OutboxProcessor } from './automation/outbox.processor';
 
-/**
- * MODULE: finance.module.ts
- * 
- * This file bundles together all the controllers and services for this specific feature.
- * It acts as the "glue" that tells NestJS how these files depend on each other.
- */
+import { ScmEventsWorker } from './ap/scm-events.worker';
+
 @Module({
   imports: [
     BullModule.registerQueue({
@@ -35,7 +31,8 @@ import { OutboxProcessor } from './automation/outbox.processor';
     ArService,
     GlService,
     FxRateService,
-    OutboxProcessor
+    OutboxProcessor,
+    ScmEventsWorker
   ],
   exports: [
     FxRateService // In case other modules need currency conversions

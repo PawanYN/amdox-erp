@@ -1,101 +1,95 @@
 "use client";
 
-import { useState } from "react";
-import { ShoppingCart, Plus, FileText, CheckCircle2, FileEdit } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge, statusToTone } from "@/components/ui/badge";
-import { Card, Table, THead, TH, TBody, TR, TD, EmptyState } from "@/components/ui/table";
-import { DataTable, ColumnDef } from "@/components/ui/data-table";
-import { StatCard } from "@/components/ui/stat-card";
-import { mockPurchaseOrders } from "@/lib/mock/scm";
-import { PurchaseOrder } from "@/lib/types";
+import { useState, useEffect } from "react";
+import { Plus } from "lucide-react";
+import { scmApi } from "@/lib/api/scm-api";
 
+const statusColor: Record<string, string> = {
+  DRAFT: "bg-[#F0EEE7] text-[#8A8678]",
+  SUBMITTED: "bg-[#1E3A5F]/10 text-[#1E3A5F]",
+  APPROVED: "bg-[#2F6B4F]/10 text-[#2F6B4F]",
+  RECEIVED: "bg-[#2F6B4F]/10 text-[#2F6B4F]",
+  CANCELLED: "bg-[#B4533B]/10 text-[#B4533B]",
+  PENDING_MATCH: "bg-[#D9A85C]/10 text-[#D9A85C]",
+  MATCHED: "bg-[#2F6B4F]/10 text-[#2F6B4F]",
+  PAID: "bg-[#2F6B4F]/10 text-[#2F6B4F]",
+};
 
+function StatusPill({ status }: { status: string }) {
+  return (
+    <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full capitalize ${statusColor[status] || "bg-[#F0EEE7] text-[#8A8678]"}`}>
+      {status.replace("_", " ")}
+    </span>
+  );
+}
 
-const columns: ColumnDef<PurchaseOrder>[] = [
-  {
-    header: "PO Number",
-    cell: (order) => (
-      <span className="font-mono text-xs font-bold text-brand-purple bg-violet-50 border border-violet-100 rounded-lg px-2 py-1">
-        {order.id}
-      </span>
-    ),
-  },
-  {
-    header: "Vendor",
-    cell: (order) => (
-      <>
-        <span className="font-semibold text-ink">{order.vendorName}</span>
-        <p className="text-xs text-muted">{order.vendorId}</p>
-      </>
-    ),
-  },
-  {
-    header: "Date",
-    cell: (order) => <span className="text-sm text-muted">{order.date}</span>,
-  },
-  {
-    header: "Amount",
-    className: "font-medium text-ink",
-    cell: (order) => `$${order.amount.toLocaleString()}`,
-  },
-  {
-    header: "Status",
-    cell: (order) => (
-      <Badge tone={
-        order.status === "Fulfilled" ? "positive" :
-        order.status === "Sent" ? "caution" :
-        order.status === "Cancelled" ? "critical" : "neutral"
-      }>
-        {order.status}
-      </Badge>
-    ),
-  },
-];
+export default function POPage() {
+  const [poList, setPoList] = useState<any[]>([]);
+  const [vendors, setVendors] = useState<any[]>([]);
 
-export default function PurchaseOrdersPage() {
-  const [orders, setOrders] = useState<PurchaseOrder[]>(mockPurchaseOrders);
+  const fetchPOs = () => scmApi.getPurchaseOrders().then(setPoList);
+  
+  useEffect(() => {
+    fetchPOs();
+    scmApi.getVendors().then(setVendors);
+  }, []);
 
-  const totalOrders = orders.length;
-  const draftOrders = orders.filter(o => o.status === "Draft").length;
-  const sentOrders = orders.filter(o => o.status === "Sent").length;
-  const fulfilledOrders = orders.filter(o => o.status === "Fulfilled").length;
-
-  const handleCreateOrder = () => {
-    // Stub
-    console.log("Create PO clicked");
+  const advance = async (poNumber: string, id: string, currentStatus: string) => {
+    if (currentStatus === "DRAFT" || currentStatus === "SUBMITTED") {
+      await scmApi.approvePurchaseOrder(id);
+    } else if (currentStatus === "APPROVED") {
+      await scmApi.receiveGoods(id, { warehouseId: "default", notes: "Received via web UI" });
+    }
+    fetchPOs();
   };
 
+  const actionLabel: Record<string, string> = { DRAFT: "Submit for approval", SUBMITTED: "Approve PO", APPROVED: "Mark received" };
+
   return (
-    <div>
-      {/* Header */}
-      <div className="flex items-start justify-between animate-fade-in-up">
-        <div>
-          <div className="flex items-center gap-2.5 mb-1">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white shadow-[0_4px_12px_rgba(6,182,212,0.3)]">
-              <ShoppingCart size={16} />
-            </div>
-            <h1 className="text-2xl font-bold text-ink">Purchase Orders</h1>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-[12px] text-[#8A8678]">State machine: draft → submitted → approved → received</p>
+        <button className="inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-md bg-[#1E3A5F] text-white">
+          <Plus size={13} /> New PO
+        </button>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3 mb-2">
+        {vendors.map((v) => (
+          <div key={v.id} className="border border-[#E4E2DC] rounded-lg p-3 bg-white">
+            <p className="text-[13px] font-medium text-[#14171F]">{v.name}</p>
+            <p className="text-[11px] text-[#8A8678] mt-0.5">Rating: {v.rating}★</p>
+            <StatusPill status={v.isActive ? "ACTIVE" : "INACTIVE"} />
           </div>
-          <p className="text-sm text-muted ml-10">
-            Create and track purchase orders with your vendors
-          </p>
-        </div>
-        <Button icon={<Plus size={16} />} onClick={handleCreateOrder}>
-          New PO
-        </Button>
+        ))}
       </div>
 
-      {/* Stat cards */}
-      <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard label="Total POs" value={totalOrders} icon={<FileText size={18} />} gradient="from-cyan-500 to-blue-600" delay="0.05s" />
-        <StatCard label="Draft" value={draftOrders} icon={<FileEdit size={18} />} gradient="from-slate-400 to-gray-500" delay="0.10s" />
-        <StatCard label="Sent" value={sentOrders} icon={<ShoppingCart size={18} />} gradient="from-amber-400 to-orange-500" delay="0.15s" />
-        <StatCard label="Fulfilled" value={fulfilledOrders} icon={<CheckCircle2 size={18} />} gradient="from-emerald-400 to-teal-500" delay="0.20s" />
-      </div>
-
-      <div className="mt-8 animate-fade-in-up" style={{ animationDelay: "0.25s" }}>
-        <DataTable data={orders} columns={columns} keyExtractor={(order) => order.id} emptyMessage="No purchase orders found." />
+      <div className="space-y-2">
+        {poList.map((po) => (
+          <div key={po.id} className="border border-[#E4E2DC] rounded-lg p-4 bg-white">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <p className="text-[13px] font-medium text-[#14171F] font-mono">{po.poNumber}</p>
+                <p className="text-[11px] text-[#8A8678]">{po.vendor?.name || po.vendorId} · {new Date(po.createdAt).toLocaleDateString()}</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <StatusPill status={po.status} />
+                <p className="text-[13px] font-medium text-[#14171F]">₹{Number(po.totalAmount).toLocaleString()}</p>
+              </div>
+            </div>
+            {actionLabel[po.status] && (
+              <div className="flex justify-end mt-3">
+                <button onClick={() => advance(po.poNumber, po.id, po.status)}
+                  className="text-[12px] font-medium px-3 py-1.5 rounded-md border border-[#1E3A5F] text-[#1E3A5F] hover:bg-[#1E3A5F] hover:text-white transition-colors">
+                  {actionLabel[po.status]} →
+                </button>
+              </div>
+            )}
+            {po.status === "APPROVED" && (
+              <p className="text-[10px] text-[#2F6B4F] mt-1 text-right font-mono">emits: po.created → vendor portal API</p>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );

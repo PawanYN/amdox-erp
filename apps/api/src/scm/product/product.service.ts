@@ -44,7 +44,7 @@ export class ProductService {
   async findAll(tenantId: string) {
     return this.prisma.product.findMany({
       where: { tenantId, deletedAt: null },
-      include: { defaultVendor: true },
+      include: { defaultVendor: true, stockLevels: true },
     });
   }
 

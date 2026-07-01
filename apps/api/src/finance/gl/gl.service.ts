@@ -134,10 +134,58 @@ export class GlService {
    */
   @OnEvent('invoice.approved')
   async handleInvoiceApproved(event: { tenantId: string, invoiceId: string }) {
-    this.logger.log(`Received invoice.approved event for Invoice ${event.invoiceId}`);
-    // In a real scenario, we'd fetch the Invoice, figure out the default Expense Account, AP Account, 
-    // and current open Fiscal Period to post the entry automatically.
-    this.logger.log('GL auto-posting logic for AP Invoice executed.');
+    this.logger.log(`Received invoice.approved event for Invoice ${event.invoiceId}. Generating GL Postings...`);
+    
+    // 1. Fetch the invoice
+    const invoice = await this.prisma.invoice.findUnique({
+      where: { id: event.invoiceId },
+    });
+    if (!invoice) return;
+
+    const amount = Number(invoice.totalAmount);
+    if (amount <= 0) return;
+
+    // 2. Fetch or create current Fiscal Period (e.g., '2026-07')
+    const now = new Date();
+    const periodName = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    let period = await this.prisma.fiscalPeriod.findUnique({
+      where: { tenantId_name: { tenantId: event.tenantId, name: periodName } }
+    });
+    if (!period) {
+      period = await this.openFiscalPeriod(
+        event.tenantId,
+        periodName,
+        new Date(now.getFullYear(), now.getMonth(), 1),
+        new Date(now.getFullYear(), now.getMonth() + 1, 0)
+      );
+    }
+
+    // 3. Fetch standard Accounts (1300 = Inventory, 2000 = AP)
+    const invAccount = await this.prisma.account.findUnique({ where: { tenantId_code: { tenantId: event.tenantId, code: '1300' } }});
+    const apAccount = await this.prisma.account.findUnique({ where: { tenantId_code: { tenantId: event.tenantId, code: '2000' } }});
+
+    if (!invAccount || !apAccount) {
+      this.logger.error('Standard GL Accounts (1300, 2000) not found! Cannot post AP Invoice to GL.');
+      return;
+    }
+
+    // 4. Create the Journal Entry
+    try {
+      await this.createJournalEntry(event.tenantId, {
+        fiscalPeriodId: period.id,
+        reference: `INV-${invoice.invoiceNumber}`,
+        description: `Auto-posting for AP Invoice ${invoice.invoiceNumber}`,
+        sourceModule: 'AP',
+        sourceId: invoice.id,
+        lines: [
+          { accountId: invAccount.id, debit: amount, credit: 0 },
+          { accountId: apAccount.id, debit: 0, credit: amount }
+        ]
+      });
+      this.logger.log(`Successfully posted AP Invoice ${invoice.invoiceNumber} to GL.`);
+    } catch (err) {
+      this.logger.error(`Failed to post Journal Entry for Invoice ${invoice.invoiceNumber}`, err);
+    }
   }
 
   /**

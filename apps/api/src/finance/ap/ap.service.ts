@@ -25,6 +25,17 @@ export class ApService {
   ) {}
 
   /**
+   * Retrieves all AP invoices for a tenant.
+   */
+  async getInvoices(tenantId: string) {
+    return this.prisma.invoice.findMany({
+      where: { tenantId, type: 'AP' },
+      include: { lines: true },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  /**
    * WHAT: Processes an uploaded invoice document by extracting data via OCR and saving it.
    * WHY: Automates manual data entry (F-03 requirement) allowing for auto-approval if the
    * extracted data matches a Goods Receipt and Purchase Order perfectly.

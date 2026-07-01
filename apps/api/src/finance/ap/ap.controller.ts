@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Param, UseInterceptors, UploadedFile, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseInterceptors, UploadedFile, UseGuards, Req } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
@@ -17,6 +17,13 @@ import { CreateInvoiceDto } from '../dto/create-invoice.dto';
 @Controller('finance/ap/invoices')
 export class ApController {
   constructor(private readonly apService: ApService) {}
+
+  @Roles('Manager', 'TenantAdmin', 'Viewer')
+  @Get()
+  @ApiOperation({ summary: 'Get all AP invoices' })
+  async getInvoices(@Req() req: any) {
+    return this.apService.getInvoices(req.user.tenantId);
+  }
 
   /**
    * Manually creates an AP Invoice.

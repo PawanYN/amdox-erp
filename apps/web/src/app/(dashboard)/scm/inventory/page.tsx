@@ -1,110 +1,104 @@
 "use client";
 
-import { useState } from "react";
-import { Package, Plus, AlertCircle, CheckCircle2, Box } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge, statusToTone } from "@/components/ui/badge";
-import { Card, Table, THead, TH, TBody, TR, TD, EmptyState } from "@/components/ui/table";
-import { DataTable, ColumnDef } from "@/components/ui/data-table";
-import { StatCard } from "@/components/ui/stat-card";
-import { mockInventory } from "@/lib/mock/scm";
-import { InventoryItem } from "@/lib/types";
+import { useState, useEffect } from "react";
+import { AlertTriangle, Check } from "lucide-react";
+import { scmApi } from "@/lib/api/scm-api";
 
-
-
-const columns: ColumnDef<InventoryItem>[] = [
-  {
-    header: "Item ID",
-    cell: (item) => (
-      <span className="font-mono text-xs font-bold text-brand-purple bg-violet-50 border border-violet-100 rounded-lg px-2 py-1">
-        {item.id}
-      </span>
-    ),
-  },
-  {
-    header: "Name",
-    cell: (item) => <span className="font-semibold text-ink">{item.name}</span>,
-  },
-  {
-    header: "Category",
-    cell: (item) => (
-      <span className="text-xs font-medium text-muted bg-canvas border border-line rounded-lg px-2.5 py-1">
-        {item.category}
-      </span>
-    ),
-  },
-  {
-    header: "Stock / Min",
-    cell: (item) => (
-      <>
-        <span className={item.stock < item.minStock ? "text-rose-500 font-bold" : "text-ink"}>
-          {item.stock}
-        </span>
-        <span className="text-muted text-xs ml-1">/ {item.minStock}</span>
-      </>
-    ),
-  },
-  {
-    header: "Unit Price",
-    className: "text-muted font-medium",
-    cell: (item) => `$${item.unitPrice.toLocaleString()}`,
-  },
-  {
-    header: "Status",
-    cell: (item) => (
-      <Badge tone={
-        item.status === "In Stock" ? "positive" :
-        item.status === "Low Stock" ? "caution" : "critical"
-      }>
-        {item.status}
-      </Badge>
-    ),
-  },
-];
+function StockBadge({ current, reorder }: { current: number; reorder: number }) {
+  const pct = (current / (reorder || 1)) * 100;
+  if (pct <= 20) return <span className="flex items-center gap-1 text-[11px] text-[#B4533B] font-medium"><AlertTriangle size={11} /> Critical</span>;
+  if (pct <= 60) return <span className="flex items-center gap-1 text-[11px] text-[#D9A85C] font-medium">⚠ Low</span>;
+  return <span className="text-[11px] text-[#2F6B4F] font-medium">✓ OK</span>;
+}
 
 export default function InventoryPage() {
-  const [items, setItems] = useState<InventoryItem[]>(mockInventory);
+  const [raised, setRaised] = useState<Record<string, boolean>>({});
+  const [items, setItems] = useState<any[]>([]);
 
-  const totalItems = items.length;
-  const totalStock = items.reduce((acc, curr) => acc + curr.stock, 0);
-  const lowStock = items.filter(i => i.status === "Low Stock").length;
-  const outOfStock = items.filter(i => i.status === "Out of Stock").length;
+  useEffect(() => {
+    scmApi.getProducts().then(setItems);
+  }, []);
 
-  const handleAddItem = () => {
-    // Stub for add item modal
-    console.log("Add item clicked");
-  };
+  const getStock = (item: any) => item.stockLevels?.reduce((sum: number, level: any) => sum + Number(level.quantity), 0) || 0;
+
+  const mappedItems = items.map(item => ({
+    ...item,
+    currentStock: getStock(item),
+    reorderPoint: 10,
+    unit: "pcs",
+  }));
+
+  const belowReorder = mappedItems.filter((i) => i.currentStock < i.reorderPoint);
 
   return (
-    <div>
-      {/* Header */}
-      <div className="flex items-start justify-between animate-fade-in-up">
-        <div>
-          <div className="flex items-center gap-2.5 mb-1">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-[0_4px_12px_rgba(59,130,246,0.3)]">
-              <Package size={16} />
-            </div>
-            <h1 className="text-2xl font-bold text-ink">Inventory</h1>
+    <div className="space-y-5">
+      {belowReorder.length > 0 && (
+        <div className="rounded-lg border border-[#B4533B]/30 bg-[#B4533B]/5 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[13px] font-medium text-[#B4533B] flex items-center gap-1.5">
+              <AlertTriangle size={14} /> {belowReorder.length} items below reorder point
+            </p>
+            <p className="text-[11px] text-[#8A8678]">emits: <span className="font-mono text-[#1E3A5F]">inventory.low_stock</span> → auto-draft PR</p>
           </div>
-          <p className="text-sm text-muted ml-10">
-            Manage your stock levels, categories, and item statuses
-          </p>
+          <div className="space-y-2">
+            {belowReorder.map((item) => (
+              <div key={item.sku} className="flex items-center justify-between bg-white rounded-md border border-[#E4E2DC] px-3 py-2">
+                <div>
+                  <p className="text-[13px] font-medium text-[#14171F]">{item.name}</p>
+                  <p className="text-[11px] text-[#8A8678]">{item.sku}</p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <p className="text-[12px] font-mono text-[#B4533B] font-medium">{item.currentStock} {item.unit}</p>
+                    <p className="text-[10px] text-[#8A8678]">reorder at {item.reorderPoint}</p>
+                  </div>
+                  <div className="w-20 h-1.5 bg-[#F0EEE7] rounded-full overflow-hidden">
+                    <div className="h-full bg-[#B4533B] rounded-full" style={{ width: `${Math.min(100, (item.currentStock / item.reorderPoint) * 100)}%` }} />
+                  </div>
+                  {raised[item.sku] ? (
+                    <span className="text-[11px] text-[#2F6B4F] font-medium flex items-center gap-1"><Check size={12} /> PR raised</span>
+                  ) : (
+                    <button onClick={() => setRaised({ ...raised, [item.sku]: true })}
+                      className="text-[12px] font-medium px-3 py-1.5 rounded-md bg-[#1E3A5F] text-white whitespace-nowrap">
+                      Raise PR
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-        <Button icon={<Plus size={16} />} onClick={handleAddItem}>
-          Add Item
-        </Button>
-      </div>
+      )}
 
-      {/* Stat cards */}
-      <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard label="Total Items" value={totalItems} icon={<Box size={18} />} gradient="from-blue-500 to-indigo-600" delay="0.05s" />
-        <StatCard label="Total Stock" value={totalStock} icon={<CheckCircle2 size={18} />} gradient="from-emerald-400 to-teal-500" delay="0.10s" />
-        <StatCard label="Low Stock" value={lowStock} icon={<AlertCircle size={18} />} gradient="from-amber-400 to-orange-500" delay="0.15s" />
-        <StatCard label="Out of Stock" value={outOfStock} icon={<AlertCircle size={18} />} gradient="from-rose-400 to-pink-500" delay="0.20s" />
-      </div>
-
-      <div className="mt-8 animate-fade-in-up" style={{ animationDelay: "0.25s" }}>
-        <DataTable data={items} columns={columns} keyExtractor={(item) => item.id} emptyMessage="No items found." />
+      <div>
+        <p className="text-[12px] text-[#8A8678] font-medium mb-2">All Inventory Items</p>
+        <div className="border border-[#E4E2DC] rounded-lg overflow-hidden">
+          <table className="w-full text-[12px]">
+            <thead>
+              <tr className="bg-[#FAFAF9] border-b border-[#E4E2DC]">
+                <th className="text-left px-3 py-2 text-[#8A8678] font-medium">SKU / Item</th>
+                <th className="text-right px-3 py-2 text-[#8A8678] font-medium">Stock</th>
+                <th className="text-right px-3 py-2 text-[#8A8678] font-medium">Reorder at</th>
+                <th className="text-right px-3 py-2 text-[#8A8678] font-medium">Unit cost</th>
+                <th className="text-center px-3 py-2 text-[#8A8678] font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {mappedItems.map((item, i) => (
+                <tr key={item.sku} className={`border-b border-[#F0EEE7] last:border-0 ${i % 2 === 0 ? "bg-white" : "bg-[#FAFAF9]"}`}>
+                  <td className="px-3 py-2">
+                    <p className="font-medium text-[#14171F]">{item.name}</p>
+                    <p className="text-[10px] text-[#8A8678] font-mono">{item.sku} · {item.category}</p>
+                  </td>
+                  <td className="px-3 py-2 text-right font-mono font-medium text-[#14171F]">{item.currentStock} {item.unit}</td>
+                  <td className="px-3 py-2 text-right font-mono text-[#8A8678]">{item.reorderPoint}</td>
+                  <td className="px-3 py-2 text-right font-mono text-[#4A4740]">₹{item.unitCost}</td>
+                  <td className="px-3 py-2 text-center"><StockBadge current={item.currentStock} reorder={item.reorderPoint} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

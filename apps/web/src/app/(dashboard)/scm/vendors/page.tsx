@@ -1,70 +1,93 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Building2, Plus, Star, Users, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge, statusToTone } from "@/components/ui/badge";
 import { Card, Table, THead, TH, TBody, TR, TD, EmptyState } from "@/components/ui/table";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { StatCard } from "@/components/ui/stat-card";
-import { mockVendors } from "@/lib/mock/scm";
-import { Vendor } from "@/lib/types";
+import { scmApi } from "@/lib/api/scm-api";
 
-
-
-const columns: ColumnDef<Vendor>[] = [
-  {
-    header: "Vendor ID",
-    cell: (vendor) => (
-      <span className="font-mono text-xs font-bold text-brand-purple bg-violet-50 border border-violet-100 rounded-lg px-2 py-1">
-        {vendor.id}
-      </span>
-    ),
-  },
-  {
-    header: "Name",
-    cell: (vendor) => <span className="font-semibold text-ink">{vendor.name}</span>,
-  },
-  {
-    header: "Contact Person",
-    cell: (vendor) => <span className="text-sm text-muted">{vendor.contactPerson}</span>,
-  },
-  {
-    header: "Email",
-    cell: (vendor) => <span className="text-sm text-muted">{vendor.email}</span>,
-  },
-  {
-    header: "Rating",
-    cell: (vendor) => (
-      <div className="flex items-center gap-1 text-amber-500 font-medium">
-        <Star size={14} className="fill-amber-500" />
-        {vendor.rating}
-      </div>
-    ),
-  },
-  {
-    header: "Status",
-    cell: (vendor) => (
-      <Badge tone={vendor.status === "Active" ? "positive" : "neutral"}>
-        {vendor.status}
-      </Badge>
-    ),
-  },
-];
+type BackendVendor = {
+  id: string;
+  name: string;
+  email?: string;
+  contactPhone?: string;
+  rating?: number;
+  isActive: boolean;
+};
 
 export default function VendorsPage() {
-  const [vendors, setVendors] = useState<Vendor[]>(mockVendors);
+  const [vendors, setVendors] = useState<BackendVendor[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const totalVendors = vendors.length;
-  const activeVendors = vendors.filter(v => v.status === "Active").length;
-  const avgRating = totalVendors > 0 
-    ? (vendors.reduce((acc, curr) => acc + curr.rating, 0) / totalVendors).toFixed(1)
-    : 0;
+  const fetchVendors = async () => {
+    try {
+      setLoading(true);
+      const data = await scmApi.getVendors();
+      setVendors(data);
+    } catch (err) {
+      console.error("Failed to fetch vendors", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchVendors();
+  }, []);
 
   const handleAddVendor = () => {
     // Stub
     console.log("Add Vendor clicked");
   };
+
+  const columns: ColumnDef<BackendVendor>[] = [
+    {
+      header: "Vendor ID",
+      cell: (vendor) => (
+        <span className="font-mono text-xs font-bold text-brand-purple bg-violet-50 border border-violet-100 rounded-lg px-2 py-1">
+          {vendor.id.slice(0, 8).toUpperCase()}
+        </span>
+      ),
+    },
+    {
+      header: "Name",
+      cell: (vendor) => <span className="font-semibold text-ink">{vendor.name}</span>,
+    },
+    {
+      header: "Email",
+      cell: (vendor) => <span className="text-sm text-muted">{vendor.email || "N/A"}</span>,
+    },
+    {
+      header: "Phone",
+      cell: (vendor) => <span className="text-sm text-muted">{vendor.contactPhone || "N/A"}</span>,
+    },
+    {
+      header: "Rating",
+      cell: (vendor) => (
+        <div className="flex items-center gap-1 text-amber-500 font-medium">
+          <Star size={14} className="fill-amber-500" />
+          {vendor.rating || "N/A"}
+        </div>
+      ),
+    },
+    {
+      header: "Status",
+      cell: (vendor) => (
+        <Badge tone={vendor.isActive ? "positive" : "neutral"}>
+          {vendor.isActive ? "Active" : "Inactive"}
+        </Badge>
+      ),
+    },
+  ];
+
+  const totalVendors = vendors.length;
+  const activeVendors = vendors.filter(v => v.isActive).length;
+  const avgRating = totalVendors > 0 
+    ? (vendors.reduce((acc, curr) => acc + (curr.rating || 0), 0) / totalVendors).toFixed(1)
+    : 0;
 
   return (
     <div>
@@ -94,7 +117,7 @@ export default function VendorsPage() {
       </div>
 
       <div className="mt-8 animate-fade-in-up" style={{ animationDelay: "0.20s" }}>
-        <DataTable data={vendors} columns={columns} keyExtractor={(vendor) => vendor.id} emptyMessage="No vendors found." />
+        <DataTable data={vendors} columns={columns} keyExtractor={(vendor) => vendor.id} emptyMessage={loading ? "Loading..." : "No vendors found."} />
       </div>
     </div>
   );

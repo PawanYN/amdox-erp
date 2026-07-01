@@ -30,14 +30,23 @@
  * ============================================================================
  */
 
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaClient } from '@amdox/db';
 import { CreatePurchaseOrderDto } from '../dto/create-purchase-order.dto';
 import { ReceiveGoodsDto } from '../dto/receive-goods.dto';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 @Injectable()
 export class PurchaseService {
   private prisma = new PrismaClient();
+  private readonly logger = new Logger(PurchaseService.name);
+
+  constructor(
+    private eventEmitter: EventEmitter2,
+    @InjectQueue('scm-events') private scmQueue: Queue
+  ) {}
 
   // --- Purchase Orders ---
   async createPurchaseOrder(tenantId: string, dto: CreatePurchaseOrderDto) {
@@ -84,15 +93,21 @@ export class PurchaseService {
 
   async approvePurchaseOrder(tenantId: string, id: string) {
     await this.getPurchaseOrder(tenantId, id);
-    return this.prisma.purchaseOrder.update({
+    const updatedPo = await this.prisma.purchaseOrder.update({
       where: { id },
       data: { status: 'APPROVED' },
     });
+
+    // Fire lightweight synchronous event for Notification/Audit
+    this.eventEmitter.emit('po.created', { tenantId, poId: id, poNumber: updatedPo.poNumber });
+    this.logger.log(`PO ${updatedPo.poNumber} approved and po.created event emitted`);
+
+    return updatedPo;
   }
 
   // --- Goods Receipt ---
   async receiveGoods(tenantId: string, id: string, dto: ReceiveGoodsDto) {
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const po = await tx.purchaseOrder.findFirst({
         where: { id, tenantId },
         include: { lines: true },
@@ -160,7 +175,20 @@ export class PurchaseService {
         data: { status: 'RECEIVED' },
       });
 
+      // 4. Trigger AI Forecasting pipeline placeholder
+      this.logger.log(`[AI FORECASTING PLACEHOLDER] Triggering Prophet/LSTM re-eval due to incoming stock for PO ${po.poNumber}`);
+
       return receipt;
     });
+
+    // 5. Enqueue heavy async task for Finance 3-way match
+    await this.scmQueue.add('goods.received', { 
+      tenantId, 
+      purchaseOrderId: id, 
+      goodsReceiptId: result.id 
+    });
+    this.logger.log(`Queued goods.received event for PO ${id}`);
+
+    return result;
   }
 }
