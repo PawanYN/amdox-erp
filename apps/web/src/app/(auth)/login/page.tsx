@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Building2, Loader2, AlertCircle } from "lucide-react";
+import { tenantApi } from "@/lib/api/tenant-api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -20,8 +21,7 @@ export default function LoginPage() {
 
     try {
       // Validate the slug exists in our DB first
-      const res = await fetch(`http://localhost:3001/tenant/exists/${cleanSlug}`);
-      const data = await res.json();
+      const data = await tenantApi.checkExists(cleanSlug);
 
       if (!data.exists) {
         setError(`No company found with domain "${cleanSlug}". Please check the spelling.`);

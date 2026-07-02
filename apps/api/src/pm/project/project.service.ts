@@ -183,6 +183,24 @@ export class ProjectService {
     return project;
   }
 
+  async updateProject(tenantId: string, projectId: string, dto: import('../dto/update-project.dto').UpdateProjectDto) {
+    const project = await this.prisma.project.findFirst({
+      where: { id: projectId, tenantId, deletedAt: null },
+    });
+    if (!project) throw new NotFoundException('Project not found');
+
+    return this.prisma.project.update({
+      where: { id: projectId },
+      data: {
+        ...(dto.name !== undefined && { name: dto.name }),
+        ...(dto.description !== undefined && { description: dto.description }),
+        ...(dto.status !== undefined && { status: dto.status }),
+        ...(dto.startDate !== undefined && { startDate: dto.startDate ? new Date(dto.startDate) : null }),
+        ...(dto.endDate !== undefined && { endDate: dto.endDate ? new Date(dto.endDate) : null }),
+      },
+    });
+  }
+
   private async wouldCreateCycle(
     tenantId: string,
     projectId: string,

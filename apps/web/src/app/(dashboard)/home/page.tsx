@@ -1,9 +1,9 @@
 "use client";
 
 import { useKeycloak } from "@/components/KeycloakProvider";
-import { getAuthHeaders } from "@/lib/auth";
-import { User, Shield, Calendar, Clock, ArrowRight, FileText, Zap, LogOut } from "lucide-react";
+import { User, Shield, Calendar, Clock, Zap, LogOut } from "lucide-react";
 import { useState, useEffect } from "react";
+import { hrApi } from "@/lib/api/hr-api";
 
 export default function DashboardHome() {
   const { token } = useKeycloak();
@@ -21,7 +21,6 @@ export default function DashboardHome() {
   const [clockedIn, setClockedIn] = useState(false);
   const [todaysClockIn, setTodaysClockIn] = useState<Date | null>(null);
 
-  // Decode basic info from token for fallback and role determination
   let name = "Loading...";
   let email = "Loading...";
   let role = "Employee";
@@ -49,38 +48,32 @@ export default function DashboardHome() {
     if (!token) return;
 
     const fetchData = async () => {
+      let profData: any = null;
       try {
-        const headers = await getAuthHeaders();
-
-        // Fetch Profile
-        const profRes = await fetch("http://localhost:3001/employees/me", { headers });
-        if (profRes.ok) {
-          const profData = await profRes.json();
-          setProfile(profData);
-
-          // If it's an employee (has an ID), fetch leaves
-          if (profData.id) {
-            const statusRes = await fetch(`http://localhost:3001/attendance/status/${profData.id}`, { headers });
-            if (statusRes.ok) {
-               const s = await statusRes.json();
-               setClockedIn(s.clockedIn);
-               if (s.record?.clockIn) setTodaysClockIn(new Date(s.record.clockIn));
-            }
-
-            const balRes = await fetch(`http://localhost:3001/leave/my-balances/${profData.id}`, { headers });
-            if (balRes.ok) {
-              const b = await balRes.json();
-              setBalances(b);
-              // Set default leave type for the form
-              if (b.length > 0) setLeaveType(b[0].leaveType.name);
-            }
-
-            const reqRes = await fetch(`http://localhost:3001/leave/my-requests/${profData.id}`, { headers });
-            if (reqRes.ok) setRequests(await reqRes.json());
-          }
+        profData = await hrApi.getMe();
+        setProfile(profData);
+      } catch (error: any) {
+        if (!error?.message?.includes("Employee profile not found")) {
+          console.error("Failed to fetch employee profile:", error);
         }
+      }
+
+      if (!profData?.id) return;
+
+      try {
+        const status = await hrApi.getAttendanceStatus(profData.id);
+        setClockedIn(status.clockedIn);
+        if (status.record?.clockIn) {
+          setTodaysClockIn(new Date(status.record.clockIn));
+        }
+
+        const b = await hrApi.getMyLeaveBalances(profData.id);
+        setBalances(b);
+        if (b.length > 0) setLeaveType(b[0].leaveType.name);
+
+        setRequests(await hrApi.getMyLeaveRequests(profData.id));
       } catch (error) {
-        console.error("Failed to fetch dashboard data:", error);
+        console.error("Failed to fetch HR dashboard data:", error);
       }
     };
     fetchData();
@@ -89,41 +82,22 @@ export default function DashboardHome() {
   const handleClockIn = async () => {
     if (!profile?.id) return;
     try {
-      const headers = await getAuthHeaders();
-      const res = await fetch("http://localhost:3001/attendance/clock-in", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ employeeId: profile.id, source: "api" })
-      });
-      if (res.ok) {
-        setClockedIn(true);
-        setTodaysClockIn(new Date());
-      } else {
-        const err = await res.json();
-        alert(err.message || "Failed to clock in");
-      }
-    } catch (e) {
-      console.error(e);
+      await hrApi.clockIn(profile.id);
+      setClockedIn(true);
+      setTodaysClockIn(new Date());
+    } catch (e: any) {
+      alert(e.message || "Failed to clock in");
     }
   };
 
   const handleClockOut = async () => {
     if (!profile?.id) return;
     try {
-      const headers = await getAuthHeaders();
-      const res = await fetch(`http://localhost:3001/attendance/clock-out/${profile.id}`, {
-        method: "POST",
-        headers,
-      });
-      if (res.ok) {
-        setClockedIn(false);
-        setTodaysClockIn(null);
-      } else {
-        const err = await res.json();
-        alert(err.message || "Failed to clock out");
-      }
-    } catch (e) {
-      console.error(e);
+      await hrApi.clockOut(profile.id);
+      setClockedIn(false);
+      setTodaysClockIn(null);
+    } catch (e: any) {
+      alert(e.message || "Failed to clock out");
     }
   };
 
@@ -131,27 +105,18 @@ export default function DashboardHome() {
     if (!profile?.id || !leaveType || !startDate || !endDate) return;
     setIsSubmitting(true);
     try {
-      const headers = await getAuthHeaders();
-      const res = await fetch("http://localhost:3001/leave", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          employeeId: profile.id,
-          leaveType: leaveType.toLowerCase().includes('sick') ? 'sick' : 'annual',
-          startDate,
-          endDate,
-          reason: reason || "Leave requested from quick-apply widget"
-        })
+      await hrApi.createLeaveRequest({
+        employeeId: profile.id,
+        leaveType: leaveType.toLowerCase().includes("sick") ? "sick" : "annual",
+        startDate,
+        endDate,
+        reason: reason || "Leave requested from quick-apply widget",
       });
-      if (res.ok) {
-        setShowLeaveForm(false);
-        setStartDate("");
-        setEndDate("");
-        setReason("");
-        // Refresh requests
-        const reqRes = await fetch(`http://localhost:3001/leave/my-requests/${profile.id}`, { headers });
-        if (reqRes.ok) setRequests(await reqRes.json());
-      }
+      setShowLeaveForm(false);
+      setStartDate("");
+      setEndDate("");
+      setReason("");
+      setRequests(await hrApi.getMyLeaveRequests(profile.id));
     } catch (err) {
       console.error(err);
     } finally {
@@ -159,8 +124,8 @@ export default function DashboardHome() {
     }
   };
 
-  const annualBalance = balances.find(b => b.leaveType?.name === "Annual Leave")?.balanceDays || 0;
-  const sickBalance = balances.find(b => b.leaveType?.name === "Sick Leave")?.balanceDays || 0;
+  const annualBalance = balances.find((b) => b.leaveType?.name === "Annual Leave")?.balanceDays || 0;
+  const sickBalance = balances.find((b) => b.leaveType?.name === "Sick Leave")?.balanceDays || 0;
 
   return (
     <div className="p-8 space-y-6 max-w-5xl mx-auto h-full overflow-y-auto">
@@ -181,11 +146,10 @@ export default function DashboardHome() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Profile Details Card */}
         <div className="col-span-1 space-y-6">
           <div className="border border-line rounded-xl p-5 bg-white shadow-sm">
             <h2 className="text-sm font-semibold text-ink mb-4 flex items-center gap-2">
-              <FileText size={16} className="text-muted" /> Profile Details
+              Profile Details
             </h2>
             <div className="space-y-4">
               <div>
@@ -209,7 +173,6 @@ export default function DashboardHome() {
             </div>
           </div>
 
-          {/* Clock In / Out Widget */}
           {!isAdmin && (
             <div
               className={`flex flex-col rounded-xl border p-5 shadow-sm transition-all duration-300 ${
@@ -232,20 +195,20 @@ export default function DashboardHome() {
                   </p>
                   <p className={`text-xs ${clockedIn ? "text-emerald-600" : "text-muted"}`}>
                     {clockedIn && todaysClockIn
-                      ? `Clocked in at ${todaysClockIn.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                      ? `Clocked in at ${todaysClockIn.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
                       : "Not clocked in yet"}
                   </p>
                 </div>
               </div>
               {clockedIn ? (
-                <button 
+                <button
                   onClick={handleClockOut}
                   className="w-full flex items-center justify-center gap-2 py-2 bg-rose-50 text-rose-600 border border-rose-200 text-xs font-semibold rounded hover:bg-rose-100 transition-colors"
                 >
                   <LogOut size={14} /> Clock Out
                 </button>
               ) : (
-                <button 
+                <button
                   onClick={handleClockIn}
                   className="w-full flex items-center justify-center gap-2 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold rounded hover:bg-emerald-100 transition-colors"
                 >
@@ -256,7 +219,6 @@ export default function DashboardHome() {
           )}
         </div>
 
-        {/* Leave Management Section - Hidden for Admins */}
         {!isAdmin && (
           <div className="col-span-1 md:col-span-2 space-y-6">
             <div className="grid grid-cols-2 gap-4">
@@ -296,7 +258,7 @@ export default function DashboardHome() {
                         value={leaveType}
                         onChange={(e) => setLeaveType(e.target.value)}
                       >
-                        {balances.map(b => (
+                        {balances.map((b) => (
                           <option key={b.leaveType.id} value={b.leaveType.name}>{b.leaveType.name}</option>
                         ))}
                       </select>
@@ -343,7 +305,7 @@ export default function DashboardHome() {
                   {requests.length === 0 ? (
                     <p className="text-sm text-muted italic">No leave requests found.</p>
                   ) : (
-                    requests.slice(0, 5).map(req => (
+                    requests.slice(0, 5).map((req) => (
                       <div key={req.id} className="flex items-center justify-between p-3 rounded-lg border border-line hover:border-brand-purple/30 transition-colors bg-canvas/30">
                         <div>
                           <p className="text-sm font-semibold text-ink">{req.leaveType?.name || "Leave"}</p>
@@ -351,10 +313,11 @@ export default function DashboardHome() {
                             {new Date(req.startDate).toLocaleDateString()} - {new Date(req.endDate).toLocaleDateString()}
                           </p>
                         </div>
-                        <span className={`px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider ${req.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-700' :
-                          req.status === 'REJECTED' ? 'bg-rose-100 text-rose-700' :
-                            'bg-amber-100 text-amber-700'
-                          }`}>
+                        <span className={`px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider ${
+                          req.status === "APPROVED" ? "bg-emerald-100 text-emerald-700" :
+                          req.status === "REJECTED" ? "bg-rose-100 text-rose-700" :
+                          "bg-amber-100 text-amber-700"
+                        }`}>
                           {req.status}
                         </span>
                       </div>

@@ -145,9 +145,8 @@ export class PurchaseService {
         },
       });
 
-      // 2. Loop through PO lines and update stock
+      // 2. Loop through PO lines and update stock + FIFO cost layers
       for (const line of po.lines) {
-        // Create stock movement
         await tx.stockMovement.create({
           data: {
             tenantId,
@@ -159,7 +158,23 @@ export class PurchaseService {
           },
         });
 
-        // Upsert stock level
+        await tx.inventoryCostLayer.create({
+          data: {
+            tenantId,
+            productId: line.productId,
+            warehouseId: dto.warehouseId,
+            goodsReceiptId: receipt.id,
+            quantity: line.quantity,
+            remainingQty: line.quantity,
+            unitCost: line.unitPrice,
+          },
+        });
+
+        await tx.product.update({
+          where: { id: line.productId },
+          data: { unitCost: line.unitPrice },
+        });
+
         const existingLevel = await tx.stockLevel.findUnique({
           where: {
             productId_warehouseId: {
@@ -203,6 +218,11 @@ export class PurchaseService {
       tenantId, 
       purchaseOrderId: id, 
       goodsReceiptId: result.id 
+    });
+    this.eventEmitter.emit('goods.received', {
+      tenantId,
+      purchaseOrderId: id,
+      goodsReceiptId: result.id,
     });
     this.logger.log(`Queued goods.received event for PO ${id}`);
 

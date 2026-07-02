@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaClient, LeaveStatus } from '@amdox/db';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CreateLeaveDto } from '../dto/create-leave.dto';
 import { ApproveLeaveDto } from '../dto/approve-leave.dto';
 import { LeaveStateMachine } from './leave-state-machine';
@@ -8,7 +9,10 @@ import { LeaveStateMachine } from './leave-state-machine';
 export class LeaveService {
   private prisma = new PrismaClient();
 
-  constructor(private readonly leaveStateMachine: LeaveStateMachine) {}
+  constructor(
+    private readonly leaveStateMachine: LeaveStateMachine,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   async createRequest(tenantId: string, createLeaveDto: CreateLeaveDto) {
     const start = new Date(createLeaveDto.startDate);
@@ -89,13 +93,19 @@ export class LeaveService {
       isTenantAdmin
     );
 
-    return this.prisma.leaveRequest.update({
+    const updated = await this.prisma.leaveRequest.update({
       where: { id: leaveId },
       data: {
         status: targetStatus,
         approvedAt: new Date(),
       },
     });
+    this.eventEmitter.emit('leave.status.changed', {
+      tenantId,
+      leaveId,
+      status: targetStatus,
+    });
+    return updated;
   }
 }
 

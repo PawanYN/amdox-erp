@@ -1,7 +1,7 @@
 # Amdox ERP — Implementation Status vs Company Specification
 
 > **Company document:** [`Amdox Web.pdf`](./Amdox%20Web.pdf) — *AMX-ERP-2026-04, Version 1.0, April 2026*  
-> **Codebase reviewed:** `w:\amdox-erp` — **2 July 2026**  
+> **Codebase reviewed:** `w:\amdox-erp` — **3 July 2026**  
 > **Purpose:** Map every major requirement from the company PDF to what is built, partially built, or missing — with direct quotes from the PDF so you can verify each item.
 
 ---
@@ -28,13 +28,13 @@ The company spec describes an **"AI-Powered Cloud ERP Suite"** — a **"scalable
 
 | Area | Done | Partial | Not started |
 |------|------|---------|-------------|
-| Functional requirements **F-01 → F-12** | 4 | 5 | 3 |
-| Target user personas (6 segments) | 1 | 4 | 1 |
-| Technology stack (24 categories) | 10 | 4 | 10 |
-| 28-day execution plan | 12 days | 7 days | 9 days |
+| Functional requirements **F-01 → F-12** | 5 | 6 | 1 |
+| Target user personas (6 segments) | 2 | 4 | 0 |
+| Technology stack (24 categories) | 12 | 5 | 7 |
+| 28-day execution plan | 14 days | 8 days | 6 days |
 | Submission deliverables (5 items) | 1 | 2 | 2 |
 
-**Bottom line:** Core backend modules for **Finance**, **HR/Payroll**, and **Supply Chain** are the strongest areas. **AI forecasting**, **BI dashboards**, **PWA/offline**, **deployment/CI/CD**, and **compliance hardening** are largely missing. The frontend often uses **mock data** even where APIs already exist. Several PDF tech choices (**GraphQL**, **shadcn/ui**, **Zustand**, **TimescaleDB**, **Kubernetes/Helm**, **OpenTelemetry**) are not implemented.
+**Bottom line:** Core backend modules for **Finance**, **HR/Payroll**, **Supply Chain**, and **BI** are the strongest areas. **Order-to-Cash**, **audit event pipeline**, and **ML forecasting service** are now implemented. Remaining gaps: **SCM admin UI** (vendor/product/inventory forms), **real email/webhook delivery**, **PWA/offline**, **deployment/CI/CD**, and **compliance hardening**. Most dashboard pages now call live APIs; remaining stubs are vendor add button, GL account create, AP OCR upload, and inventory reorder/PR. Several PDF tech choices (**GraphQL**, **shadcn/ui**, **Zustand**, **TimescaleDB**, **Kubernetes/Helm**, **OpenTelemetry**) are not implemented.
 
 ---
 
@@ -66,28 +66,28 @@ Section **1.2 Target Users** in the PDF defines six personas. Below, each person
 
 | PDF quote | **"Real-time dashboards, KPI monitoring, board-level reporting"** |
 |-----------|---------------------------------------------------------------------|
-| **Status** | **Partial** |
-| **What exists** | Dashboard shell at `/home`; persona switcher includes **"Executive"** in `dashboardLayout.tsx`. CRM/Reports components exist under `components/dashboard/` but are **not linked in navigation**. |
-| **What is missing** | No **"Drag-and-drop dashboard builder"** (F-08); Recharts is installed but **not used in any page**; no KPI/board-level reporting wired to live data. |
-| **How you know** | PDF §1.2 + §F-08; codebase has no BI module pages. |
+| **Status** | **Done** (core F-08) |
+| **What exists** | Full BI workspace at `/bi`: executive KPIs, drag-and-drop builder (`react-grid-layout`), visualization pane, slicers, drill-down/drill-through, scheduled PDF/CSV reports, SSE live refresh. ECharts + Recharts in `components/bi/`. Backend: widget CRUD, 6 live data sources, `BiReportService`, hourly scheduler. |
+| **What is missing** | Board-level PDF export of full dashboard canvas (reports use KPI snapshot); GraphQL BI queries (PDF optional). |
+| **How you know** | PDF §1.2 + §F-08; `apps/web/src/components/bi/bi-workspace.tsx`, `apps/api/src/bi/`. |
 
 ### 3.2 Finance Teams
 
 | PDF quote | **"GL management, AP/AR automation, multi-currency reconciliation"** |
 |-----------|-----------------------------------------------------------------------|
-| **Status** | **Partial** (backend strong, frontend mixed) |
-| **What exists** | GL (`gl.service.ts`, journal entries, chart of accounts API), AP (OCR simulation, **"3-way matching"**, payment runs), AR (aging report API), FX rates (`fx-rate.service.ts`). Pages: accounts, journal entries, invoices, aging report. |
-| **What is missing** | Frontend **accounts**, **journal-entries**, and **aging-report** pages still use **MOCK data**; multi-currency reconciliation UI not verified. |
-| **How you know** | PDF §1.2, F-02, F-03; mock usage in `finance/accounts/page.tsx`, `journal-entries/page.tsx`, `aging-report/page.tsx`. |
+| **Status** | **Partial** (backend strong; most finance UI wired) |
+| **What exists** | GL (`gl.service.ts`, journal entries, fiscal periods, intercompany transfers), AP (OCR simulation, **"3-way matching"**, payment runs), AR (aging report, invoice + payment UI, sales orders), FX rates (`fx-rate.service.ts`). Pages: accounts, journal entries, fiscal periods, AR invoices, aging report — all via `financeApi`. |
+| **What is missing** | GL **"New Account"** button inert (FE-06); AP OCR **upload UI** missing (FE-08); account list shows `balance: 0` (API gap); multi-currency reconciliation UI not verified. |
+| **How you know** | PDF §1.2, F-02, F-03; `finance/journal-entries/page.tsx`, `finance/ar-invoices/page.tsx`, `finance/fiscal-periods/page.tsx`. |
 
 ### 3.3 HR & Payroll Teams
 
 | PDF quote | **"Employee lifecycle, attendance, payroll processing, compliance"** |
 |-----------|------------------------------------------------------------------------|
-| **Status** | **Partial** |
-| **What exists** | Employee CRUD, departments, leave state machine, attendance APIs, payroll via **BullMQ** saga, tax slabs, payslip PDF (`payslip-generator.ts`). `/home` calls real attendance/leave APIs for logged-in employee. |
-| **What is missing** | Leave, attendance, payroll admin pages use **mock data**; statutory compliance beyond tax slabs not demonstrated; org chart UI not found. |
-| **How you know** | PDF §1.2, F-04; `leave-requests/page.tsx`, `attendance/page.tsx` import from `@/lib/mock/hr`. |
+| **Status** | **Partial** (admin UI largely wired) |
+| **What exists** | Employee CRUD, departments admin, leave state machine, attendance APIs, payroll via **BullMQ** saga, tax slabs, payslip PDF (`payslip-generator.ts`). Admin pages: employees, departments, leave-requests, attendance, payroll — all via `hrApi` / `apiClient`. `/home` calls real attendance/leave APIs. |
+| **What is missing** | Leave approve/reject uses hardcoded manager ID in `current-user.ts`; attendance page is read-only (no clock-in/out); statutory compliance beyond tax slabs not demonstrated; org chart component exists but not primary nav. |
+| **How you know** | PDF §1.2, F-04; `hr/leave-requests/page.tsx`, `hr/payroll/page.tsx`, `hr/employees/page.tsx`. |
 
 ### 3.4 Supply Chain Managers
 
@@ -104,7 +104,7 @@ Section **1.2 Target Users** in the PDF defines six personas. Below, each person
 |-----------|-------------------------------------------------------------------|
 | **Status** | **Partial** |
 | **What exists** | Backend: projects, tasks (DAG), milestones CRUD, budgets, resources, material requests, SCM/Finance cost bridges. Frontend: overview, detail page, milestones tab, tasks/Gantt, resources, budget, new-project wizard — all via **`pm-api.ts`**. |
-| **What is missing** | Full D3 Gantt; project edit/status API; task reschedule; RBAC on PM routes; proactive overdue scan is daily cron only. |
+| **What is missing** | Full D3 Gantt; task reschedule UI; RBAC on PM routes; proactive overdue scan is daily cron only. Project edit/status API ✅ (`PATCH /pm/projects/:id`). |
 | **How you know** | `apps/api/src/pm/`, `apps/web/src/app/(dashboard)/projects/` |
 
 ### 3.6 IT Administrators
@@ -112,9 +112,9 @@ Section **1.2 Target Users** in the PDF defines six personas. Below, each person
 | PDF quote | **"Tenant configuration, SSO, audit logs, security policies"** |
 |-----------|-------------------------------------------------------------------|
 | **Status** | **Partial** |
-| **What exists** | Tenant create/config API (`tenant.controller.ts`), Keycloak integration, Settings UI (SSO toggle, audit/GDPR tabs), token blacklist on logout. |
-| **What is missing** | Settings page uses **mock audit/GDPR data**; real audit API returns **`getDummyAuditLogs`** only; GDPR service is empty stub; no rate limiting, Helmet, or secrets vault; **NotificationModule not registered** in `app.module.ts`. |
-| **How you know** | PDF §1.2, F-09, §6; `audit.service.ts` returns hardcoded logs. |
+| **What exists** | Tenant create/config API (`tenant.controller.ts`), Keycloak integration, Settings UI (SSO toggle, Keycloak admin, audit/GDPR tabs), token blacklist on logout. Audit logs from DB with hash chain; GDPR DSR create/list/consent via `auditApi`. |
+| **What is missing** | GDPR fulfill = status flip only (no export/erase); audit events often omit `userId`; no rate limiting, Helmet, or secrets vault; email/webhook channels are log-only stubs. |
+| **How you know** | PDF §1.2, F-09, §6; `audit.service.ts`, `audit-event.listener.ts`, `settings/page.tsx`. |
 
 ### 3.7 Vendors (concept in PDF — not a target user row)
 
@@ -145,8 +145,8 @@ Direct from PDF **Section 2 — Detailed Functional Requirements**.
 
 | PDF phrase | Status | Evidence |
 |------------|--------|----------|
-| **"Double-entry accounting, multi-currency, period close, intercompany transfers"** | Done (API) | `JournalEntry`, `FiscalPeriod`, `ExchangeRate`, `IntercompanyTransfer` models; `gl.service.ts`. |
-| **"Zero unbalanced entries; FX rates auto-fetched; period lock enforced"** | Partial | Logic in services; auto FX fetch in `fx-rate.service.ts`; frontend not fully wired. |
+| **"Double-entry accounting, multi-currency, period close, intercompany transfers"** | Done (API) | `JournalEntry`, `FiscalPeriod`, `ExchangeRate`, `IntercompanyTransfer` models; `gl.service.ts`; intercompany POST verified. |
+| **"Zero unbalanced entries; FX rates auto-fetched; period lock enforced"** | Partial | Logic in services; auto FX fetch in `fx-rate.service.ts`; journal entry + fiscal period UI wired; GL account create UI missing. |
 
 ### F-03 — AP / AR Automation — **Done** (backend); **Partial** (UI/OCR)
 
@@ -154,16 +154,16 @@ Direct from PDF **Section 2 — Detailed Functional Requirements**.
 |------------|--------|----------|
 | **"Invoice OCR"** | Partial | `ocr.service.ts` **simulates** extraction (mock 96% confidence), not real Textract/Tesseract. |
 | **"3-way matching"** | Done | `invoice-matching.service.ts` — PO / GR / Invoice with tolerance. |
-| **"Payment runs, aging reports"** | Done (API) | `PaymentRun`, `ar.service.ts` aging; aging UI uses mock rows. |
+| **"Payment runs, aging reports"** | Done (API + UI) | `PaymentRun`, `ar.service.ts` aging; aging report page via `financeApi.getAgingReport()`. |
 | **"OCR accuracy >= 95%"** | Not met (real OCR) | Simulated only. |
 
 ### F-04 — HR & Payroll Engine — **Done** (backend); **Partial** (UI)
 
 | PDF phrase | Status | Evidence |
 |------------|--------|----------|
-| **"Employee onboarding, leave management, payroll calculation, statutory compliance"** | Partial | Full backend modules; admin UI partly mock; compliance = tax slabs only. |
+| **"Employee onboarding, leave management, payroll calculation, statutory compliance"** | Partial | Full backend modules; admin UI on live APIs; compliance = tax slabs only. |
 | **"Payroll processed in < 5 min for 10k employees"** | Not verified | BullMQ async payroll exists; no load test. |
-| **"audit trail complete"** | Partial | Payroll mutations tracked in DB; global audit log is dummy data. |
+| **"audit trail complete"** | Partial | Payroll mutations tracked in DB; global audit log via event listener + hash chain (actor ID often missing). |
 
 ### F-05 — Supply Chain & Inventory — **Partial**
 
@@ -175,13 +175,13 @@ Direct from PDF **Section 2 — Detailed Functional Requirements**.
 | **"reorder automation"** | Done | `reorder.service.ts` — threshold → draft PO. |
 | **"vendor notified via email/webhook"** | Not started | Notification stubs; no SES/webhook delivery. |
 
-### F-06 — AI Demand Forecasting — **Not started**
+### F-06 — AI Demand Forecasting — **Partial**
 
 | PDF phrase | Status | Evidence |
 |------------|--------|----------|
-| **"ML model for SKU-level demand prediction (LSTM / Prophet)"** | Not started | No `apps/ml-service` source; `ForecastModel` schema only. |
-| **"MAPE < 12% on 90-day horizon; model retrain weekly"** | Not started | No ML pipeline. |
-| **"Python 3.13 + FastAPI + scikit-learn + Prophet"** | Not started | `Dockerfile.ml` exists; no Python service code. |
+| **"ML model for SKU-level demand prediction (LSTM / Prophet)"** | Partial | `apps/ml-service/main.py` — FastAPI + Prophet with statistical fallback; `ForecastService` persists models/predictions. |
+| **"MAPE < 12% on 90-day horizon; model retrain weekly"** | Partial | MAPE returned by ML service; no scheduled retrain cron; one model row per tenant (not per SKU). |
+| **"Python 3.13 + FastAPI + scikit-learn + Prophet"** | Partial | FastAPI + Prophet in `ml-service`; Python 3.11 in Dockerfile; no LSTM. |
 
 ### F-07 — Project Management — **Partial**
 
@@ -191,31 +191,33 @@ Direct from PDF **Section 2 — Detailed Functional Requirements**.
 | **"Overrun alert when actual > budget by 10%"** | Done | `BudgetService` + `budget.overrun` → `NotificationEventListener`. |
 | **"Gantt renders < 1s"** | Partial | Basic timeline renders quickly; not benchmarked. |
 
-### F-08 — Business Intelligence — **Not started**
+### F-08 — Business Intelligence — **Done** (core F-08)
 
 | PDF phrase | Status | Evidence |
 |------------|--------|----------|
-| **"Drag-and-drop dashboard builder, scheduled reports, drill-down analytics"** | Not started | `Dashboard`, `Widget`, `ScheduledReport` models only. |
-| **"Dashboard saved in < 500ms; exports to PDF/Excel"** | Not started | No BI UI or export jobs. |
-| **"Recharts + ECharts + D3.js"** | Partial (deps only) | Recharts in `apps/web/package.json` but **zero imports** in TSX files. |
+| **"Drag-and-drop dashboard builder, scheduled reports, drill-down analytics"** | Done | `/bi` workspace (`bi-workspace.tsx`); `BiController`, `BiDataService`, `BiReportService`; widget CRUD + layout JSON. |
+| **"Dashboard saved in < 500ms; exports to PDF/Excel"** | Partial | Debounced layout PATCH (~400ms); report run generates PDF/CSV via `BiReportService` (Excel = CSV). |
+| **"Recharts + ECharts + D3.js"** | Partial | Recharts + ECharts in `widget-chart.tsx` / `advanced-charts.tsx`; D3 not used. |
+| **"Real-time metric refresh via SSE"** | Done | `/bi/metrics/stream` + client reconnect with backoff. |
 
 ### F-09 — Audit & Compliance Log — **Partial**
 
 | PDF phrase | Status | Evidence |
 |------------|--------|----------|
-| **"Immutable audit trail for all mutations"** | Partial | `AuditLog` model; service returns **dummy** logs, no mutation hook pipeline. |
-| **"Tamper-evident logs"** | Not started | `HashChainService` is empty class. |
-| **"GDPR data subject requests"** | Not started | `GdprService` empty; `DataSubjectRequest` model only. |
-| **"DSR fulfilled in < 72h"** | Not started | No DSR workflow. |
+| **"Immutable audit trail for all mutations"** | Partial | `AuditLog` model; `AuditEventListener` records 25+ domain events; `GET /audit/logs` from DB. |
+| **"Tamper-evident logs"** | Partial | `HashChainService` links SHA-256 hashes; verify checks chain links, not payload field tampering. |
+| **"GDPR data subject requests"** | Partial | `GdprService` create/list/consent; fulfill flips status only — no export/erase workflow. |
+| **"DSR fulfilled in < 72h"** | Not started | No automated fulfillment SLA. |
 
 ### F-10 — Notification Engine — **Partial**
 
 | PDF phrase | Status | Evidence |
 |------------|--------|----------|
-| **"In-app, email, SMS, webhook for configurable business events"** | Not started | Channel classes are empty; `NotificationModule` **not imported** in `AppModule`. |
-| **"retry up to 3x on failure; channel preference per user"** | Not started | Models exist; no preference API. |
+| **"In-app, email, SMS, webhook for configurable business events"** | Partial | In-app notifications persisted; `NotificationEventListener` handles 9 events; email/webhook channels log-only stubs. |
+| **"retry up to 3x on failure; channel preference per user"** | Not started | Models exist; no preference API; `notification.processor.ts` empty. |
 | Event bus | Done | `@nestjs/event-emitter` used in finance/SCM services. |
 | Outbox pattern | Done | `outbox.processor.ts`, `OutboxEvent` model. |
+| Module registration | Done | `NotificationModule` imported in `app.module.ts`. |
 
 ### F-11 — API Gateway & Webhooks — **Partial**
 
@@ -251,17 +253,17 @@ The company PDF uses many single-word or short labels without full definitions. 
 | **Vendor** | Supplier master record for procurement. | **Done** — `vendor.service.ts` + vendors page. |
 | **Vendor portal** | External API/UI for suppliers (not the same as vendor master). | **Not started** — PDF Day 12; only mentioned in UI comment. |
 | **Reorder automation** | Auto-create PO when stock falls below threshold. | **Done** — `reorder.service.ts`. |
-| **FIFO** | Inventory costing method (PDF says "FIFO/FIFO" — likely FIFO/LIFO). | **Partial** — stock movements exist; costing method not clearly implemented. |
-| **Prophet / LSTM** | Time-series ML models for demand forecasting. | **Not started** — schema enum only. |
-| **MAPE** | Mean Absolute Percentage Error — forecast accuracy metric (< 12% target). | **Not started** |
-| **Gantt** | Timeline chart for project tasks and dependencies. | **Not started** |
-| **BI** | Business Intelligence — dashboards and self-serve reporting. | **Not started** |
-| **SSE** | Server-Sent Events for real-time metric refresh. | **Not started** |
+| **FIFO** | Inventory costing method (PDF says "FIFO/FIFO" — likely FIFO/LIFO). | **Partial** — cost layers created on goods receipt; outbound FIFO consumption not implemented. |
+| **Prophet / LSTM** | Time-series ML models for demand forecasting. | **Partial** — Prophet in `ml-service`; LSTM not implemented. |
+| **MAPE** | Mean Absolute Percentage Error — forecast accuracy metric (< 12% target). | **Partial** — returned by ML service; not validated in production data. |
+| **Gantt** | Timeline chart for project tasks and dependencies. | **Partial** — timeline Gantt in PM UI; not full D3 Gantt. |
+| **BI** | Business Intelligence — dashboards and self-serve reporting. | **Done** (core) — full builder workspace + API |
+| **SSE** | Server-Sent Events for real-time metric refresh. | **Done** — `/bi/metrics/stream` |
 | **PWA** | Progressive Web App — offline-capable web app. | **Not started** |
 | **DSR** | Data Subject Request — GDPR export/delete requests. | **Not started** — stub controller/service. |
 | **GDPR** | EU data protection — consent, erasure, portability. | **Partial** — models + empty services. |
-| **Audit trail** | Immutable log of who changed what. | **Partial** — dummy API; no write pipeline on mutations. |
-| **Hash chain** | Linked hashes to detect tampering with audit logs. | **Not started** — empty `HashChainService`. |
+| **Audit trail** | Immutable log of who changed what. | **Partial** — event listener + DB persistence; actor ID often missing. |
+| **Hash chain** | Linked hashes to detect tampering with audit logs. | **Partial** — SHA-256 chain links; payload field tampering not fully verified. |
 | **Outbox** | DB table + worker for reliable event delivery after commit. | **Done** — `OutboxEvent`, `outbox.processor.ts`. |
 | **Saga** | Multi-step workflow with compensating transactions (payroll). | **Done** — payroll BullMQ + `SagaState`. |
 | **DDD** | Domain-Driven Design — bounded contexts per module. | **Partial** — module folders match Finance/HR/SCM/PM. |
@@ -292,9 +294,9 @@ The company PDF uses many single-word or short labels without full definitions. 
 | **HPA** | Kubernetes Horizontal Pod Autoscaler. | **Not started** |
 | **MLflow** | ML model versioning and registry. | **Not started** |
 | **Distroless** | Minimal container base image (PDF Day 22). | **Not verified** — Dockerfiles exist. |
-| **Self-serve BI** | Users build their own reports without IT tickets. | **Not started** |
-| **Period close** | Lock fiscal period to prevent posting. | **Done** (model + GL service checks). |
-| **Intercompany** | Transfers between legal entities within a group. | **Partial** — model exists; end-to-end flow not verified. |
+| **Self-serve BI** | Users build their own reports without IT tickets. | **Done** — `/bi` workspace with drag-drop builder |
+| **Period close** | Lock fiscal period to prevent posting. | **Done** (model + GL service checks + admin UI). |
+| **Intercompany** | Transfers between legal entities within a group. | **Done** — POST flow + GL journal pairing verified. |
 | **Payment run** | Batch outbound supplier payments. | **Partial** — `PaymentRun` model; UI flow not verified. |
 | **Statutory compliance** | Legal payroll/tax rules by jurisdiction. | **Partial** — configurable tax slabs only. |
 | **Organisational chart** | Visual reporting hierarchy (PDF Day 10). | **Not started** — department hierarchy in DB only. |
@@ -308,16 +310,16 @@ The company PDF uses many single-word or short labels without full definitions. 
 | Frontend | **Next.js 15 + React 19 + TypeScript 5.5** | Next.js 15.5.19, React 19.1 | ✅ |
 | UI library | **shadcn/ui + Radix + Tailwind CSS 4** | Custom UI + Tailwind 4 | ❌ |
 | State | **Zustand + React Query (TanStack v5)** | React Query installed, unused in layout; no Zustand | ⚠️ |
-| Charts | **Recharts + ECharts + D3.js** | Recharts in package.json only; no ECharts/D3 | ⚠️ |
+| Charts | **Recharts + ECharts + D3.js** | Recharts + ECharts in BI components; no D3 | ⚠️ |
 | Backend | **Node.js 22 + NestJS 11** | NestJS 11, TypeScript | ✅ |
 | API | **REST + GraphQL (Apollo v4)** | REST + Swagger only | ❌ |
 | Database | **PostgreSQL 17 + Prisma** | PostgreSQL 17 in Docker + Prisma (62 models) | ✅ |
 | Time-series | **TimescaleDB** | Not used | ❌ |
 | Cache/queue | **Redis 8 + BullMQ** | Redis 8 + BullMQ (payroll, outbox) | ✅ |
-| ML | **Python FastAPI + Prophet + LSTM** | No source code | ❌ |
+| ML | **Python FastAPI + Prophet + LSTM** | `apps/ml-service/main.py` + forecast API | ⚠️ |
 | Search | **Elasticsearch 8.15** | Container only; no app integration | ⚠️ |
 | Auth | **Keycloak 25 + JWT RS256** | Keycloak 25 + passport-jwt | ✅ |
-| Email | **AWS SES + Resend** | Empty `EmailChannel` | ❌ |
+| Email | **AWS SES + Resend** | `EmailChannel` log-only stub (BI reports + notifications) | ⚠️ |
 | Monorepo | **Turborepo + pnpm** | turbo.json + pnpm-workspace | ✅ |
 | Docker | **Docker 27 multi-stage** | Dockerfiles + docker-compose | ⚠️ |
 | Orchestration | **Kubernetes 1.31 + Helm 3** | Missing | ❌ |
@@ -328,7 +330,7 @@ The company PDF uses many single-word or short labels without full definitions. 
 | Testing | **Vitest + Playwright + k6 + Jest** | `@nestjs/testing` only; **0 test files** | ❌ |
 | IaC | **Terraform 1.9 + Terragrunt** | Missing | ❌ |
 
-**Stack mismatch summary:** The repo follows the **monolith + Postgres + Redis + Keycloak + NestJS + Next.js** spine from the PDF, but diverges on **UI kit**, **GraphQL**, **ML service**, **BI charts**, **notifications/email**, **search wiring**, and **all production ops** (K8s, CI/CD, observability, IaC).
+**Stack mismatch summary:** The repo follows the **monolith + Postgres + Redis + Keycloak + NestJS + Next.js** spine from the PDF. Recent additions: **ECharts**, **BI builder**, **ML forecast service**, **audit event pipeline**. Still diverges on **UI kit**, **GraphQL**, **real email delivery**, **search wiring**, and **production ops** (K8s, CI/CD, observability, IaC).
 
 ---
 
@@ -336,22 +338,28 @@ The company PDF uses many single-word or short labels without full definitions. 
 
 | Page | PDF module | Data source | Status |
 |------|------------|-------------|--------|
-| `/scm/vendors` | F-05 vendor management | `scmApi.getVendors()` | ✅ Live API |
+| `/scm/vendors` | F-05 vendor management | `scmApi.getVendors()` | ⚠️ Live API; Add Vendor = console stub |
 | `/scm/purchase-orders` | F-05 PO lifecycle | SCM API | ✅ Live API |
-| `/scm/inventory` | F-05 stock levels | SCM API | ✅ Live API |
+| `/scm/inventory` | F-05 stock levels | `scmApi.getProducts()` | ⚠️ Live API; reorder/PR client-only |
 | `/scm/invoices`, `/finance/invoices` | F-03 AP/AR | Finance API | ✅ Live API |
 | `/scm/goods-receipt` | F-05 GR | SCM API | ✅ Live API |
-| `/hr/employees` | F-04 employees | Direct fetch | ✅ Live API |
+| `/hr/employees` | F-04 employees | `hrApi` | ✅ Live API |
+| `/hr/departments` | F-04 org structure | `hrApi` | ✅ Live API |
+| `/hr/leave-requests` | F-04 leave | `apiClient` | ✅ Live API |
+| `/hr/attendance` | F-04 attendance | `hrApi.getAllAttendance()` | ⚠️ Read-only list |
+| `/hr/payroll` | F-04 payroll | `hrApi` | ✅ Live API |
 | `/home` | F-04 self-service HR | Attendance/leave APIs | ✅ Live API |
-| `/finance/accounts` | F-02 GL | Mock | ⚠️ API ready |
-| `/finance/journal-entries` | F-02 GL | `MOCK_ENTRIES` | ⚠️ API ready |
-| `/finance/aging-report` | F-03 AR | `MOCK_ROWS` | ⚠️ API ready |
-| `/hr/leave-requests` | F-04 leave | `@/lib/mock/hr` | ⚠️ API ready |
-| `/hr/attendance` | F-04 attendance | `@/lib/mock/hr` | ⚠️ API ready |
-| `/hr/payroll` | F-04 payroll | Mock/partial | ⚠️ API ready |
+| `/finance/accounts` | F-02 GL | `financeApi.getAccounts()` | ⚠️ Live API; balances hardcoded 0 |
+| `/finance/journal-entries` | F-02 GL | `financeApi` | ✅ Live API |
+| `/finance/fiscal-periods` | F-02 GL | `financeApi` | ✅ Live API |
+| `/finance/ar-invoices` | F-03 AR | `financeApi` | ✅ Live API |
+| `/finance/aging-report` | F-03 AR | `financeApi.getAgingReport()` | ✅ Live API |
 | `/projects/*` | F-07 PM | `pm-api.ts` (live) | ✅ Live API |
-| `/settings` | F-09 / IT admin | `@/lib/mock/it` | ⚠️ Partial real tenant API |
-| `/notifications` | F-10 | Nav link exists | ❌ **Page missing** |
+| `/bi` | F-08 BI | `biApi` + SSE | ✅ Live API |
+| `/settings` | F-09 / IT admin | `tenantApi` + `auditApi` | ✅ Live API |
+| `/notifications` | F-10 | `notificationApi` | ✅ Live API |
+
+**Note:** `@/lib/mock/*` files exist but are **orphaned** — no dashboard page imports them.
 
 ---
 
@@ -366,15 +374,15 @@ The company PDF uses many single-word or short labels without full definitions. 
 | Day 5 | Domain models & migrations | ✅ 62 Prisma models, seed script |
 | Day 6 | API gateway & health checks | ✅ Swagger, `/health` |
 | Day 7 | Week 1 review & ADRs | ⚠️ Only 1 ADR (`003-realm-per-tenant-isolation.md`) |
-| Day 8–9 | GL & AP/AR | ✅ Backend complete; UI partly mock |
-| Day 10 | HR core | ✅ Backend; UI partly mock |
-| Day 11 | Payroll engine | ✅ BullMQ + payslip PDF |
-| Day 12–13 | SCM & inventory | ✅ Except vendor portal & notifications |
+| Day 8–9 | GL & AP/AR | ✅ Backend complete; most finance UI wired (FE-06, FE-08 remain) |
+| Day 10 | HR core | ✅ Backend + admin UI on live APIs |
+| Day 11 | Payroll engine | ✅ BullMQ + payslip PDF + month picker |
+| Day 12–13 | SCM & inventory | ⚠️ Backend ✅; vendor/product/inventory admin UI open |
 | Day 14 | Integration tests | ❌ No tests |
-| Day 15–16 | AI forecasting | ❌ |
-| Day 17 | BI dashboard | ❌ |
-| Day 18 | Project management | ⚠️ No Gantt |
-| Day 19 | Notification engine | ⚠️ Stubs only |
+| Day 15–16 | AI forecasting | ⚠️ ML service + forecast API; no train UI (FE-14) |
+| Day 17 | BI dashboard | ✅ Full workspace — builder, drill-down, SSE, scheduled reports |
+| Day 18 | Project management | ⚠️ Timeline Gantt; project edit ✅ |
+| Day 19 | Notification engine | ⚠️ In-app + events ✅; email/webhook stubs |
 | Day 20 | Security hardening | ❌ No Helmet/throttler/CSRF |
 | Day 21 | Load testing | ❌ |
 | Day 22 | Containerisation | ⚠️ Dockerfiles exist |
@@ -393,7 +401,7 @@ The company PDF uses many single-word or short labels without full definitions. 
 |---|-----------------|--------|
 | 1 | **Project Report (PDF)** | ✅ `Amdox Web.pdf` present |
 | 2 | **Live Public Demo URL** | ❌ Not deployed |
-| 3 | **GitHub Repository** | ✅ Repo exists; needs mock→API wiring & cleanup |
+| 3 | **GitHub Repository** | ✅ Repo exists; SCM admin forms + deploy/CI still open |
 | 4 | **README.md** | ⚠️ Exists; missing screenshots & video link |
 | 5 | **Demo Video (5–7 min)** | ❌ Not recorded |
 
@@ -403,14 +411,15 @@ PDF evaluation weights: Innovation 15, Technical depth 25, Functionality 20, Doc
 
 ## 10. Highest-Priority Gaps (Recommended Order)
 
-1. **Deploy a live demo URL** — PDF weights this at **30%** of submission.
-2. **Wire mock frontend pages to existing APIs** — fastest way to improve Functionality score.
-3. **Record demo video** — 10% of submission; walk through Finance → SCM → HR flows.
-4. **Minimal BI dashboard with Recharts** — satisfies F-08 surface area; library already installed.
-5. **Helmet + rate limiting + GitHub Actions CI** — Security & Deployment sections.
-6. **Implement notification email/webhook** — unlocks F-05 “vendor notified via email/webhook”.
-7. **ML service skeleton (Prophet `/predict`)** — Innovation score; even a simple baseline helps.
-8. **Replace dummy audit/GDPR with real services** — F-09 and IT admin persona.
+1. **Deploy a live demo URL** — PDF weights this at **30%** of submission (PLAT-01).
+2. **Record demo video** — 10% of submission; walk Finance → SCM → HR → PM → **BI** (PLAT-02).
+3. **SCM admin UI** — vendor CRUD (FE-01), product page (FE-03), inventory forms + Raise PR (FE-04, FE-05) — P0/P1 blockers.
+4. **Finance form gaps** — GL account create (FE-06), AP OCR upload (FE-08).
+5. **Procure-to-Pay E2E verification** — INT-01; backend paths exist but UI flow not proven.
+6. **Helmet + rate limiting + GitHub Actions CI** — PLAT-03, PLAT-04.
+7. **Real notification email/webhook** — BE-07; unlocks F-05 “vendor notified via email/webhook”.
+8. **Forecast train UI** — FE-14 on inventory page; backend + ML service ready.
+9. **GDPR export/erase on fulfill** — F-09; audit trail largely done (BE-06).
 
 ---
 
@@ -425,10 +434,12 @@ PDF evaluation weights: Innovation 15, Technical depth 25, Functionality 20, Doc
 | HR | `apps/api/src/hr/` |
 | SCM | `apps/api/src/scm/` |
 | PM | `apps/api/src/pm/` |
-| Audit/GDPR (stubs) | `apps/api/src/audit/` |
-| Notifications (stubs, not in AppModule) | `apps/api/src/notification/` |
+| Audit/GDPR | `apps/api/src/audit/` — event listener, hash chain, GDPR API shell |
+| Notifications (in-app ✅; email stub) | `apps/api/src/notification/` |
+| BI workspace | `apps/web/src/components/bi/bi-workspace.tsx`, `apps/api/src/bi/` |
+| ML forecast service | `apps/ml-service/main.py`, `apps/api/src/forecast/` |
 | Frontend dashboard | `apps/web/src/components/layout/dashboardLayout.tsx` |
-| Mock data | `apps/web/src/lib/mock/` |
+| Orphaned mock data | `apps/web/src/lib/mock/` (unused by pages) |
 | Docker dev stack | `infra/docker/docker-compose.yml` |
 | Architecture docs | `docs/c4/`, `docs/api/openapi.yaml` |
 

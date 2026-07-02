@@ -10,11 +10,13 @@ export interface Employee {
   email: string;
   phone: string;
   department: string;
+  departmentId?: string;
   designation: string;
   contractType: "Full-time" | "Part-time" | "Contract" | "Intern";
   startDate: string; // ISO date
   reportsToId: string | null; // Employee.id of manager, null for top of org
   status: EmployeeStatus;
+  dateOfBirth?: string;
 }
 
 /** Payload from the add-employee wizard (extends API-bound fields with form-only data). */

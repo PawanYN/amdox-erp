@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaClient } from '@amdox/db';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CreateDepartmentDto } from '../dto/create-department.dto';
 import { UpdateDepartmentDto } from '../dto/update-department.dto';
 
@@ -7,13 +8,17 @@ import { UpdateDepartmentDto } from '../dto/update-department.dto';
 export class DepartmentService {
   private prisma = new PrismaClient();
 
+  constructor(private readonly eventEmitter: EventEmitter2) {}
+
   async create(tenantId: string, createDepartmentDto: CreateDepartmentDto) {
-    return this.prisma.department.create({
+    const department = await this.prisma.department.create({
       data: {
         ...createDepartmentDto,
         tenantId,
       },
     });
+    this.eventEmitter.emit('department.created', { tenantId, departmentId: department.id });
+    return department;
   }
 
   async findAll(tenantId: string) {
@@ -40,16 +45,20 @@ export class DepartmentService {
 
   async update(tenantId: string, id: string, updateDepartmentDto: UpdateDepartmentDto) {
     await this.findOne(tenantId, id); // Ensure it exists in this tenant
-    return this.prisma.department.update({
+    const department = await this.prisma.department.update({
       where: { id },
       data: updateDepartmentDto,
     });
+    this.eventEmitter.emit('department.updated', { tenantId, departmentId: id });
+    return department;
   }
 
   async remove(tenantId: string, id: string) {
     await this.findOne(tenantId, id); // Ensure it exists
-    return this.prisma.department.delete({
+    const department = await this.prisma.department.delete({
       where: { id },
     });
+    this.eventEmitter.emit('department.deleted', { tenantId, departmentId: id });
+    return department;
   }
 }

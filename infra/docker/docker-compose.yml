@@ -114,6 +114,26 @@ services:
       - amdox-network
 
   # ─────────────────────────────────────
+  # ML Service — Demand Forecasting (F-06)
+  # ─────────────────────────────────────
+  ml-service:
+    build:
+      context: ../../apps/ml-service
+      dockerfile: Dockerfile
+    container_name: amdox-ml-service
+    restart: unless-stopped
+    ports:
+      - "8091:8091"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8091/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - amdox-network
+
+  # ─────────────────────────────────────
   # Redis Commander — Redis GUI (optional)
   # ─────────────────────────────────────
   redis-commander:

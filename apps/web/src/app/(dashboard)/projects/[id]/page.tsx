@@ -3,10 +3,13 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, Flag, Users, Wallet } from "lucide-react";
+import { ChevronLeft, Flag, Users, Wallet, Pencil } from "lucide-react";
 import { pmApi } from "@/lib/api/pm-api";
+import { Button } from "@/components/ui/button";
+import { Modal, inputClasses } from "@/components/ui/modal";
 
 const TASK_STATUSES = ["TODO", "IN_PROGRESS", "BLOCKED", "DONE"] as const;
+const PROJECT_STATUSES = ["PLANNING", "ACTIVE", "ON_HOLD", "COMPLETED", "CANCELLED"] as const;
 
 const statusColor: Record<string, string> = {
   TODO: "bg-[#F0EEE7] text-[#8A8678]",
@@ -21,6 +24,13 @@ export default function ProjectDetailPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editStatus, setEditStatus] = useState("");
+  const [editStart, setEditStart] = useState("");
+  const [editEnd, setEditEnd] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const load = useCallback(() => {
     pmApi
@@ -43,6 +53,35 @@ export default function ProjectDetailPage() {
     await pmApi.achieveMilestone(projectId, milestoneId);
     load();
   };
+
+  function openEdit() {
+    if (!data) return;
+    setEditName(data.name);
+    setEditDescription(data.description || "");
+    setEditStatus(data.status);
+    setEditStart(data.startDate ? data.startDate.slice(0, 10) : "");
+    setEditEnd(data.endDate ? data.endDate.slice(0, 10) : "");
+    setEditOpen(true);
+  }
+
+  async function handleSaveProject() {
+    setSaving(true);
+    try {
+      await pmApi.updateProject(projectId, {
+        name: editName.trim(),
+        description: editDescription.trim() || undefined,
+        status: editStatus,
+        startDate: editStart || undefined,
+        endDate: editEnd || undefined,
+      });
+      setEditOpen(false);
+      load();
+    } catch (err: any) {
+      alert(err.message || "Failed to update project.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   if (loading) return <p className="text-sm text-muted">Loading project…</p>;
   if (error) return <p className="text-sm text-red-600">{error}</p>;
@@ -71,6 +110,9 @@ export default function ProjectDetailPage() {
               Budget overrun
             </span>
           )}
+          <Button variant="outline" icon={<Pencil size={14} />} onClick={openEdit}>
+            Edit
+          </Button>
         </div>
         {data.budget && (
           <div className="mt-3 flex items-center gap-2 text-[12px] text-[#8A8678]">
@@ -170,6 +212,52 @@ export default function ProjectDetailPage() {
           </div>
         )}
       </section>
+
+      <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Edit Project">
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs text-muted block mb-1">Name *</label>
+            <input className={inputClasses} value={editName} onChange={(e) => setEditName(e.target.value)} />
+          </div>
+          <div>
+            <label className="text-xs text-muted block mb-1">Description</label>
+            <textarea
+              className={inputClasses}
+              rows={3}
+              value={editDescription}
+              onChange={(e) => setEditDescription(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="text-xs text-muted block mb-1">Status</label>
+            <select
+              className={inputClasses}
+              value={editStatus}
+              onChange={(e) => setEditStatus(e.target.value)}
+            >
+              {PROJECT_STATUSES.map((s) => (
+                <option key={s} value={s}>{s.replace("_", " ")}</option>
+              ))}
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-muted block mb-1">Start date</label>
+              <input type="date" className={inputClasses} value={editStart} onChange={(e) => setEditStart(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs text-muted block mb-1">End date</label>
+              <input type="date" className={inputClasses} value={editEnd} onChange={(e) => setEditEnd(e.target.value)} />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveProject} disabled={saving}>
+              {saving ? "Saving…" : "Save Changes"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

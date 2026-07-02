@@ -5,10 +5,8 @@ import { Clock as ClockIcon, LogOut, Timer, TrendingUp, Calendar, Zap } from "lu
 import { Button } from "@/components/ui/button";
 import { Card, Table, THead, TH, TBody, TR, TD, EmptyState } from "@/components/ui/table";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
-import { mockAttendance, STANDARD_SHIFT_HOURS } from "@/lib/mock/hr";
-import { currentUser } from "@/lib/current-user";
 import { useKeycloak } from "@/components/KeycloakProvider";
-import { getAuthHeaders } from "@/lib/auth";
+import { hrApi } from "@/lib/api/hr-api";
 
 function formatTime(date: Date): string {
   return date.toLocaleTimeString("en-IN", {
@@ -26,25 +24,21 @@ export default function AttendancePage() {
     if (!token) return;
     const fetchAttendance = async () => {
       try {
-        const headers = await getAuthHeaders();
-        const res = await fetch("http://localhost:3001/attendance/all", { headers });
-        if (res.ok) {
-          const data = await res.json();
-          const formatted = data.map((rec: any) => {
-             const cIn = new Date(rec.clockIn);
-             const cOut = rec.clockOut ? new Date(rec.clockOut) : null;
-             return {
-                id: rec.id,
-                employeeName: rec.employee?.fullName || "Unknown",
-                date: cIn.toISOString().slice(0, 10),
-                clockIn: formatTime(cIn),
-                clockOut: cOut ? formatTime(cOut) : null,
-                totalHours: cOut ? Math.round((cOut.getTime() - cIn.getTime()) / (1000 * 60 * 60) * 10) / 10 : null,
-                overtimeHours: rec.overtimeMins ? Math.round((rec.overtimeMins / 60) * 10) / 10 : null
-             };
-          });
-          setRecords(formatted);
-        }
+        const data = await hrApi.getAllAttendance();
+        const formatted = data.map((rec: any) => {
+          const cIn = new Date(rec.clockIn);
+          const cOut = rec.clockOut ? new Date(rec.clockOut) : null;
+          return {
+            id: rec.id,
+            employeeName: rec.employee?.fullName || "Unknown",
+            date: cIn.toISOString().slice(0, 10),
+            clockIn: formatTime(cIn),
+            clockOut: cOut ? formatTime(cOut) : null,
+            totalHours: cOut ? Math.round(((cOut.getTime() - cIn.getTime()) / (1000 * 60 * 60)) * 10) / 10 : null,
+            overtimeHours: rec.overtimeMins ? Math.round((rec.overtimeMins / 60) * 10) / 10 : null,
+          };
+        });
+        setRecords(formatted);
       } catch (err) {
         console.error(err);
       }
@@ -55,13 +49,13 @@ export default function AttendancePage() {
   const totalHoursThisWeek = records.slice(0, 5).reduce((sum, r) => sum + (r.totalHours ?? 0), 0);
   const overtimeCount = records.filter((r) => r.overtimeHours != null).length;
 
-  const columns: ColumnDef<typeof mockAttendance[0]>[] = [
+  const columns: ColumnDef<(typeof records)[0]>[] = [
     {
       header: "Employee",
       cell: (rec) => (
         <div className="flex items-center gap-2.5">
           <div className="h-8 w-8 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white text-xs font-bold shadow-sm">
-            {rec.employeeName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+            {rec.employeeName.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
           </div>
           <span className="font-semibold text-ink">{rec.employeeName}</span>
         </div>

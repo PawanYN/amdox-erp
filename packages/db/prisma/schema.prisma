@@ -65,8 +65,17 @@ enum InvoiceStatus {
   PENDING_MATCH
   MATCHED
   APPROVED
+  PARTIALLY_PAID
   PAID
   OVERDUE
+  CANCELLED
+}
+
+enum SalesOrderStatus {
+  DRAFT
+  CONFIRMED
+  INVOICED
+  FULFILLED
   CANCELLED
 }
 
@@ -204,6 +213,9 @@ model Tenant {
   paymentRuns     PaymentRun[]
   customers       Customer[]
   intercompanyTransfers IntercompanyTransfer[]
+  salesOrders     SalesOrder[]
+  salesOrderLines SalesOrderLine[]
+  inventoryCostLayers InventoryCostLayer[]
 
   employees       Employee[]
   departments     Department[]
@@ -453,6 +465,7 @@ model Currency {
   exchangeRatesFrom ExchangeRate[] @relation("FromCurrency")
   exchangeRatesTo   ExchangeRate[] @relation("ToCurrency")
   invoices      Invoice[]
+  salesOrders   SalesOrder[]
 
   @@unique([tenantId, code])
   @@index([tenantId])
@@ -500,9 +513,48 @@ model Customer {
   updatedAt DateTime @updatedAt
   deletedAt DateTime?
 
-  invoices Invoice[]
+  invoices   Invoice[]
+  salesOrders SalesOrder[]
 
   @@index([tenantId])
+}
+
+model SalesOrder {
+  id          String           @id @default(uuid())
+  tenantId    String
+  tenant      Tenant           @relation(fields: [tenantId], references: [id])
+  orderNumber String
+  customerId  String
+  customer    Customer         @relation(fields: [customerId], references: [id])
+  status      SalesOrderStatus @default(CONFIRMED)
+  totalAmount Decimal          @db.Decimal(18, 4)
+  currencyId  String?
+  currency    Currency?        @relation(fields: [currencyId], references: [id])
+  orderDate   DateTime         @default(now())
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  lines    SalesOrderLine[]
+  invoices Invoice[]
+
+  @@unique([tenantId, orderNumber])
+  @@index([tenantId])
+  @@index([customerId])
+}
+
+model SalesOrderLine {
+  id           String     @id @default(uuid())
+  tenantId     String
+  tenant       Tenant     @relation(fields: [tenantId], references: [id])
+  salesOrderId String
+  salesOrder   SalesOrder @relation(fields: [salesOrderId], references: [id])
+  description  String
+  quantity     Decimal    @db.Decimal(18, 4)
+  unitPrice    Decimal    @db.Decimal(18, 4)
+  lineTotal    Decimal    @db.Decimal(18, 4)
+
+  @@index([tenantId])
+  @@index([salesOrderId])
 }
 
 model Invoice {
@@ -517,6 +569,8 @@ model Invoice {
   customer        Customer?     @relation(fields: [customerId], references: [id])
   purchaseOrderId String?
   purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
+  salesOrderId    String?
+  salesOrder      SalesOrder?    @relation(fields: [salesOrderId], references: [id])
   projectId       String?
   project         Project?       @relation(fields: [projectId], references: [id])
   currencyId      String?
@@ -565,6 +619,7 @@ model Payment {
   paymentRunId  String?
   paymentRun    PaymentRun?   @relation(fields: [paymentRunId], references: [id])
   amount        Decimal       @db.Decimal(18, 4)
+  bankReference String?
   status        PaymentStatus @default(PENDING)
   paidAt        DateTime?
   createdAt     DateTime      @default(now())
@@ -804,6 +859,7 @@ model Warehouse {
   stockLevels    StockLevel[]
   stockMovements StockMovement[]
   goodsReceipts  GoodsReceipt[]
+  inventoryCostLayers InventoryCostLayer[]
 
   @@index([tenantId])
 }
@@ -826,6 +882,7 @@ model Product {
   purchaseOrderLines  PurchaseOrderLine[]
   purchaseRequisitionLines PurchaseRequisitionLine[]
   forecastPredictions ForecastPrediction[]
+  inventoryCostLayers InventoryCostLayer[]
 
   defaultVendorId     String?
   defaultVendor       Vendor?  @relation(fields: [defaultVendorId], references: [id])
@@ -921,8 +978,30 @@ model GoodsReceipt {
   receivedAt      DateTime      @default(now())
   notes           String?
 
+  costLayers InventoryCostLayer[]
+
   @@index([tenantId])
   @@index([purchaseOrderId])
+}
+
+model InventoryCostLayer {
+  id             String        @id @default(uuid())
+  tenantId       String
+  tenant         Tenant        @relation(fields: [tenantId], references: [id])
+  productId      String
+  product        Product       @relation(fields: [productId], references: [id])
+  warehouseId    String
+  warehouse      Warehouse     @relation(fields: [warehouseId], references: [id])
+  goodsReceiptId String?
+  goodsReceipt   GoodsReceipt? @relation(fields: [goodsReceiptId], references: [id])
+  quantity       Decimal       @db.Decimal(18, 4)
+  remainingQty   Decimal       @db.Decimal(18, 4)
+  unitCost       Decimal       @db.Decimal(18, 4)
+  receivedAt     DateTime      @default(now())
+
+  @@index([tenantId])
+  @@index([productId])
+  @@index([warehouseId])
 }
 
 model StockLevel {
@@ -1153,6 +1232,7 @@ model Dashboard {
   deletedAt DateTime?
 
   widgets Widget[]
+  scheduledReports ScheduledReport[]
 
   @@index([tenantId])
 }
@@ -1173,15 +1253,19 @@ model Widget {
 }
 
 model ScheduledReport {
-  id           String   @id @default(uuid())
-  tenantId     String
-  tenant       Tenant   @relation(fields: [tenantId], references: [id])
-  name         String
-  cronExpr     String
-  format       String   // "PDF" | "EXCEL"
-  recipients   String[]
-  lastRunAt    DateTime?
-  createdAt    DateTime @default(now())
+  id             String    @id @default(uuid())
+  tenantId       String
+  tenant         Tenant    @relation(fields: [tenantId], references: [id])
+  name           String
+  dashboardId    String?
+  dashboard      Dashboard? @relation(fields: [dashboardId], references: [id])
+  cronExpr       String
+  format         String    // "PDF" | "EXCEL"
+  recipients     String[]
+  lastRunAt      DateTime?
+  lastReportPath String?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
 
   @@index([tenantId])
 }

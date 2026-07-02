@@ -6,6 +6,7 @@ import { Roles } from '../../auth/decorators/roles.decorator';
 import { GlService } from './gl.service';
 import { CreateJournalEntryDto } from '../dto/create-journal-entry.dto';
 import { CreateAccountDto } from '../dto/create-account.dto';
+import { CreateIntercompanyTransferDto } from '../dto/create-intercompany-transfer.dto';
 
 /**
  * Controller for General Ledger (GL) operations.
@@ -69,6 +70,23 @@ export class GlController {
     return this.glService.closeFiscalPeriod(req.user.tenantId, periodId);
   }
 
+  @Roles('Manager', 'TenantAdmin', 'Viewer', 'SuperAdmin')
+  @Get('fiscal-periods')
+  @ApiOperation({ summary: 'List fiscal periods for tenant' })
+  async listFiscalPeriods(@Req() req: any) {
+    return this.glService.listFiscalPeriods(req.user.tenantId);
+  }
+
+  /**
+   * Returns (or creates) the open fiscal period for the current calendar month.
+   */
+  @Roles('Manager', 'TenantAdmin', 'Viewer', 'SuperAdmin')
+  @Get('fiscal-periods/current')
+  @ApiOperation({ summary: 'Get or create the current fiscal period' })
+  async getCurrentFiscalPeriod(@Req() req: any) {
+    return this.glService.getOrCreateCurrentFiscalPeriod(req.user.tenantId);
+  }
+
   /**
    * Posts a manual Journal Entry, strictly validating double-entry accounting rules (Debit = Credit).
    */
@@ -87,5 +105,22 @@ export class GlController {
   @ApiOperation({ summary: 'List journal entries for tenant' })
   async getJournalEntries(@Req() req: any) {
     return this.glService.getJournalEntries(req.user.tenantId);
+  }
+
+  @Roles('Manager', 'TenantAdmin', 'Viewer', 'SuperAdmin')
+  @Get('intercompany-transfers')
+  @ApiOperation({ summary: 'List intercompany transfers' })
+  async listIntercompanyTransfers(@Req() req: any) {
+    return this.glService.listIntercompanyTransfers(req.user.tenantId);
+  }
+
+  @Roles('TenantAdmin')
+  @Post('intercompany-transfers')
+  @ApiOperation({ summary: 'Create intercompany transfer with GL journal entry' })
+  async createIntercompanyTransfer(
+    @Req() req: any,
+    @Body() dto: CreateIntercompanyTransferDto,
+  ) {
+    return this.glService.createIntercompanyTransfer(req.user.tenantId, dto);
   }
 }

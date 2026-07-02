@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Users, UserCheck, UserMinus, TrendingUp } from "lucide-react";
+import { Plus, Users, UserCheck, UserMinus, TrendingUp, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge, statusToTone } from "@/components/ui/badge";
 import { Card } from "@/components/ui/table";
@@ -9,11 +9,30 @@ import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { StatCard } from "@/components/ui/stat-card";
 import { Employee, NewEmployeeInput } from "@/lib/types";
 import { useKeycloak } from "@/components/KeycloakProvider";
-import { getAuthHeaders } from "@/lib/auth";
+import { hrApi } from "@/lib/api/hr-api";
 import { EmployeeForm } from "./employee-form";
 import { OrgChart } from "./org-chart";
 
 type ViewMode = "list" | "org-chart";
+
+function mapEmployee(emp: any): Employee {
+  return {
+    id: emp.id,
+    name: emp.fullName,
+    email: emp.email,
+    phone: emp.phone || "",
+    department: emp.department?.name || "No Department",
+    departmentId: emp.departmentId || emp.department?.id || "",
+    designation: emp.designation || "",
+    contractType: (emp.contractType || "Full-time") as Employee["contractType"],
+    startDate: emp.hireDate ? new Date(emp.hireDate).toISOString().split("T")[0] : "",
+    reportsToId: emp.managerId || null,
+    status: (emp.status || "ACTIVE") === "ACTIVE" ? "Active" : "Inactive",
+    dateOfBirth: emp.dateOfBirth
+      ? new Date(emp.dateOfBirth).toISOString().split("T")[0]
+      : undefined,
+  };
+}
 
 export default function EmployeesPage() {
   const { token, initialized } = useKeycloak();
@@ -21,29 +40,14 @@ export default function EmployeesPage() {
   const [departments, setDepartments] = useState<any[]>([]);
   const [view, setView] = useState<ViewMode>("list");
   const [formOpen, setFormOpen] = useState(false);
+  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [loading, setLoading] = useState(false);
 
   const fetchEmployees = async () => {
     if (!token) return;
     try {
-      const headers = await getAuthHeaders();
-      const res = await fetch("http://localhost:3001/employees", { headers });
-      if (res.ok) {
-        const data = await res.json();
-        const mapped = data.map((emp: any) => ({
-          id: emp.id,
-          name: emp.fullName,
-          email: emp.email,
-          phone: emp.phone || "",
-          department: emp.department?.name || "No Department",
-          designation: emp.designation || "",
-          contractType: (emp.contractType || "Full-time") as any,
-          startDate: emp.hireDate ? new Date(emp.hireDate).toISOString().split('T')[0] : "",
-          reportsToId: emp.managerId || null,
-          status: (emp.status || "ACTIVE") === "ACTIVE" ? "Active" : "Inactive",
-        }));
-        setEmployees(mapped);
-      }
+      const data = await hrApi.getEmployees();
+      setEmployees(data.map(mapEmployee));
     } catch (err) {
       console.error("Failed to fetch employees:", err);
     }
@@ -52,11 +56,7 @@ export default function EmployeesPage() {
   const fetchDepartments = async () => {
     if (!token) return;
     try {
-      const headers = await getAuthHeaders();
-      const res = await fetch("http://localhost:3001/departments", { headers });
-      if (res.ok) {
-        setDepartments(await res.json());
-      }
+      setDepartments(await hrApi.getDepartments());
     } catch (err) {
       console.error("Failed to fetch departments:", err);
     }
@@ -69,12 +69,22 @@ export default function EmployeesPage() {
     }
   }, [initialized, token]);
 
+  async function handleDelete(emp: Employee) {
+    if (!confirm(`Delete employee "${emp.name}"? This cannot be undone.`)) return;
+    try {
+      await hrApi.deleteEmployee(emp.id);
+      await fetchEmployees();
+    } catch (err: any) {
+      alert(err.message || "Failed to delete employee.");
+    }
+  }
+
   const columns: ColumnDef<Employee>[] = [
     {
       header: "ID",
       cell: (emp) => (
         <span className="font-mono text-xs font-bold text-brand-purple bg-violet-50 border border-violet-100 rounded-lg px-2 py-1">
-          {emp.id}
+          {emp.id.slice(0, 8)}…
         </span>
       ),
     },
@@ -116,6 +126,30 @@ export default function EmployeesPage() {
         <Badge tone={statusToTone(emp.status)}>{emp.status}</Badge>
       ),
     },
+    {
+      header: "Actions",
+      cell: (emp) => (
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              setEditingEmployee(emp);
+              setFormOpen(true);
+            }}
+            aria-label={`Edit ${emp.name}`}
+            className="flex h-8 w-8 items-center justify-center rounded-xl bg-violet-50 border border-violet-200 text-brand-purple hover:bg-violet-100 transition-all"
+          >
+            <Pencil size={14} />
+          </button>
+          <button
+            onClick={() => handleDelete(emp)}
+            aria-label={`Delete ${emp.name}`}
+            className="flex h-8 w-8 items-center justify-center rounded-xl bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 transition-all"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      ),
+    },
   ];
 
   const potentialManagers = employees;
@@ -129,41 +163,59 @@ export default function EmployeesPage() {
       const parts = newEmployee.name.trim().split(" ");
       const firstName = parts[0] || "";
       const lastName = parts.slice(1).join(" ") || "";
-      
-      const headers = await getAuthHeaders();
-      const res = await fetch("http://localhost:3001/employees", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          firstName,
-          lastName,
-          email: newEmployee.email,
-          phone: newEmployee.phone,
-          dateOfBirth: newEmployee.dateOfBirth || "1990-01-01",
-          hireDate: newEmployee.startDate || new Date().toISOString().split("T")[0],
-          employmentType: newEmployee.contractType.toLowerCase().replace("-", "_") as any,
-          departmentId: newEmployee.department, 
-          managerId: newEmployee.reportsToId || null,
-        }),
-      });
 
-      if (res.ok) {
-        await fetchEmployees();
-      } else {
-        const errJson = await res.json();
-        alert(`Failed to save employee: ${errJson.message || "Unknown error"}`);
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Error contacting the backend server.");
+      await hrApi.createEmployee({
+        firstName,
+        lastName,
+        email: newEmployee.email,
+        phone: newEmployee.phone,
+        dateOfBirth: newEmployee.dateOfBirth || "1990-01-01",
+        hireDate: newEmployee.startDate || new Date().toISOString().split("T")[0],
+        employmentType: newEmployee.contractType.toLowerCase().replace("-", "_"),
+        departmentId: newEmployee.department,
+        managerId: newEmployee.reportsToId || null,
+      });
+      await fetchEmployees();
+    } catch (err: any) {
+      alert(err.message || "Failed to save employee.");
     } finally {
       setLoading(false);
     }
   }
 
+  async function handleUpdate(id: string, newEmployee: NewEmployeeInput) {
+    setLoading(true);
+    try {
+      const parts = newEmployee.name.trim().split(" ");
+      const firstName = parts[0] || "";
+      const lastName = parts.slice(1).join(" ") || "";
+
+      await hrApi.updateEmployee(id, {
+        firstName,
+        lastName,
+        email: newEmployee.email,
+        phone: newEmployee.phone,
+        dateOfBirth: newEmployee.dateOfBirth,
+        hireDate: newEmployee.startDate,
+        employmentType: newEmployee.contractType.toLowerCase().replace("-", "_"),
+        departmentId: newEmployee.department,
+        managerId: newEmployee.reportsToId || null,
+      });
+      await fetchEmployees();
+    } catch (err: any) {
+      alert(err.message || "Failed to update employee.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function closeForm() {
+    setFormOpen(false);
+    setEditingEmployee(null);
+  }
+
   return (
     <div>
-      {/* Header */}
       <div className="flex items-start justify-between animate-fade-in-up">
         <div>
           <div className="flex items-center gap-2.5 mb-1">
@@ -176,20 +228,24 @@ export default function EmployeesPage() {
             Personal info, contracts, department &amp; reporting hierarchy
           </p>
         </div>
-        <Button icon={<Plus size={16} />} onClick={() => setFormOpen(true)}>
+        <Button
+          icon={<Plus size={16} />}
+          onClick={() => {
+            setEditingEmployee(null);
+            setFormOpen(true);
+          }}
+        >
           New Employee
         </Button>
       </div>
 
-      {/* Stat cards */}
       <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatCard label="Total Employees" value={visibleEmployees.length} icon={<Users size={18} />} gradient="from-violet-500 to-purple-600" delay="0.05s" />
         <StatCard label="Active" value={activeCount} icon={<UserCheck size={18} />} gradient="from-emerald-400 to-teal-500" delay="0.10s" />
         <StatCard label="Inactive" value={inactiveCount} icon={<UserMinus size={18} />} gradient="from-rose-400 to-pink-500" delay="0.15s" />
-        <StatCard label="Departments" value={new Set(visibleEmployees.map(e => e.department)).size} icon={<TrendingUp size={18} />} gradient="from-cyan-400 to-blue-500" delay="0.20s" />
+        <StatCard label="Departments" value={new Set(visibleEmployees.map((e) => e.department)).size} icon={<TrendingUp size={18} />} gradient="from-cyan-400 to-blue-500" delay="0.20s" />
       </div>
 
-      {/* View toggle */}
       <div className="mt-6 inline-flex rounded-xl bg-white border border-line p-1 shadow-sm animate-fade-in-up" style={{ animationDelay: "0.25s" }}>
         <button
           onClick={() => setView("list")}
@@ -225,10 +281,13 @@ export default function EmployeesPage() {
 
       <EmployeeForm
         open={formOpen}
-        onClose={() => setFormOpen(false)}
+        onClose={closeForm}
         managers={potentialManagers}
         departments={departments}
+        editEmployee={editingEmployee}
         onCreate={handleCreate}
+        onUpdate={handleUpdate}
+        loading={loading}
       />
     </div>
   );

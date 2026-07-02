@@ -1,10 +1,48 @@
-import { apiClient } from './client';
+import { apiClient, API_BASE_URL } from './client';
 import { ensureFreshToken } from '../auth';
+
+type JournalLineInput = { accountId: string; debit: number; credit: number };
 
 export const financeApi = {
   getAccounts: () => apiClient('/finance/gl/accounts'),
   getJournalEntries: () => apiClient('/finance/gl/journal-entries'),
+  getCurrentFiscalPeriod: () => apiClient('/finance/gl/fiscal-periods/current'),
+  getFiscalPeriods: () => apiClient('/finance/gl/fiscal-periods'),
+  openFiscalPeriod: (body: { name: string; startDate: string; endDate: string }) =>
+    apiClient('/finance/gl/fiscal-periods/open', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  closeFiscalPeriod: (id: string) =>
+    apiClient(`/finance/gl/fiscal-periods/${id}/close`, { method: 'POST' }),
+  createJournalEntry: (body: {
+    fiscalPeriodId: string;
+    reference: string;
+    description?: string;
+    lines: JournalLineInput[];
+  }) =>
+    apiClient('/finance/gl/journal-entries', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   getAgingReport: () => apiClient('/finance/ar/aging-report'),
+  getArInvoices: () => apiClient('/finance/ar/invoices'),
+  getArCustomers: () => apiClient('/finance/ar/customers'),
+  createArCustomer: (body: { name: string; email?: string }) =>
+    apiClient('/finance/ar/customers', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  createArInvoice: (body: Record<string, unknown>) =>
+    apiClient('/finance/ar/invoices', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  recordArPayment: (body: { invoiceId: string; amount: number; bankReference?: string }) =>
+    apiClient('/finance/ar/payments', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   getInvoices: () => apiClient('/finance/ap/invoices'),
   approveInvoice: (id: string) =>
     apiClient(`/finance/ap/invoices/${id}/approve`, { method: 'POST' }),
@@ -19,8 +57,7 @@ export const financeApi = {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-    const res = await fetch(`${base}/finance/ap/invoices/upload`, {
+    const res = await fetch(`${API_BASE_URL}/finance/ap/invoices/upload`, {
       method: 'POST',
       headers,
       body: form,

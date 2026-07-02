@@ -25,6 +25,7 @@
 
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaClient } from '@amdox/db';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CreateProductDto } from '../dto/create-product.dto';
 import { UpdateProductDto } from '../dto/update-product.dto';
 
@@ -32,13 +33,17 @@ import { UpdateProductDto } from '../dto/update-product.dto';
 export class ProductService {
   private prisma = new PrismaClient();
 
+  constructor(private readonly eventEmitter: EventEmitter2) {}
+
   async create(tenantId: string, createProductDto: CreateProductDto) {
-    return this.prisma.product.create({
+    const product = await this.prisma.product.create({
       data: {
         tenantId,
         ...createProductDto,
       },
     });
+    this.eventEmitter.emit('product.created', { tenantId, productId: product.id });
+    return product;
   }
 
   async findAll(tenantId: string) {
@@ -60,19 +65,22 @@ export class ProductService {
   async update(tenantId: string, id: string, updateProductDto: UpdateProductDto) {
     await this.findOne(tenantId, id); // Ensure existence
 
-    return this.prisma.product.update({
+    const product = await this.prisma.product.update({
       where: { id },
       data: updateProductDto,
     });
+    this.eventEmitter.emit('product.updated', { tenantId, productId: id });
+    return product;
   }
 
   async remove(tenantId: string, id: string) {
     await this.findOne(tenantId, id);
     
-    // Soft delete
-    return this.prisma.product.update({
+    const product = await this.prisma.product.update({
       where: { id },
       data: { deletedAt: new Date(), isActive: false },
     });
+    this.eventEmitter.emit('product.deleted', { tenantId, productId: id });
+    return product;
   }
 }

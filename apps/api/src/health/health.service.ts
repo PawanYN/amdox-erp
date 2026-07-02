@@ -53,12 +53,23 @@ export class HealthService {
       esStatus = 'disconnected';
     }
 
+    // 5. Check ML forecast service
+    let mlStatus = 'disconnected';
+    try {
+      const mlUrl = process.env.ML_SERVICE_URL || 'http://localhost:8091';
+      const response = await fetch(`${mlUrl}/health`, { signal: AbortSignal.timeout(3000) });
+      mlStatus = response.ok ? 'connected' : 'unreachable';
+    } catch {
+      mlStatus = 'disconnected';
+    }
+
     return {
       status: (dbStatus === 'connected' && keycloakStatus === 'connected') ? 'ready' : 'error',
       db: dbStatus,
       keycloak: keycloakStatus,
       redis: redisStatus,
       elasticsearch: esStatus,
+      mlService: mlStatus,
     };
   }
 }

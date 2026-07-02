@@ -3,6 +3,11 @@ import { apiClient } from './client';
 export const pmApi = {
   getProjects: () => apiClient('/pm/projects'),
   getProject: (projectId: string) => apiClient(`/pm/projects/${projectId}`),
+  updateProject: (projectId: string, body: Record<string, unknown>) =>
+    apiClient(`/pm/projects/${projectId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
   getTasks: (projectId?: string) =>
     apiClient(projectId ? `/pm/projects/tasks?projectId=${projectId}` : '/pm/projects/tasks'),
   createProject: (body: object) =>

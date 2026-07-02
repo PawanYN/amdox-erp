@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import "../styles/globals.css";
+import "../styles/grid-layout.css";
+import "react-grid-layout/css/styles.css";
+import "react-resizable/css/styles.css";
 import { QueryProvider } from "../lib/providers/query-provider";
 
 export const metadata: Metadata = {

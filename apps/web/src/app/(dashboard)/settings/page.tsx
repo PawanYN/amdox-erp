@@ -23,18 +23,15 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
-import { mockTenantConfig } from "@/lib/mock/it";
 import { auditApi } from "@/lib/api/audit-api";
+import { tenantApi } from "@/lib/api/tenant-api";
 import { useKeycloak } from "@/components/KeycloakProvider";
-import { getAuthHeaders } from "@/lib/auth";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 export default function SettingsPage() {
   const { token, initialized } = useKeycloak();
   const [activeTab, setActiveTab] = useState("general");
   const [activeSubTab, setActiveSubTab] = useState("login"); // For Keycloak settings
-  const [tenantConfig, setTenantConfig] = useState(mockTenantConfig);
+  const [tenantConfig, setTenantConfig] = useState<{ name?: string; slug?: string; plan?: string }>({});
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -106,43 +103,16 @@ export default function SettingsPage() {
     if (!token) return;
     setLoading(true);
     try {
-      const headers = await getAuthHeaders();
+      const configData = await tenantApi.getKeycloakConfig();
+      if (!configData.error) setKcConfig(configData);
 
-      // 1. Fetch Keycloak config
-      const resConfig = await fetch(`${API_BASE_URL}/tenant/keycloak-config`, { headers });
-      if (resConfig.ok) {
-        const configData = await resConfig.json();
-        if (!configData.error) setKcConfig(configData);
-      }
+      setRequiredActions(await tenantApi.getRequiredActions());
+      setIdentityProviders(await tenantApi.getIdentityProviders());
 
-      // 2. Fetch Required Actions
-      const resActions = await fetch(`${API_BASE_URL}/tenant/required-actions`, { headers });
-      if (resActions.ok) {
-        const actionsData = await resActions.json();
-        setRequiredActions(actionsData);
-      }
+      const tenantData = await tenantApi.getConfig();
+      if (!tenantData.error) setTenantConfig(tenantData);
 
-      // 3. Fetch Identity Providers
-      const resIdps = await fetch(`${API_BASE_URL}/tenant/identity-providers`, { headers });
-      if (resIdps.ok) {
-        const idpsData = await resIdps.json();
-        setIdentityProviders(idpsData);
-      }
-
-      // 4. Fetch Tenant Details
-      const resTenant = await fetch(`${API_BASE_URL}/tenant/config`, { headers });
-      if (resTenant.ok) {
-        const tenantData = await resTenant.json();
-        if (!tenantData.error) setTenantConfig(tenantData);
-      }
-
-      // 5. Fetch Authentication Flows
-      const resFlows = await fetch(`${API_BASE_URL}/tenant/authentication-flows`, { headers });
-      if (resFlows.ok) {
-        const flowsData = await resFlows.json();
-        setAuthFlows(flowsData);
-      }
-
+      setAuthFlows(await tenantApi.getAuthenticationFlows());
     } catch (err) {
       setErrorMsg("Failed to connect to Keycloak API endpoints.");
     } finally {
@@ -161,17 +131,8 @@ export default function SettingsPage() {
     setSuccessMsg(null);
     setErrorMsg(null);
     try {
-      const headers = await getAuthHeaders();
-      const res = await fetch(`${API_BASE_URL}/tenant/keycloak-config`, {
-        method: "PUT",
-        headers,
-        body: JSON.stringify(kcConfig),
-      });
-      if (res.ok) {
-        setSuccessMsg("Keycloak configuration securely updated and synced!");
-      } else {
-        setErrorMsg("Failed to save Keycloak configuration.");
-      }
+      await tenantApi.updateKeycloakConfig(kcConfig);
+      setSuccessMsg("Keycloak configuration securely updated and synced!");
     } catch (err) {
       setErrorMsg("Connection failure while updating settings.");
     } finally {
@@ -184,19 +145,9 @@ export default function SettingsPage() {
     setSuccessMsg(null);
     setErrorMsg(null);
     try {
-      const headers = await getAuthHeaders();
-      const res = await fetch(`${API_BASE_URL}/tenant/required-actions/${action.alias}`, {
-        method: "PUT",
-        headers,
-        body: JSON.stringify({ ...action, enabled }),
-      });
-      if (res.ok) {
-        setSuccessMsg(`Required action '${action.name}' updated!`);
-        const resActions = await fetch(`${API_BASE_URL}/tenant/required-actions`, { headers });
-        if (resActions.ok) setRequiredActions(await resActions.json());
-      } else {
-        setErrorMsg("Failed to update Required Action.");
-      }
+      await tenantApi.updateRequiredAction(action.alias, { ...action, enabled });
+      setSuccessMsg(`Required action '${action.name}' updated!`);
+      setRequiredActions(await tenantApi.getRequiredActions());
     } catch (err) {
       setErrorMsg("Connection failure while updating action.");
     } finally {
@@ -211,20 +162,10 @@ export default function SettingsPage() {
     setSuccessMsg(null);
     setErrorMsg(null);
     try {
-      const headers = await getAuthHeaders();
-      const res = await fetch(`${API_BASE_URL}/tenant/identity-providers`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(newIdp),
-      });
-      if (res.ok) {
-        setSuccessMsg(`Identity provider '${newIdp.alias}' added!`);
-        setNewIdp({ alias: "", providerId: "", displayName: "", enabled: true });
-        const resIdps = await fetch(`${API_BASE_URL}/tenant/identity-providers`, { headers });
-        if (resIdps.ok) setIdentityProviders(await resIdps.json());
-      } else {
-        setErrorMsg("Failed to add Identity Provider.");
-      }
+      await tenantApi.createIdentityProvider(newIdp);
+      setSuccessMsg(`Identity provider '${newIdp.alias}' added!`);
+      setNewIdp({ alias: "", providerId: "", displayName: "", enabled: true });
+      setIdentityProviders(await tenantApi.getIdentityProviders());
     } catch (err) {
       setErrorMsg("Connection failure while adding identity provider.");
     } finally {
@@ -238,18 +179,9 @@ export default function SettingsPage() {
     setSuccessMsg(null);
     setErrorMsg(null);
     try {
-      const headers = await getAuthHeaders();
-      const res = await fetch(`${API_BASE_URL}/tenant/identity-providers/${alias}`, {
-        method: "DELETE",
-        headers,
-      });
-      if (res.ok) {
-        setSuccessMsg(`Identity provider '${alias}' deleted!`);
-        const resIdps = await fetch(`${API_BASE_URL}/tenant/identity-providers`, { headers });
-        if (resIdps.ok) setIdentityProviders(await resIdps.json());
-      } else {
-        setErrorMsg("Failed to delete Identity Provider.");
-      }
+      await tenantApi.deleteIdentityProvider(alias);
+      setSuccessMsg(`Identity provider '${alias}' deleted!`);
+      setIdentityProviders(await tenantApi.getIdentityProviders());
     } catch (err) {
       setErrorMsg("Connection failure while removing identity provider.");
     } finally {

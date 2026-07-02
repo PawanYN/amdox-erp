@@ -17,6 +17,7 @@ import { CreateTaskDto } from '../dto/create-task.dto';
 import { MaterialRequestDto } from '../dto/material-request.dto';
 import { CreateMilestoneDto } from '../dto/create-milestone.dto';
 import { UpdateMilestoneDto } from '../dto/update-milestone.dto';
+import { UpdateProjectDto } from '../dto/update-project.dto';
 import { UpdateTaskStatusDto } from '../dto/update-task-status.dto';
 
 @ApiTags('Project Management - Projects')
@@ -53,6 +54,20 @@ export class ProjectController {
       this.tenantId(req),
       taskId,
       dto.status,
+    );
+  }
+
+  @Patch(':projectId')
+  @ApiOperation({ summary: 'Update project metadata or status' })
+  updateProject(
+    @Req() req: any,
+    @Param('projectId') projectId: string,
+    @Body() dto: UpdateProjectDto,
+  ) {
+    return this.projectService.updateProject(
+      this.tenantId(req),
+      projectId,
+      dto,
     );
   }
 

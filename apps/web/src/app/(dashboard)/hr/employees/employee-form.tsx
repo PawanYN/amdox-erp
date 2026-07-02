@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, useEffect } from "react";
 import { Modal, inputClasses } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Employee, NewEmployeeInput } from "@/lib/types";
@@ -19,14 +19,21 @@ export function EmployeeForm({
   onClose,
   managers,
   departments,
+  editEmployee,
   onCreate,
+  onUpdate,
+  loading = false,
 }: {
   open: boolean;
   onClose: () => void;
   managers: Employee[];
   departments: any[];
+  editEmployee?: Employee | null;
   onCreate: (employee: NewEmployeeInput) => void;
+  onUpdate?: (id: string, employee: NewEmployeeInput) => void;
+  loading?: boolean;
 }) {
+  const isEdit = Boolean(editEmployee);
   const [step, setStep] = useState(1);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [data, setData] = useState({
@@ -43,6 +50,35 @@ export function EmployeeForm({
     needsAccess: false,
     role: "",
   });
+
+  useEffect(() => {
+    if (!open) return;
+    if (editEmployee) {
+      const parts = editEmployee.name.trim().split(" ");
+      const resolvedDeptId =
+        editEmployee.departmentId ||
+        departments.find((d) => d.name === editEmployee.department)?.id ||
+        "";
+      setData({
+        firstName: parts[0] || "",
+        lastName: parts.slice(1).join(" ") || "",
+        email: editEmployee.email,
+        phone: editEmployee.phone,
+        dob: editEmployee.dateOfBirth || "",
+        code: "",
+        hireDate: editEmployee.startDate,
+        departmentId: resolvedDeptId,
+        managerId: editEmployee.reportsToId || "",
+        employmentType: editEmployee.contractType,
+        needsAccess: false,
+        role: editEmployee.designation || "",
+      });
+      setStep(1);
+      setErrors({});
+    } else {
+      reset();
+    }
+  }, [open, editEmployee, departments]);
 
   function reset() {
     setStep(1);
@@ -112,7 +148,7 @@ export function EmployeeForm({
       return;
     }
 
-    onCreate({
+    const payload: NewEmployeeInput = {
       name: `${data.firstName} ${data.lastName}`.trim(),
       email: data.email,
       phone: data.phone,
@@ -122,7 +158,13 @@ export function EmployeeForm({
       startDate: data.hireDate,
       reportsToId: data.managerId || null,
       dateOfBirth: data.dob || undefined,
-    });
+    };
+
+    if (isEdit && editEmployee && onUpdate) {
+      onUpdate(editEmployee.id, payload);
+    } else {
+      onCreate(payload);
+    }
     reset();
     onClose();
   }
@@ -153,8 +195,8 @@ export function EmployeeForm({
     <Modal
       open={open}
       onClose={handleClose}
-      title="Add Employee"
-      ariaLabel="Add Employee"
+      title={isEdit ? "Edit Employee" : "Add Employee"}
+      ariaLabel={isEdit ? "Edit Employee" : "Add Employee"}
       hideHeader
       flush
       width="max-w-[1000px] w-full"
@@ -170,9 +212,11 @@ export function EmployeeForm({
               <span className="opacity-40">/</span>
               <span>Employees</span>
               <span className="opacity-40">/</span>
-              <span className="text-white">Add Employee</span>
+              <span className="text-white">{isEdit ? "Edit Employee" : "Add Employee"}</span>
             </nav>
-            <h2 className="text-base font-extrabold text-white mt-0.5 tracking-tight uppercase leading-none">Create Employee Profile</h2>
+            <h2 className="text-base font-extrabold text-white mt-0.5 tracking-tight uppercase leading-none">
+              {isEdit ? "Update Employee Profile" : "Create Employee Profile"}
+            </h2>
           </div>
 
           <button
@@ -598,8 +642,8 @@ export function EmployeeForm({
               Continue →
             </Button>
           ) : (
-            <Button type="button" variant="primary" onClick={handleSubmit} className="text-xs">
-              ✓ Save Employee
+            <Button type="button" variant="primary" onClick={handleSubmit} disabled={loading} className="text-xs">
+              {loading ? "Saving…" : isEdit ? "✓ Update Employee" : "✓ Save Employee"}
             </Button>
           )}
         </div>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Plus, CheckCircle2, Loader2, KeyRound } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { tenantApi } from "@/lib/api/tenant-api";
 
 export default function CreateTenantPage() {
   const router = useRouter();
@@ -24,17 +25,7 @@ export default function CreateTenantPage() {
     setSuccess(false);
 
     try {
-      const response = await fetch("http://localhost:3001/tenant", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to create tenant");
-      }
+      await tenantApi.createTenant(formData);
 
       localStorage.setItem("tenant_slug", formData.slug);
       setSuccess(true);

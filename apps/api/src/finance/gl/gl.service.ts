@@ -1,7 +1,8 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaClient } from '@amdox/db';
-import { OnEvent } from '@nestjs/event-emitter';
+import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
 import { CreateJournalEntryDto } from '../dto/create-journal-entry.dto';
+import { CreateIntercompanyTransferDto } from '../dto/create-intercompany-transfer.dto';
 
 /**
  * Service to handle General Ledger (GL) operations.
@@ -15,6 +16,8 @@ import { CreateJournalEntryDto } from '../dto/create-journal-entry.dto';
 export class GlService {
   private readonly logger = new Logger(GlService.name);
   private prisma = new PrismaClient();
+
+  constructor(private readonly eventEmitter: EventEmitter2) {}
 
   /**
    * WHAT: Creates a new Account in the Chart of Accounts (CoA).
@@ -67,9 +70,35 @@ export class GlService {
    * finalized financial reports for a given month/quarter.
    */
   async closeFiscalPeriod(tenantId: string, periodId: string) {
-    return this.prisma.fiscalPeriod.update({
+    const period = await this.prisma.fiscalPeriod.update({
       where: { id: periodId, tenantId },
       data: { isLocked: true }
+    });
+    this.eventEmitter.emit('fiscal.period.closed', { tenantId, periodId, periodName: period.name });
+    return period;
+  }
+
+  async getOrCreateCurrentFiscalPeriod(tenantId: string) {
+    const now = new Date();
+    const periodName = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    let period = await this.prisma.fiscalPeriod.findUnique({
+      where: { tenantId_name: { tenantId, name: periodName } },
+    });
+    if (!period) {
+      period = await this.openFiscalPeriod(
+        tenantId,
+        periodName,
+        new Date(now.getFullYear(), now.getMonth(), 1),
+        new Date(now.getFullYear(), now.getMonth() + 1, 0),
+      );
+    }
+    return period;
+  }
+
+  async listFiscalPeriods(tenantId: string) {
+    return this.prisma.fiscalPeriod.findMany({
+      where: { tenantId },
+      orderBy: { startDate: 'desc' },
     });
   }
 
@@ -123,6 +152,11 @@ export class GlService {
       });
 
       this.logger.log(`Posted Journal Entry ${entry.id} with balanced total: ${totalDebit}`);
+      this.eventEmitter.emit('journal.entry.posted', {
+        tenantId,
+        journalEntryId: entry.id,
+        reference: entry.reference,
+      });
       return entry;
     });
   }
@@ -200,6 +234,98 @@ export class GlService {
     }
   }
 
+  async listIntercompanyTransfers(tenantId: string) {
+    return this.prisma.intercompanyTransfer.findMany({
+      where: { tenantId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async createIntercompanyTransfer(tenantId: string, dto: CreateIntercompanyTransferDto) {
+    if (dto.fromAccountId === dto.toAccountId) {
+      throw new BadRequestException('Source and destination accounts must differ.');
+    }
+    if (dto.amount <= 0) {
+      throw new BadRequestException('Transfer amount must be positive.');
+    }
+
+    const [fromAccount, toAccount] = await Promise.all([
+      this.prisma.account.findFirst({ where: { id: dto.fromAccountId, tenantId, isActive: true } }),
+      this.prisma.account.findFirst({ where: { id: dto.toAccountId, tenantId, isActive: true } }),
+    ]);
+    if (!fromAccount || !toAccount) {
+      throw new BadRequestException('Both intercompany accounts must exist and be active.');
+    }
+
+    const period = await this.getOrCreateCurrentFiscalPeriod(tenantId);
+
+    const transfer = await this.prisma.intercompanyTransfer.create({
+      data: {
+        tenantId,
+        fromAccountId: dto.fromAccountId,
+        toAccountId: dto.toAccountId,
+        amount: dto.amount,
+        description: dto.description,
+      },
+    });
+
+    await this.createJournalEntry(tenantId, {
+      fiscalPeriodId: period.id,
+      reference: `IC-${transfer.id.slice(0, 8)}`,
+      description: dto.description || `Intercompany transfer ${fromAccount.code} → ${toAccount.code}`,
+      sourceModule: 'IC',
+      sourceId: transfer.id,
+      lines: [
+        { accountId: toAccount.id, debit: dto.amount, credit: 0 },
+        { accountId: fromAccount.id, debit: 0, credit: dto.amount },
+      ],
+    });
+
+    this.eventEmitter.emit('intercompany.transfer.created', {
+      tenantId,
+      transferId: transfer.id,
+      amount: dto.amount,
+    });
+
+    return transfer;
+  }
+
+  private async postArGlEntry(
+    tenantId: string,
+    reference: string,
+    description: string,
+    sourceModule: string,
+    sourceId: string,
+    debitAccountCode: string,
+    creditAccountCode: string,
+    amount: number,
+  ) {
+    const period = await this.getOrCreateCurrentFiscalPeriod(tenantId);
+    const debitAccount = await this.prisma.account.findUnique({
+      where: { tenantId_code: { tenantId, code: debitAccountCode } },
+    });
+    const creditAccount = await this.prisma.account.findUnique({
+      where: { tenantId_code: { tenantId, code: creditAccountCode } },
+    });
+
+    if (!debitAccount || !creditAccount) {
+      this.logger.error(`GL accounts ${debitAccountCode}/${creditAccountCode} not found for tenant ${tenantId}`);
+      return;
+    }
+
+    await this.createJournalEntry(tenantId, {
+      fiscalPeriodId: period.id,
+      reference,
+      description,
+      sourceModule,
+      sourceId,
+      lines: [
+        { accountId: debitAccount.id, debit: amount, credit: 0 },
+        { accountId: creditAccount.id, debit: 0, credit: amount },
+      ],
+    });
+  }
+
   /**
    * WHAT: Domain Event Listener that posts Revenue to the GL when an AR Invoice is issued.
    * WHY: Automatically updates the ledger (Debit AR, Credit Revenue) based on AR operations.
@@ -207,16 +333,66 @@ export class GlService {
   @OnEvent('invoice.issued')
   async handleInvoiceIssued(event: { tenantId: string, invoiceId: string }) {
     this.logger.log(`Received invoice.issued event for Invoice ${event.invoiceId}`);
-    this.logger.log('GL auto-posting logic for AR Invoice executed.');
+
+    const invoice = await this.prisma.invoice.findUnique({ where: { id: event.invoiceId } });
+    if (!invoice || invoice.type !== 'AR') return;
+
+    const amount = Number(invoice.totalAmount);
+    if (amount <= 0) return;
+
+    try {
+      await this.postArGlEntry(
+        event.tenantId,
+        `AR-${invoice.invoiceNumber}`,
+        `AR invoice issued ${invoice.invoiceNumber}`,
+        'AR',
+        invoice.id,
+        '1200',
+        '4000',
+        amount,
+      );
+      this.logger.log(`Posted AR invoice ${invoice.invoiceNumber} to GL.`);
+    } catch (err) {
+      this.logger.error(`Failed GL posting for AR invoice ${invoice.invoiceNumber}`, err);
+    }
   }
 
   /**
    * WHAT: Domain Event Listener that posts cash movements when a payment is received.
-   * WHY: Automatically updates the ledger (Debit Cash, Credit AR/AP) ensuring real-time bank balances.
+   * WHY: Automatically updates the ledger (Debit Cash, Credit AR) ensuring real-time bank balances.
    */
   @OnEvent('payment.received')
-  async handlePaymentReceived(event: { tenantId: string, paymentId: string, invoiceId: string }) {
+  async handlePaymentReceived(event: {
+    tenantId: string;
+    paymentId: string;
+    invoiceId: string;
+    amount?: number;
+  }) {
     this.logger.log(`Received payment.received event for Payment ${event.paymentId}`);
-    this.logger.log('GL auto-posting logic for Payment executed.');
+
+    const payment = await this.prisma.payment.findUnique({
+      where: { id: event.paymentId },
+      include: { invoice: true },
+    });
+    if (!payment) return;
+
+    const amount = event.amount ?? Number(payment.amount);
+    if (amount <= 0) return;
+
+    try {
+      await this.postArGlEntry(
+        event.tenantId,
+        `PAY-${payment.id.slice(0, 8)}`,
+        `Payment received for invoice ${payment.invoice.invoiceNumber}`,
+        'AR',
+        payment.id,
+        '1000',
+        '1200',
+        amount,
+      );
+      this.logger.log(`Posted payment ${payment.id} to GL.`);
+    } catch (err) {
+      this.logger.error(`Failed GL posting for payment ${payment.id}`, err);
+    }
   }
 }

@@ -6,6 +6,8 @@ import { InvoiceMatchingService } from './ap/invoice-matching.service';
 import { OcrService } from './ap/ocr.service';
 import { ArController } from './ar/ar.controller';
 import { ArService } from './ar/ar.service';
+import { SalesOrderController } from './sales/sales-order.controller';
+import { SalesOrderService } from './sales/sales-order.service';
 import { GlController } from './gl/gl.controller';
 import { GlService } from './gl/gl.service';
 import { FxRateService } from './fx/fx-rate.service';
@@ -23,6 +25,7 @@ import { PmCostBridgeListener } from './pm-cost-bridge.listener';
   controllers: [
     ApController,
     ArController,
+    SalesOrderController,
     GlController
   ],
   providers: [
@@ -30,6 +33,7 @@ import { PmCostBridgeListener } from './pm-cost-bridge.listener';
     InvoiceMatchingService,
     OcrService,
     ArService,
+    SalesOrderService,
     GlService,
     FxRateService,
     OutboxProcessor,

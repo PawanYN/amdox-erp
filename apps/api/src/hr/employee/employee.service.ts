@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaClient } from '@amdox/db';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CreateEmployeeDto } from '../dto/create-employee.dto';
 import { UpdateEmployeeDto } from '../dto/update-employee.dto';
 import { TenantService } from '../../tenant/tenant.service';
@@ -8,7 +9,10 @@ import { TenantService } from '../../tenant/tenant.service';
 export class EmployeeService {
   private prisma = new PrismaClient();
 
-  constructor(private readonly tenantService: TenantService) {}
+  constructor(
+    private readonly tenantService: TenantService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   async create(tenantId: string, createEmployeeDto: CreateEmployeeDto) {
     // Prisma requires strict Date objects, so we safely convert the string from the DTO
@@ -52,6 +56,7 @@ export class EmployeeService {
         data: { userId },
       });
       console.log(`\x1b[38;2;99;102;241m[EMPLOYEE CREATED] ${JSON.stringify(updatedEmployee, null, 2)}\x1b[0m`);
+      this.eventEmitter.emit('employee.created', { tenantId, employeeId: updatedEmployee.id });
       return updatedEmployee;
     } catch (err) {
       // Rollback: delete the leave balances and employee if provisioning fails
@@ -73,10 +78,34 @@ export class EmployeeService {
   }
 
   async findMe(tenantId: string, userId: string) {
-    const employee = await this.prisma.employee.findFirst({
-      where: { tenantId, userId },
+    let employee = await this.prisma.employee.findFirst({
+      where: { tenantId, userId, deletedAt: null },
       include: { department: true, manager: true },
     });
+
+    if (!employee) {
+      const user = await this.prisma.user.findFirst({
+        where: { id: userId, tenantId },
+      });
+      if (user?.email) {
+        employee = await this.prisma.employee.findFirst({
+          where: {
+            tenantId,
+            deletedAt: null,
+            email: { equals: user.email, mode: 'insensitive' },
+          },
+          include: { department: true, manager: true },
+        });
+        if (employee && !employee.userId) {
+          employee = await this.prisma.employee.update({
+            where: { id: employee.id },
+            data: { userId },
+            include: { department: true, manager: true },
+          });
+        }
+      }
+    }
+
     if (!employee) throw new NotFoundException('Employee profile not found');
     return employee;
   }
@@ -101,20 +130,24 @@ export class EmployeeService {
       delete data.lastName;
     }
 
-    return this.prisma.employee.update({
+    const updated = await this.prisma.employee.update({
       where: { id },
       data,
     });
+    this.eventEmitter.emit('employee.updated', { tenantId, employeeId: id });
+    return updated;
   }
 
   async remove(tenantId: string, id: string) {
     await this.findOne(tenantId, id);
-    return this.prisma.employee.update({
+    const result = await this.prisma.employee.update({
       where: { id },
       data: {
         deletedAt: new Date(),
         status: 'TERMINATED'
       }
     });
+    this.eventEmitter.emit('employee.deleted', { tenantId, employeeId: id });
+    return result;
   }
 }

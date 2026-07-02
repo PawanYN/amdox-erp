@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { Plus, CalendarDays, Clock, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { mockLeaveRequests } from "@/lib/mock/hr";
 import { LeaveRequest } from "@/lib/types";
 import { apiClient } from "@/lib/api/client";
 import { currentUser } from "@/lib/current-user";

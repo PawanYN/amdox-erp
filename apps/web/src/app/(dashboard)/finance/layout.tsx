@@ -27,6 +27,8 @@ const TABS = [
   { id: "coa",     label: "Chart of Accounts",   path: "/finance/accounts",        icon: BookOpen     },
   { id: "gl",      label: "Journal Entries (GL)", path: "/finance/journal-entries", icon: Wallet       },
   { id: "ap",      label: "AP (Payable)",         path: "/finance/invoices",        icon: TrendingDown },
+  { id: "ar",      label: "AR (Receivable)",      path: "/finance/ar-invoices",     icon: TrendingUp   },
+  { id: "periods", label: "Fiscal Periods",       path: "/finance/fiscal-periods",  icon: Clock        },
   { id: "aging",   label: "Aging Report",         path: "/finance/aging-report",    icon: Clock        },
 ];
 

@@ -18,6 +18,31 @@ import { RecordPaymentDto } from '../dto/record-payment.dto';
 export class ArController {
   constructor(private readonly arService: ArService) {}
 
+  @Roles('Manager', 'TenantAdmin', 'SuperAdmin')
+  @Get('invoices')
+  @ApiOperation({ summary: 'List AR invoices' })
+  async listInvoices(@Req() req: any) {
+    return this.arService.listInvoices(req.user.tenantId);
+  }
+
+  @Roles('Manager', 'TenantAdmin', 'SuperAdmin')
+  @Get('customers')
+  @ApiOperation({ summary: 'List AR customers' })
+  async listCustomers(@Req() req: any) {
+    return this.arService.listCustomers(req.user.tenantId);
+  }
+
+  @Roles('Manager', 'TenantAdmin')
+  @Post('customers')
+  @ApiOperation({ summary: 'Create a customer' })
+  async createCustomer(
+    @Req() req: any,
+    @Body('name') name: string,
+    @Body('email') email?: string,
+  ) {
+    return this.arService.createCustomer(req.user.tenantId, name, email);
+  }
+
   /**
    * Generates a new receivable invoice for a customer.
    */

@@ -79,7 +79,10 @@ export class ArService {
    */
   async recordPayment(tenantId: string, dto: RecordPaymentDto) {
     return this.prisma.$transaction(async (tx) => {
-      const invoice = await tx.invoice.findFirst({ where: { id: dto.invoiceId, tenantId, type: 'AR' } });
+      const invoice = await tx.invoice.findFirst({
+        where: { id: dto.invoiceId, tenantId, type: 'AR' },
+        include: { payments: true, salesOrder: true },
+      });
       
       if (!invoice) {
         throw new NotFoundException('AR Invoice not found.');
@@ -90,16 +93,35 @@ export class ArService {
           tenantId,
           invoiceId: dto.invoiceId,
           amount: dto.amount,
+          bankReference: dto.bankReference,
           status: 'COMPLETED',
           paidAt: new Date()
         }
       });
 
-      // Update invoice status if fully paid
-      if (dto.amount >= invoice.totalAmount.toNumber()) {
-        await tx.invoice.update({
-          where: { id: invoice.id },
-          data: { status: 'PAID' }
+      const priorPaid = invoice.payments.reduce(
+        (sum, p) => sum + p.amount.toNumber(),
+        0,
+      );
+      const totalPaid = priorPaid + dto.amount;
+      const invoiceTotal = invoice.totalAmount.toNumber();
+
+      let newStatus = invoice.status;
+      if (totalPaid >= invoiceTotal) {
+        newStatus = 'PAID';
+      } else if (totalPaid > 0) {
+        newStatus = 'PARTIALLY_PAID';
+      }
+
+      await tx.invoice.update({
+        where: { id: invoice.id },
+        data: { status: newStatus },
+      });
+
+      if (invoice.salesOrderId && newStatus === 'PAID') {
+        await tx.salesOrder.update({
+          where: { id: invoice.salesOrderId },
+          data: { status: 'FULFILLED' },
         });
       }
 
@@ -107,19 +129,34 @@ export class ArService {
       this.eventEmitter.emit('payment.received', {
         tenantId,
         paymentId: payment.id,
-        invoiceId: invoice.id
+        invoiceId: invoice.id,
+        amount: dto.amount,
+        bankReference: dto.bankReference,
       });
 
       await tx.outboxEvent.create({
         data: {
           tenantId,
           eventType: 'payment.received',
-          payload: { paymentId: payment.id, invoiceId: invoice.id, amount: payment.amount },
+          payload: {
+            paymentId: payment.id,
+            invoiceId: invoice.id,
+            amount: payment.amount,
+            bankReference: dto.bankReference,
+          },
           status: 'PENDING'
         }
       });
 
-      return payment;
+      return {
+        payment,
+        reconciliation: {
+          invoiceTotal,
+          totalPaid,
+          balanceDue: Math.max(invoiceTotal - totalPaid, 0),
+          status: newStatus,
+        },
+      };
     });
   }
 
@@ -158,5 +195,26 @@ export class ArService {
     }
 
     return report;
+  }
+
+  async listInvoices(tenantId: string) {
+    return this.prisma.invoice.findMany({
+      where: { tenantId, type: 'AR' },
+      include: { customer: true, lines: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async listCustomers(tenantId: string) {
+    return this.prisma.customer.findMany({
+      where: { tenantId, isActive: true, deletedAt: null },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  async createCustomer(tenantId: string, name: string, email?: string) {
+    return this.prisma.customer.create({
+      data: { tenantId, name, email: email || null },
+    });
   }
 }

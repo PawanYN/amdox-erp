@@ -1,22 +1,27 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Play, Loader2, Download, Wallet, DollarSign, TrendingDown, CheckCircle, RefreshCw } from "lucide-react";
+import { Play, Loader2, Download, Wallet, DollarSign, TrendingDown, CheckCircle, RefreshCw, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge, statusToTone } from "@/components/ui/badge";
-import { Card, Table, THead, TH, TBody, TR, TD, EmptyState } from "@/components/ui/table";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { PayrollRecord } from "@/lib/types";
 import { PayslipModal } from "./payslip-modal";
 import { useKeycloak } from "@/components/KeycloakProvider";
-import { getAuthHeaders } from "@/lib/auth";
+import { hrApi } from "@/lib/api/hr-api";
 
 function formatINR(amount: number): string {
   return `₹${amount.toLocaleString("en-IN")}`;
 }
 
+function defaultPeriod(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
 export default function PayrollPage() {
   const { token } = useKeycloak();
+  const [period, setPeriod] = useState(defaultPeriod);
   const [records, setRecords] = useState<PayrollRecord[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -26,12 +31,8 @@ export default function PayrollPage() {
     if (!token) return;
     setIsRefreshing(true);
     try {
-      const headers = await getAuthHeaders();
-      const res = await fetch("http://localhost:3001/hr/payroll?period=2026-06", { headers });
-      if (res.ok) {
-        const { data } = await res.json();
-        setRecords(data);
-      }
+      const { data } = await hrApi.getPayroll(period);
+      setRecords(data);
     } catch (e) {
       console.error(e);
     } finally {
@@ -41,26 +42,16 @@ export default function PayrollPage() {
 
   useEffect(() => {
     fetchPayroll();
-  }, [token]);
+  }, [token, period]);
 
   async function handleRunPayroll() {
     if (!token) return;
     setIsRunning(true);
     try {
-      const headers = await getAuthHeaders();
-      const res = await fetch("http://localhost:3001/hr/payroll/run", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ payPeriod: "2026-06" })
-      });
-      if (res.ok) {
-        await fetchPayroll();
-      } else {
-        const err = await res.json();
-        alert(err.message || "Failed to run payroll");
-      }
-    } catch (e) {
-      console.error(e);
+      await hrApi.runPayroll(period);
+      await fetchPayroll();
+    } catch (e: any) {
+      alert(e.message || "Failed to run payroll");
     } finally {
       setIsRunning(false);
     }
@@ -133,7 +124,6 @@ export default function PayrollPage() {
 
   return (
     <div>
-      {/* Header */}
       <div className="flex items-start justify-between animate-fade-in-up">
         <div>
           <div className="flex items-center gap-2.5 mb-1">
@@ -147,6 +137,15 @@ export default function PayrollPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 border border-line rounded-lg px-3 py-1.5 bg-white">
+            <Calendar size={14} className="text-muted" />
+            <input
+              type="month"
+              value={period}
+              onChange={(e) => setPeriod(e.target.value)}
+              className="text-sm outline-none bg-transparent"
+            />
+          </div>
           <Button
             variant="outline"
             icon={<RefreshCw size={16} className={isRefreshing ? "animate-spin" : ""} />}
@@ -160,40 +159,27 @@ export default function PayrollPage() {
             onClick={handleRunPayroll}
             disabled={isRunning}
           >
-            {isRunning ? "Queuing payroll…" : "Run Payroll — Jun 2026"}
+            {isRunning ? "Queuing payroll…" : `Run Payroll — ${period}`}
           </Button>
         </div>
       </div>
 
-      {/* KPI Cards */}
       <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4 animate-fade-in-up" style={{ animationDelay: "0.05s" }}>
         <div className="rounded-2xl border border-line bg-card p-5 shadow-card hover:shadow-card-hover transition-all hover:-translate-y-0.5 group">
           <p className="text-xs font-bold uppercase tracking-widest text-muted/70">Total Gross</p>
           <p className="mt-2 text-2xl font-bold text-ink">{formatINR(totalGross)}</p>
-          <div className="mt-3 flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-md group-hover:scale-110 transition-transform">
-            <DollarSign size={15} />
-          </div>
         </div>
         <div className="rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-teal-50 p-5 shadow-card hover:shadow-card-hover transition-all hover:-translate-y-0.5 group">
           <p className="text-xs font-bold uppercase tracking-widest text-emerald-600/70">Total Net Pay</p>
           <p className="mt-2 text-2xl font-bold text-emerald-700">{formatINR(totalNet)}</p>
-          <div className="mt-3 flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 text-white shadow-md group-hover:scale-110 transition-transform">
-            <Wallet size={15} />
-          </div>
         </div>
         <div className="rounded-2xl border border-red-100 bg-gradient-to-br from-red-50 to-rose-50 p-5 shadow-card hover:shadow-card-hover transition-all hover:-translate-y-0.5 group">
           <p className="text-xs font-bold uppercase tracking-widest text-red-500/70">Total Deductions</p>
           <p className="mt-2 text-2xl font-bold text-red-600">{formatINR(totalDeductions)}</p>
-          <div className="mt-3 flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-rose-400 to-pink-500 text-white shadow-md group-hover:scale-110 transition-transform">
-            <TrendingDown size={15} />
-          </div>
         </div>
         <div className="rounded-2xl border border-line bg-card p-5 shadow-card hover:shadow-card-hover transition-all hover:-translate-y-0.5 group">
           <p className="text-xs font-bold uppercase tracking-widest text-muted/70">Processed</p>
           <p className="mt-2 text-2xl font-bold text-ink">{processedCount} / {records.length}</p>
-          <div className="mt-3 flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400 to-blue-500 text-white shadow-md group-hover:scale-110 transition-transform">
-            <CheckCircle size={15} />
-          </div>
         </div>
       </div>
 

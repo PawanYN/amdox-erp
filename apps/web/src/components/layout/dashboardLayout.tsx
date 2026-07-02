@@ -88,7 +88,7 @@ interface NavSection {
  */
 const NAV: NavSection[] = [
   { id: "/home", icon: LayoutDashboard, label: "Home", leaf: true },
-  { id: "/bi", icon: BarChart, label: "Executive BI", leaf: true },
+  { id: "/bi", icon: BarChart, label: "Power BI Reports", leaf: true },
   {
     id: "finance",
     icon: Wallet,
@@ -106,6 +106,7 @@ const NAV: NavSection[] = [
     label: "HR",
     children: [
       { id: "/hr/employees", label: "Employees", day: "Day 10" },
+      { id: "/hr/departments", label: "Departments", day: "Day 10" },
       { id: "/hr/leave-requests", label: "Leave Requests", day: "Day 10" },
       { id: "/hr/attendance", label: "Attendance", day: "Day 10" },
       { id: "/hr/payroll", label: "Payroll", day: "Day 11" },
