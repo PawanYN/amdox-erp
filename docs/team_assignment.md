@@ -182,11 +182,11 @@
 ## 9. Sprint Plan
 
 
-| Sprint       | Priority | Task IDs                                      | Goal                                                                    |
-| ------------ | -------- | --------------------------------------------- | ----------------------------------------------------------------------- |
-| **Sprint 1** | P0       | FE-01, FE-06, FE-07, INT-01, PLAT-01, PLAT-02 | Demo-ready: vendor form, GL forms, Procure-to-Pay E2E, live URL + video |
-| **Sprint 2** | P1       | FE-03–FE-05, FE-08–FE-11, INT-02–INT-05       | Core completeness: SCM admin, AP OCR, AR, HR polish, PM bridges         |
-| **Sprint 3** | P2       | BE-02, FE-14, BE-06, PLAT-03, PLAT-04         | Spec depth: Order-to-Cash, forecast, audit, CI + security               |
+| Sprint       | Priority | Task IDs                                      | Goal                                                                    | Assigned To |
+| ------------ | -------- | --------------------------------------------- | ----------------------------------------------------------------------- | ----------- |
+| **Sprint 1** | P0       | FE-01, FE-06, FE-07, INT-01, PLAT-01, PLAT-02 | Demo-ready: vendor form, GL forms, Procure-to-Pay E2E, live URL + video |             |
+| **Sprint 2** | P1       | FE-03–FE-05, FE-08–FE-11, INT-02–INT-05       | Core completeness: SCM admin, AP OCR, AR, HR polish, PM bridges         |             |
+| **Sprint 3** | P2       | BE-02, FE-14, BE-06, PLAT-03, PLAT-04         | Spec depth: Order-to-Cash, forecast, audit, CI + security               |             |
 
 
 ---
@@ -196,13 +196,13 @@
 ## 10. PM Decisions Required
 
 
-| #   | Decision              | Option A                   | Option B                 | Impacts              |
-| --- | --------------------- | -------------------------- | ------------------------ | -------------------- |
-| D1  | Vendor Phone/Rating   | Remove from UI             | Extend DB schema         | FE-02, BE-01         |
-| D2  | Goods Receipt page    | Info-only (receive via PO) | Dedicated GR form        | SCM UX               |
-| D3  | Order-to-Cash scope   | Skip for MVP               | Build Sales Order module | BE-02, FE-09, INT-09 |
-| D4  | Vendor portal / email | Defer to Phase 2           | Build now                | BE-07, BE-08         |
-| D5  | BI dashboard builder  | KPI page only              | Drag-drop builder        | Large FE effort      |
+| #   | Decision              | Option A                   | Option B                 | Impacts              | Owner   |
+| --- | --------------------- | -------------------------- | ------------------------ | -------------------- | ------- |
+| D1  | Vendor Phone/Rating   | Remove from UI             | Extend DB schema         | FE-02, BE-01         | done    |
+| D2  | Goods Receipt page    | Info-only (receive via PO) | Dedicated GR form        | SCM UX               | GR form |
+| D3  | Order-to-Cash scope   | Skip for MVP               | Build Sales Order module | BE-02, FE-09, INT-09 |         |
+| D4  | Vendor portal / email | Defer to Phase 2           | Build now                | BE-07, BE-08         |         |
+| D5  | BI dashboard builder  | KPI page only              | Drag-drop builder        | Large FE effort      |         |
 
 
 ---
@@ -212,17 +212,17 @@
 ## 11. PDF Requirement → Task Mapping
 
 
-| PDF Requirement | Description                        | Remaining Task IDs         |
-| --------------- | ---------------------------------- | -------------------------- |
-| F-02            | GL — period close, intercompany    | FE-06, FE-07, BE-03, BE-04 |
-| F-03            | AP/AR — OCR, payment runs          | FE-08, FE-09               |
-| F-05            | SCM — vendor portal, vendor notify | FE-01–FE-05, BE-07, BE-08  |
-| F-06            | AI demand forecasting              | FE-14, BE-09, INT-06       |
-| F-07            | PM — Gantt, milestone alerts       | FE-13, INT-02–INT-04       |
-| F-08            | BI — dashboard builder             | KPI done; builder = P3     |
-| F-09            | Audit & GDPR                       | BE-06, INT-08              |
-| F-10            | Notification engine                | FE-15, BE-07               |
-| §9              | Submission deliverables            | PLAT-01, PLAT-02           |
+| PDF Requirement | Description                        | Remaining Task IDs         | Assigned To |
+| --------------- | ---------------------------------- | -------------------------- | ----------- |
+| F-02            | GL — period close, intercompany    | FE-06, FE-07, BE-03, BE-04 |             |
+| F-03            | AP/AR — OCR, payment runs          | FE-08, FE-09               |             |
+| F-05            | SCM — vendor portal, vendor notify | FE-01–FE-05, BE-07, BE-08  |             |
+| F-06            | AI demand forecasting              | FE-14, BE-09, INT-06       |             |
+| F-07            | PM — Gantt, milestone alerts       | FE-13, INT-02–INT-04       |             |
+| F-08            | BI — dashboard builder             | KPI done; builder = P3     |             |
+| F-09            | Audit & GDPR                       | BE-06, INT-08              |             |
+| F-10            | Notification engine                | FE-15, BE-07               |             |
+| §9              | Submission deliverables            | PLAT-01, PLAT-02           |             |
 
 
 ---

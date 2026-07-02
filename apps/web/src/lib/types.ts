@@ -17,6 +17,11 @@ export interface Employee {
   status: EmployeeStatus;
 }
 
+/** Payload from the add-employee wizard (extends API-bound fields with form-only data). */
+export type NewEmployeeInput = Omit<Employee, "id" | "status"> & {
+  dateOfBirth?: string;
+};
+
 export type LeaveType = "Sick Leave" | "Earned Leave" | "Casual Leave" | "Unpaid Leave";
 export type LeaveStatus = "Pending" | "Approved" | "Rejected";
 
