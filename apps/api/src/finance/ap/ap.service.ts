@@ -5,6 +5,14 @@ import { CreateInvoiceDto, InvoiceType } from '../dto/create-invoice.dto';
 import { InvoiceMatchingService } from './invoice-matching.service';
 import { OcrService } from './ocr.service';
 
+interface InvoiceApprovedEvent {
+  tenantId: string;
+  invoiceId: string;
+  projectId?: string | null;
+  totalAmount?: number;
+  invoiceNumber?: string;
+}
+
 /**
  * Service to handle Accounts Payable (AP) operations.
  * 
@@ -58,8 +66,19 @@ export class ApService {
     }
 
     // Wrap in a transaction to safely handle the Outbox pattern
-    return this.prisma.$transaction(async (tx) => {
+    let approvalEvent: InvoiceApprovedEvent | null = null;
+
+    const result = await this.prisma.$transaction(async (tx) => {
       let initialStatus: InvoiceStatus = 'PENDING_MATCH';
+      let projectId: string | undefined;
+
+      if (dto.purchaseOrderId) {
+        const poForProject = await tx.purchaseOrder.findFirst({
+          where: { id: dto.purchaseOrderId, tenantId },
+          select: { projectId: true },
+        });
+        projectId = poForProject?.projectId ?? undefined;
+      }
 
       const invoice = await tx.invoice.create({
         data: {
@@ -68,6 +87,7 @@ export class ApService {
           invoiceNumber: dto.invoiceNumber,
           vendorId: dto.vendorId,
           purchaseOrderId: dto.purchaseOrderId,
+          projectId,
           currencyId: dto.currencyId,
           issueDate: new Date(dto.issueDate),
           dueDate: new Date(dto.dueDate),
@@ -109,13 +129,15 @@ export class ApService {
               }
             });
 
-            // 1. Emit domain event (in-memory, for immediate GL processing if configured)
-            this.eventEmitter.emit('invoice.approved', {
+            approvalEvent = {
               tenantId,
-              invoiceId: approvedInvoice.id
-            });
+              invoiceId: approvedInvoice.id,
+              projectId: invoice.projectId,
+              totalAmount: Number(approvedInvoice.totalAmount),
+              invoiceNumber: invoice.invoiceNumber,
+            };
 
-            // 2. Outbox Pattern: durable event for BullMQ to process (audit, notifications)
+            // Outbox Pattern: durable event for BullMQ to process (audit, notifications)
             await tx.outboxEvent.create({
               data: {
                 tenantId,
@@ -132,6 +154,12 @@ export class ApService {
 
       return invoice;
     });
+
+    if (approvalEvent) {
+      this.eventEmitter.emit('invoice.approved', approvalEvent);
+    }
+
+    return result;
   }
 
   /**
@@ -139,27 +167,41 @@ export class ApService {
    * WHY: Fallback for when the automatic 3-way match fails (e.g., tolerance exceeded or missing GR).
    */
   async manuallyApproveInvoice(tenantId: string, invoiceId: string) {
-    return this.prisma.$transaction(async (tx) => {
+    let approvalEvent: InvoiceApprovedEvent | null = null;
+
+    const approvedInvoice = await this.prisma.$transaction(async (tx) => {
       const invoice = await tx.invoice.findFirst({ where: { id: invoiceId, tenantId, type: 'AP' } });
       if (!invoice) throw new NotFoundException('Invoice not found');
 
-      const approvedInvoice = await tx.invoice.update({
+      const updated = await tx.invoice.update({
         where: { id: invoice.id },
         data: { status: 'APPROVED', matchedAt: new Date() }
       });
 
-      this.eventEmitter.emit('invoice.approved', { tenantId, invoiceId: approvedInvoice.id });
+      approvalEvent = {
+        tenantId,
+        invoiceId: updated.id,
+        projectId: invoice.projectId,
+        totalAmount: Number(updated.totalAmount),
+        invoiceNumber: invoice.invoiceNumber,
+      };
 
       await tx.outboxEvent.create({
         data: {
           tenantId,
           eventType: 'invoice.approved',
-          payload: { invoiceId: approvedInvoice.id, totalAmount: approvedInvoice.totalAmount },
+          payload: { invoiceId: updated.id, totalAmount: updated.totalAmount },
           status: 'PENDING'
         }
       });
 
-      return approvedInvoice;
+      return updated;
     });
+
+    if (approvalEvent) {
+      this.eventEmitter.emit('invoice.approved', approvalEvent);
+    }
+
+    return approvedInvoice;
   }
 }

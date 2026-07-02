@@ -19,6 +19,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { PrismaClient, EmploymentStatus } from '@amdox/db';
 import { Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PayslipGenerator } from './payslip-generator';
 
 @Processor('payroll')
@@ -26,7 +27,10 @@ export class PayrollProcessor extends WorkerHost {
   private readonly logger = new Logger(PayrollProcessor.name);
   private prisma = new PrismaClient();
 
-  constructor(private readonly payslipGenerator: PayslipGenerator) {
+  constructor(
+    private readonly payslipGenerator: PayslipGenerator,
+    private readonly eventEmitter: EventEmitter2,
+  ) {
     super();
   }
 
@@ -149,6 +153,14 @@ export class PayrollProcessor extends WorkerHost {
           status: 'COMPLETED',
           completedAt: new Date(),
         },
+      });
+
+      this.eventEmitter.emit('payroll.completed', {
+        tenantId,
+        payrollRunId,
+        start,
+        end,
+        label,
       });
 
       this.logger.log(`Completed payroll run for ${label}. Processed ${totalProcessed} employees.`);

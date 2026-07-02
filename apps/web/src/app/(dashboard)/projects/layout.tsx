@@ -13,6 +13,7 @@ export default function ProjectsLayout({ children }: { children: React.ReactNode
 
   const tabs = [
     { name: "Projects", path: "/projects/overview" },
+    { name: "Milestones", path: "/projects/milestones" },
     { name: "Gantt & Tasks", path: "/projects/tasks" },
     { name: "Resource Heatmap", path: "/projects/resources" },
     { name: "Budget Tracking", path: "/projects/budget" },

@@ -1,37 +1,33 @@
 import {
   IsString,
+  IsOptional,
   IsArray,
   ValidateNested,
   IsNumber,
-  IsOptional,
+  ArrayMinSize,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
-export class PurchaseOrderLineDto {
+export class MaterialRequestLineDto {
   @IsString()
   productId: string;
 
   @IsNumber()
   quantity: number;
 
+  @IsOptional()
   @IsNumber()
-  unitPrice: number;
+  estimatedUnitPrice?: number;
 }
 
-export class CreatePurchaseOrderDto {
-  @IsString()
-  vendorId: string;
-
+export class MaterialRequestDto {
   @IsOptional()
   @IsString()
-  requisitionId?: string;
-
-  @IsOptional()
-  @IsString()
-  projectId?: string;
+  reason?: string;
 
   @IsArray()
+  @ArrayMinSize(1)
   @ValidateNested({ each: true })
-  @Type(() => PurchaseOrderLineDto)
-  lines: PurchaseOrderLineDto[];
+  @Type(() => MaterialRequestLineDto)
+  lines: MaterialRequestLineDto[];
 }

@@ -15,6 +15,9 @@ import { PurchaseController } from './purchase/purchase.controller';
 import { PurchaseService } from './purchase/purchase.service';
 import { ReorderController } from './automation/reorder.controller';
 import { ReorderAutomationService } from './automation/reorder.service';
+import { RequisitionController } from './requisition/requisition.controller';
+import { RequisitionService } from './requisition/requisition.service';
+import { RequisitionListener } from './requisition/requisition.listener';
 
 import { BullModule } from '@nestjs/bullmq';
 
@@ -30,6 +33,7 @@ import { BullModule } from '@nestjs/bullmq';
     InventoryController,
     PurchaseController,
     ReorderController,
+    RequisitionController,
   ],
   providers: [
     VendorService,
@@ -37,6 +41,8 @@ import { BullModule } from '@nestjs/bullmq';
     InventoryService,
     PurchaseService,
     ReorderAutomationService,
+    RequisitionService,
+    RequisitionListener,
   ],
 })
 export class ScmModule {}

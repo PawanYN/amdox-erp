@@ -219,6 +219,7 @@ model Tenant {
   warehouses      Warehouse[]
   products        Product[]
   purchaseRequisitions PurchaseRequisition[]
+  purchaseRequisitionLines PurchaseRequisitionLine[]
   purchaseOrders  PurchaseOrder[]
   purchaseOrderLines PurchaseOrderLine[]
   goodsReceipts   GoodsReceipt[]
@@ -516,6 +517,8 @@ model Invoice {
   customer        Customer?     @relation(fields: [customerId], references: [id])
   purchaseOrderId String?
   purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
+  projectId       String?
+  project         Project?       @relation(fields: [projectId], references: [id])
   currencyId      String?
   currency        Currency?     @relation(fields: [currencyId], references: [id])
   status          InvoiceStatus @default(DRAFT)
@@ -535,6 +538,7 @@ model Invoice {
   @@index([tenantId])
   @@index([vendorId])
   @@index([customerId])
+  @@index([projectId])
 }
 
 model InvoiceLine {
@@ -820,6 +824,7 @@ model Product {
   stockMovements      StockMovement[]
   reorderRules        ReorderRule[]
   purchaseOrderLines  PurchaseOrderLine[]
+  purchaseRequisitionLines PurchaseRequisitionLine[]
   forecastPredictions ForecastPrediction[]
 
   defaultVendorId     String?
@@ -833,13 +838,33 @@ model PurchaseRequisition {
   id          String   @id @default(uuid())
   tenantId    String
   tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  projectId   String?
+  project     Project? @relation(fields: [projectId], references: [id])
   requestedBy String?
   reason      String?
   createdAt   DateTime @default(now())
 
+  lines          PurchaseRequisitionLine[]
   purchaseOrders PurchaseOrder[]
 
   @@index([tenantId])
+  @@index([projectId])
+}
+
+model PurchaseRequisitionLine {
+  id                 String              @id @default(uuid())
+  tenantId           String
+  tenant             Tenant              @relation(fields: [tenantId], references: [id])
+  requisitionId      String
+  requisition        PurchaseRequisition @relation(fields: [requisitionId], references: [id])
+  productId          String
+  product            Product             @relation(fields: [productId], references: [id])
+  quantity           Decimal             @db.Decimal(18, 4)
+  estimatedUnitPrice Decimal?            @db.Decimal(18, 4)
+
+  @@index([tenantId])
+  @@index([requisitionId])
+  @@index([productId])
 }
 
 model PurchaseOrder {
@@ -851,6 +876,8 @@ model PurchaseOrder {
   vendor          Vendor              @relation(fields: [vendorId], references: [id])
   requisitionId   String?
   requisition     PurchaseRequisition? @relation(fields: [requisitionId], references: [id])
+  projectId       String?
+  project         Project?            @relation(fields: [projectId], references: [id])
   status          PurchaseOrderStatus @default(DRAFT)
   totalAmount     Decimal             @db.Decimal(18, 4)
   orderedAt       DateTime?
@@ -865,6 +892,7 @@ model PurchaseOrder {
   @@unique([tenantId, poNumber])
   @@index([tenantId])
   @@index([vendorId])
+  @@index([projectId])
 }
 
 model PurchaseOrderLine {
@@ -996,6 +1024,9 @@ model Project {
   milestones          Milestone[]
   resourceAllocations ResourceAllocation[]
   budgets             ProjectBudget[]
+  purchaseRequisitions PurchaseRequisition[]
+  purchaseOrders      PurchaseOrder[]
+  invoices            Invoice[]
 
   @@index([tenantId])
 }
@@ -1097,8 +1128,11 @@ model ProjectBudgetLine {
   projectBudget   ProjectBudget @relation(fields: [projectBudgetId], references: [id])
   description     String
   amount          Decimal       @db.Decimal(18, 4)
+  sourceModule    String?       // e.g. "AP", "PAYROLL"
+  sourceId        String?       // e.g. invoiceId — dedup key with sourceModule
   journalEntryRef String?       // link back to Finance GL posting
 
+  @@unique([tenantId, sourceModule, sourceId])
   @@index([tenantId])
   @@index([projectBudgetId])
 }

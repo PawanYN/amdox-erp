@@ -103,9 +103,9 @@ Section **1.2 Target Users** in the PDF defines six personas. Below, each person
 | PDF quote | **"Resource allocation, milestone tracking, budget management"** |
 |-----------|-------------------------------------------------------------------|
 | **Status** | **Partial** |
-| **What exists** | Backend: `pm/projects`, tasks, budget, resource controllers. Frontend pages for overview, tasks, resources, budget. |
-| **What is missing** | All PM frontend pages use **`@/lib/mock/pm-v2`**; **"Gantt"** chart not implemented; milestone **alerts** not implemented; DAG validation for task dependencies not implemented. |
-| **How you know** | PDF §1.2, F-07; mock imports in `projects/*/page.tsx`. |
+| **What exists** | Backend: projects, tasks (DAG), milestones CRUD, budgets, resources, material requests, SCM/Finance cost bridges. Frontend: overview, detail page, milestones tab, tasks/Gantt, resources, budget, new-project wizard — all via **`pm-api.ts`**. |
+| **What is missing** | Full D3 Gantt; project edit/status API; task reschedule; RBAC on PM routes; proactive overdue scan is daily cron only. |
+| **How you know** | `apps/api/src/pm/`, `apps/web/src/app/(dashboard)/projects/` |
 
 ### 3.6 IT Administrators
 
@@ -187,9 +187,9 @@ Direct from PDF **Section 2 — Detailed Functional Requirements**.
 
 | PDF phrase | Status | Evidence |
 |------------|--------|----------|
-| **"Gantt, resource allocation, budget tracking, milestone alerts"** | Partial | Backend + mock UI; no Gantt component; no alert logic. |
-| **"Overrun alert when actual > budget by 10%"** | Not started | Budget models exist; no alert implementation found. |
-| **"Gantt renders < 1s"** | Not started | No Gantt. |
+| **"Gantt, resource allocation, budget tracking, milestone alerts"** | Partial | Real API UI + timeline Gantt with date scale; milestone CRUD + overdue alerts via events + daily cron; not full D3 Gantt. |
+| **"Overrun alert when actual > budget by 10%"** | Done | `BudgetService` + `budget.overrun` → `NotificationEventListener`. |
+| **"Gantt renders < 1s"** | Partial | Basic timeline renders quickly; not benchmarked. |
 
 ### F-08 — Business Intelligence — **Not started**
 
@@ -349,7 +349,7 @@ The company PDF uses many single-word or short labels without full definitions. 
 | `/hr/leave-requests` | F-04 leave | `@/lib/mock/hr` | ⚠️ API ready |
 | `/hr/attendance` | F-04 attendance | `@/lib/mock/hr` | ⚠️ API ready |
 | `/hr/payroll` | F-04 payroll | Mock/partial | ⚠️ API ready |
-| `/projects/*` | F-07 PM | `@/lib/mock/pm-v2` | ⚠️ API exists |
+| `/projects/*` | F-07 PM | `pm-api.ts` (live) | ✅ Live API |
 | `/settings` | F-09 / IT admin | `@/lib/mock/it` | ⚠️ Partial real tenant API |
 | `/notifications` | F-10 | Nav link exists | ❌ **Page missing** |
 

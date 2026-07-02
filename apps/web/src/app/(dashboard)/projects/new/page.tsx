@@ -50,6 +50,13 @@ type TaskDraft = {
   id: string;
   name: string;
   dependsOn: string | null;
+  milestoneId: string | null;
+};
+
+type MilestoneDraft = {
+  id: string;
+  name: string;
+  dueDate: string;
 };
 
 const inputClass =
@@ -115,75 +122,179 @@ function StepCreate({ data, setData }: any) {
   );
 }
 
-/* ── Step 2: Tasks / Milestones (WBS + DAG) ── */
-function StepTasks({ tasks, setTasks }: any) {
-  const [newTask, setNewTask] = useState({ name: "", dependsOn: "" });
+/* ── Step 2: Milestones + Tasks (WBS + DAG) ── */
+function StepTasks({
+  tasks,
+  setTasks,
+  milestones,
+  setMilestones,
+  projectEndDate,
+}: {
+  tasks: TaskDraft[];
+  setTasks: (t: TaskDraft[]) => void;
+  milestones: MilestoneDraft[];
+  setMilestones: (m: MilestoneDraft[]) => void;
+  projectEndDate: string;
+}) {
+  const [newMilestone, setNewMilestone] = useState({ name: "", dueDate: projectEndDate || "" });
+  const [newTask, setNewTask] = useState({ name: "", dependsOn: "", milestoneId: "" });
+
+  const addMilestone = () => {
+    if (!newMilestone.name || !newMilestone.dueDate) return;
+    setMilestones([
+      ...milestones,
+      {
+        id: `M-${milestones.length + 1}`,
+        name: newMilestone.name,
+        dueDate: newMilestone.dueDate,
+      },
+    ]);
+    setNewMilestone({ name: "", dueDate: projectEndDate || "" });
+  };
 
   const addTask = () => {
     if (!newTask.name) return;
-    setTasks([...tasks, { id: `T-${tasks.length + 1}`, name: newTask.name, dependsOn: newTask.dependsOn || null }]);
-    setNewTask({ name: "", dependsOn: "" });
+    setTasks([
+      ...tasks,
+      {
+        id: `T-${tasks.length + 1}`,
+        name: newTask.name,
+        dependsOn: newTask.dependsOn || null,
+        milestoneId: newTask.milestoneId || null,
+      },
+    ]);
+    setNewTask({ name: "", dependsOn: "", milestoneId: "" });
   };
 
-  const hasCycle = (taskList: any[]) => {
-    // simple DAG validation: dependency must reference an earlier task id
-    return taskList.some((t) => t.dependsOn === t.id);
-  };
+  const hasCycle = (taskList: TaskDraft[]) =>
+    taskList.some((t) => t.dependsOn === t.id);
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-md border border-[#E4E2DC] bg-[#FAFAF9] p-3 text-[11px] text-[#8A8678]">
-        WBS = Work Breakdown Structure. Each task can depend on a prior task — the system validates this forms a DAG (no circular dependencies) before allowing Gantt rendering.
+    <div className="space-y-6">
+      <div>
+        <p className="text-[13px] font-medium text-[#14171F] mb-2">Milestones</p>
+        <div className="rounded-md border border-[#E4E2DC] bg-[#FAFAF9] p-3 text-[11px] text-[#8A8678] mb-2">
+          Key delivery checkpoints with due dates. Overdue milestones trigger alerts.
+        </div>
+        <div className="space-y-2 mb-3">
+          {milestones.map((m, i) => (
+            <div key={m.id} className="flex items-center gap-3 border border-[#E4E2DC] rounded-md px-3 py-2 bg-white">
+              <span className="text-[11px] font-mono text-[#8A8678] w-12">{m.id}</span>
+              <span className="flex-1 text-[13px] text-[#14171F]">{m.name}</span>
+              <span className="text-[11px] text-[#8A8678]">{m.dueDate}</span>
+              <button
+                onClick={() => setMilestones(milestones.filter((_, idx) => idx !== i))}
+                className="text-[#B0AC9F] hover:text-[#B4533B]"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <input
+            className={inputClass}
+            placeholder="Milestone name, e.g. Phase 1 complete"
+            value={newMilestone.name}
+            onChange={(e) => setNewMilestone({ ...newMilestone, name: e.target.value })}
+          />
+          <input
+            type="date"
+            className={inputClass + " max-w-[160px]"}
+            value={newMilestone.dueDate}
+            onChange={(e) => setNewMilestone({ ...newMilestone, dueDate: e.target.value })}
+          />
+          <button
+            onClick={addMilestone}
+            className="px-3 py-2 text-[13px] font-medium rounded-md bg-[#2F6B4F] text-white whitespace-nowrap"
+          >
+            + Add milestone
+          </button>
+        </div>
       </div>
 
-      <div className="space-y-2">
-        {tasks.map((t: any, i: number) => (
-          <div key={t.id} className="flex items-center gap-3 border border-[#E4E2DC] rounded-md px-3 py-2">
-            <span className="text-[11px] font-mono text-[#8A8678] w-12">{t.id}</span>
-            <span className="flex-1 text-[13px] text-[#14171F]">{t.name}</span>
-            {t.dependsOn && (
-              <span className="flex items-center gap-1 text-[11px] text-[#1E3A5F] bg-[#1E3A5F]/10 px-2 py-0.5 rounded-full">
-                <Link2 size={10} /> after {t.dependsOn}
-              </span>
-            )}
-            <button onClick={() => setTasks(tasks.filter((_: any, idx: number) => idx !== i))}
-              className="text-[#B0AC9F] hover:text-[#B4533B]">
-              <X size={14} />
-            </button>
+      <div>
+        <p className="text-[13px] font-medium text-[#14171F] mb-2">Tasks (WBS)</p>
+        <div className="rounded-md border border-[#E4E2DC] bg-[#FAFAF9] p-3 text-[11px] text-[#8A8678] mb-2">
+          Tasks can link to a milestone and depend on prior tasks — validated as a DAG on save.
+        </div>
+        <div className="space-y-2">
+          {tasks.map((t, i) => (
+            <div key={t.id} className="flex items-center gap-3 border border-[#E4E2DC] rounded-md px-3 py-2">
+              <span className="text-[11px] font-mono text-[#8A8678] w-12">{t.id}</span>
+              <span className="flex-1 text-[13px] text-[#14171F]">{t.name}</span>
+              {t.milestoneId && (
+                <span className="text-[11px] text-[#2F6B4F] bg-[#2F6B4F]/10 px-2 py-0.5 rounded-full">
+                  → {t.milestoneId}
+                </span>
+              )}
+              {t.dependsOn && (
+                <span className="flex items-center gap-1 text-[11px] text-[#1E3A5F] bg-[#1E3A5F]/10 px-2 py-0.5 rounded-full">
+                  <Link2 size={10} /> after {t.dependsOn}
+                </span>
+              )}
+              <button
+                onClick={() => setTasks(tasks.filter((_, idx) => idx !== i))}
+                className="text-[#B0AC9F] hover:text-[#B4533B]"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ))}
+          {tasks.length === 0 && (
+            <p className="text-[12px] text-[#8A8678] italic py-3 text-center">
+              No tasks yet — add work items below (milestones optional).
+            </p>
+          )}
+        </div>
+
+        <div className="flex flex-wrap gap-2 mt-3">
+          <input
+            className={inputClass + " min-w-[140px] flex-1"}
+            placeholder="Task name, e.g. Foundation work"
+            value={newTask.name}
+            onChange={(e) => setNewTask({ ...newTask, name: e.target.value })}
+          />
+          <select
+            className={inputClass + " max-w-[140px]"}
+            value={newTask.milestoneId}
+            onChange={(e) => setNewTask({ ...newTask, milestoneId: e.target.value })}
+          >
+            <option value="">No milestone</option>
+            {milestones.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.id}: {m.name}
+              </option>
+            ))}
+          </select>
+          <select
+            className={inputClass + " max-w-[140px]"}
+            value={newTask.dependsOn}
+            onChange={(e) => setNewTask({ ...newTask, dependsOn: e.target.value })}
+          >
+            <option value="">No dependency</option>
+            {tasks.map((t) => (
+              <option key={t.id} value={t.id}>
+                after {t.id}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={addTask}
+            className="px-3 py-2 text-[13px] font-medium rounded-md bg-[#1E3A5F] text-white whitespace-nowrap"
+          >
+            + Add task
+          </button>
+        </div>
+
+        {hasCycle(tasks) && (
+          <div className="flex items-center gap-2 text-[12px] text-[#B4533B] bg-[#B4533B]/10 rounded-md px-3 py-2 mt-2">
+            <AlertTriangle size={14} /> Circular dependency detected — a task cannot depend on itself.
           </div>
-        ))}
-        {tasks.length === 0 && (
-          <p className="text-[12px] text-[#8A8678] italic py-3 text-center">No tasks yet — add the first milestone below.</p>
         )}
       </div>
 
-      <div className="flex gap-2">
-        <input
-          className={inputClass}
-          placeholder="Task name, e.g. Foundation work"
-          value={newTask.name}
-          onChange={(e) => setNewTask({ ...newTask, name: e.target.value })}
-        />
-        <select
-          className={inputClass + " max-w-[160px]"}
-          value={newTask.dependsOn}
-          onChange={(e) => setNewTask({ ...newTask, dependsOn: e.target.value })}
-        >
-          <option value="">No dependency</option>
-          {tasks.map((t: any) => <option key={t.id} value={t.id}>after {t.id}</option>)}
-        </select>
-        <button onClick={addTask} className="px-3 py-2 text-[13px] font-medium rounded-md bg-[#1E3A5F] text-white whitespace-nowrap">
-          + Add task
-        </button>
-      </div>
-
-      {hasCycle(tasks) && (
-        <div className="flex items-center gap-2 text-[12px] text-[#B4533B] bg-[#B4533B]/10 rounded-md px-3 py-2">
-          <AlertTriangle size={14} /> Circular dependency detected — a task cannot depend on itself.
-        </div>
-      )}
-
-      <EventBadge name="tasks.defined" payload="Task[] (DAG)" />
+      <EventBadge name="tasks.defined" payload="Task[] (DAG) + Milestones" />
     </div>
   );
 }
@@ -303,6 +414,7 @@ export default function ProjectCreationFlow() {
   const [step, setStep] = useState(0);
   const [project, setProject] = useState({ name: "", scope: "", budget: "", currency: "USD", startDate: "", endDate: "" });
   const [tasks, setTasks] = useState<TaskDraft[]>([]);
+  const [milestones, setMilestones] = useState<MilestoneDraft[]>([]);
   const [assignments, setAssignments] = useState<Record<string, string>>({});
   const [employees, setEmployees] = useState<EmployeeOption[]>([]);
   const [employeesLoading, setEmployeesLoading] = useState(false);
@@ -372,11 +484,25 @@ export default function ProjectCreationFlow() {
         });
       }
 
+      const milestoneIdMap: Record<string, string> = {};
+      for (const m of milestones) {
+        const created = await pmApi.createMilestone(createdProject.id, {
+          name: m.name,
+          dueDate: m.dueDate,
+        });
+        milestoneIdMap[m.id] = created.id;
+      }
+
       const taskIdMap: Record<string, string> = {};
       for (const t of tasks) {
-        const dependsOn = t.dependsOn && taskIdMap[t.dependsOn]
-          ? [taskIdMap[t.dependsOn]]
-          : undefined;
+        const dependsOn =
+          t.dependsOn && taskIdMap[t.dependsOn]
+            ? [taskIdMap[t.dependsOn]]
+            : undefined;
+        const milestoneId =
+          t.milestoneId && milestoneIdMap[t.milestoneId]
+            ? milestoneIdMap[t.milestoneId]
+            : undefined;
 
         const created = await pmApi.createTask({
           projectId: createdProject.id,
@@ -384,6 +510,7 @@ export default function ProjectCreationFlow() {
           startDate: project.startDate || undefined,
           dueDate: project.endDate || undefined,
           dependsOn,
+          milestoneId,
         });
         taskIdMap[t.id] = created.id;
       }
@@ -458,7 +585,15 @@ export default function ProjectCreationFlow() {
 
         <div className="px-6 py-6 min-h-[320px]">
           {step === 0 && <StepCreate data={project} setData={setProject} />}
-          {step === 1 && <StepTasks tasks={tasks} setTasks={setTasks} />}
+          {step === 1 && (
+            <StepTasks
+              tasks={tasks}
+              setTasks={setTasks}
+              milestones={milestones}
+              setMilestones={setMilestones}
+              projectEndDate={project.endDate}
+            />
+          )}
           {step === 2 && (
             <StepResources
               tasks={tasks}

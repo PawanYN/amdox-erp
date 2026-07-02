@@ -53,11 +53,23 @@ export class PurchaseService {
     const totalAmount = dto.lines.reduce((sum, line) => sum + (line.quantity * line.unitPrice), 0);
     const poNumber = `PO-${Date.now()}`;
 
+    let projectId = dto.projectId;
+    if (dto.requisitionId) {
+      const requisition = await this.prisma.purchaseRequisition.findFirst({
+        where: { id: dto.requisitionId, tenantId },
+      });
+      if (requisition?.projectId) {
+        projectId = requisition.projectId;
+      }
+    }
+
     return this.prisma.purchaseOrder.create({
       data: {
         tenantId,
         poNumber,
         vendorId: dto.vendorId,
+        requisitionId: dto.requisitionId,
+        projectId,
         status: 'SUBMITTED', // Or DRAFT
         totalAmount,
         orderedAt: new Date(),
@@ -77,7 +89,12 @@ export class PurchaseService {
   async getPurchaseOrders(tenantId: string) {
     return this.prisma.purchaseOrder.findMany({
       where: { tenantId },
-      include: { vendor: true, lines: true },
+      include: {
+        vendor: true,
+        lines: true,
+        project: { select: { id: true, name: true } },
+        requisition: { select: { id: true, reason: true } },
+      },
       orderBy: { createdAt: 'desc' },
     });
   }

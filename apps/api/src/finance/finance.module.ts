@@ -12,6 +12,7 @@ import { FxRateService } from './fx/fx-rate.service';
 import { OutboxProcessor } from './automation/outbox.processor';
 
 import { ScmEventsWorker } from './ap/scm-events.worker';
+import { PmCostBridgeListener } from './pm-cost-bridge.listener';
 
 @Module({
   imports: [
@@ -32,7 +33,8 @@ import { ScmEventsWorker } from './ap/scm-events.worker';
     GlService,
     FxRateService,
     OutboxProcessor,
-    ScmEventsWorker
+    ScmEventsWorker,
+    PmCostBridgeListener,
   ],
   exports: [
     FxRateService // In case other modules need currency conversions

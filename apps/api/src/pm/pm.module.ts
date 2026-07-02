@@ -5,6 +5,8 @@ import { ResourceController } from './resource/resource.controller';
 import { ResourceService } from './resource/resource.service';
 import { BudgetController } from './budget/budget.controller';
 import { BudgetService } from './budget/budget.service';
+import { LaborCostBridgeListener } from './budget/labor-cost-bridge.listener';
+import { MilestoneOverdueScheduler } from './milestone-overdue.scheduler';
 
 @Module({
   controllers: [
@@ -15,7 +17,9 @@ import { BudgetService } from './budget/budget.service';
   providers: [
     ProjectService,
     ResourceService,
-    BudgetService
+    BudgetService,
+    LaborCostBridgeListener,
+    MilestoneOverdueScheduler,
   ],
   exports: [
     ProjectService,

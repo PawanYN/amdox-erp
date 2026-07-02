@@ -68,4 +68,55 @@ export class NotificationEventListener {
       body: `SKU ${payload.productSku}: draft PO ${payload.purchaseOrderId} created`,
     });
   }
+
+  @OnEvent('requisition.created')
+  async onRequisitionCreated(payload: {
+    tenantId: string;
+    requisitionId: string;
+    projectId?: string;
+  }) {
+    await this.notifications.notify({
+      tenantId: payload.tenantId,
+      eventType: 'requisition.created',
+      title: 'Project material request',
+      body: payload.projectId
+        ? `New requisition ${payload.requisitionId} for project ${payload.projectId}`
+        : `New requisition ${payload.requisitionId}`,
+    });
+  }
+
+  @OnEvent('milestone.overdue')
+  async onMilestoneOverdue(payload: {
+    tenantId: string;
+    projectId: string;
+    milestoneId: string;
+    name: string;
+    dueDate: Date | string;
+  }) {
+    const due =
+      payload.dueDate instanceof Date
+        ? payload.dueDate.toISOString().slice(0, 10)
+        : String(payload.dueDate).slice(0, 10);
+    await this.notifications.notify({
+      tenantId: payload.tenantId,
+      eventType: 'milestone.overdue',
+      title: 'Milestone overdue',
+      body: `"${payload.name}" on project ${payload.projectId} was due ${due}`,
+    });
+  }
+
+  @OnEvent('milestone.achieved')
+  async onMilestoneAchieved(payload: {
+    tenantId: string;
+    projectId: string;
+    milestoneId: string;
+    name: string;
+  }) {
+    await this.notifications.notify({
+      tenantId: payload.tenantId,
+      eventType: 'milestone.achieved',
+      title: 'Milestone achieved',
+      body: `"${payload.name}" completed on project ${payload.projectId}`,
+    });
+  }
 }
