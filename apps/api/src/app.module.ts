@@ -14,6 +14,9 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { TenantContextInterceptor } from './common/interceptors/tenant-context.interceptor';
 import { AuthModule } from './auth/auth.module';
+import { NotificationModule } from './notification/notification.module';
+import { BiModule } from './bi/bi.module';
+import { ForecastModule } from './forecast/forecast.module';
 
 import { LoggerModule } from 'nestjs-pino';
 
@@ -62,7 +65,10 @@ import { LoggerModule } from 'nestjs-pino';
     PmModule,
     TenantModule,
     AuditModule,
-    AuthModule
+    AuthModule,
+    NotificationModule,
+    BiModule,
+    ForecastModule,
   ],
   controllers: [AppController],
   providers: [

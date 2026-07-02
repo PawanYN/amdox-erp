@@ -1,39 +1,79 @@
-/**
- * SERVICE: audit.service.ts
- * 
- * This file is the "Brain" of the operation. All business logic, calculations, and 
- * database queries belong here. The Controller calls this service to do the actual heavy lifting.
- */
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { PrismaClient } from '@amdox/db';
+import { HashChainService } from './hash-chain.service';
+
+export interface AuditLogInput {
+  tenantId: string;
+  userId?: string | null;
+  action: string;
+  entityType: string;
+  entityId: string;
+  beforeState?: unknown;
+  afterState?: unknown;
+}
 
 @Injectable()
 export class AuditService {
-  getDummyAuditLogs(tenantId: string) {
-    return [
-      {
-        id: 'log-1',
-        action: 'TENANT_CONFIG_UPDATED',
-        entityType: 'Tenant',
-        entityId: tenantId,
-        beforeState: { plan: 'STANDARD' },
-        afterState: { plan: 'ENTERPRISE' },
-        userId: 'admin-user-id',
-        hash: 'b1f82f8...',
-        previousHash: 'a0e93a1...',
-        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+  private readonly logger = new Logger(AuditService.name);
+  private prisma = new PrismaClient();
+
+  constructor(private readonly hashChain: HashChainService) {}
+
+  async record(input: AuditLogInput) {
+    const last = await this.prisma.auditLog.findFirst({
+      where: { tenantId: input.tenantId },
+      orderBy: { createdAt: 'desc' },
+      select: { hash: true },
+    });
+
+    const createdAt = new Date().toISOString();
+    const hashPayload = {
+      tenantId: input.tenantId,
+      userId: input.userId ?? null,
+      action: input.action,
+      entityType: input.entityType,
+      entityId: input.entityId,
+      beforeState: input.beforeState,
+      afterState: input.afterState,
+      createdAt,
+    };
+
+    const hash = this.hashChain.computeHash(hashPayload, last?.hash ?? null);
+
+    const log = await this.prisma.auditLog.create({
+      data: {
+        tenantId: input.tenantId,
+        userId: input.userId ?? undefined,
+        action: input.action,
+        entityType: input.entityType,
+        entityId: input.entityId,
+        beforeState: input.beforeState as object | undefined,
+        afterState: input.afterState as object | undefined,
+        hash,
+        previousHash: last?.hash ?? null,
       },
-      {
-        id: 'log-2',
-        action: 'SSO_CONFIG_UPDATED',
-        entityType: 'TenantSettings',
-        entityId: tenantId,
-        beforeState: { sso: { enabled: false } },
-        afterState: { sso: { enabled: true } },
-        userId: 'admin-user-id',
-        hash: 'c2e73f9...',
-        previousHash: 'b1f82f8...',
-        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 1).toISOString(),
-      }
-    ];
+    });
+
+    this.logger.log(
+      `[AUDIT] ${input.action} ${input.entityType}:${input.entityId} hash=${hash.slice(0, 12)}…`,
+    );
+    return log;
+  }
+
+  async getLogs(tenantId: string, limit = 100) {
+    return this.prisma.auditLog.findMany({
+      where: { tenantId },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+  }
+
+  async verifyIntegrity(tenantId: string) {
+    const logs = await this.prisma.auditLog.findMany({
+      where: { tenantId },
+      orderBy: { createdAt: 'asc' },
+      select: { hash: true, previousHash: true },
+    });
+    return this.hashChain.verifyChain(logs);
   }
 }

@@ -9,11 +9,23 @@ export class ResourceService {
 
   constructor(private eventEmitter: EventEmitter2) {}
 
+  async listAllocations(tenantId: string) {
+    return this.prisma.resourceAllocation.findMany({
+      where: { tenantId },
+      include: {
+        employee: { select: { id: true, fullName: true } },
+        project: { select: { id: true, name: true } },
+        task: { select: { id: true, title: true } },
+      },
+      orderBy: { startDate: 'desc' },
+    });
+  }
+
   async allocateResource(tenantId: string, dto: AllocateResourceDto) {
     const employee = await this.prisma.employee.findUnique({
-      where: { id: dto.employeeId, tenantId }
+      where: { id: dto.employeeId, tenantId },
     });
-    
+
     if (!employee) {
       throw new BadRequestException('Employee not found');
     }
@@ -26,27 +38,54 @@ export class ResourceService {
         employeeId: dto.employeeId,
         allocatedHours: dto.allocatedHours,
         startDate: new Date(dto.startDate),
-        endDate: dto.endDate ? new Date(dto.endDate) : null
-      }
+        endDate: dto.endDate ? new Date(dto.endDate) : null,
+      },
+      include: {
+        employee: true,
+        project: true,
+      },
     });
 
-    this.eventEmitter.emit('resources.assigned', { allocationId: allocation.id, tenantId });
-    this.eventEmitter.emit('project.resource_needed', { employeeId: employee.id, projectId: dto.projectId, tenantId });
-
+    this.eventEmitter.emit('resources.assigned', {
+      allocationId: allocation.id,
+      tenantId,
+    });
     return allocation;
   }
 
-  async getUtilisationHeatmap(tenantId: string, employeeId: string) {
+  async getUtilisationHeatmap(tenantId: string, employeeId?: string) {
     const allocations = await this.prisma.resourceAllocation.findMany({
-      where: { tenantId, employeeId }
+      where: {
+        tenantId,
+        ...(employeeId ? { employeeId } : {}),
+      },
+      include: { employee: true, project: true },
     });
 
-    const totalHours = allocations.reduce((sum, alloc) => sum + Number(alloc.allocatedHours), 0);
-    
-    return {
-      employeeId,
-      totalAllocatedHours: totalHours,
-      isOverAllocated: totalHours > 40
-    };
+    const byEmployee = new Map<
+      string,
+      { name: string; hours: number; projects: Set<string> }
+    >();
+
+    for (const a of allocations) {
+      const key = a.employeeId;
+      const entry = byEmployee.get(key) ?? {
+        name: a.employee.fullName,
+        hours: 0,
+        projects: new Set<string>(),
+      };
+      entry.hours += Number(a.allocatedHours);
+      entry.projects.add(a.project.name);
+      byEmployee.set(key, entry);
+    }
+
+    return Array.from(byEmployee.entries()).map(([id, v]) => ({
+      employeeId: id,
+      name: v.name,
+      totalAllocatedHours: v.hours,
+      projectCount: v.projects.size,
+      isOverAllocated: v.hours > 40,
+      utilisationPct: Math.min(100, Math.round((v.hours / 40) * 100)),
+    }));
   }
 }

@@ -81,4 +81,11 @@ export class GlController {
   ) {
     return this.glService.createJournalEntry(req.user.tenantId, createJournalEntryDto);
   }
+
+  @Roles('Manager', 'TenantAdmin', 'Viewer', 'SuperAdmin')
+  @Get('journal-entries')
+  @ApiOperation({ summary: 'List journal entries for tenant' })
+  async getJournalEntries(@Req() req: any) {
+    return this.glService.getJournalEntries(req.user.tenantId);
+  }
 }

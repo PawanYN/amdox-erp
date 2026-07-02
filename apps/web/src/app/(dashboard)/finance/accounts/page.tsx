@@ -1,19 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   BookOpen,
   Landmark,
   PieChart,
   Wallet,
   Plus,
-  TrendingUp,
-  TrendingDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { StatCard } from "@/components/ui/stat-card";
+import { financeApi } from "@/lib/api/finance-api";
 
 /**
  * WHAT: Chart of Accounts page for the Finance module.
@@ -41,22 +40,30 @@ type Account = {
   balance: number;
 };
 
-const ACCOUNTS: Account[] = [
-  { code: "1000", name: "Cash & Cash Equivalents", type: "asset",     subType: "current_asset",       balance: 4820000 },
-  { code: "1300", name: "Inventory",                type: "asset",     subType: "current_asset",       balance: 2150000 },
-  { code: "1400", name: "Accounts Receivable",      type: "asset",     subType: "current_asset",       balance: 980000  },
-  { code: "2000", name: "Accounts Payable",          type: "liability", subType: "current_liability",   balance: 1240000 },
-  { code: "2100", name: "Accrued Expenses",          type: "liability", subType: "current_liability",   balance: 340000  },
-  { code: "3000", name: "Retained Earnings",         type: "equity",    subType: "equity",              balance: 8600000 },
-  { code: "4000", name: "Revenue",                   type: "revenue",   subType: "operating_revenue",   balance: 12400000},
-  { code: "5000", name: "Cost of Goods Sold",        type: "expense",   subType: "cogs",                balance: 7800000 },
-  { code: "6000", name: "Operating Expenses",        type: "expense",   subType: "opex",                balance: 2100000 },
-];
-
+const ACCOUNTS: Account[] = [];
 const ACCOUNT_TYPES = ["asset", "liability", "equity", "revenue", "expense"] as const;
 
 export default function ChartOfAccountsPage() {
-  const [accounts] = useState<Account[]>(ACCOUNTS);
+  const [accounts, setAccounts] = useState<Account[]>(ACCOUNTS);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    financeApi
+      .getAccounts()
+      .then((rows: any[]) =>
+        setAccounts(
+          rows.map((a) => ({
+            code: a.code,
+            name: a.name,
+            type: String(a.type).toLowerCase() as Account["type"],
+            subType: a.type,
+            balance: 0,
+          })),
+        ),
+      )
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
 
   const totalAssets      = accounts.filter(a => a.type === "asset").reduce((s, a) => s + a.balance, 0);
   const totalLiabilities = accounts.filter(a => a.type === "liability").reduce((s, a) => s + a.balance, 0);
@@ -64,6 +71,9 @@ export default function ChartOfAccountsPage() {
 
   return (
     <div>
+      {loading && (
+        <p className="text-sm text-muted mb-4">Loading chart of accounts…</p>
+      )}
       {/* ── Header ── */}
       <div className="flex items-start justify-between animate-fade-in-up">
         <div>

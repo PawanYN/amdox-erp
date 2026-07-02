@@ -32,6 +32,11 @@ export function KeycloakProvider({ children }: { children: ReactNode }) {
     isRun.current = true;
 
     // Use onLoad: 'check-sso' so the landing page stays public!
+    if (!keycloak) {
+      setInitialized(true);
+      return;
+    }
+
     keycloak
       .init({ onLoad: "check-sso" })
       .then((auth) => {

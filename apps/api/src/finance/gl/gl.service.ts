@@ -127,6 +127,18 @@ export class GlService {
     });
   }
 
+  async getJournalEntries(tenantId: string, limit = 100) {
+    return this.prisma.journalEntry.findMany({
+      where: { tenantId },
+      include: {
+        lines: { include: { account: true } },
+        fiscalPeriod: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+  }
+
   /**
    * WHAT: Domain Event Listener that posts an expense to the GL when an AP Invoice is approved.
    * WHY: Automates the financial ledger update (Debit Expense, Credit AP) without requiring

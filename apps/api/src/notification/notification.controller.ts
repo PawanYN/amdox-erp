@@ -1,11 +1,28 @@
-/**
- * CONTROLLER: notification.controller.ts
- * 
- * This file acts as the "Traffic Cop". It receives incoming HTTP requests (like GET or POST)
- * from the frontend, reads the URL, and forwards the work to the correct Service file.
- * DO NOT put heavy database logic here!
- */
-import { Controller } from '@nestjs/common';
+import { Controller, Get, Patch, Param, Req, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { NotificationService } from './notification.service';
 
-@Controller()
-export class NotificationController { }
+@ApiTags('Notifications')
+@ApiBearerAuth()
+@UseGuards(AuthGuard('keycloak'))
+@Controller('notifications')
+export class NotificationController {
+  constructor(private readonly notificationService: NotificationService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'List in-app notifications for tenant' })
+  list(@Req() req: any) {
+    const tenantId =
+      req.user?.tenantId || req.headers['x-tenant-id'] || 'default-tenant-id';
+    return this.notificationService.listForTenant(tenantId);
+  }
+
+  @Patch(':id/read')
+  @ApiOperation({ summary: 'Mark notification as read' })
+  markRead(@Req() req: any, @Param('id') id: string) {
+    const tenantId =
+      req.user?.tenantId || req.headers['x-tenant-id'] || 'default-tenant-id';
+    return this.notificationService.markRead(tenantId, id);
+  }
+}

@@ -22,6 +22,7 @@ import {
   PanelLeftOpen,
   FolderKanban,
   LogOut,
+  BarChart,
 } from "lucide-react";
 
 /**
@@ -36,7 +37,7 @@ const ROLES: Record<
 > = {
   executive: {
     label: "Executive",
-    sections: ["/", "finance", "hr", "scm", "projects"],
+    sections: ["/home", "/bi", "finance", "hr", "scm", "projects"],
     dept: "Executive Office",
   },
   finance: {
@@ -87,6 +88,7 @@ interface NavSection {
  */
 const NAV: NavSection[] = [
   { id: "/home", icon: LayoutDashboard, label: "Home", leaf: true },
+  { id: "/bi", icon: BarChart, label: "Executive BI", leaf: true },
   {
     id: "finance",
     icon: Wallet,

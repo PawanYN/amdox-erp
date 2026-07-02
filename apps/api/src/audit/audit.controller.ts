@@ -1,13 +1,6 @@
-/**
- * CONTROLLER: audit.controller.ts
- * 
- * This file acts as the "Traffic Cop". It receives incoming HTTP requests (like GET or POST)
- * from the frontend, reads the URL, and forwards the work to the correct Service file.
- * DO NOT put heavy database logic here!
- */
 import { Controller, Get, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { AuditService } from './audit.service';
 
 @ApiTags('Audit')
@@ -15,11 +8,21 @@ import { AuditService } from './audit.service';
 @Controller('audit')
 @UseGuards(AuthGuard('keycloak'))
 export class AuditController {
-  constructor(private readonly auditService: AuditService) { }
+  constructor(private readonly auditService: AuditService) {}
 
   @Get('logs')
+  @ApiOperation({ summary: 'Immutable audit trail for tenant' })
   getLogs(@Req() req: any) {
-    const tenantId = req.tenantId || 'default-tenant-id';
-    return this.auditService.getDummyAuditLogs(tenantId);
+    const tenantId =
+      req.user?.tenantId || req.headers['x-tenant-id'] || 'default-tenant-id';
+    return this.auditService.getLogs(tenantId);
+  }
+
+  @Get('verify')
+  @ApiOperation({ summary: 'Verify tamper-evident hash chain integrity' })
+  verifyChain(@Req() req: any) {
+    const tenantId =
+      req.user?.tenantId || req.headers['x-tenant-id'] || 'default-tenant-id';
+    return this.auditService.verifyIntegrity(tenantId);
   }
 }

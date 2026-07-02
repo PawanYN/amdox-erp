@@ -27,11 +27,14 @@
  */
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaClient } from '@amdox/db';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class ReorderAutomationService {
   private prisma = new PrismaClient();
   private readonly logger = new Logger(ReorderAutomationService.name);
+
+  constructor(private readonly eventEmitter: EventEmitter2) {}
 
   async runReorderChecks(tenantId: string) {
     this.logger.log(`Running reorder automation for tenant: ${tenantId}`);
@@ -67,7 +70,7 @@ export class ReorderAutomationService {
 
         if (!existingPo) {
           const poNumber = `AUTO-PO-${Date.now()}`;
-          await this.prisma.purchaseOrder.create({
+          const created = await this.prisma.purchaseOrder.create({
             data: {
               tenantId,
               poNumber,
@@ -83,6 +86,12 @@ export class ReorderAutomationService {
                 },
               },
             },
+          });
+
+          this.eventEmitter.emit('reorder.triggered', {
+            tenantId,
+            productSku: rule.product.sku,
+            purchaseOrderId: created.id,
           });
           
           this.logger.log(`Created auto PO ${poNumber} for product ${rule.product.sku}`);

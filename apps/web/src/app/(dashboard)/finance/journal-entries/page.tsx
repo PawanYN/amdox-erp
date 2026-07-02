@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Wallet,
   Plus,
@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/ui/stat-card";
+import { financeApi } from "@/lib/api/finance-api";
 
 /**
  * WHAT: Journal Entries (GL) page for the Finance module.
@@ -91,7 +92,8 @@ const STATUS_STYLE: Record<string, string> = {
 };
 
 export default function JournalEntriesPage() {
-  const [entries, setEntries] = useState<JournalEntry[]>(MOCK_ENTRIES);
+  const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [newEntry, setNewEntry] = useState({
     description: "",
@@ -101,6 +103,30 @@ export default function JournalEntriesPage() {
       { account: "", debit: 0, credit: 0 },
     ],
   });
+
+  useEffect(() => {
+    financeApi
+      .getJournalEntries()
+      .then((rows: any[]) =>
+        setEntries(
+          rows.map((e) => ({
+            id: e.id,
+            entryDate: e.createdAt?.slice(0, 10) ?? "",
+            status: String(e.status).toLowerCase() as JournalEntry["status"],
+            description: e.description ?? e.reference ?? "",
+            currency: "INR",
+            exchangeRate: 1,
+            lines: (e.lines ?? []).map((l: any) => ({
+              account: l.account?.name ?? l.accountId,
+              debit: Number(l.debit),
+              credit: Number(l.credit),
+            })),
+          })),
+        ),
+      )
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
 
   const totalEntries  = entries.length;
   const postedEntries = entries.filter(e => e.status === "posted").length;
@@ -239,7 +265,7 @@ export default function JournalEntriesPage() {
           )}
 
           <div className="flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setShowForm(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
             <Button disabled={!isBalanced}>Save as Draft</Button>
           </div>
         </div>
@@ -293,7 +319,7 @@ export default function JournalEntriesPage() {
 
               {je.status === "draft" && (
                 <div className="flex justify-end mt-3">
-                  <Button size="sm" onClick={() => handlePost(je.id)}>
+                  <Button onClick={() => handlePost(je.id)}>
                     Post to GL →
                   </Button>
                 </div>

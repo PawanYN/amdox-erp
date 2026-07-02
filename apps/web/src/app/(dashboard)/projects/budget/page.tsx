@@ -1,40 +1,51 @@
 "use client";
 
-import { TrendingUp, TrendingDown } from "lucide-react";
-import { PROJECTS } from "@/lib/mock/pm-v2";
+import { useEffect, useState } from "react";
+import { pmApi } from "@/lib/api/pm-api";
 
 export default function ProjectsBudgetPage() {
+  const [budgets, setBudgets] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    pmApi
+      .getBudgets()
+      .then(setBudgets)
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <p className="text-sm text-muted">Loading budgets…</p>;
+
   return (
     <div className="space-y-3">
-      {PROJECTS.map((p) => {
-        const variance = p.budget - p.spent;
-        const isOver = variance < 0;
-        const pctSpent = Math.min(100, (p.spent / p.budget) * 100);
-        return (
-          <div key={p.name} className="border border-[#E4E2DC] rounded-lg p-4 bg-white">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-medium text-[#14171F]">{p.name}</p>
-              <span className={`flex items-center gap-1 text-[12px] font-medium ${isOver ? "text-[#B4533B]" : "text-[#2F6B4F]"}`}>
-                {isOver ? <TrendingDown size={13} /> : <TrendingUp size={13} />}
-                {isOver ? "Over budget" : "Under budget"}
-              </span>
+      {budgets.length === 0 ? (
+        <p className="text-sm text-muted">No project budgets set yet.</p>
+      ) : (
+        budgets.map((b) => (
+          <div
+            key={b.id}
+            className="border border-[#E4E2DC] rounded-lg p-4 bg-white"
+          >
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="font-medium text-[#14171F]">{b.project?.name}</p>
+                <p className="text-[12px] text-[#8A8678]">
+                  Planned ₹{b.plannedAmount.toLocaleString()} · Actual ₹
+                  {b.actualAmount.toLocaleString()}
+                </p>
+              </div>
+              {b.isOverrun && (
+                <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#B4533B]/10 text-[#B4533B]">
+                  Overrun alert
+                </span>
+              )}
             </div>
-            <div className="flex items-center gap-4 text-[12px] mb-2">
-              <span className="text-[#8A8678]">Planned: <span className="font-mono text-[#14171F]">${p.budget.toLocaleString()}</span></span>
-              <span className="text-[#8A8678]">Actual: <span className="font-mono text-[#14171F]">${p.spent.toLocaleString()}</span></span>
-              <span className="text-[#8A8678]">Variance: <span className={`font-mono ${isOver ? "text-[#B4533B]" : "text-[#2F6B4F]"}`}>
-                {isOver ? "-" : "+"}${Math.abs(variance).toLocaleString()}
-              </span></span>
-            </div>
-            <div className="h-2 bg-[#F0EEE7] rounded-full overflow-hidden relative">
-              <div
-                className={`h-full rounded-full ${isOver ? "bg-[#B4533B]" : "bg-[#1E3A5F]"}`}
-                style={{ width: `${pctSpent}%` }}
-              />
+            <div className="mt-2 text-[12px] font-mono text-[#6B675D]">
+              Variance: {b.variancePct}%
             </div>
           </div>
-        );
-      })}
+        ))
+      )}
     </div>
   );
 }

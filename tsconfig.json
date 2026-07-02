@@ -8,5 +8,6 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "exclude": ["node_modules", "dist"]
+  "files": [],
+  "exclude": ["node_modules", "dist", "apps", "packages"]
 }

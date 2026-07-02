@@ -44,11 +44,11 @@ type BackendInvoice = {
   type: string;
 };
 
-const STATUS_TONE: Record<string, "positive" | "info" | "caution" | "critical" | "neutral"> = {
-  PAID:          "positive",
-  APPROVED:      "info",
-  PENDING_MATCH: "caution",
-  OVERDUE:       "critical",
+const STATUS_TONE: Record<string, "approved" | "pending" | "rejected" | "processed" | "inactive"> = {
+  PAID:          "processed",
+  APPROVED:      "approved",
+  PENDING_MATCH: "pending",
+  OVERDUE:       "rejected",
 };
 
 export default function InvoicesPage() {
@@ -124,7 +124,7 @@ export default function InvoicesPage() {
     {
       header: "Status",
       cell: invoice => (
-        <Badge tone={STATUS_TONE[invoice.status] || "neutral"}>
+        <Badge tone={STATUS_TONE[invoice.status] || "inactive"}>
           {invoice.status.replace("_", " ")}
         </Badge>
       ),
@@ -133,7 +133,7 @@ export default function InvoicesPage() {
       header: "Action",
       cell: invoice => (
         invoice.status === "PENDING_MATCH" ? (
-          <Button size="sm" variant="outline" onClick={() => handleApprove(invoice.id)} icon={<Check size={14} />}>
+          <Button variant="outline" onClick={() => handleApprove(invoice.id)} icon={<Check size={14} />}>
             Manual Approve
           </Button>
         ) : null

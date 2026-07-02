@@ -1,10 +1,68 @@
-/**
- * SERVICE: gdpr.service.ts
- * 
- * This file is the "Brain" of the operation. All business logic, calculations, and 
- * database queries belong here. The Controller calls this service to do the actual heavy lifting.
- */
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
+import {
+  PrismaClient,
+  DataSubjectRequestType,
+  DataSubjectRequestStatus,
+} from '@amdox/db';
 
 @Injectable()
-export class GdprService {}
+export class GdprService {
+  private prisma = new PrismaClient();
+
+  async createRequest(
+    tenantId: string,
+    subjectEmail: string,
+    type: DataSubjectRequestType,
+  ) {
+    return this.prisma.dataSubjectRequest.create({
+      data: { tenantId, subjectEmail, type, status: 'OPEN' },
+    });
+  }
+
+  async listRequests(tenantId: string) {
+    return this.prisma.dataSubjectRequest.findMany({
+      where: { tenantId },
+      orderBy: { requestedAt: 'desc' },
+    });
+  }
+
+  async fulfillRequest(tenantId: string, requestId: string) {
+    const req = await this.prisma.dataSubjectRequest.findFirst({
+      where: { id: requestId, tenantId },
+    });
+    if (!req) throw new NotFoundException('Data subject request not found');
+    if (req.status === 'FULFILLED') {
+      throw new BadRequestException('Request already fulfilled');
+    }
+
+    return this.prisma.dataSubjectRequest.update({
+      where: { id: requestId },
+      data: { status: 'FULFILLED', fulfilledAt: new Date() },
+    });
+  }
+
+  async recordConsent(
+    tenantId: string,
+    subjectEmail: string,
+    consentType: string,
+    granted: boolean,
+  ) {
+    return this.prisma.consentRecord.create({
+      data: { tenantId, subjectEmail, consentType, granted },
+    });
+  }
+
+  async listConsents(tenantId: string, subjectEmail?: string) {
+    return this.prisma.consentRecord.findMany({
+      where: {
+        tenantId,
+        ...(subjectEmail ? { subjectEmail } : {}),
+      },
+      orderBy: { recordedAt: 'desc' },
+    });
+  }
+}

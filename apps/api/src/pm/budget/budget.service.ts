@@ -24,6 +24,29 @@ export class BudgetService {
     return budget;
   }
 
+  async listBudgets(tenantId: string) {
+    const budgets = await this.prisma.projectBudget.findMany({
+      where: { tenantId },
+      include: { project: { select: { id: true, name: true, status: true } } },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    return budgets.map((b) => {
+      const planned = Number(b.plannedAmount);
+      const actual = Number(b.actualAmount);
+      const threshold = Number(b.overrunThresholdPct);
+      const maxAllowed = planned + planned * (threshold / 100);
+      return {
+        ...b,
+        plannedAmount: planned,
+        actualAmount: actual,
+        overrunThresholdPct: threshold,
+        variancePct: planned > 0 ? Math.round(((actual - planned) / planned) * 100) : 0,
+        isOverrun: actual > maxAllowed,
+      };
+    });
+  }
+
   @OnEvent('cost.reported')
   async handleCostReported(payload: { projectId: string; amount: number; tenantId: string }) {
     this.logger.log(`Received cost report for project ${payload.projectId}: ${payload.amount}`);

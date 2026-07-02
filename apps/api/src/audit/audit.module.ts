@@ -1,15 +1,19 @@
-/**
- * MODULE: audit.module.ts
- * 
- * This file bundles together all the controllers and services for this specific feature.
- * It acts as the "glue" that tells NestJS how these files depend on each other.
- */
 import { Module } from '@nestjs/common';
 import { AuditController } from './audit.controller';
 import { AuditService } from './audit.service';
+import { HashChainService } from './hash-chain.service';
+import { AuditEventListener } from './audit-event.listener';
+import { GdprController } from './gdpr/gdpr.controller';
+import { GdprService } from './gdpr/gdpr.service';
 
 @Module({
-  controllers: [AuditController],
-  providers: [AuditService],
+  controllers: [AuditController, GdprController],
+  providers: [
+    AuditService,
+    HashChainService,
+    AuditEventListener,
+    GdprService,
+  ],
+  exports: [AuditService],
 })
 export class AuditModule {}

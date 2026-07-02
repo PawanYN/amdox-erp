@@ -1,6 +1,6 @@
-import { Controller, Post, Body, Req, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Body, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { BudgetService } from './budget.service';
 import { SetBudgetDto } from '../dto/set-budget.dto';
 
@@ -11,9 +11,16 @@ import { SetBudgetDto } from '../dto/set-budget.dto';
 export class BudgetController {
   constructor(private readonly budgetService: BudgetService) {}
 
+  @Get()
+  @ApiOperation({ summary: 'List project budgets with variance' })
+  listBudgets(@Req() req: any) {
+    const tenantId = req.user?.tenantId || req.tenantId || 'default-tenant-id';
+    return this.budgetService.listBudgets(tenantId);
+  }
+
   @Post()
   setBudget(@Req() req: any, @Body() dto: SetBudgetDto) {
-    const tenantId = req.tenantId || 'default-tenant-id'; 
+    const tenantId = req.user?.tenantId || req.tenantId || 'default-tenant-id';
     return this.budgetService.setBudget(tenantId, dto);
   }
 }

@@ -76,7 +76,7 @@ export default function VendorsPage() {
     {
       header: "Status",
       cell: (vendor) => (
-        <Badge tone={vendor.isActive ? "positive" : "neutral"}>
+        <Badge tone={vendor.isActive ? "active" : "inactive"}>
           {vendor.isActive ? "Active" : "Inactive"}
         </Badge>
       ),

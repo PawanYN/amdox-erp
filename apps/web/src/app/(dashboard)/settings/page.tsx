@@ -23,7 +23,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
-import { mockTenantConfig, mockAuditLogs, mockGdprRequests } from "@/lib/mock/it";
+import { mockTenantConfig } from "@/lib/mock/it";
+import { auditApi } from "@/lib/api/audit-api";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("general");
@@ -32,6 +33,8 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [gdprRequests, setGdprRequests] = useState<any[]>([]);
 
   // Keycloak configs
   const [kcConfig, setKcConfig] = useState<any>({
@@ -92,6 +95,15 @@ export default function SettingsPage() {
       "x-tenant-id": slug,
     };
   };
+
+  useEffect(() => {
+    if (activeTab === "audit") {
+      auditApi.getLogs().then(setAuditLogs).catch(console.error);
+    }
+    if (activeTab === "compliance") {
+      auditApi.getGdprRequests().then(setGdprRequests).catch(console.error);
+    }
+  }, [activeTab]);
 
   const fetchAllData = async () => {
     setLoading(true);
@@ -242,7 +254,7 @@ export default function SettingsPage() {
     }
   };
 
-  const auditColumns: ColumnDef<typeof mockAuditLogs[0]>[] = [
+  const auditColumns: ColumnDef<any>[] = [
     { header: "Date", accessorKey: "createdAt", cell: (row) => new Date(row.createdAt).toLocaleString() },
     { header: "Action", accessorKey: "action" },
     { header: "Entity", accessorKey: "entityType" },
@@ -254,7 +266,7 @@ export default function SettingsPage() {
     )}
   ];
 
-  const gdprColumns: ColumnDef<typeof mockGdprRequests[0]>[] = [
+  const gdprColumns: ColumnDef<any>[] = [
     { header: "Subject Email", accessorKey: "subjectEmail" },
     { header: "Type", accessorKey: "type" },
     { header: "Requested", accessorKey: "requestedAt", cell: (row) => new Date(row.requestedAt).toLocaleDateString() },
@@ -998,7 +1010,7 @@ export default function SettingsPage() {
                   <ShieldCheck size={12} /> Hash Chain Verified
                 </div>
               </div>
-              <DataTable data={mockAuditLogs} columns={auditColumns} keyExtractor={(r) => r.id} />
+              <DataTable data={auditLogs} columns={auditColumns} keyExtractor={(r) => r.id} />
             </div>
           )}
 
@@ -1006,7 +1018,7 @@ export default function SettingsPage() {
           {activeTab === "compliance" && (
             <div className="space-y-4">
               <h2 className="text-sm font-semibold text-gray-900 pb-2 border-b">Data Subject Requests (GDPR)</h2>
-              <DataTable data={mockGdprRequests} columns={gdprColumns} keyExtractor={(r) => r.id} />
+              <DataTable data={gdprRequests} columns={gdprColumns} keyExtractor={(r) => r.id} />
             </div>
           )}
 

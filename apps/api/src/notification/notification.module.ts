@@ -1,10 +1,11 @@
-/**
- * MODULE: notification.module.ts
- * 
- * This file bundles together all the controllers and services for this specific feature.
- * It acts as the "glue" that tells NestJS how these files depend on each other.
- */
 import { Module } from '@nestjs/common';
+import { NotificationController } from './notification.controller';
+import { NotificationService } from './notification.service';
+import { NotificationEventListener } from './notification-event.listener';
 
-@Module({})
-export class NotificationModule { }
+@Module({
+  controllers: [NotificationController],
+  providers: [NotificationService, NotificationEventListener],
+  exports: [NotificationService],
+})
+export class NotificationModule {}
