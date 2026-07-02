@@ -1,6 +1,14 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, useRef, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useRef,
+  useCallback,
+  ReactNode,
+} from "react";
 import keycloak from "../lib/keycloak";
 
 interface KeycloakContextType {
@@ -21,28 +29,68 @@ const KeycloakContext = createContext<KeycloakContextType>({
 
 export const useKeycloak = () => useContext(KeycloakContext);
 
+/** How often to proactively check token expiry (ms). */
+const REFRESH_CHECK_INTERVAL_MS = 30_000;
+/** Refresh when less than this many seconds remain before expiry. */
+const REFRESH_MIN_VALIDITY_SEC = 70;
+
 export function KeycloakProvider({ children }: { children: ReactNode }) {
   const [initialized, setInitialized] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
+  const [token, setToken] = useState<string | undefined>(undefined);
   const isRun = useRef(false);
 
+  const syncToken = useCallback(() => {
+    setToken(keycloak?.token);
+  }, []);
+
+  const refreshToken = useCallback(async () => {
+    if (!keycloak?.authenticated) return;
+    try {
+      const refreshed = await keycloak.updateToken(REFRESH_MIN_VALIDITY_SEC);
+      if (refreshed) syncToken();
+    } catch {
+      console.warn("Token refresh failed — redirecting to login.");
+      keycloak?.login();
+    }
+  }, [syncToken]);
+
   useEffect(() => {
-    // Prevent strict-mode double-initialization
     if (isRun.current) return;
     isRun.current = true;
 
-    // Use onLoad: 'check-sso' so the landing page stays public!
     if (!keycloak) {
       setInitialized(true);
       return;
     }
 
-    keycloak
-      .init({ onLoad: "check-sso" })
+    const kc = keycloak;
+
+    kc.onTokenExpired = () => {
+      refreshToken();
+    };
+
+    kc.onAuthRefreshSuccess = () => {
+      syncToken();
+    };
+
+    kc.onAuthRefreshError = () => {
+      console.warn("Auth refresh error — redirecting to login.");
+      kc.login();
+    };
+
+    kc.onAuthLogout = () => {
+      setAuthenticated(false);
+      setToken(undefined);
+    };
+
+    kc
+      .init({ onLoad: "check-sso", checkLoginIframe: false })
       .then((auth) => {
         setAuthenticated(auth);
+        if (auth) syncToken();
         setInitialized(true);
-        if (auth && window.location.search.includes('code=')) {
+        if (auth && window.location.search.includes("code=")) {
           window.history.replaceState({}, document.title, window.location.pathname);
         }
       })
@@ -50,14 +98,20 @@ export function KeycloakProvider({ children }: { children: ReactNode }) {
         console.error("Keycloak initialization failed", err);
         setInitialized(true);
       });
-  }, []);
+
+    const interval = setInterval(refreshToken, REFRESH_CHECK_INTERVAL_MS);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [refreshToken, syncToken]);
 
   return (
     <KeycloakContext.Provider
       value={{
         initialized,
         authenticated,
-        token: keycloak?.token,
+        token,
         login: () => keycloak?.login(),
         logout: () => {
           if (typeof window !== "undefined") {

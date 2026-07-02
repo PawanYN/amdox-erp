@@ -8,6 +8,7 @@ import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { mockAttendance, STANDARD_SHIFT_HOURS } from "@/lib/mock/hr";
 import { currentUser } from "@/lib/current-user";
 import { useKeycloak } from "@/components/KeycloakProvider";
+import { getAuthHeaders } from "@/lib/auth";
 
 function formatTime(date: Date): string {
   return date.toLocaleTimeString("en-IN", {
@@ -25,9 +26,8 @@ export default function AttendancePage() {
     if (!token) return;
     const fetchAttendance = async () => {
       try {
-        const res = await fetch("http://localhost:3001/attendance/all", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const headers = await getAuthHeaders();
+        const res = await fetch("http://localhost:3001/attendance/all", { headers });
         if (res.ok) {
           const data = await res.json();
           const formatted = data.map((rec: any) => {

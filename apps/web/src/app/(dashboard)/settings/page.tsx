@@ -25,8 +25,13 @@ import { Button } from "@/components/ui/button";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { mockTenantConfig } from "@/lib/mock/it";
 import { auditApi } from "@/lib/api/audit-api";
+import { useKeycloak } from "@/components/KeycloakProvider";
+import { getAuthHeaders } from "@/lib/auth";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 export default function SettingsPage() {
+  const { token, initialized } = useKeycloak();
   const [activeTab, setActiveTab] = useState("general");
   const [activeSubTab, setActiveSubTab] = useState("login"); // For Keycloak settings
   const [tenantConfig, setTenantConfig] = useState(mockTenantConfig);
@@ -88,14 +93,6 @@ export default function SettingsPage() {
     { id: "compliance", label: "Compliance (GDPR)", icon: FileText },
   ];
 
-  const getHeaders = () => {
-    const slug = typeof window !== "undefined" ? (localStorage.getItem("tenant_slug") || "company-b") : "company-b";
-    return {
-      "Content-Type": "application/json",
-      "x-tenant-id": slug,
-    };
-  };
-
   useEffect(() => {
     if (activeTab === "audit") {
       auditApi.getLogs().then(setAuditLogs).catch(console.error);
@@ -106,38 +103,41 @@ export default function SettingsPage() {
   }, [activeTab]);
 
   const fetchAllData = async () => {
+    if (!token) return;
     setLoading(true);
     try {
+      const headers = await getAuthHeaders();
+
       // 1. Fetch Keycloak config
-      const resConfig = await fetch("http://localhost:3001/tenant/keycloak-config", { headers: getHeaders() });
+      const resConfig = await fetch(`${API_BASE_URL}/tenant/keycloak-config`, { headers });
       if (resConfig.ok) {
         const configData = await resConfig.json();
         if (!configData.error) setKcConfig(configData);
       }
 
       // 2. Fetch Required Actions
-      const resActions = await fetch("http://localhost:3001/tenant/required-actions", { headers: getHeaders() });
+      const resActions = await fetch(`${API_BASE_URL}/tenant/required-actions`, { headers });
       if (resActions.ok) {
         const actionsData = await resActions.json();
         setRequiredActions(actionsData);
       }
 
       // 3. Fetch Identity Providers
-      const resIdps = await fetch("http://localhost:3001/tenant/identity-providers", { headers: getHeaders() });
+      const resIdps = await fetch(`${API_BASE_URL}/tenant/identity-providers`, { headers });
       if (resIdps.ok) {
         const idpsData = await resIdps.json();
         setIdentityProviders(idpsData);
       }
 
       // 4. Fetch Tenant Details
-      const resTenant = await fetch("http://localhost:3001/tenant/config", { headers: getHeaders() });
+      const resTenant = await fetch(`${API_BASE_URL}/tenant/config`, { headers });
       if (resTenant.ok) {
         const tenantData = await resTenant.json();
         if (!tenantData.error) setTenantConfig(tenantData);
       }
 
       // 5. Fetch Authentication Flows
-      const resFlows = await fetch("http://localhost:3001/tenant/authentication-flows", { headers: getHeaders() });
+      const resFlows = await fetch(`${API_BASE_URL}/tenant/authentication-flows`, { headers });
       if (resFlows.ok) {
         const flowsData = await resFlows.json();
         setAuthFlows(flowsData);
@@ -151,17 +151,20 @@ export default function SettingsPage() {
   };
 
   useEffect(() => {
-    fetchAllData();
-  }, []);
+    if (initialized && token) {
+      fetchAllData();
+    }
+  }, [initialized, token]);
 
   const handleSaveConfig = async () => {
     setLoading(true);
     setSuccessMsg(null);
     setErrorMsg(null);
     try {
-      const res = await fetch("http://localhost:3001/tenant/keycloak-config", {
+      const headers = await getAuthHeaders();
+      const res = await fetch(`${API_BASE_URL}/tenant/keycloak-config`, {
         method: "PUT",
-        headers: getHeaders(),
+        headers,
         body: JSON.stringify(kcConfig),
       });
       if (res.ok) {
@@ -181,15 +184,15 @@ export default function SettingsPage() {
     setSuccessMsg(null);
     setErrorMsg(null);
     try {
-      const res = await fetch(`http://localhost:3001/tenant/required-actions/${action.alias}`, {
+      const headers = await getAuthHeaders();
+      const res = await fetch(`${API_BASE_URL}/tenant/required-actions/${action.alias}`, {
         method: "PUT",
-        headers: getHeaders(),
+        headers,
         body: JSON.stringify({ ...action, enabled }),
       });
       if (res.ok) {
         setSuccessMsg(`Required action '${action.name}' updated!`);
-        // Refresh actions
-        const resActions = await fetch("http://localhost:3001/tenant/required-actions", { headers: getHeaders() });
+        const resActions = await fetch(`${API_BASE_URL}/tenant/required-actions`, { headers });
         if (resActions.ok) setRequiredActions(await resActions.json());
       } else {
         setErrorMsg("Failed to update Required Action.");
@@ -208,16 +211,16 @@ export default function SettingsPage() {
     setSuccessMsg(null);
     setErrorMsg(null);
     try {
-      const res = await fetch("http://localhost:3001/tenant/identity-providers", {
+      const headers = await getAuthHeaders();
+      const res = await fetch(`${API_BASE_URL}/tenant/identity-providers`, {
         method: "POST",
-        headers: getHeaders(),
+        headers,
         body: JSON.stringify(newIdp),
       });
       if (res.ok) {
         setSuccessMsg(`Identity provider '${newIdp.alias}' added!`);
         setNewIdp({ alias: "", providerId: "", displayName: "", enabled: true });
-        // Refresh IDPs
-        const resIdps = await fetch("http://localhost:3001/tenant/identity-providers", { headers: getHeaders() });
+        const resIdps = await fetch(`${API_BASE_URL}/tenant/identity-providers`, { headers });
         if (resIdps.ok) setIdentityProviders(await resIdps.json());
       } else {
         setErrorMsg("Failed to add Identity Provider.");
@@ -235,14 +238,14 @@ export default function SettingsPage() {
     setSuccessMsg(null);
     setErrorMsg(null);
     try {
-      const res = await fetch(`http://localhost:3001/tenant/identity-providers/${alias}`, {
+      const headers = await getAuthHeaders();
+      const res = await fetch(`${API_BASE_URL}/tenant/identity-providers/${alias}`, {
         method: "DELETE",
-        headers: getHeaders(),
+        headers,
       });
       if (res.ok) {
         setSuccessMsg(`Identity provider '${alias}' deleted!`);
-        // Refresh IDPs
-        const resIdps = await fetch("http://localhost:3001/tenant/identity-providers", { headers: getHeaders() });
+        const resIdps = await fetch(`${API_BASE_URL}/tenant/identity-providers`, { headers });
         if (resIdps.ok) setIdentityProviders(await resIdps.json());
       } else {
         setErrorMsg("Failed to delete Identity Provider.");

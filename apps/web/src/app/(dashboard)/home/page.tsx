@@ -1,6 +1,7 @@
 "use client";
 
 import { useKeycloak } from "@/components/KeycloakProvider";
+import { getAuthHeaders } from "@/lib/auth";
 import { User, Shield, Calendar, Clock, ArrowRight, FileText, Zap, LogOut } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -49,7 +50,7 @@ export default function DashboardHome() {
 
     const fetchData = async () => {
       try {
-        const headers = { Authorization: `Bearer ${token}` };
+        const headers = await getAuthHeaders();
 
         // Fetch Profile
         const profRes = await fetch("http://localhost:3001/employees/me", { headers });
@@ -88,9 +89,10 @@ export default function DashboardHome() {
   const handleClockIn = async () => {
     if (!profile?.id) return;
     try {
+      const headers = await getAuthHeaders();
       const res = await fetch("http://localhost:3001/attendance/clock-in", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers,
         body: JSON.stringify({ employeeId: profile.id, source: "api" })
       });
       if (res.ok) {
@@ -108,9 +110,10 @@ export default function DashboardHome() {
   const handleClockOut = async () => {
     if (!profile?.id) return;
     try {
+      const headers = await getAuthHeaders();
       const res = await fetch(`http://localhost:3001/attendance/clock-out/${profile.id}`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        headers,
       });
       if (res.ok) {
         setClockedIn(false);
@@ -128,12 +131,10 @@ export default function DashboardHome() {
     if (!profile?.id || !leaveType || !startDate || !endDate) return;
     setIsSubmitting(true);
     try {
+      const headers = await getAuthHeaders();
       const res = await fetch("http://localhost:3001/leave", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
+        headers,
         body: JSON.stringify({
           employeeId: profile.id,
           leaveType: leaveType.toLowerCase().includes('sick') ? 'sick' : 'annual',
@@ -148,9 +149,7 @@ export default function DashboardHome() {
         setEndDate("");
         setReason("");
         // Refresh requests
-        const reqRes = await fetch(`http://localhost:3001/leave/my-requests/${profile.id}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const reqRes = await fetch(`http://localhost:3001/leave/my-requests/${profile.id}`, { headers });
         if (reqRes.ok) setRequests(await reqRes.json());
       }
     } catch (err) {

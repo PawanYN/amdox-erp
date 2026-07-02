@@ -9,6 +9,7 @@ import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { PayrollRecord } from "@/lib/types";
 import { PayslipModal } from "./payslip-modal";
 import { useKeycloak } from "@/components/KeycloakProvider";
+import { getAuthHeaders } from "@/lib/auth";
 
 function formatINR(amount: number): string {
   return `₹${amount.toLocaleString("en-IN")}`;
@@ -25,9 +26,8 @@ export default function PayrollPage() {
     if (!token) return;
     setIsRefreshing(true);
     try {
-      const res = await fetch("http://localhost:3001/hr/payroll?period=2026-06", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const headers = await getAuthHeaders();
+      const res = await fetch("http://localhost:3001/hr/payroll?period=2026-06", { headers });
       if (res.ok) {
         const { data } = await res.json();
         setRecords(data);
@@ -47,9 +47,10 @@ export default function PayrollPage() {
     if (!token) return;
     setIsRunning(true);
     try {
+      const headers = await getAuthHeaders();
       const res = await fetch("http://localhost:3001/hr/payroll/run", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers,
         body: JSON.stringify({ payPeriod: "2026-06" })
       });
       if (res.ok) {

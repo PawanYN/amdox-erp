@@ -1,4 +1,4 @@
-import keycloak from "../keycloak";
+import { ensureFreshToken } from "../auth";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -8,15 +8,9 @@ export async function apiClient(endpoint: string, options: RequestInit = {}) {
     ...(options.headers as Record<string, string>),
   };
 
-  if (keycloak && keycloak.token) {
-    try {
-      // Refresh token if it will expire within 30 seconds
-      await keycloak.updateToken(30);
-    } catch (err) {
-      console.warn("Failed to refresh token or session expired. Prompting re-login.");
-      keycloak.login();
-    }
-    headers["Authorization"] = `Bearer ${keycloak.token}`;
+  const token = await ensureFreshToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
   }
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -24,12 +18,26 @@ export async function apiClient(endpoint: string, options: RequestInit = {}) {
     headers,
   });
 
+  if (response.status === 401 && token) {
+    const retryToken = await ensureFreshToken(0);
+    if (retryToken && retryToken !== token) {
+      headers["Authorization"] = `Bearer ${retryToken}`;
+      const retryResponse = await fetch(`${API_BASE_URL}${endpoint}`, {
+        ...options,
+        headers,
+      });
+      if (retryResponse.ok) {
+        const text = await retryResponse.text();
+        return text ? JSON.parse(text) : {};
+      }
+    }
+  }
+
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.message || `API Error: ${response.status}`);
   }
 
-  // Handle empty responses (like 204 or some patches)
   const text = await response.text();
   return text ? JSON.parse(text) : {};
 }

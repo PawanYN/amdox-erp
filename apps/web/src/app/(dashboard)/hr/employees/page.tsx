@@ -9,6 +9,7 @@ import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { StatCard } from "@/components/ui/stat-card";
 import { Employee } from "@/lib/types";
 import { useKeycloak } from "@/components/KeycloakProvider";
+import { getAuthHeaders } from "@/lib/auth";
 import { EmployeeForm } from "./employee-form";
 import { OrgChart } from "./org-chart";
 
@@ -22,23 +23,11 @@ export default function EmployeesPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const getHeaders = () => {
-    const slug = typeof window !== "undefined" ? (localStorage.getItem("tenant_slug") || "company-b") : "company-b";
-    return {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`,
-      "x-tenant-id": slug,
-    };
-  };
-
   const fetchEmployees = async () => {
     if (!token) return;
     try {
-      if (typeof window !== "undefined") {
-        const { default: keycloak } = await import("@/lib/keycloak");
-        if (keycloak) await keycloak.updateToken(30);
-      }
-      const res = await fetch("http://localhost:3001/employees", { headers: getHeaders() });
+      const headers = await getAuthHeaders();
+      const res = await fetch("http://localhost:3001/employees", { headers });
       if (res.ok) {
         const data = await res.json();
         const mapped = data.map((emp: any) => ({
@@ -63,11 +52,8 @@ export default function EmployeesPage() {
   const fetchDepartments = async () => {
     if (!token) return;
     try {
-      if (typeof window !== "undefined") {
-        const { default: keycloak } = await import("@/lib/keycloak");
-        if (keycloak) await keycloak.updateToken(30);
-      }
-      const res = await fetch("http://localhost:3001/departments", { headers: getHeaders() });
+      const headers = await getAuthHeaders();
+      const res = await fetch("http://localhost:3001/departments", { headers });
       if (res.ok) {
         setDepartments(await res.json());
       }
@@ -144,9 +130,10 @@ export default function EmployeesPage() {
       const firstName = parts[0] || "";
       const lastName = parts.slice(1).join(" ") || "";
       
+      const headers = await getAuthHeaders();
       const res = await fetch("http://localhost:3001/employees", {
         method: "POST",
-        headers: getHeaders(),
+        headers,
         body: JSON.stringify({
           firstName,
           lastName,

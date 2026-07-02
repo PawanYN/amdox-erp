@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import { ensureFreshToken } from '../auth';
 
 export const financeApi = {
   getAccounts: () => apiClient('/finance/gl/accounts'),
@@ -13,10 +14,9 @@ export const financeApi = {
     if (goodsReceiptId) form.append('goodsReceiptId', goodsReceiptId);
 
     const headers: Record<string, string> = {};
-    const keycloak = (await import('../keycloak')).default;
-    if (keycloak?.token) {
-      await keycloak.updateToken(30);
-      headers['Authorization'] = `Bearer ${keycloak.token}`;
+    const token = await ensureFreshToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
 
     const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';

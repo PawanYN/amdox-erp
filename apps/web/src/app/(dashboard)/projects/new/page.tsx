@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   FolderKanban,
@@ -12,7 +11,11 @@ import {
   AlertTriangle,
   Link2,
   X,
+  Loader2,
 } from "lucide-react";
+import { hrApi } from "@/lib/api/hr-api";
+import { pmApi } from "@/lib/api/pm-api";
+import { useKeycloak } from "@/components/KeycloakProvider";
 
 /* ──────────────────────────────────────────────
    Project Creation + Resource Allocation
@@ -36,13 +39,18 @@ import {
 
 const STEPS = ["Create Project", "Tasks & Milestones (WBS)", "Resource Allocation"];
 
-const EMPLOYEES = [
-  { id: "EMP-014", name: "Karan Joshi", role: "Site Engineer", currentLoad: 60 },
-  { id: "EMP-027", name: "Meera Iyer", role: "Structural Engineer", currentLoad: 95 },
-  { id: "EMP-031", name: "Sanjay Patil", role: "Electrician Lead", currentLoad: 40 },
-  { id: "EMP-009", name: "Divya Nair", role: "Procurement Analyst", currentLoad: 110 },
-  { id: "EMP-045", name: "Rohit Sen", role: "QA Inspector", currentLoad: 55 },
-];
+type EmployeeOption = {
+  id: string;
+  name: string;
+  role: string;
+  currentLoad: number;
+};
+
+type TaskDraft = {
+  id: string;
+  name: string;
+  dependsOn: string | null;
+};
 
 const inputClass =
   "w-full px-3 py-2 text-sm border border-[#D8D5CC] rounded-md bg-white text-[#14171F] placeholder:text-[#B0AC9F] focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/20 focus:border-[#1E3A5F]";
@@ -181,16 +189,54 @@ function StepTasks({ tasks, setTasks }: any) {
 }
 
 /* ── Step 3: Resource Allocation ── */
-function StepResources({ tasks, assignments, setAssignments }: any) {
+function StepResources({
+  tasks,
+  assignments,
+  setAssignments,
+  employees,
+  employeesLoading,
+  employeesError,
+}: {
+  tasks: TaskDraft[];
+  assignments: Record<string, string>;
+  setAssignments: (a: Record<string, string>) => void;
+  employees: EmployeeOption[];
+  employeesLoading: boolean;
+  employeesError: string | null;
+}) {
   const assign = (taskId: string, empId: string) => {
     setAssignments({ ...assignments, [taskId]: empId });
   };
 
   const loadFor = (empId: string) => {
-    const base = EMPLOYEES.find((e) => e.id === empId)?.currentLoad || 0;
+    const base = employees.find((e) => e.id === empId)?.currentLoad || 0;
     const extra = Object.values(assignments).filter((v) => v === empId).length * 15;
     return base + extra;
   };
+
+  if (employeesLoading) {
+    return (
+      <div className="flex items-center justify-center gap-2 py-12 text-[13px] text-[#8A8678]">
+        <Loader2 size={16} className="animate-spin" /> Loading employees from database…
+      </div>
+    );
+  }
+
+  if (employeesError) {
+    return (
+      <div className="rounded-md border border-[#B4533B]/30 bg-[#B4533B]/10 px-4 py-3 text-[13px] text-[#B4533B]">
+        {employeesError}
+      </div>
+    );
+  }
+
+  if (employees.length === 0) {
+    return (
+      <div className="rounded-md border border-[#E4E2DC] bg-[#FAFAF9] px-4 py-6 text-center text-[13px] text-[#8A8678]">
+        No employees found in your tenant. Add employees under HR → Employees first, then return here to assign them to tasks.
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -212,7 +258,7 @@ function StepResources({ tasks, assignments, setAssignments }: any) {
               onChange={(e) => assign(t.id, e.target.value)}
             >
               <option value="">Assign employee...</option>
-              {EMPLOYEES.map((e) => (
+              {employees.map((e) => (
                 <option key={e.id} value={e.id}>{e.name} — {e.role}</option>
               ))}
             </select>
@@ -225,7 +271,7 @@ function StepResources({ tasks, assignments, setAssignments }: any) {
           <Users size={14} /> Utilisation after this assignment
         </p>
         <div className="space-y-1.5">
-          {EMPLOYEES.map((e) => {
+          {employees.map((e) => {
             const load = loadFor(e.id);
             const overloaded = load >= 100;
             return (
@@ -253,11 +299,120 @@ function StepResources({ tasks, assignments, setAssignments }: any) {
 }
 
 export default function ProjectCreationFlow() {
+  const { initialized, token } = useKeycloak();
   const [step, setStep] = useState(0);
   const [project, setProject] = useState({ name: "", scope: "", budget: "", currency: "USD", startDate: "", endDate: "" });
-  const [tasks, setTasks] = useState([]);
-  const [assignments, setAssignments] = useState({});
+  const [tasks, setTasks] = useState<TaskDraft[]>([]);
+  const [assignments, setAssignments] = useState<Record<string, string>>({});
+  const [employees, setEmployees] = useState<EmployeeOption[]>([]);
+  const [employeesLoading, setEmployeesLoading] = useState(false);
+  const [employeesError, setEmployeesError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    if (!initialized || !token) return;
+
+    setEmployeesLoading(true);
+    setEmployeesError(null);
+
+    Promise.all([hrApi.getEmployees(), pmApi.getResourceHeatmap()])
+      .then(([employeeRows, heatmap]) => {
+        const loadByEmployee = new Map(
+          heatmap.map((h: { employeeId: string; utilisationPct: number }) => [
+            h.employeeId,
+            h.utilisationPct,
+          ]),
+        );
+
+        const options: EmployeeOption[] = employeeRows
+          .filter((emp: { status?: string }) => emp.status !== "TERMINATED")
+          .map((emp: {
+            id: string;
+            fullName: string;
+            department?: { name: string } | null;
+          }) => ({
+            id: emp.id,
+            name: emp.fullName,
+            role: emp.department?.name || "Employee",
+            currentLoad: loadByEmployee.get(emp.id) ?? 0,
+          }))
+          .sort((a: EmployeeOption, b: EmployeeOption) => a.name.localeCompare(b.name));
+
+        setEmployees(options);
+      })
+      .catch((err) => {
+        setEmployeesError(err.message || "Failed to load employees.");
+      })
+      .finally(() => setEmployeesLoading(false));
+  }, [initialized, token]);
+
+  const handleLaunch = async () => {
+    if (!project.name.trim()) {
+      setSubmitError("Project name is required.");
+      return;
+    }
+
+    setSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const createdProject = await pmApi.createProject({
+        name: project.name.trim(),
+        description: project.scope.trim() || undefined,
+        startDate: project.startDate || undefined,
+        endDate: project.endDate || undefined,
+      });
+
+      if (project.budget) {
+        await pmApi.setBudget({
+          projectId: createdProject.id,
+          plannedAmount: Number(project.budget),
+        });
+      }
+
+      const taskIdMap: Record<string, string> = {};
+      for (const t of tasks) {
+        const dependsOn = t.dependsOn && taskIdMap[t.dependsOn]
+          ? [taskIdMap[t.dependsOn]]
+          : undefined;
+
+        const created = await pmApi.createTask({
+          projectId: createdProject.id,
+          title: t.name,
+          startDate: project.startDate || undefined,
+          dueDate: project.endDate || undefined,
+          dependsOn,
+        });
+        taskIdMap[t.id] = created.id;
+      }
+
+      const allocationStart =
+        project.startDate || new Date().toISOString().split("T")[0];
+
+      for (const [clientTaskId, employeeId] of Object.entries(assignments)) {
+        if (!employeeId) continue;
+        const taskId = taskIdMap[clientTaskId];
+        if (!taskId) continue;
+
+        await pmApi.allocateResource({
+          projectId: createdProject.id,
+          taskId,
+          employeeId,
+          allocatedHours: 8,
+          startDate: allocationStart,
+          endDate: project.endDate || undefined,
+        });
+      }
+
+      router.push("/projects/overview");
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "Failed to create project.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-[#F4F2EC] flex items-start justify-center py-10 px-4"
@@ -304,8 +459,23 @@ export default function ProjectCreationFlow() {
         <div className="px-6 py-6 min-h-[320px]">
           {step === 0 && <StepCreate data={project} setData={setProject} />}
           {step === 1 && <StepTasks tasks={tasks} setTasks={setTasks} />}
-          {step === 2 && <StepResources tasks={tasks} assignments={assignments} setAssignments={setAssignments} />}
+          {step === 2 && (
+            <StepResources
+              tasks={tasks}
+              assignments={assignments}
+              setAssignments={setAssignments}
+              employees={employees}
+              employeesLoading={employeesLoading}
+              employeesError={employeesError}
+            />
+          )}
         </div>
+
+        {submitError && (
+          <div className="mx-6 mb-2 rounded-md border border-[#B4533B]/30 bg-[#B4533B]/10 px-3 py-2 text-[12px] text-[#B4533B]">
+            {submitError}
+          </div>
+        )}
 
         <div className="flex items-center justify-between px-6 py-4 border-t border-[#E4E2DC]">
           <button onClick={() => {
@@ -326,8 +496,20 @@ export default function ProjectCreationFlow() {
               Continue <ChevronRight size={15} />
             </button>
           ) : (
-            <button onClick={() => router.push("/projects/overview")} className="inline-flex items-center gap-1.5 text-[13px] font-medium px-4 py-2 rounded-md bg-[#2F6B4F] text-white hover:bg-[#255a41]">
-              <Check size={15} /> Launch project
+            <button
+              onClick={handleLaunch}
+              disabled={submitting || employeesLoading}
+              className="inline-flex items-center gap-1.5 text-[13px] font-medium px-4 py-2 rounded-md bg-[#2F6B4F] text-white hover:bg-[#255a41] disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" /> Creating…
+                </>
+              ) : (
+                <>
+                  <Check size={15} /> Launch project
+                </>
+              )}
             </button>
           )}
         </div>

@@ -13,4 +13,16 @@ export const pmApi = {
     apiClient('/pm/budgets', { method: 'POST', body: JSON.stringify(body) }),
   getResourceHeatmap: () => apiClient('/pm/resources/heatmap'),
   getAllocations: () => apiClient('/pm/resources'),
+  allocateResource: (body: {
+    projectId: string;
+    taskId?: string;
+    employeeId: string;
+    allocatedHours: number;
+    startDate: string;
+    endDate?: string;
+  }) =>
+    apiClient('/pm/resources/allocate', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
 };
