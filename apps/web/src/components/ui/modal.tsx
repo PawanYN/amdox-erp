@@ -10,6 +10,9 @@ export function Modal({
   onClose,
   children,
   width = "max-w-lg",
+  hideHeader = false,
+  flush = false,
+  ariaLabel,
 }: {
   open: boolean;
   title: string;
@@ -17,39 +20,50 @@ export function Modal({
   onClose: () => void;
   children: ReactNode;
   width?: string;
+  /** Renders children only — no default header, accent bar, or close button */
+  hideHeader?: boolean;
+  /** Removes default body padding (use with hideHeader for custom layouts) */
+  flush?: boolean;
+  /** Accessible name when hideHeader hides the visible title */
+  ariaLabel?: string;
 }) {
   if (!open) return null;
+
+  const dialogLabel = ariaLabel ?? title;
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 backdrop-blur-sm px-4 animate-fade-in"
       role="dialog"
       aria-modal="true"
-      aria-label={title}
+      aria-label={dialogLabel}
       onClick={onClose}
     >
       <div
-        className={`w-full ${width} rounded-2xl bg-card shadow-[0_24px_64px_rgba(15,10,46,0.25)] animate-fade-in-up border border-line`}
+        className={`w-full ${width} rounded-2xl bg-card shadow-[0_24px_64px_rgba(15,10,46,0.25)] animate-fade-in-up border border-line overflow-hidden`}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header with gradient accent bar */}
-        <div className="h-1 rounded-t-2xl bg-brand-gradient" />
-        <div className="flex items-start justify-between border-b border-line px-6 py-5">
-          <div>
-            <h2 className="text-lg font-bold text-ink">{title}</h2>
-            {description && (
-              <p className="mt-1 text-sm text-muted">{description}</p>
-            )}
-          </div>
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            className="rounded-xl p-1.5 text-muted hover:bg-canvas hover:text-ink transition-all"
-          >
-            <X size={18} />
-          </button>
-        </div>
-        <div className="px-6 py-5">{children}</div>
+        {!hideHeader && (
+          <>
+            <div className="h-1 rounded-t-2xl bg-brand-gradient" />
+            <div className="flex items-start justify-between border-b border-line px-6 py-5">
+              <div>
+                <h2 className="text-lg font-bold text-ink">{title}</h2>
+                {description && (
+                  <p className="mt-1 text-sm text-muted">{description}</p>
+                )}
+              </div>
+              <button
+                onClick={onClose}
+                aria-label="Close"
+                className="rounded-xl p-1.5 text-muted hover:bg-canvas hover:text-ink transition-all"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </>
+        )}
+        <div className={flush ? "" : "px-6 py-5"}>{children}</div>
       </div>
     </div>
   );

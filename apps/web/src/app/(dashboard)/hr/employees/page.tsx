@@ -7,7 +7,7 @@ import { Badge, statusToTone } from "@/components/ui/badge";
 import { Card } from "@/components/ui/table";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { StatCard } from "@/components/ui/stat-card";
-import { Employee } from "@/lib/types";
+import { Employee, NewEmployeeInput } from "@/lib/types";
 import { useKeycloak } from "@/components/KeycloakProvider";
 import { EmployeeForm } from "./employee-form";
 import { OrgChart } from "./org-chart";
@@ -137,7 +137,7 @@ export default function EmployeesPage() {
   const activeCount = visibleEmployees.filter((e) => e.status === "Active").length;
   const inactiveCount = visibleEmployees.filter((e) => e.status !== "Active").length;
 
-  async function handleCreate(newEmployee: Omit<Employee, "id" | "status">) {
+  async function handleCreate(newEmployee: NewEmployeeInput) {
     setLoading(true);
     try {
       const parts = newEmployee.name.trim().split(" ");
@@ -152,7 +152,7 @@ export default function EmployeesPage() {
           lastName,
           email: newEmployee.email,
           phone: newEmployee.phone,
-          dateOfBirth: "1990-01-01", 
+          dateOfBirth: newEmployee.dateOfBirth || "1990-01-01",
           hireDate: newEmployee.startDate || new Date().toISOString().split("T")[0],
           employmentType: newEmployee.contractType.toLowerCase().replace("-", "_") as any,
           departmentId: newEmployee.department, 
