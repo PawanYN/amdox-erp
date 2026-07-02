@@ -34,7 +34,27 @@ const REFRESH_CHECK_INTERVAL_MS = 30_000;
 /** Refresh when less than this many seconds remain before expiry. */
 const REFRESH_MIN_VALIDITY_SEC = 70;
 
-export function KeycloakProvider({ children }: { children: ReactNode }) {
+function hasOAuthCallback(): boolean {
+  if (typeof window === "undefined") return false;
+  return (
+    window.location.search.includes("code=") ||
+    window.location.hash.includes("code=")
+  );
+}
+
+function redirectToLogin() {
+  if (typeof window !== "undefined") {
+    window.location.href = "/login";
+  }
+}
+
+export function KeycloakProvider({
+  children,
+  requireAuth = false,
+}: {
+  children: ReactNode;
+  requireAuth?: boolean;
+}) {
   const [initialized, setInitialized] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
   const [token, setToken] = useState<string | undefined>(undefined);
@@ -51,7 +71,7 @@ export function KeycloakProvider({ children }: { children: ReactNode }) {
       if (refreshed) syncToken();
     } catch {
       console.warn("Token refresh failed — redirecting to login.");
-      keycloak?.login();
+      redirectToLogin();
     }
   }, [syncToken]);
 
@@ -76,7 +96,7 @@ export function KeycloakProvider({ children }: { children: ReactNode }) {
 
     kc.onAuthRefreshError = () => {
       console.warn("Auth refresh error — redirecting to login.");
-      kc.login();
+      redirectToLogin();
     };
 
     kc.onAuthLogout = () => {
@@ -90,8 +110,11 @@ export function KeycloakProvider({ children }: { children: ReactNode }) {
         setAuthenticated(auth);
         if (auth) syncToken();
         setInitialized(true);
-        if (auth && window.location.search.includes("code=")) {
+        if (auth && hasOAuthCallback()) {
           window.history.replaceState({}, document.title, window.location.pathname);
+        }
+        if (requireAuth && !auth && !hasOAuthCallback()) {
+          redirectToLogin();
         }
       })
       .catch((err) => {
@@ -104,7 +127,7 @@ export function KeycloakProvider({ children }: { children: ReactNode }) {
     return () => {
       clearInterval(interval);
     };
-  }, [refreshToken, syncToken]);
+  }, [refreshToken, syncToken, requireAuth]);
 
   return (
     <KeycloakContext.Provider

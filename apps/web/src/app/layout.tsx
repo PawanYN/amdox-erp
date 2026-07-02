@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "../styles/globals.css";
-import { KeycloakProvider } from "../components/KeycloakProvider";
 import { QueryProvider } from "../lib/providers/query-provider";
 
 export const metadata: Metadata = {
@@ -16,9 +15,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="antialiased">
-        <KeycloakProvider>
-          <QueryProvider>{children}</QueryProvider>
-        </KeycloakProvider>
+        <QueryProvider>{children}</QueryProvider>
       </body>
     </html>
   );
