@@ -4,6 +4,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { passportJwtSecret } from 'jwks-rsa';
 import { PrismaClient } from '@amdox/db';
 import { RedisService } from '../../common/redis/redis.service';
+import { AmdoxLogger } from '../../common/logger/amdox-logger';
 
 @Injectable()
 export class KeycloakStrategy extends PassportStrategy(Strategy, 'keycloak') {
@@ -13,20 +14,20 @@ export class KeycloakStrategy extends PassportStrategy(Strategy, 'keycloak') {
     super({
       secretOrKeyProvider: (req, rawJwtToken, done) => {
         try {
-          console.log('[AuthStrategy] Processing token verification...');
+          AmdoxLogger.auth('Processing token verification…');
           const payloadBase64 = rawJwtToken.split('.')[1];
           const payload = JSON.parse(Buffer.from(payloadBase64, 'base64').toString('utf8'));
           const iss = payload.iss;
-          console.log(`[AuthStrategy] Token Issuer: ${iss}`);
+          AmdoxLogger.debug('Token issuer', iss);
 
           const baseUrl = process.env.KEYCLOAK_BASE_URL || 'http://localhost:8180';
           if (!iss || !iss.startsWith(baseUrl)) {
-            console.error(`[AuthStrategy] Invalid issuer. Expected base: ${baseUrl}`);
+            AmdoxLogger.critical('Invalid token issuer', `Expected base: ${baseUrl}, got: ${iss}`);
             return done(new Error('Invalid token issuer'));
           }
 
           const jwksUri = `${iss}/protocol/openid-connect/certs`;
-          console.log(`[AuthStrategy] Fetching keys from JWKS: ${jwksUri}`);
+          AmdoxLogger.debug('Fetching JWKS keys', jwksUri);
           const secretProvider = passportJwtSecret({
             cache: true,
             rateLimit: true,
@@ -35,7 +36,7 @@ export class KeycloakStrategy extends PassportStrategy(Strategy, 'keycloak') {
           });
           secretProvider(req, rawJwtToken, done);
         } catch (err) {
-          console.error('[AuthStrategy] Error in secretOrKeyProvider:', err);
+          AmdoxLogger.error('secretOrKeyProvider error', (err as Error).message);
           done(err as Error);
         }
       },
@@ -46,12 +47,12 @@ export class KeycloakStrategy extends PassportStrategy(Strategy, 'keycloak') {
   }
 
   async validate(req: any, payload: any) {
-    console.log(`[AuthStrategy] Token signature verified successfully! Payload sub: ${payload.sub}`);
+    AmdoxLogger.auth('Token signature verified', `sub=${payload.sub}`);
 
     // Verify client audience or authorized party
     const expectedClient = process.env.KEYCLOAK_CLIENT_ID || 'amdox-erp-web';
     if (payload.azp !== expectedClient && payload.aud !== expectedClient) {
-      console.warn(`[AuthStrategy] Invalid audience/authorized party: azp=${payload.azp}, aud=${payload.aud}`);
+      AmdoxLogger.warn('Invalid client audience', `azp=${payload.azp}  aud=${payload.aud}`);
       throw new UnauthorizedException('Invalid client audience');
     }
 
@@ -60,13 +61,13 @@ export class KeycloakStrategy extends PassportStrategy(Strategy, 'keycloak') {
     if (token) {
       const isBlacklisted = await this.redisService.get(`blacklist:${token}`);
       if (isBlacklisted) {
-        console.warn(`[AuthStrategy] Token is blacklisted!`);
+        AmdoxLogger.critical('Blacklisted token used — access denied');
         throw new UnauthorizedException('Token has been revoked');
       }
     }
 
     // 2. Fetch the user ALONG WITH their assigned roles and tenant
-    console.log(`[AuthStrategy] Querying database for user with ssoSubject: ${payload.sub}`);
+    AmdoxLogger.debug('DB lookup for ssoSubject', payload.sub);
     const user = await this.prisma.user.findFirst({
       where: { ssoSubject: payload.sub },
       include: {
@@ -78,14 +79,17 @@ export class KeycloakStrategy extends PassportStrategy(Strategy, 'keycloak') {
     });
 
     if (!user) {
-      console.warn(`[AuthStrategy] User with ssoSubject ${payload.sub} NOT found in database!`);
+      AmdoxLogger.critical('ssoSubject not found in DB', payload.sub);
       throw new UnauthorizedException('User not found in database');
     }
 
     const roles = user.userRoles.map(ur => ur.role.name);
     (user as any).roles = roles;
 
-    console.log(`\x1b[1;92m[AuthStrategy] User authenticated successfully: ${user.email} (Tenant: ${user.tenant.name}) [Roles: ${roles.join(', ')}]\x1b[0m`);
-    return user; 
+    AmdoxLogger.success(
+      `Authenticated  ${user.email}`,
+      `tenant=${user.tenant.name}  roles=[${roles.join(', ')}]`,
+    );
+    return user;
   }
 }

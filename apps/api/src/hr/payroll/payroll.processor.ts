@@ -19,6 +19,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { PrismaClient, EmploymentStatus } from '@amdox/db';
 import { Logger } from '@nestjs/common';
+import { AmdoxLogger } from '../../common/logger/amdox-logger';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PayslipGenerator } from './payslip-generator';
 
@@ -36,7 +37,7 @@ export class PayrollProcessor extends WorkerHost {
 
   async process(job: Job<any, any, string>): Promise<any> {
     const { payrollRunId, tenantId, start, end, label } = job.data;
-    this.logger.log(`Starting payroll run processing for ${label} (ID: ${payrollRunId})`);
+    AmdoxLogger.hr(`Payroll run started: ${label}`, `runId=${payrollRunId}  tenant=${tenantId}`);
 
     try {
       // 1. Fetch dynamic tax slabs for this tenant
@@ -163,9 +164,13 @@ export class PayrollProcessor extends WorkerHost {
         label,
       });
 
-      this.logger.log(`Completed payroll run for ${label}. Processed ${totalProcessed} employees.`);
+      AmdoxLogger.success(
+        `Payroll run complete: ${label}`,
+        `employees=${totalProcessed}  totalNetPay=${totalNetPaySum.toFixed(2)}`,
+      );
+      AmdoxLogger.event('Emitted payroll.completed', `runId=${payrollRunId}`);
     } catch (error: any) {
-      this.logger.error(`Failed to process payroll run ${payrollRunId}: ${error.message}`);
+      AmdoxLogger.critical(`Payroll run FAILED: ${label}`, `runId=${payrollRunId}  err=${error.message}`);
       await this.prisma.payrollRun.update({
         where: { id: payrollRunId },
         data: {

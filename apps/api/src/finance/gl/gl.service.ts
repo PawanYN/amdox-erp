@@ -1,4 +1,5 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { AmdoxLogger } from '../../common/logger/amdox-logger';
 import { PrismaClient } from '@amdox/db';
 import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
 import { CreateJournalEntryDto } from '../dto/create-journal-entry.dto';
@@ -151,7 +152,7 @@ export class GlService {
         include: { lines: true }
       });
 
-      this.logger.log(`Posted Journal Entry ${entry.id} with balanced total: ${totalDebit}`);
+      AmdoxLogger.finance(`Journal entry posted  ref=${entry.reference}`, `total=${totalDebit}  id=${entry.id}`);
       this.eventEmitter.emit('journal.entry.posted', {
         tenantId,
         journalEntryId: entry.id,
@@ -181,7 +182,7 @@ export class GlService {
    */
   @OnEvent('invoice.approved')
   async handleInvoiceApproved(event: { tenantId: string, invoiceId: string }) {
-    this.logger.log(`Received invoice.approved event for Invoice ${event.invoiceId}. Generating GL Postings...`);
+    AmdoxLogger.event('invoice.approved → GL posting', `invoiceId=${event.invoiceId}`);
     
     // 1. Fetch the invoice
     const invoice = await this.prisma.invoice.findUnique({
@@ -212,7 +213,7 @@ export class GlService {
     const apAccount = await this.prisma.account.findUnique({ where: { tenantId_code: { tenantId: event.tenantId, code: '2000' } }});
 
     if (!invAccount || !apAccount) {
-      this.logger.error('Standard GL Accounts (1300, 2000) not found! Cannot post AP Invoice to GL.');
+      AmdoxLogger.critical('GL accounts 1300/2000 missing — AP invoice cannot be posted', `tenant=${event.tenantId}`);
       return;
     }
 
@@ -229,9 +230,9 @@ export class GlService {
           { accountId: apAccount.id, debit: 0, credit: amount }
         ]
       });
-      this.logger.log(`Successfully posted AP Invoice ${invoice.invoiceNumber} to GL.`);
+      AmdoxLogger.finance(`AP invoice posted to GL  Dr1300/Cr2000`, `inv=${invoice.invoiceNumber}  amount=${amount}`);
     } catch (err) {
-      this.logger.error(`Failed to post Journal Entry for Invoice ${invoice.invoiceNumber}`, err);
+      AmdoxLogger.error(`GL posting failed for AP invoice ${invoice.invoiceNumber}`, (err as Error).message);
     }
   }
 
@@ -334,7 +335,7 @@ export class GlService {
    */
   @OnEvent('invoice.issued')
   async handleInvoiceIssued(event: { tenantId: string, invoiceId: string }) {
-    this.logger.log(`Received invoice.issued event for Invoice ${event.invoiceId}`);
+    AmdoxLogger.event('invoice.issued → GL posting', `invoiceId=${event.invoiceId}`);
 
     const invoice = await this.prisma.invoice.findUnique({ where: { id: event.invoiceId } });
     if (!invoice || invoice.type !== 'AR') return;
@@ -353,9 +354,9 @@ export class GlService {
         '4000',
         amount,
       );
-      this.logger.log(`Posted AR invoice ${invoice.invoiceNumber} to GL.`);
+      AmdoxLogger.finance(`AR invoice posted to GL  Dr1200/Cr4000`, `inv=${invoice.invoiceNumber}  amount=${amount}`);
     } catch (err) {
-      this.logger.error(`Failed GL posting for AR invoice ${invoice.invoiceNumber}`, err);
+      AmdoxLogger.error(`GL posting failed for AR invoice ${invoice.invoiceNumber}`, (err as Error).message);
     }
   }
 
@@ -371,17 +372,13 @@ export class GlService {
     payrollRunId: string;
     label: string;
   }) {
-    this.logger.log(
-      `Received payroll.completed for run ${event.payrollRunId} (${event.label}). Posting GL entry…`,
-    );
+    AmdoxLogger.event('payroll.completed → GL entry', `run=${event.payrollRunId}  label=${event.label}`);
 
     const payrollRun = await this.prisma.payrollRun.findUnique({
       where: { id: event.payrollRunId },
     });
     if (!payrollRun || !payrollRun.totalNetPay) {
-      this.logger.warn(
-        `Payroll run ${event.payrollRunId} not found or has no totalNetPay — skipping GL post.`,
-      );
+      AmdoxLogger.warn('Payroll run not found or missing totalNetPay — GL post skipped', `runId=${event.payrollRunId}`);
       return;
     }
 
@@ -425,11 +422,9 @@ export class GlService {
           { accountId: payrollPayableAccount.id, debit: 0, credit: amount },
         ],
       });
-      this.logger.log(
-        `Posted payroll GL entry for run ${event.payrollRunId}: Dr 6000 / Cr 2100 = ${amount}`,
-      );
+      AmdoxLogger.finance(`Payroll GL entry posted  Dr6000/Cr2100`, `runId=${event.payrollRunId}  amount=${amount}`);
     } catch (err) {
-      this.logger.error(`Failed to post GL entry for payroll run ${event.payrollRunId}`, err);
+      AmdoxLogger.critical(`Payroll GL post FAILED`, `runId=${event.payrollRunId}  err=${(err as Error).message}`);
     }
   }
 
@@ -444,7 +439,7 @@ export class GlService {
     invoiceId: string;
     amount?: number;
   }) {
-    this.logger.log(`Received payment.received event for Payment ${event.paymentId}`);
+    AmdoxLogger.event('payment.received → GL posting', `paymentId=${event.paymentId}`);
 
     const payment = await this.prisma.payment.findUnique({
       where: { id: event.paymentId },
@@ -466,9 +461,9 @@ export class GlService {
         '1200',
         amount,
       );
-      this.logger.log(`Posted payment ${payment.id} to GL.`);
+      AmdoxLogger.finance(`Payment posted to GL  Dr1000/Cr1200`, `paymentId=${payment.id}  amount=${amount}`);
     } catch (err) {
-      this.logger.error(`Failed GL posting for payment ${payment.id}`, err);
+      AmdoxLogger.error(`GL posting failed for payment ${payment.id}`, (err as Error).message);
     }
   }
 }

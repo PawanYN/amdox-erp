@@ -22,70 +22,60 @@
 
 ---
 
-
-
 ## 2. Executive Snapshot
-
-
 
 ### Done (verified in repo)
 
 
-| Area                           | Evidence                                                                                                                                                        |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Auth & Multi-tenant**        | `apps/api/src/auth/` (Keycloak, JWT, roles guard); `tenant.controller.ts` + `tenant-api.ts`; `create-tenant/page.tsx`                                           |
-| **Auth — `/auth/me` endpoint** | `GET /auth/me` returns DB roles (normalised) — frontend uses this for RBAC checks instead of unreliable Keycloak `realm_access.roles`                           |
+| Area                           | Evidence                                                                                                                                                                                 |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Auth & Multi-tenant**        | `apps/api/src/auth/` (Keycloak, JWT, roles guard); `tenant.controller.ts` + `tenant-api.ts`; `create-tenant/page.tsx`                                                                    |
+| **Auth — `/auth/me` endpoint** | `GET /auth/me` returns DB roles (normalised) — frontend uses this for RBAC checks instead of unreliable Keycloak `realm_access.roles`                                                    |
 | **Keycloak role provisioning** | `createTenant()` now creates Keycloak realm roles + assigns `TenantAdmin` to admin user so JWT `realm_access.roles` is populated; `POST /tenant/provision-kc-roles` for existing tenants |
-| **Role name standardisation**  | DB role unified to `"TenantAdmin"` (no space) across `createTenant()` and `seed.ts`; `RolesGuard` space-strip kept as safety net                                |
-| **Finance GL (core)**          | Journal entries, fiscal periods, intercompany, aging report — `finance/journal-entries`, `fiscal-periods`, `aging-report` pages                                 |
-| **Finance AR / Order-to-Cash** | `sales-order.service.ts` (BE-02); `finance/ar-invoices/page.tsx` (FE-09)                                                                                        |
-| **HR & Payroll**               | Employee/department CRUD, payroll month picker, payslip PDF — `hr/employees`, `departments`, `payroll` pages                                                    |
-| **Project Management**         | Wizard, edit/status, tasks, milestones, budget, material requests — `projects/[id]/page.tsx` (FE-13)                                                            |
-| **BI Dashboard Builder**       | Full stack: `apps/api/src/bi/` (8 files) + `components/bi/` (12 files) → `/bi` route; redesigned with fixed scroll, Data pane, Filters pane, clean toolbar     |
-| **Notifications (in-app)**     | `notifications/page.tsx` → `PATCH /notifications/:id/read` (FE-15)                                                                                              |
-| **ML Forecast service**        | `apps/ml-service/main.py` + `forecast.controller.ts` (BE-09)                                                                                                    |
-| **Audit pipeline**             | `audit-event.listener.ts` — 25+ events with hash chain (BE-06)                                                                                                  |
-| **UI Design System**           | 40+ files overhauled: consistent blue/slate palette, Inter font, `globals.css` `@theme` tokens, shadow-card, page-title/subtitle, custom scrollbar, all modules |
-| **Dashboard shell**            | `DashboardLayoutClient` (`ssr:false`) fixes hydration mismatch; collapsible sidebar; Settings visible to all roles; IT Admin restricted to Home + Settings       |
-| **Settings page**              | Role-based tab access via `/auth/me`; admin-only tabs (Identity Settings, Auth, IdP) show `AdminRequired` for non-admins; horizontal tab bar; TenantAdmin RBAC  |
-
-
+| **Role name standardisation**  | DB role unified to `"TenantAdmin"` (no space) across `createTenant()` and `seed.ts`; `RolesGuard` space-strip kept as safety net                                                         |
+| **Finance GL (core)**          | Journal entries, fiscal periods, intercompany, aging report — `finance/journal-entries`, `fiscal-periods`, `aging-report` pages                                                          |
+| **Finance AR / Order-to-Cash** | `sales-order.service.ts` (BE-02); `finance/ar-invoices/page.tsx` (FE-09)                                                                                                                 |
+| **HR & Payroll**               | Employee/department CRUD, payroll month picker, payslip PDF — `hr/employees`, `departments`, `payroll` pages                                                                             |
+| **Project Management**         | Wizard, edit/status, tasks, milestones, budget, material requests — `projects/[id]/page.tsx` (FE-13)                                                                                     |
+| **BI Dashboard Builder**       | Full stack: `apps/api/src/bi/` (8 files) + `components/bi/` (12 files) → `/bi` route; redesigned with fixed scroll, Data pane, Filters pane, clean toolbar                               |
+| **Notifications (in-app)**     | `notifications/page.tsx` → `PATCH /notifications/:id/read` (FE-15)                                                                                                                       |
+| **ML Forecast service**        | `apps/ml-service/main.py` + `forecast.controller.ts` (BE-09)                                                                                                                             |
+| **Audit pipeline**             | `audit-event.listener.ts` — 25+ events with hash chain (BE-06)                                                                                                                           |
+| **UI Design System**           | 40+ files overhauled: consistent blue/slate palette, Inter font, `globals.css` `@theme` tokens, shadow-card, page-title/subtitle, custom scrollbar, all modules                          |
+| **Dashboard shell**            | `DashboardLayoutClient` (`ssr:false`) fixes hydration mismatch; collapsible sidebar; Settings visible to all roles; IT Admin restricted to Home + Settings                               |
+| **Settings page**              | Role-based tab access via `/auth/me`; admin-only tabs (Identity Settings, Auth, IdP) show `AdminRequired` for non-admins; horizontal tab bar; TenantAdmin RBAC                           |
 
 
 ### Remaining (open tasks)
 
 
-| Area                       | Gap                                                                                | Task IDs              |
-| -------------------------- | ---------------------------------------------------------------------------------- | --------------------- |
-| **SCM admin UI**           | Vendor add = `console.log` stub; no product page; inventory PR is local state only | FE-01–FE-05, BE-01    |
-| **Finance forms**          | "New Account" button inert; AP OCR upload API exists but no file-upload UI         | FE-06, FE-08          |
-| **Forecast UI**            | `forecast-api.ts` exists; no train button on inventory page                        | FE-14, INT-06         |
-| **Integrations E2E**       | All PM/HR/Finance bridges verified; INT-08 audit userId still partial               | INT-08                |
-| **Notifications delivery** | Email/webhook channels are log-only stubs                                          | BE-07                 |
-| **FIFO outbound**          | Inbound cost layers on goods receipt ✅; outbound consumption ❌                     | BE-05                 |
-| **Platform / Deploy**      | No `.github/workflows/`, no live demo URL, no demo video                           | PLAT-01–PLAT-03       |
-| **Security hardening**     | ValidationPipe + CORS only; no Helmet/rate limiting                                | PLAT-04               |
-
-
+| Area                       | Gap                                                                                | Task IDs           |                                                                |       |     |
+| -------------------------- | ---------------------------------------------------------------------------------- | ------------------ | -------------------------------------------------------------- | ----- | --- |
+| **SCM admin UI**           | Vendor add = `console.log` stub; no product page; inventory PR is local state only | FE-01–FE-05, BE-01 |                                                                |       |     |
+| **Finance forms**          | "New Account" button inert; AP OCR upload API exists but no file-upload UI         | FE-06, FE-08       |                                                                |       |     |
+| **Forecast UI**            | `forecast-api.ts` exists; no train button on inventory page                        | FE-14, INT-06      |                                                                |       |     |
+| **Integrations E2E**       | All PM/HR/Finance bridges verified; INT-08 audit userId still partial              | INT-08             |                                                                |       |     |
+| **Notifications delivery** | Email/webhook channels are log-only stubs                                          | BE-07              |                                                                |       |     |
+|                            |                                                                                    | **FIFO outbound**  | Inbound cost layers on goods receipt ✅; outbound consumption ❌ | BE-05 |     |
+| **Platform / Deploy**      | No `.github/workflows/`, no live demo URL, no demo video                           | PLAT-01–PLAT-03    |                                                                |       |     |
+| **Security hardening**     | ValidationPipe + CORS only; no Helmet/rate limiting                                | PLAT-04            |                                                                |       |     |
 
 
 ### Area status
 
 
-| Area                          | Status        | Gap summary                                                                                                             |
-| ----------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Auth & Multi-tenant           | ✅ Mostly done | Keycloak OIDC, tenant context, create-tenant; `/auth/me` endpoint; Keycloak realm role provisioning; role name unified  |
-| Finance GL/AP                 | ⚠️ Partial    | Journal entries ✅; fiscal periods ✅; aging report ✅; GL Account create stub (FE-06); AP upload API only (FE-08)         |
-| Finance AR / Order-to-Cash    | ✅ Mostly done | Sales Order module ✅ (BE-02); AR invoice + payment UI ✅ (FE-09)                                                         |
-| HR & Payroll                  | ✅ Mostly done | Employee CRUD ✅; departments ✅; leave/attendance/payroll on live APIs ✅; payslip PDF ✅; period picker ✅                 |
-| SCM                           | ⚠️ Partial    | PO + requisition flow works; vendor add stub; product/inventory admin UI missing (FE-01–FE-05)                          |
-| Project Management            | ✅ Strong      | Project edit/status UI ✅ (FE-13); wizard, material requests, budget bridges                                             |
+| Area                          | Status        | Gap summary                                                                                                                      |
+| ----------------------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Auth & Multi-tenant           | ✅ Mostly done | Keycloak OIDC, tenant context, create-tenant; `/auth/me` endpoint; Keycloak realm role provisioning; role name unified           |
+| Finance GL/AP                 | ⚠️ Partial    | Journal entries ✅; fiscal periods ✅; aging report ✅; GL Account create stub (FE-06); AP upload API only (FE-08)                  |
+| Finance AR / Order-to-Cash    | ✅ Mostly done | Sales Order module ✅ (BE-02); AR invoice + payment UI ✅ (FE-09)                                                                  |
+| HR & Payroll                  | ✅ Mostly done | Employee CRUD ✅; departments ✅; leave/attendance/payroll on live APIs ✅; payslip PDF ✅; period picker ✅                          |
+| SCM                           | ⚠️ Partial    | PO + requisition flow works; vendor add stub; product/inventory admin UI missing (FE-01–FE-05)                                   |
+| Project Management            | ✅ Strong      | Project edit/status UI ✅ (FE-13); wizard, material requests, budget bridges                                                      |
 | BI / Forecast / Notifications | ⚠️ Partial    | BI workspace redesigned ✅ — fixed scroll, Data pane, Filters pane, clean toolbar; mark-read ✅; forecast train UI missing (FE-14) |
-| Settings                      | ✅ Mostly done | Horizontal tab bar; role-based tab access via `/auth/me`; AdminRequired guard; TenantAdmin provisioning                 |
-| UI Design System              | ✅ Done        | 40+ pages overhauled; blue/slate palette; Inter font; design tokens in `globals.css`; consistent across all modules     |
-| Platform / Deploy             | ❌ Not started | No live demo URL, CI, or security hardening (PLAT-01–PLAT-04)                                                           |
-
-
+| Settings                      | ✅ Mostly done | Horizontal tab bar; role-based tab access via `/auth/me`; AdminRequired guard; TenantAdmin provisioning                          |
+| UI Design System              | ✅ Done        | 40+ pages overhauled; blue/slate palette; Inter font; design tokens in `globals.css`; consistent across all modules              |
+| Platform / Deploy             | ❌ Not started | No live demo URL, CI, or security hardening (PLAT-01–PLAT-04)                                                                    |
 
 
 ### Overall progress
@@ -99,6 +89,7 @@
 | Platform (PLAT)    | 0      | 1          | 4             | 5      |
 | **All tasks**      | **28** | **4**      | **11**        | **43** |
 
+
 > **Also shipped (session 2, not in task table):** Complete UI overhaul (40+ files), BI workspace redesign, Settings RBAC fix, `/auth/me` endpoint, Keycloak role provisioning, `TenantAdmin` role standardisation, `DashboardLayoutClient` hydration fix.
 
 **Completion:** ~65% done · ~9% partial · ~26% not started
@@ -106,19 +97,17 @@
 ### Progress by owner
 
 
-| Owner          | ✅ Done                                                                                                                              | ⚠️ Partial                                             | ❌ Open                                             |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ | -------------------------------------------------- |
-| **pawan**      | FE-07, FE-09, FE-10, FE-11, FE-12, FE-13, FE-15, FE-16, FE-17, FE-18, BE-02, BE-03, BE-04, BE-05, BE-06, BE-08, BE-09, BE-10, BE-11, INT-01, INT-02, INT-03, INT-04, INT-05, INT-06, INT-07, INT-08, INT-09 + UI overhaul + BI redesign + Settings RBAC + Auth/me + KC provisioning | —                                                      | —                                                  |
-| **shraddha**   | —                                                                                                                                   | FE-02                                                  | FE-01                                              |
-| **sibi**       | —                                                                                                                                   | —                                                      | FE-03, FE-04, FE-05, FE-14                         |
-| **Agrim**      | —                                                                                                                                   | FE-08                                                  | FE-06                                              |
-| **Shreya**     | —                                                                                                                                   | —                                                      | BE-01                                              |
-| **Unassigned** | —                                                                                                                                   | BE-05, PLAT-04                                          | BE-07, PLAT-01–03, PLAT-05                 |
+| Owner          | ✅ Done                                                                                                                                                                                                                                                                              | ⚠️ Partial     | ❌ Open                     |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- | -------------------------- |
+| **pawan**      | FE-07, FE-09, FE-10, FE-11, FE-12, FE-13, FE-15, FE-16, FE-17, FE-18, BE-02, BE-03, BE-04, BE-05, BE-06, BE-08, BE-09, BE-10, BE-11, INT-01, INT-02, INT-03, INT-04, INT-05, INT-06, INT-07, INT-08, INT-09 + UI overhaul + BI redesign + Settings RBAC + Auth/me + KC provisioning | —              | —                          |
+| **shraddha**   | —                                                                                                                                                                                                                                                                                   | FE-02          | FE-01                      |
+| **sibi**       | —                                                                                                                                                                                                                                                                                   | —              | FE-03, FE-04, FE-05, FE-14 |
+| **Agrim**      | —                                                                                                                                                                                                                                                                                   | FE-08          | FE-06                      |
+| **Shreya**     | —                                                                                                                                                                                                                                                                                   | —              | BE-01                      |
+| **Unassigned** | —                                                                                                                                                                                                                                                                                   | BE-05, PLAT-04 | BE-07, PLAT-01–03, PLAT-05 |
 
 
 ---
-
-
 
 ## 3. Master Task List — Frontend
 
@@ -147,8 +136,6 @@
 
 ---
 
-
-
 ## 4. Master Task List — Backend
 
 
@@ -169,27 +156,23 @@
 
 ---
 
-
-
 ## 5. Cross-Module Integrations
 
 
-| ID     | Status | Tags                        | Flow                           | What to verify / finish                                                            | Priority | Assigned To |
-| ------ | ------ | --------------------------- | ------------------------------ | ---------------------------------------------------------------------------------- | -------- | ----------- |
-| INT-01 | ✅      | `#integration` `#fullstack` | Procure-to-Pay                 | Low stock → PR/PO → GR → 3-way match → GL journal                                  | P0       | pawan       |
-| INT-02 | ✅      | `#integration` `#fullstack` | PM → SCM → Finance (materials) | E2E verified: material request → requisition (with projectId) → PO → GR → invoice.approved → PmCostBridgeListener → budget.actualAmount updated | P0       | pawan       |
-| INT-03 | ✅      | `#integration` `#fullstack` | PM ↔ HR (people)               | Resource allocation form added to `/projects/resources`; allocations list + utilisation heatmap from real API; POST /pm/resources/allocate wired | P1       | pawan       |
-| INT-04 | ✅      | `#integration` `#fullstack` | PM ↔ Finance (labor cost)      | LaborCostBridgeListener → BudgetService confirmed E2E; `GET /pm/budgets/:id/lines` added; budget page shows drill-down of AP + payroll cost lines | P1       | pawan       |
-| INT-05 | ✅      | `#integration` `#fullstack` | HR → Finance (payroll)         | `@OnEvent('payroll.completed')` added to GlService: Dr 6000 Salary Expense / Cr 2100 Payroll Payable; accounts added to seed; duplicate guard included | P1       | pawan       |
-| INT-06 | ✅      | `#integration` `#fullstack` | SCM → Forecasting              | Inventory page: per-SKU ▸ expand row → "Train forecast" button → `POST /forecast/products/:id/train` (feeds StockMovement history to Prophet ML); bar chart predictions displayed | P2       | pawan       |
+| ID     | Status | Tags                        | Flow                           | What to verify / finish                                                                                                                                                                                                                                    | Priority | Assigned To |
+| ------ | ------ | --------------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ----------- |
+| INT-01 | ✅      | `#integration` `#fullstack` | Procure-to-Pay                 | Low stock → PR/PO → GR → 3-way match → GL journal                                                                                                                                                                                                          | P0       | pawan       |
+| INT-02 | ✅      | `#integration` `#fullstack` | PM → SCM → Finance (materials) | E2E verified: material request → requisition (with projectId) → PO → GR → invoice.approved → PmCostBridgeListener → budget.actualAmount updated                                                                                                            | P0       | pawan       |
+| INT-03 | ✅      | `#integration` `#fullstack` | PM ↔ HR (people)               | Resource allocation form added to `/projects/resources`; allocations list + utilisation heatmap from real API; POST /pm/resources/allocate wired                                                                                                           | P1       | pawan       |
+| INT-04 | ✅      | `#integration` `#fullstack` | PM ↔ Finance (labor cost)      | LaborCostBridgeListener → BudgetService confirmed E2E; `GET /pm/budgets/:id/lines` added; budget page shows drill-down of AP + payroll cost lines                                                                                                          | P1       | pawan       |
+| INT-05 | ✅      | `#integration` `#fullstack` | HR → Finance (payroll)         | `@OnEvent('payroll.completed')` added to GlService: Dr 6000 Salary Expense / Cr 2100 Payroll Payable; accounts added to seed; duplicate guard included                                                                                                     | P1       | pawan       |
+| INT-06 | ✅      | `#integration` `#fullstack` | SCM → Forecasting              | Inventory page: per-SKU ▸ expand row → "Train forecast" button → `POST /forecast/products/:id/train` (feeds StockMovement history to Prophet ML); bar chart predictions displayed                                                                          | P2       | pawan       |
 | INT-07 | ✅      | `#integration` `#fullstack` | All → Notifications            | `WebhookChannel` implemented with HMAC-SHA256 signing; `NotificationService` reads `tenant.settings.webhookUrl` and dispatches; added payroll.completed, leave.status.changed, employee.created, invoice.issued notifications; delivery logged per channel | P2       | pawan       |
-| INT-08 | ✅      | `#integration` `#fullstack` | All → Audit                    | `userId` now threaded through 25+ event payloads: employee CRUD, PO approve/receive, invoice approve, journal entry, fiscal period close, intercompany transfer, project created. AuditEventListener passes userId to hash-chain record. | P2       | pawan       |
-| INT-09 | ✅      | `#integration` `#spec-gap`  | Order-to-Cash                  | BE-02 Sales Order + FE-09 AR flow complete                                         | P2       | pawan       |
+| INT-08 | ✅      | `#integration` `#fullstack` | All → Audit                    | `userId` now threaded through 25+ event payloads: employee CRUD, PO approve/receive, invoice approve, journal entry, fiscal period close, intercompany transfer, project created. AuditEventListener passes userId to hash-chain record.                   | P2       | pawan       |
+| INT-09 | ✅      | `#integration` `#spec-gap`  | Order-to-Cash                  | BE-02 Sales Order + FE-09 AR flow complete                                                                                                                                                                                                                 | P2       | pawan       |
 
 
 ---
-
-
 
 ## 6. Platform & Submission Tasks
 
@@ -204,8 +187,6 @@
 
 
 ---
-
-
 
 ## 7. Forms Checklist — Model by Model
 
@@ -240,8 +221,6 @@
 
 ---
 
-
-
 ## 8. Assignment for 6 Team Slots
 
 
@@ -252,54 +231,37 @@
 | **Slot 3** | Agrim       | Finance UI        | FE-06, FE-08                                               | Frontend            |
 | **Slot 4** | pawan       | —                 | **All pawan tasks complete** (19 tasks incl. BE-08, BE-11) | Backend + Frontend  |
 | **Slot 5** | Shreya      | Backend SCM + GL  | BE-01                                                      | Backend             |
-| **Slot 6** | —           | QA, E2E & DevOps  | INT-03, INT-06, INT-08, PLAT-01–PLAT-04 | Full-stack / DevOps |
-
-
+| **Slot 6** | —           | QA, E2E & DevOps  | INT-03, INT-06, INT-08, PLAT-01–PLAT-04                    | Full-stack / DevOps |
 
 
 ### Completed by pawan (19 tasks)
 
 
-| Task  | Evidence                                                             |
-| ----- | -------------------------------------------------------------------- |
-| FE-07 | `finance/journal-entries/page.tsx` → `financeApi`                    |
-| FE-09 | `finance/ar-invoices/page.tsx` + AR API endpoints                    |
-| FE-10 | `hr/payroll/payslip-modal.tsx`                                       |
-| FE-11 | `hr/employees/page.tsx`                                              |
-| FE-12 | `hr/departments/page.tsx`                                            |
-| FE-13 | `projects/[id]/page.tsx` + `PATCH /pm/projects/:id`                  |
-| FE-15 | `notifications/page.tsx`                                             |
-| FE-16 | `tenant-api.ts`; login, create-tenant, settings migrated             |
-| FE-17 | Mock imports removed; `@/lib/mock/*` unused                          |
-| FE-18 | `hr/payroll/page.tsx` month picker                                   |
-| BE-02 | `finance/sales/sales-order.service.ts` + Order-to-Cash flow          |
-| BE-03 | `finance/fiscal-periods/page.tsx` + `GET /finance/gl/fiscal-periods` |
-| BE-04 | `POST /finance/gl/intercompany-transfers` + GL journal pairing       |
-| BE-05 | `InventoryCostLayer` on goods receipt (outbound FIFO still open)     |
-| BE-06 | `audit-event.listener.ts` — 25+ mutation events with hash chain      |
-| BE-09 | `apps/ml-service/main.py` + Dockerfile + forecast API fallback       |
-| BE-10 | `bi/` module — widget CRUD, drill-down, SSE, scheduled reports       |
-| BE-11 | `docs/rbac-role-matrix.md` — 26 controllers audited, role matrix     |
-| BE-08 | `vendor-portal/` module + `/vendor-portal` supplier UI               |
+| Task   | Evidence                                                                |
+| ------ | ----------------------------------------------------------------------- |
+| FE-07  | `finance/journal-entries/page.tsx` → `financeApi`                       |
+| FE-09  | `finance/ar-invoices/page.tsx` + AR API endpoints                       |
+| FE-10  | `hr/payroll/payslip-modal.tsx`                                          |
+| FE-11  | `hr/employees/page.tsx`                                                 |
+| FE-12  | `hr/departments/page.tsx`                                               |
+| FE-13  | `projects/[id]/page.tsx` + `PATCH /pm/projects/:id`                     |
+| FE-15  | `notifications/page.tsx`                                                |
+| FE-16  | `tenant-api.ts`; login, create-tenant, settings migrated                |
+| FE-17  | Mock imports removed; `@/lib/mock/*` unused                             |
+| FE-18  | `hr/payroll/page.tsx` month picker                                      |
+| BE-02  | `finance/sales/sales-order.service.ts` + Order-to-Cash flow             |
+| BE-03  | `finance/fiscal-periods/page.tsx` + `GET /finance/gl/fiscal-periods`    |
+| BE-04  | `POST /finance/gl/intercompany-transfers` + GL journal pairing          |
+| BE-05  | `InventoryCostLayer` on goods receipt (outbound FIFO still open)        |
+| BE-06  | `audit-event.listener.ts` — 25+ mutation events with hash chain         |
+| BE-09  | `apps/ml-service/main.py` + Dockerfile + forecast API fallback          |
+| BE-10  | `bi/` module — widget CRUD, drill-down, SSE, scheduled reports          |
+| BE-11  | `docs/rbac-role-matrix.md` — 26 controllers audited, role matrix        |
+| BE-08  | `vendor-portal/` module + `/vendor-portal` supplier UI                  |
 | INT-01 | P2P E2E: low-stock PR → PO → GR → 3-way match → GL; `verify:p2p` script |
 
 
-**Also shipped (session 2 — not in task table):**
-
-| Area | What shipped | Files |
-| ---- | ------------ | ----- |
-| **UI Design System** | Complete overhaul of 40+ frontend pages — consistent blue/slate palette, Inter font via `next/font`, `@theme` design tokens, `shadow-card`, `page-title/subtitle`, custom scrollbar, animations | `globals.css`, all module pages |
-| **Dashboard shell** | `DashboardLayoutClient` (`ssr: false`) fixes Dashlane hydration mismatch; collapsible sidebar w/14→w/56; Settings visible all roles; TenantAdmin role in dropdown | `dashboardLayout.tsx`, `DashboardLayoutClient.tsx` |
-| **Settings RBAC** | Calls `GET /auth/me` (DB roles) to gate admin tabs; `AdminRequired` component for non-admins on Identity/Auth/IdP tabs; horizontal tab bar replaces left sidebar | `settings/page.tsx` |
-| **GET /auth/me** | New endpoint returns email + DB roles (space-normalised) — correct source of truth for frontend RBAC, independent of Keycloak `realm_access.roles` | `auth.controller.ts` |
-| **Keycloak role provisioning** | `createTenant()` creates realm roles (TenantAdmin/Manager/Viewer/Employee) and assigns TenantAdmin to admin user so JWT contains role; role name unified to `"TenantAdmin"` (no space) | `tenant.service.ts`, `tenant.controller.ts` |
-| **POST /tenant/provision-kc-roles** | Idempotent migration endpoint — normalises DB role names + creates Keycloak realm roles + assigns to all TENANT_ADMIN users; call once for tenants created before this fix | `tenant.service.ts`, `tenant.controller.ts` |
-| **BI workspace redesign** | Fixed scroll: only canvas scrolls, toolbar + page tabs stay fixed; left Data pane (collapsible field tables); right Filters/Viz pane; clean white toolbar with View/Edit toggle, Live indicator, pane toggles | `bi-workspace.tsx`, `power-bi-ribbon.tsx` |
-| **IT Admin nav** | Restricted to Home + Settings only (removed Finance/HR/SCM/Projects) | `dashboardLayout.tsx` |
-
----
-
-**Also shipped (session 1 — not in task table):** BI workspace UI — full analytics builder:
+**Also shipped (not in task table):** BI workspace UI — full Power BI-style builder:
 
 
 | Layer                            | Files                                                                                                                                                                                                                                                                                | Capabilities                                                                                                        |
@@ -312,14 +274,12 @@
 
 ---
 
-
-
 ## 9. Sprint Plan
 
 
 | Sprint       | Priority | Task IDs                                      | Goal                                                         | Status                                                                   |
 | ------------ | -------- | --------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------ |
-| **Sprint 1** | P0       | FE-01, FE-06, FE-07, INT-01, PLAT-01, PLAT-02 | Demo-ready: vendor form, GL forms, P2P E2E, live URL + video | ⚠️ **2/6** (FE-07 ✅, INT-01 ✅)                                          |
+| **Sprint 1** | P0       | FE-01, FE-06, FE-07, INT-01, PLAT-01, PLAT-02 | Demo-ready: vendor form, GL forms, P2P E2E, live URL + video | ⚠️ **2/6** (FE-07 ✅, INT-01 ✅)                                           |
 | **Sprint 2** | P1       | FE-03–FE-05, FE-08–FE-11, INT-02–INT-05       | SCM admin, AP OCR, AR, HR polish, PM bridges                 | ⚠️ **3/11** (FE-09–FE-11 ✅; FE-03–05, FE-08 open; INT-02–05 all partial) |
 | **Sprint 3** | P2       | BE-02, FE-14, BE-06, PLAT-03, PLAT-04, BE-11  | Order-to-Cash, forecast, audit, CI + security, RBAC          | ⚠️ **3/6** (BE-02, BE-06, BE-11 ✅; FE-14, PLAT-03, PLAT-04 open)         |
 
@@ -331,22 +291,20 @@
 ### Priority order for remaining work
 
 
-| #   | Task(s)                  | Why                                                                                       |
-| --- | ------------------------ | ----------------------------------------------------------------------------------------- |
-| 1   | FE-01 + BE-01            | Sprint 1 P0 — vendor form blocked on schema (no `phone` in Prisma `Vendor` model)         |
-| 2   | FE-06                    | Sprint 1 P0 — GL account create; backend `POST /finance/gl/accounts` ready                |
-| 3   | PLAT-01, PLAT-02 | Sprint 1 P0 — demo submission (live URL, video)                                           |
-| 4   | FE-03–FE-05              | SCM admin pages; backend CRUD exists for products/inventory/reorder                       |
-| 5   | FE-08                    | AP OCR upload; `financeApi.uploadInvoice` in client, no UI on `finance/invoices/page.tsx` |
-| 6   | FE-14 + INT-06           | Forecast train button; `forecastApi.train()` unused in any page                           |
-| 7   | BE-05                    | Outbound FIFO consumption (inbound layers in `purchase.service.ts` only)                  |
-| 8   | INT-04, INT-05           | Payroll → GL journal not verified (`payroll.completed` event exists)                      |
-| 9   | BE-07, PLAT-03, PLAT-04  | Email delivery, CI pipeline, security hardening                                           |
+| #   | Task(s)                 | Why                                                                                       |
+| --- | ----------------------- | ----------------------------------------------------------------------------------------- |
+| 1   | FE-01 + BE-01           | Sprint 1 P0 — vendor form blocked on schema (no `phone` in Prisma `Vendor` model)         |
+| 2   | FE-06                   | Sprint 1 P0 — GL account create; backend `POST /finance/gl/accounts` ready                |
+| 3   | PLAT-01, PLAT-02        | Sprint 1 P0 — demo submission (live URL, video)                                           |
+| 4   | FE-03–FE-05             | SCM admin pages; backend CRUD exists for products/inventory/reorder                       |
+| 5   | FE-08                   | AP OCR upload; `financeApi.uploadInvoice` in client, no UI on `finance/invoices/page.tsx` |
+| 6   | FE-14 + INT-06          | Forecast train button; `forecastApi.train()` unused in any page                           |
+| 7   | BE-05                   | Outbound FIFO consumption (inbound layers in `purchase.service.ts` only)                  |
+| 8   | INT-04, INT-05          | Payroll → GL journal not verified (`payroll.completed` event exists)                      |
+| 9   | BE-07, PLAT-03, PLAT-04 | Email delivery, CI pipeline, security hardening                                           |
 
 
 ---
-
-
 
 ## 10. PM Decisions Required
 
@@ -361,8 +319,6 @@
 
 
 ---
-
-
 
 ## 11. PDF Requirement → Task Mapping
 
@@ -384,8 +340,6 @@
 
 ---
 
-
-
 ## 12. Codebase Inventory (3 July 2026)
 
 
@@ -400,18 +354,16 @@
 | GitHub Actions CI      | 0     | No `.github/workflows/` directory                                                                   |
 
 
-
-
 ### Key stubs still in code
 
 
-| File                                     | Line  | Issue                                                   |
-| ---------------------------------------- | ----- | ------------------------------------------------------- |
-| `scm/vendors/page.tsx`                   | 41–43 | `handleAddVendor` → `console.log("Add Vendor clicked")` |
-| `finance/accounts/page.tsx`              | 90    | "New Account" `<Button>` has no `onClick` handler       |
+| File                                     | Line  | Issue                                                         |
+| ---------------------------------------- | ----- | ------------------------------------------------------------- |
+| `scm/vendors/page.tsx`                   | 41–43 | `handleAddVendor` → `console.log("Add Vendor clicked")`       |
+| `finance/accounts/page.tsx`              | 90    | "New Account" `<Button>` has no `onClick` handler             |
 | `scm/inventory/page.tsx`                 | —     | Raise PR → `POST /scm/requisitions/from-low-stock` (INT-01 ✅) |
-| `finance/invoices/page.tsx`              | —     | Approve list only; `financeApi.uploadInvoice` not used  |
-| `notification/channels/email.channel.ts` | —     | Log-only stub (inherits BE-07)                          |
+| `finance/invoices/page.tsx`              | —     | Approve list only; `financeApi.uploadInvoice` not used        |
+| `notification/channels/email.channel.ts` | —     | Log-only stub (inherits BE-07)                                |
 
 
 ---

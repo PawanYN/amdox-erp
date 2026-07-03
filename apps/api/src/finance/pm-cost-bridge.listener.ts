@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaClient } from '@amdox/db';
+import { AmdoxLogger } from '../common/logger/amdox-logger';
 
 interface InvoiceApprovedPayload {
   tenantId: string;
@@ -46,8 +47,9 @@ export class PmCostBridgeListener {
 
     if (!projectId || amount <= 0) return;
 
-    this.logger.log(
-      `Emitting cost.reported for project ${projectId} from AP invoice ${invoiceNumber ?? payload.invoiceId}`,
+    AmdoxLogger.event(
+      `cost.reported emitted  project=${projectId}`,
+      `source=AP  inv=${invoiceNumber ?? payload.invoiceId}  amount=${amount}`,
     );
 
     this.eventEmitter.emit('cost.reported', {

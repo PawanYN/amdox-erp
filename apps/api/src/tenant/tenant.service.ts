@@ -2,6 +2,7 @@ import { Injectable, OnModuleInit, InternalServerErrorException, ConflictExcepti
 import KcAdminClient from '@keycloak/keycloak-admin-client';
 import { prisma } from '@amdox/db';
 import { CreateTenantDto } from './dto/create-tenant.dto';
+import { AmdoxLogger } from '../common/logger/amdox-logger';
 
 @Injectable()
 export class TenantService implements OnModuleInit {
@@ -32,9 +33,9 @@ export class TenantService implements OnModuleInit {
       );
 
       await Promise.race([authPromise, timeoutPromise]);
-      this.logger.log('✅ Keycloak Admin Client Authenticated');
+      AmdoxLogger.tenant('Keycloak Admin Client authenticated');
     } catch (error) {
-      this.logger.warn(`⚠️ Failed to authenticate Keycloak Admin Client (Skipping for now): ${(error as Error).message}`);
+      AmdoxLogger.warn('Keycloak Admin Client auth failed — continuing without KC', (error as Error).message);
     }
   }
 

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaClient } from '@amdox/db';
+import { AmdoxLogger } from '../../common/logger/amdox-logger';
 
 interface PayrollCompletedPayload {
   tenantId: string;
@@ -32,7 +33,7 @@ export class LaborCostBridgeListener {
     });
 
     if (payslips.length === 0) {
-      this.logger.warn(`No payslips found for payroll run ${payload.payrollRunId}`);
+      AmdoxLogger.warn('No payslips found for payroll run — labor cost skipped', `runId=${payload.payrollRunId}`);
       return;
     }
 
@@ -75,8 +76,9 @@ export class LaborCostBridgeListener {
       }
     }
 
-    this.logger.log(
-      `Payroll run ${payload.payrollRunId}: emitted ${emitted} labor cost.reported event(s)`,
+    AmdoxLogger.event(
+      `Labor cost distribution complete`,
+      `runId=${payload.payrollRunId}  cost.reported×${emitted}`,
     );
   }
 }

@@ -12,6 +12,7 @@ import { ValidationPipe, Logger as NestLogger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { Logger } from 'nestjs-pino';
+import { AmdoxLogger } from './common/logger/amdox-logger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
@@ -44,6 +45,9 @@ async function bootstrap() {
   const port = process.env.PORT || 3001;
   await app.listen(port);
 
-  NestLogger.log(`Application is running on: http://localhost:${port}`, 'Bootstrap');
+  AmdoxLogger.divider('AMDOX ERP API');
+  AmdoxLogger.brand('Server ready', `http://localhost:${port}`);
+  AmdoxLogger.brand('API docs  ', `http://localhost:${port}/api-docs`);
+  AmdoxLogger.divider();
 }
 bootstrap();
