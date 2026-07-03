@@ -291,37 +291,31 @@ export default function SettingsPage() {
         </div>
       )}
 
-      <div className="flex flex-col md:flex-row gap-6">
-        {/* Navigation Sidebar */}
-        <div className="w-full md:w-56 shrink-0">
-          <div className="bg-slate-50 border border-slate-200 rounded-lg p-1.5 flex flex-col gap-1">
-            {tabs.map(tab => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => {
-                    setActiveTab(tab.id);
-                    setSuccessMsg(null);
-                    setErrorMsg(null);
-                  }}
-                  className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-medium transition-all ${
-                    isActive
-                      ? "bg-blue-600 text-white"
-                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                  }`}
-                >
-                  <Icon size={14} />
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+      {/* Horizontal Tab Bar */}
+      <div className="border-b border-slate-200 flex items-center gap-1 overflow-x-auto">
+        {tabs.map(tab => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => { setActiveTab(tab.id); setSuccessMsg(null); setErrorMsg(null); }}
+              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 -mb-px whitespace-nowrap transition-all ${
+                isActive
+                  ? "border-blue-600 text-blue-700"
+                  : "border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300"
+              }`}
+            >
+              <Icon size={13} />
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
 
+      <div>
         {/* Content Area */}
-        <div className="flex-1 bg-white border border-slate-200 rounded-lg p-6 shadow-card min-h-[500px]">
+        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-card min-h-[500px]">
 
           {/* GENERAL SETTINGS */}
           {activeTab === "general" && (
