@@ -26,7 +26,7 @@ import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { auditApi } from "@/lib/api/audit-api";
 import { tenantApi } from "@/lib/api/tenant-api";
 import { useKeycloak } from "@/components/KeycloakProvider";
-import keycloak from "@/lib/keycloak";
+import { apiClient } from "@/lib/api/client";
 
 function AdminRequired() {
   return (
@@ -154,20 +154,20 @@ export default function SettingsPage() {
   };
 
   useEffect(() => {
-    if (!initialized) return;
-    // Compute admin status from Keycloak token claims.
-    // Realm roles may contain spaces (e.g. "Tenant Admin") — normalize to match
-    // the same convention the backend RolesGuard uses (.replace(/\s+/g, '')).
-    const realmRoles: string[] =
-      (keycloak?.tokenParsed?.realm_access?.roles as string[]) ?? [];
-    const normalizedRoles = realmRoles.map((r) => r.replace(/\s+/g, ""));
-    const admin =
-      normalizedRoles.includes("SuperAdmin") ||
-      normalizedRoles.includes("TenantAdmin");
-    setIsAdmin(admin);
-    if (token) {
-      fetchAllData(admin);
-    }
+    if (!initialized || !token) return;
+    // Fetch DB roles from /auth/me — same source the backend RolesGuard uses,
+    // so this works regardless of whether Keycloak realm roles are set up.
+    apiClient("/auth/me")
+      .then((me: { roles: string[] }) => {
+        const admin =
+          me.roles.includes("SuperAdmin") || me.roles.includes("TenantAdmin");
+        setIsAdmin(admin);
+        fetchAllData(admin);
+      })
+      .catch(() => {
+        // If /auth/me fails, still attempt data fetch as non-admin
+        fetchAllData(false);
+      });
   }, [initialized, token]);
 
   const handleSaveConfig = async () => {

@@ -5,13 +5,29 @@
  * from the frontend, reads the URL, and forwards the work to the correct Service file.
  * DO NOT put heavy database logic here!
  */
-import { Controller, Post, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { RedisService } from '../common/redis/redis.service';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly redisService: RedisService) {}
+
+  @UseGuards(AuthGuard('keycloak'))
+  @Get('me')
+  async me(@Req() req: any) {
+    const user = req.user;
+    // Normalize role names the same way RolesGuard does (strip spaces)
+    const roles: string[] = (user?.userRoles ?? []).map((ur: any) =>
+      ur.role.name.replace(/\s+/g, ''),
+    );
+    return {
+      email: user?.email,
+      fullName: user?.fullName,
+      tenantId: user?.tenantId,
+      roles,
+    };
+  }
 
   @UseGuards(AuthGuard('keycloak'))
   @Post('logout')
