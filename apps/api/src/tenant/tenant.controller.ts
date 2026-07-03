@@ -106,4 +106,18 @@ export class TenantController {
     const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] || 'default-tenant-id';
     return this.tenantService.getAuthenticationFlows(tenantId);
   }
+
+  /**
+   * POST /tenant/provision-kc-roles
+   * One-time idempotent migration: creates Keycloak realm roles and assigns them
+   * to existing tenant admin users so JWT realm_access.roles is populated.
+   * Call this once for any tenant created before this fix was deployed.
+   */
+  @Post('provision-kc-roles')
+  @UseGuards(AuthGuard('keycloak'), RolesGuard)
+  @Roles('SuperAdmin', 'TenantAdmin')
+  async provisionKcRoles(@Req() req: any) {
+    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] || 'default-tenant-id';
+    return this.tenantService.provisionKcRoles(tenantId);
+  }
 }

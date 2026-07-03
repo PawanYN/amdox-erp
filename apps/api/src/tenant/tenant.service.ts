@@ -87,6 +87,21 @@ export class TenantService implements OnModuleInit {
         credential: { temporary: false, type: 'password', value: adminPassword },
       });
 
+      // Create realm roles so they appear in JWT realm_access.roles
+      for (const roleName of ['TenantAdmin', 'Manager', 'Viewer', 'Employee']) {
+        await this.kcAdminClient.roles.create({ realm: slug, name: roleName });
+      }
+
+      // Assign TenantAdmin realm role to the provisioned admin user
+      const kcAdminRole = await this.kcAdminClient.roles.findOneByName({ realm: slug, name: 'TenantAdmin' });
+      if (kcAdminRole?.id) {
+        await this.kcAdminClient.users.addRealmRoleMappings({
+          realm: slug,
+          id: kcUser.id,
+          roles: [{ id: kcAdminRole.id, name: kcAdminRole.name! }],
+        });
+      }
+
     } catch (error) {
       this.logger.error('Keycloak provisioning failed:', error);
       throw new InternalServerErrorException('Failed to provision Identity Provider for Tenant');
@@ -112,7 +127,7 @@ export class TenantService implements OnModuleInit {
           // Create default roles for this tenant
           roles: {
             create: [
-              { name: 'Tenant Admin', systemRole: 'TENANT_ADMIN' },
+              { name: 'TenantAdmin', systemRole: 'TENANT_ADMIN' },
               { name: 'Manager', systemRole: 'MANAGER' },
               { name: 'Viewer', systemRole: 'VIEWER' },
               { name: 'Employee', systemRole: 'EMPLOYEE' }
@@ -421,6 +436,58 @@ export class TenantService implements OnModuleInit {
       this.logger.error(`Failed to fetch auth flows for ${tenant.slug}:`, (error as Error).message);
       return [];
     }
+  }
+
+  /**
+   * One-time migration: ensure Keycloak realm roles exist and are assigned to the
+   * tenant admin user. Safe to call on existing tenants (idempotent).
+   */
+  async provisionKcRoles(tenantId: string) {
+    const tenant = await this.getTenant(tenantId);
+    await this.verifyRealmExists(tenant.slug);
+
+    // 1. Ensure realm roles exist in Keycloak
+    for (const roleName of ['TenantAdmin', 'Manager', 'Viewer', 'Employee']) {
+      try {
+        await this.kcAdminClient.roles.create({ realm: tenant.slug, name: roleName });
+      } catch {
+        // Role already exists — ignore
+      }
+    }
+
+    // 2. Normalize DB role name to match Keycloak (strip spaces)
+    await prisma.role.updateMany({
+      where: { tenantId: tenant.id, systemRole: 'TENANT_ADMIN' },
+      data: { name: 'TenantAdmin' },
+    });
+
+    // 3. Find all users in this tenant who have TENANT_ADMIN in DB and assign them the realm role
+    const adminUsers = await prisma.userRole.findMany({
+      where: {
+        tenantId: tenant.id,
+        role: { systemRole: 'TENANT_ADMIN' },
+      },
+      include: { user: true },
+    });
+
+    const kcAdminRole = await this.kcAdminClient.roles.findOneByName({ realm: tenant.slug, name: 'TenantAdmin' });
+    if (!kcAdminRole?.id) return { success: false, error: 'TenantAdmin realm role not found after creation' };
+
+    for (const ur of adminUsers) {
+      if (!ur.user.ssoSubject) continue;
+      try {
+        await this.kcAdminClient.users.addRealmRoleMappings({
+          realm: tenant.slug,
+          id: ur.user.ssoSubject,
+          roles: [{ id: kcAdminRole.id, name: kcAdminRole.name! }],
+        });
+      } catch {
+        // Already assigned — ignore
+      }
+    }
+
+    this.logger.log(`✅ Keycloak realm roles provisioned for tenant: ${tenant.slug}`);
+    return { success: true, tenant: tenant.slug, admins: adminUsers.map(u => u.user.email) };
   }
 
 }
