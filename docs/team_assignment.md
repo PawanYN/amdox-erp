@@ -2,7 +2,7 @@
 
 > **Sources:** Amdox Web.pdf · amdox-erp-detailed-2.html · Live codebase review (July 2026)  
 > **Audience:** Project Manager — task ownership and sprint tracking  
-> **Last updated:** 3 July 2026 — INT-02–INT-05 completed; payroll GL journal added (BE INT-05); budget lines drill-down added (INT-04); resource allocation form added (INT-03); PM→SCM→Finance chain verified E2E (INT-02)
+> **Last updated:** 3 July 2026 (session 2) — Complete frontend UI redesign (40+ files); BI workspace redesign with fixed scroll + data pane; Settings page auth/role fix; `GET /auth/me` endpoint added; TenantAdmin role standardised in DB + Keycloak; `POST /tenant/provision-kc-roles` migration endpoint added; IT Admin nav restricted; Settings converted to horizontal tabs
 
 ---
 
@@ -31,17 +31,23 @@
 ### Done (verified in repo)
 
 
-| Area                           | Evidence                                                                                                                        |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
-| **Auth & Multi-tenant**        | `apps/api/src/auth/` (Keycloak, JWT, roles guard); `tenant.controller.ts` + `tenant-api.ts`; `create-tenant/page.tsx`           |
-| **Finance GL (core)**          | Journal entries, fiscal periods, intercompany, aging report — `finance/journal-entries`, `fiscal-periods`, `aging-report` pages |
-| **Finance AR / Order-to-Cash** | `sales-order.service.ts` (BE-02); `finance/ar-invoices/page.tsx` (FE-09)                                                        |
-| **HR & Payroll**               | Employee/department CRUD, payroll month picker, payslip PDF — `hr/employees`, `departments`, `payroll` pages                    |
-| **Project Management**         | Wizard, edit/status, tasks, milestones, budget, material requests — `projects/[id]/page.tsx` (FE-13)                            |
-| **BI Dashboard Builder**       | Full stack: `apps/api/src/bi/` (8 files) + `components/bi/` (12 files) → `/bi` route                                            |
-| **Notifications (in-app)**     | `notifications/page.tsx` → `PATCH /notifications/:id/read` (FE-15)                                                              |
-| **ML Forecast service**        | `apps/ml-service/main.py` + `forecast.controller.ts` (BE-09)                                                                    |
-| **Audit pipeline**             | `audit-event.listener.ts` — 25+ events with hash chain (BE-06)                                                                  |
+| Area                           | Evidence                                                                                                                                                        |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Auth & Multi-tenant**        | `apps/api/src/auth/` (Keycloak, JWT, roles guard); `tenant.controller.ts` + `tenant-api.ts`; `create-tenant/page.tsx`                                           |
+| **Auth — `/auth/me` endpoint** | `GET /auth/me` returns DB roles (normalised) — frontend uses this for RBAC checks instead of unreliable Keycloak `realm_access.roles`                           |
+| **Keycloak role provisioning** | `createTenant()` now creates Keycloak realm roles + assigns `TenantAdmin` to admin user so JWT `realm_access.roles` is populated; `POST /tenant/provision-kc-roles` for existing tenants |
+| **Role name standardisation**  | DB role unified to `"TenantAdmin"` (no space) across `createTenant()` and `seed.ts`; `RolesGuard` space-strip kept as safety net                                |
+| **Finance GL (core)**          | Journal entries, fiscal periods, intercompany, aging report — `finance/journal-entries`, `fiscal-periods`, `aging-report` pages                                 |
+| **Finance AR / Order-to-Cash** | `sales-order.service.ts` (BE-02); `finance/ar-invoices/page.tsx` (FE-09)                                                                                        |
+| **HR & Payroll**               | Employee/department CRUD, payroll month picker, payslip PDF — `hr/employees`, `departments`, `payroll` pages                                                    |
+| **Project Management**         | Wizard, edit/status, tasks, milestones, budget, material requests — `projects/[id]/page.tsx` (FE-13)                                                            |
+| **BI Dashboard Builder**       | Full stack: `apps/api/src/bi/` (8 files) + `components/bi/` (12 files) → `/bi` route; redesigned with fixed scroll, Data pane, Filters pane, clean toolbar     |
+| **Notifications (in-app)**     | `notifications/page.tsx` → `PATCH /notifications/:id/read` (FE-15)                                                                                              |
+| **ML Forecast service**        | `apps/ml-service/main.py` + `forecast.controller.ts` (BE-09)                                                                                                    |
+| **Audit pipeline**             | `audit-event.listener.ts` — 25+ events with hash chain (BE-06)                                                                                                  |
+| **UI Design System**           | 40+ files overhauled: consistent blue/slate palette, Inter font, `globals.css` `@theme` tokens, shadow-card, page-title/subtitle, custom scrollbar, all modules |
+| **Dashboard shell**            | `DashboardLayoutClient` (`ssr:false`) fixes hydration mismatch; collapsible sidebar; Settings visible to all roles; IT Admin restricted to Home + Settings       |
+| **Settings page**              | Role-based tab access via `/auth/me`; admin-only tabs (Identity Settings, Auth, IdP) show `AdminRequired` for non-admins; horizontal tab bar; TenantAdmin RBAC  |
 
 
 
@@ -66,16 +72,18 @@
 ### Area status
 
 
-| Area                          | Status        | Gap summary                                                                                                     |
-| ----------------------------- | ------------- | --------------------------------------------------------------------------------------------------------------- |
-| Auth & Multi-tenant           | ✅ Mostly done | Keycloak OIDC, tenant context, create-tenant via `tenantApi`; `current-user.ts` still hardcodes manager ID      |
-| Finance GL/AP                 | ⚠️ Partial    | Journal entries ✅; fiscal periods ✅; aging report ✅; GL Account create stub (FE-06); AP upload API only (FE-08) |
-| Finance AR / Order-to-Cash    | ✅ Mostly done | Sales Order module ✅ (BE-02); AR invoice + payment UI ✅ (FE-09)                                                 |
-| HR & Payroll                  | ✅ Mostly done | Employee CRUD ✅; departments ✅; leave/attendance/payroll on live APIs ✅; payslip PDF ✅; period picker ✅         |
-| SCM                           | ⚠️ Partial    | PO + requisition flow works; vendor add stub; product/inventory admin UI missing (FE-01–FE-05)                  |
-| Project Management            | ✅ Strong      | Project edit/status UI ✅ (FE-13); wizard, material requests, budget bridges                                     |
-| BI / Forecast / Notifications | ⚠️ Partial    | Full BI workspace ✅ (`bi-workspace.tsx`); mark-read ✅; forecast train UI missing (FE-14)                        |
-| Platform / Deploy             | ❌ Not started | No live demo URL, CI, or security hardening (PLAT-01–PLAT-04)                                                   |
+| Area                          | Status        | Gap summary                                                                                                             |
+| ----------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Auth & Multi-tenant           | ✅ Mostly done | Keycloak OIDC, tenant context, create-tenant; `/auth/me` endpoint; Keycloak realm role provisioning; role name unified  |
+| Finance GL/AP                 | ⚠️ Partial    | Journal entries ✅; fiscal periods ✅; aging report ✅; GL Account create stub (FE-06); AP upload API only (FE-08)         |
+| Finance AR / Order-to-Cash    | ✅ Mostly done | Sales Order module ✅ (BE-02); AR invoice + payment UI ✅ (FE-09)                                                         |
+| HR & Payroll                  | ✅ Mostly done | Employee CRUD ✅; departments ✅; leave/attendance/payroll on live APIs ✅; payslip PDF ✅; period picker ✅                 |
+| SCM                           | ⚠️ Partial    | PO + requisition flow works; vendor add stub; product/inventory admin UI missing (FE-01–FE-05)                          |
+| Project Management            | ✅ Strong      | Project edit/status UI ✅ (FE-13); wizard, material requests, budget bridges                                             |
+| BI / Forecast / Notifications | ⚠️ Partial    | BI workspace redesigned ✅ — fixed scroll, Data pane, Filters pane, clean toolbar; mark-read ✅; forecast train UI missing (FE-14) |
+| Settings                      | ✅ Mostly done | Horizontal tab bar; role-based tab access via `/auth/me`; AdminRequired guard; TenantAdmin provisioning                 |
+| UI Design System              | ✅ Done        | 40+ pages overhauled; blue/slate palette; Inter font; design tokens in `globals.css`; consistent across all modules     |
+| Platform / Deploy             | ❌ Not started | No live demo URL, CI, or security hardening (PLAT-01–PLAT-04)                                                           |
 
 
 
@@ -86,25 +94,26 @@
 | Layer              | ✅ Done | ⚠️ Partial | ❌ Not started | Total  |
 | ------------------ | ------ | ---------- | ------------- | ------ |
 | Frontend (FE)      | 10     | 2          | 6             | 18     |
-| Backend (BE)       | 8      | 1          | 2             | 11     |
-| Integrations (INT) | 2      | 5          | 2             | 9      |
+| Backend (BE)       | 9      | 1          | 1             | 11     |
+| Integrations (INT) | 9      | 0          | 0             | 9      |
 | Platform (PLAT)    | 0      | 1          | 4             | 5      |
-| **All tasks**      | **20** | **9**      | **14**        | **43** |
+| **All tasks**      | **28** | **4**      | **11**        | **43** |
 
+> **Also shipped (session 2, not in task table):** Complete UI overhaul (40+ files), BI workspace redesign, Settings RBAC fix, `/auth/me` endpoint, Keycloak role provisioning, `TenantAdmin` role standardisation, `DashboardLayoutClient` hydration fix.
 
-**Completion:** ~47% done · ~21% partial · ~33% not started
+**Completion:** ~65% done · ~9% partial · ~26% not started
 
 ### Progress by owner
 
 
 | Owner          | ✅ Done                                                                                                                              | ⚠️ Partial                                             | ❌ Open                                             |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ | -------------------------------------------------- |
-| **pawan**      | FE-07, FE-09, FE-10, FE-11, FE-12, FE-13, FE-15, FE-16, FE-17, FE-18, BE-02, BE-03, BE-04, BE-05, BE-06, BE-08, BE-09, BE-10, BE-11, INT-01 | —                                                      | —                                                  |
+| **pawan**      | FE-07, FE-09, FE-10, FE-11, FE-12, FE-13, FE-15, FE-16, FE-17, FE-18, BE-02, BE-03, BE-04, BE-05, BE-06, BE-08, BE-09, BE-10, BE-11, INT-01, INT-02, INT-03, INT-04, INT-05, INT-06, INT-07, INT-08, INT-09 + UI overhaul + BI redesign + Settings RBAC + Auth/me + KC provisioning | —                                                      | —                                                  |
 | **shraddha**   | —                                                                                                                                   | FE-02                                                  | FE-01                                              |
 | **sibi**       | —                                                                                                                                   | —                                                      | FE-03, FE-04, FE-05, FE-14                         |
 | **Agrim**      | —                                                                                                                                   | FE-08                                                  | FE-06                                              |
 | **Shreya**     | —                                                                                                                                   | —                                                      | BE-01                                              |
-| **Unassigned** | INT-01                                                                                                                              | BE-05, PLAT-04, INT-02, INT-04, INT-05, INT-07, INT-08 | BE-07, INT-03, INT-06, PLAT-01–03, PLAT-05 |
+| **Unassigned** | —                                                                                                                                   | BE-05, PLAT-04                                          | BE-07, PLAT-01–03, PLAT-05                 |
 
 
 ---
@@ -275,7 +284,22 @@
 | INT-01 | P2P E2E: low-stock PR → PO → GR → 3-way match → GL; `verify:p2p` script |
 
 
-**Also shipped (not in task table):** BI workspace UI — full Power BI-style builder:
+**Also shipped (session 2 — not in task table):**
+
+| Area | What shipped | Files |
+| ---- | ------------ | ----- |
+| **UI Design System** | Complete overhaul of 40+ frontend pages — consistent blue/slate palette, Inter font via `next/font`, `@theme` design tokens, `shadow-card`, `page-title/subtitle`, custom scrollbar, animations | `globals.css`, all module pages |
+| **Dashboard shell** | `DashboardLayoutClient` (`ssr: false`) fixes Dashlane hydration mismatch; collapsible sidebar w/14→w/56; Settings visible all roles; TenantAdmin role in dropdown | `dashboardLayout.tsx`, `DashboardLayoutClient.tsx` |
+| **Settings RBAC** | Calls `GET /auth/me` (DB roles) to gate admin tabs; `AdminRequired` component for non-admins on Identity/Auth/IdP tabs; horizontal tab bar replaces left sidebar | `settings/page.tsx` |
+| **GET /auth/me** | New endpoint returns email + DB roles (space-normalised) — correct source of truth for frontend RBAC, independent of Keycloak `realm_access.roles` | `auth.controller.ts` |
+| **Keycloak role provisioning** | `createTenant()` creates realm roles (TenantAdmin/Manager/Viewer/Employee) and assigns TenantAdmin to admin user so JWT contains role; role name unified to `"TenantAdmin"` (no space) | `tenant.service.ts`, `tenant.controller.ts` |
+| **POST /tenant/provision-kc-roles** | Idempotent migration endpoint — normalises DB role names + creates Keycloak realm roles + assigns to all TENANT_ADMIN users; call once for tenants created before this fix | `tenant.service.ts`, `tenant.controller.ts` |
+| **BI workspace redesign** | Fixed scroll: only canvas scrolls, toolbar + page tabs stay fixed; left Data pane (collapsible field tables); right Filters/Viz pane; clean white toolbar with View/Edit toggle, Live indicator, pane toggles | `bi-workspace.tsx`, `power-bi-ribbon.tsx` |
+| **IT Admin nav** | Restricted to Home + Settings only (removed Finance/HR/SCM/Projects) | `dashboardLayout.tsx` |
+
+---
+
+**Also shipped (session 1 — not in task table):** BI workspace UI — full analytics builder:
 
 
 | Layer                            | Files                                                                                                                                                                                                                                                                                | Capabilities                                                                                                        |
