@@ -22,6 +22,9 @@ type PurchaseOrder = {
   lines?: { quantity: string | number; unitPrice: string | number; product?: { name: string; sku: string } }[];
 };
 
+const inputClass =
+  "mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all";
+
 export default function VendorPortalPage() {
   const [session, setSession] = useState<VendorPortalSession | null>(null);
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
@@ -50,11 +53,7 @@ export default function VendorPortalPage() {
     setLoading(true);
     setError(null);
     try {
-      const result = await vendorPortalApi.login(
-        loginForm.tenantSlug,
-        loginForm.email,
-        loginForm.accessKey,
-      );
+      const result = await vendorPortalApi.login(loginForm.tenantSlug, loginForm.email, loginForm.accessKey);
       setVendorPortalSession(result);
       setSession(result);
     } catch (err) {
@@ -91,23 +90,23 @@ export default function VendorPortalPage() {
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-[#F7F5F0] flex items-center justify-center p-6">
-        <div className="w-full max-w-md bg-white rounded-2xl border border-[#E8E4DA] shadow-sm p-8">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+        <div className="w-full max-w-md bg-white rounded-xl border border-slate-200 shadow-card p-8">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-[#2F6B4F]/10 flex items-center justify-center">
-              <KeyRound className="text-[#2F6B4F]" size={20} />
+            <div className="h-10 w-10 rounded-lg bg-blue-50 flex items-center justify-center">
+              <KeyRound className="text-blue-600" size={20} />
             </div>
             <div>
-              <h1 className="text-xl font-semibold text-[#1A1A18]">Supplier Portal</h1>
-              <p className="text-sm text-[#8A8678]">View and acknowledge purchase orders</p>
+              <h1 className="text-lg font-semibold text-slate-900">Supplier Portal</h1>
+              <p className="text-sm text-slate-400">View and acknowledge purchase orders</p>
             </div>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="text-xs font-medium text-[#8A8678]">Tenant slug</label>
+              <label className="text-[12px] font-medium text-slate-600 block">Tenant slug</label>
               <input
-                className="mt-1 w-full rounded-lg border border-[#E8E4DA] px-3 py-2 text-sm"
+                className={inputClass}
                 value={loginForm.tenantSlug}
                 onChange={(e) => setLoginForm({ ...loginForm, tenantSlug: e.target.value })}
                 placeholder="acme-corp"
@@ -115,33 +114,33 @@ export default function VendorPortalPage() {
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-[#8A8678]">Supplier email</label>
+              <label className="text-[12px] font-medium text-slate-600 block">Supplier email</label>
               <input
                 type="email"
-                className="mt-1 w-full rounded-lg border border-[#E8E4DA] px-3 py-2 text-sm"
+                className={inputClass}
                 value={loginForm.email}
                 onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
                 required
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-[#8A8678]">Portal access key</label>
+              <label className="text-[12px] font-medium text-slate-600 block">Portal access key</label>
               <input
                 type="password"
-                className="mt-1 w-full rounded-lg border border-[#E8E4DA] px-3 py-2 text-sm font-mono"
+                className={inputClass + " font-mono"}
                 value={loginForm.accessKey}
                 onChange={(e) => setLoginForm({ ...loginForm, accessKey: e.target.value })}
                 placeholder="vp_..."
                 required
               />
             </div>
-            {error && <p className="text-sm text-[#B4533B]">{error}</p>}
+            {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-[#2F6B4F] text-white py-2.5 text-sm font-medium hover:bg-[#265a42] disabled:opacity-60"
+              className="w-full rounded-lg bg-blue-600 text-white py-2.5 text-sm font-medium hover:bg-blue-700 disabled:opacity-60 transition-colors"
             >
-              {loading ? "Signing in..." : "Sign in to portal"}
+              {loading ? "Signing in…" : "Sign in to portal"}
             </button>
           </form>
         </div>
@@ -150,102 +149,98 @@ export default function VendorPortalPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F7F5F0] p-6">
+    <div className="min-h-screen bg-slate-50 p-6">
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-semibold text-[#1A1A18]">Supplier Portal</h1>
-            <p className="text-sm text-[#8A8678]">
+            <h1 className="text-xl font-semibold text-slate-900">Supplier Portal</h1>
+            <p className="text-sm text-slate-400 mt-0.5">
               {session.vendorName} · {session.tenantName}
             </p>
           </div>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 text-sm text-[#8A8678] hover:text-[#1A1A18]"
+            className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 transition-colors"
           >
-            <LogOut size={16} /> Sign out
+            <LogOut size={15} /> Sign out
           </button>
         </div>
 
-        {error && <p className="mb-4 text-sm text-[#B4533B]">{error}</p>}
+        {error && (
+          <p className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
+        )}
 
         {loading && orders.length === 0 ? (
-          <div className="flex items-center gap-2 text-[#8A8678]">
-            <Loader2 className="animate-spin" size={18} /> Loading orders...
+          <div className="flex items-center gap-2 text-slate-400">
+            <Loader2 className="animate-spin" size={18} /> Loading orders…
           </div>
         ) : orders.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-[#E8E4DA] p-10 text-center text-[#8A8678]">
-            <Package className="mx-auto mb-3 opacity-40" size={32} />
+          <div className="bg-white rounded-xl border border-slate-200 shadow-card p-10 text-center text-slate-400">
+            <Package className="mx-auto mb-3 opacity-30" size={32} />
             No purchase orders sent to you yet.
           </div>
         ) : (
           <div className="space-y-4">
             {orders.map((po) => (
-              <div key={po.id} className="bg-white rounded-2xl border border-[#E8E4DA] p-5">
+              <div key={po.id} className="bg-white rounded-xl border border-slate-200 shadow-card p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h2 className="font-semibold text-[#1A1A18]">{po.poNumber}</h2>
-                    <p className="text-sm text-[#8A8678]">
+                    <h2 className="font-semibold text-slate-900">{po.poNumber}</h2>
+                    <p className="text-sm text-slate-400 mt-0.5">
                       {po.orderedAt ? new Date(po.orderedAt).toLocaleDateString() : "—"} · ₹
                       {Number(po.totalAmount).toLocaleString()}
                     </p>
-                    <p className="text-xs text-[#8A8678] mt-1 capitalize">{po.status.toLowerCase().replace("_", " ")}</p>
+                    <p className="text-xs text-slate-400 mt-0.5 capitalize">{po.status.toLowerCase().replace("_", " ")}</p>
                   </div>
                   {po.vendorAcknowledgedAt ? (
-                    <span className="flex items-center gap-1 text-xs font-medium text-[#2F6B4F] bg-[#2F6B4F]/10 px-2 py-1 rounded-full">
-                      <CheckCircle2 size={14} /> Acknowledged
+                    <span className="flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-full">
+                      <CheckCircle2 size={13} /> Acknowledged
                     </span>
                   ) : po.status === "APPROVED" ? (
-                    <span className="text-xs font-medium text-[#D9A85C] bg-[#D9A85C]/10 px-2 py-1 rounded-full">
+                    <span className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-100 px-2.5 py-1 rounded-full">
                       Awaiting acknowledgement
                     </span>
                   ) : null}
                 </div>
 
-                <ul className="mt-4 space-y-1 text-sm text-[#4A4840]">
+                <ul className="mt-4 space-y-1 text-sm text-slate-600">
                   {po.lines?.map((line, i) => (
-                    <li key={i}>
-                      {line.product?.sku} — {line.product?.name}: {Number(line.quantity)} × ₹
-                      {Number(line.unitPrice).toLocaleString()}
+                    <li key={i} className="flex items-center gap-2">
+                      <span className="font-mono text-[11px] text-slate-400">{line.product?.sku}</span>
+                      <span>{line.product?.name}:</span>
+                      <span className="font-medium">{Number(line.quantity)} × ₹{Number(line.unitPrice).toLocaleString()}</span>
                     </li>
                   ))}
                 </ul>
 
                 {po.vendorAcknowledgedAt ? (
-                  <p className="mt-3 text-xs text-[#8A8678]">
+                  <p className="mt-3 text-xs text-slate-400">
                     Acknowledged {new Date(po.vendorAcknowledgedAt).toLocaleString()}
-                    {po.vendorExpectedDeliveryAt &&
-                      ` · ETA ${new Date(po.vendorExpectedDeliveryAt).toLocaleDateString()}`}
+                    {po.vendorExpectedDeliveryAt && ` · ETA ${new Date(po.vendorExpectedDeliveryAt).toLocaleDateString()}`}
                     {po.vendorShipmentNotes && ` · ${po.vendorShipmentNotes}`}
                   </p>
                 ) : po.status === "APPROVED" ? (
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     <input
                       type="date"
-                      className="rounded-lg border border-[#E8E4DA] px-3 py-2 text-sm"
+                      className="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                       value={ackForm[po.id]?.expectedDeliveryAt || ""}
                       onChange={(e) =>
-                        setAckForm({
-                          ...ackForm,
-                          [po.id]: { ...ackForm[po.id], expectedDeliveryAt: e.target.value, notes: ackForm[po.id]?.notes || "" },
-                        })
+                        setAckForm({ ...ackForm, [po.id]: { ...ackForm[po.id], expectedDeliveryAt: e.target.value, notes: ackForm[po.id]?.notes || "" } })
                       }
                     />
                     <input
-                      className="rounded-lg border border-[#E8E4DA] px-3 py-2 text-sm"
+                      className="rounded-lg border border-slate-200 px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                       placeholder="Shipment notes (optional)"
                       value={ackForm[po.id]?.notes || ""}
                       onChange={(e) =>
-                        setAckForm({
-                          ...ackForm,
-                          [po.id]: { expectedDeliveryAt: ackForm[po.id]?.expectedDeliveryAt || "", notes: e.target.value },
-                        })
+                        setAckForm({ ...ackForm, [po.id]: { expectedDeliveryAt: ackForm[po.id]?.expectedDeliveryAt || "", notes: e.target.value } })
                       }
                     />
                     <button
                       onClick={() => handleAcknowledge(po.id)}
                       disabled={loading}
-                      className="sm:col-span-2 rounded-lg bg-[#2F6B4F] text-white py-2 text-sm font-medium hover:bg-[#265a42] disabled:opacity-60"
+                      className="sm:col-span-2 rounded-lg bg-blue-600 text-white py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-60 transition-colors"
                     >
                       Acknowledge purchase order
                     </button>

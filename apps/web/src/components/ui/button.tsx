@@ -1,35 +1,45 @@
 import { ButtonHTMLAttributes, ReactNode } from "react";
 
-type ButtonVariant = "primary" | "success" | "danger" | "ghost" | "outline";
+type ButtonVariant = "primary" | "success" | "danger" | "ghost" | "outline" | "secondary";
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary:
-    "bg-gradient-to-r from-violet-500 to-purple-600 text-white hover:from-violet-400 hover:to-purple-500 shadow-[0_2px_12px_rgba(108,71,255,0.4)] hover:shadow-[0_4px_20px_rgba(108,71,255,0.55)] hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none",
+    "bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed",
+  secondary:
+    "bg-slate-100 text-slate-700 hover:bg-slate-200 active:bg-slate-300 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed",
   success:
-    "bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-400 hover:to-teal-400 shadow-[0_2px_12px_rgba(16,185,129,0.35)] hover:shadow-[0_4px_20px_rgba(16,185,129,0.5)] hover:-translate-y-0.5 disabled:opacity-50",
+    "bg-emerald-600 text-white hover:bg-emerald-700 active:bg-emerald-800 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed",
   danger:
-    "bg-white text-accent-red border border-red-200 hover:bg-red-50 hover:border-red-300 hover:-translate-y-0.5 shadow-sm hover:shadow disabled:opacity-50",
+    "bg-white text-red-600 border border-red-200 hover:bg-red-50 hover:border-red-300 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed",
   ghost:
-    "bg-transparent text-muted hover:bg-canvas hover:text-ink disabled:opacity-50",
+    "text-slate-600 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed",
   outline:
-    "bg-white text-ink border border-line hover:border-purple-600/40 hover:text-purple-600 hover:-translate-y-0.5 shadow-sm hover:shadow disabled:opacity-50",
+    "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed",
 };
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   icon?: ReactNode;
+  size?: "sm" | "md" | "lg";
 }
+
+const SIZE_CLASSES: Record<string, string> = {
+  sm: "px-3 py-1.5 text-xs gap-1.5 rounded-md",
+  md: "px-3.5 py-2 text-[13px] gap-2 rounded-md",
+  lg: "px-4 py-2.5 text-sm gap-2 rounded-lg",
+};
 
 export function Button({
   variant = "primary",
   icon,
   children,
   className = "",
+  size = "md",
   ...rest
 }: ButtonProps) {
   return (
     <button
-      className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 active:scale-95 ${VARIANT_CLASSES[variant]} ${className}`}
+      className={`inline-flex items-center justify-center font-medium transition-colors duration-150 ${SIZE_CLASSES[size]} ${VARIANT_CLASSES[variant]} ${className}`}
       {...rest}
     >
       {icon}

@@ -61,16 +61,14 @@ export default function LeaveRequestsPage() {
         body: JSON.stringify(payload),
       });
       const created = res.data || res;
-
       setRequests((prev) => [
-        { 
-          ...newRequest, 
-          id: created.id || `LR-${String(prev.length + 1).padStart(3, "0")}`, 
-          status: created.status || "Pending" 
-        }, 
-        ...prev
+        {
+          ...newRequest,
+          id: created.id || `LR-${String(prev.length + 1).padStart(3, "0")}`,
+          status: created.status || "Pending",
+        },
+        ...prev,
       ]);
-      
       setFormOpen(false);
     } catch (err: any) {
       const errMsg = err.response?.data?.message || err.message || "Failed to create leave request.";
@@ -107,79 +105,45 @@ export default function LeaveRequestsPage() {
   const rejected = requests.filter((r) => r.status === "Rejected").length;
 
   return (
-    <div>
-      {/* Header */}
-      <div className="flex items-start justify-between animate-fade-in-up">
+    <div className="space-y-6">
+      <div className="flex items-start justify-between">
         <div>
-          <div className="flex items-center gap-2.5 mb-1">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 text-white shadow-[0_4px_12px_rgba(236,72,153,0.3)]">
-              <CalendarDays size={16} />
-            </div>
-            <h1 className="text-2xl font-bold text-ink">Leave Requests</h1>
-          </div>
-          <p className="text-sm text-muted ml-10">Approval workflow for employee leave applications</p>
+          <h1 className="page-title flex items-center gap-2">
+            <CalendarDays size={18} className="text-slate-400" />
+            Leave Requests
+          </h1>
+          <p className="page-subtitle mt-1">Approval workflow for employee leave applications</p>
         </div>
         <Button icon={<Plus size={16} />} onClick={() => setFormOpen(true)}>
           Apply for Leave
         </Button>
       </div>
 
-      {/* Stats */}
-      <div className="mt-6 grid grid-cols-4 gap-4 animate-fade-in-up" style={{ animationDelay: "0.05s" }}>
-        <div className="rounded-2xl border border-line bg-card p-5 shadow-card hover:shadow-card-hover transition-all hover:-translate-y-0.5 group">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-muted/70">Total</p>
-              <p className="mt-1.5 text-3xl font-bold text-ink">{requests.length}</p>
-            </div>
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 text-white shadow-md group-hover:scale-110 transition-transform">
-              <CalendarDays size={18} />
-            </div>
-          </div>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="bg-white rounded-lg border border-slate-200 shadow-card p-5">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-1.5">Total</p>
+          <p className="text-2xl font-semibold text-slate-900">{requests.length}</p>
         </div>
-        <div className="rounded-2xl border border-amber-100 bg-gradient-to-br from-amber-50 to-yellow-50 p-5 shadow-card hover:shadow-card-hover transition-all hover:-translate-y-0.5 group">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-amber-600/70">Pending</p>
-              <p className="mt-1.5 text-3xl font-bold text-amber-700">{pending}</p>
-            </div>
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-orange-400 text-white shadow-md group-hover:scale-110 transition-transform">
-              <Clock size={18} />
-            </div>
-          </div>
+        <div className="bg-amber-50 rounded-lg border border-amber-100 p-5">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-amber-600 mb-1.5">Pending</p>
+          <p className="text-2xl font-semibold text-amber-700">{pending}</p>
         </div>
-        <div className="rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-teal-50 p-5 shadow-card hover:shadow-card-hover transition-all hover:-translate-y-0.5 group">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-emerald-600/70">Approved</p>
-              <p className="mt-1.5 text-3xl font-bold text-emerald-700">{approved}</p>
-            </div>
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 text-white shadow-md group-hover:scale-110 transition-transform">
-              <CheckCircle size={18} />
-            </div>
-          </div>
+        <div className="bg-emerald-50 rounded-lg border border-emerald-100 p-5">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-emerald-600 mb-1.5">Approved</p>
+          <p className="text-2xl font-semibold text-emerald-700">{approved}</p>
         </div>
-        <div className="rounded-2xl border border-red-100 bg-gradient-to-br from-red-50 to-rose-50 p-5 shadow-card hover:shadow-card-hover transition-all hover:-translate-y-0.5 group">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-red-500/70">Rejected</p>
-              <p className="mt-1.5 text-3xl font-bold text-red-600">{rejected}</p>
-            </div>
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-rose-400 to-pink-500 text-white shadow-md group-hover:scale-110 transition-transform">
-              <XCircle size={18} />
-            </div>
-          </div>
+        <div className="bg-red-50 rounded-lg border border-red-100 p-5">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-red-500 mb-1.5">Rejected</p>
+          <p className="text-2xl font-semibold text-red-600">{rejected}</p>
         </div>
       </div>
 
-      <div className="mt-6 animate-fade-in-up" style={{ animationDelay: "0.15s" }}>
-        <LeaveTable
-          requests={requests}
-          currentUserRole={currentUser.role}
-          onApprove={handleApprove}
-          onReject={handleReject}
-        />
-      </div>
+      <LeaveTable
+        requests={requests}
+        currentUserRole={currentUser.role}
+        onApprove={handleApprove}
+        onReject={handleReject}
+      />
 
       <LeaveForm
         open={formOpen}

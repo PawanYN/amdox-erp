@@ -1,9 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Clock as ClockIcon, LogOut, Timer, TrendingUp, Calendar, Zap } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, Table, THead, TH, TBody, TR, TD, EmptyState } from "@/components/ui/table";
+import { Clock as ClockIcon, Timer, TrendingUp, Calendar } from "lucide-react";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { useKeycloak } from "@/components/KeycloakProvider";
 import { hrApi } from "@/lib/api/hr-api";
@@ -54,111 +52,80 @@ export default function AttendancePage() {
       header: "Employee",
       cell: (rec) => (
         <div className="flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+          <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-[11px] font-bold shrink-0">
             {rec.employeeName.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
           </div>
-          <span className="font-semibold text-ink">{rec.employeeName}</span>
+          <span className="font-semibold text-slate-900">{rec.employeeName}</span>
         </div>
       ),
     },
     {
       header: "Date",
       cell: (rec) => (
-        <span className="text-xs font-medium text-muted bg-canvas border border-line rounded-lg px-2.5 py-1">
+        <span className="text-[12px] font-medium text-slate-600 bg-slate-100 rounded px-2 py-0.5">
           {rec.date}
         </span>
       ),
     },
     {
       header: "Clock In",
-      className: "text-sm font-medium text-ink",
+      className: "text-sm font-medium text-slate-700",
       cell: (rec) => rec.clockIn ?? "—",
     },
     {
       header: "Clock Out",
-      className: "text-sm font-medium text-ink",
-      cell: (rec) => rec.clockOut ?? "—",
+      className: "text-sm font-medium text-slate-700",
+      cell: (rec) => rec.clockOut ?? <span className="text-slate-300">—</span>,
     },
     {
       header: "Total Hours",
-      cell: (rec) => (
+      cell: (rec) =>
         rec.totalHours != null ? (
-          <span className="text-sm font-semibold text-ink">{rec.totalHours} hrs</span>
-        ) : "—"
-      ),
+          <span className="text-sm font-semibold text-slate-900">{rec.totalHours} hrs</span>
+        ) : (
+          <span className="text-slate-300">—</span>
+        ),
     },
     {
       header: "Overtime",
-      cell: (rec) => (
+      cell: (rec) =>
         rec.overtimeHours != null ? (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-1 text-xs font-semibold text-amber-700 shadow-[0_0_8px_rgba(245,158,11,0.15)]">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
             <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
             +{rec.overtimeHours} hrs
           </span>
         ) : (
-          <span className="text-muted">—</span>
-        )
-      ),
+          <span className="text-slate-300">—</span>
+        ),
     },
   ];
 
   return (
-    <div>
-      {/* Header */}
-      <div className="flex items-start justify-between animate-fade-in-up">
-        <div>
-          <div className="flex items-center gap-2.5 mb-1">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400 to-blue-500 text-white shadow-[0_4px_12px_rgba(6,182,212,0.3)]">
-              <ClockIcon size={16} />
-            </div>
-            <h1 className="text-2xl font-bold text-ink">Attendance</h1>
-          </div>
-          <p className="text-sm text-muted ml-10">Clock-in/out records and overtime tracking</p>
+    <div className="space-y-6">
+      <div>
+        <h1 className="page-title flex items-center gap-2">
+          <ClockIcon size={18} className="text-slate-400" />
+          Attendance
+        </h1>
+        <p className="page-subtitle mt-1">Clock-in/out records and overtime tracking</p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-4">
+        <div className="bg-white rounded-lg border border-slate-200 shadow-card p-5">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-1.5">Total Records</p>
+          <p className="text-2xl font-semibold text-slate-900">{records.length}</p>
+        </div>
+        <div className="bg-white rounded-lg border border-slate-200 shadow-card p-5">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-1.5">Hours This Week</p>
+          <p className="text-2xl font-semibold text-slate-900">{totalHoursThisWeek.toFixed(1)}</p>
+        </div>
+        <div className="bg-amber-50 rounded-lg border border-amber-100 p-5">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-amber-600 mb-1.5">Overtime Sessions</p>
+          <p className="text-2xl font-semibold text-amber-700">{overtimeCount}</p>
         </div>
       </div>
 
-      {/* Stats row */}
-      <div className="mt-6 grid grid-cols-3 gap-4 animate-fade-in-up" style={{ animationDelay: "0.05s" }}>
-        <div className="rounded-2xl border border-line bg-card p-5 shadow-card hover:shadow-card-hover transition-all hover:-translate-y-0.5 group">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-muted/70">Total Records</p>
-              <p className="mt-1.5 text-3xl font-bold text-ink">{records.length}</p>
-            </div>
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400 to-blue-500 text-white shadow-md group-hover:scale-110 transition-transform">
-              <Calendar size={18} />
-            </div>
-          </div>
-        </div>
-        <div className="rounded-2xl border border-line bg-card p-5 shadow-card hover:shadow-card-hover transition-all hover:-translate-y-0.5 group">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-muted/70">Hours This Week</p>
-              <p className="mt-1.5 text-3xl font-bold text-ink">{totalHoursThisWeek.toFixed(1)}</p>
-            </div>
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-md group-hover:scale-110 transition-transform">
-              <Timer size={18} />
-            </div>
-          </div>
-        </div>
-        <div className="rounded-2xl border border-line bg-card p-5 shadow-card hover:shadow-card-hover transition-all hover:-translate-y-0.5 group">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-muted/70">Overtime Sessions</p>
-              <p className="mt-1.5 text-3xl font-bold text-ink">{overtimeCount}</p>
-            </div>
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-md group-hover:scale-110 transition-transform">
-              <TrendingUp size={18} />
-            </div>
-          </div>
-        </div>
-      </div>
-
-
-
-      <div className="mt-6 animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
-        <DataTable data={records} columns={columns} keyExtractor={(rec) => rec.id} emptyMessage="No attendance records yet." />
-      </div>
+      <DataTable data={records} columns={columns} keyExtractor={(rec) => rec.id} emptyMessage="No attendance records yet." />
     </div>
   );
 }

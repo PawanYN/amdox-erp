@@ -1,35 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  BookOpen,
-  Landmark,
-  PieChart,
-  Wallet,
-  Plus,
-} from "lucide-react";
+import { BookOpen, Landmark, PieChart, Wallet, Plus, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { StatCard } from "@/components/ui/stat-card";
 import { financeApi } from "@/lib/api/finance-api";
 
-/**
- * WHAT: Chart of Accounts page for the Finance module.
- * WHY: Displays all GL account codes grouped by type (Asset, Liability, Equity,
- * Revenue, Expense). These codes are the foundation that every journal entry
- * and invoice references for double-entry bookkeeping.
- *
- * DATA: Currently uses mock data. When the GL accounts API is ready, replace
- * ACCOUNTS with a useEffect call to the backend endpoint GET /finance/gl/accounts.
- */
-
-const TYPE_COLOR: Record<string, string> = {
-  asset:     "bg-[#1E3A5F]/10 text-[#1E3A5F]",
-  liability: "bg-[#B4533B]/10 text-[#B4533B]",
-  equity:    "bg-[#7B61D4]/10 text-[#7B61D4]",
-  revenue:   "bg-[#2F6B4F]/10 text-[#2F6B4F]",
-  expense:   "bg-[#D9A85C]/10 text-[#D9A85C]",
+const TYPE_META: Record<string, { label: string; color: string; bg: string; border: string }> = {
+  asset:     { label: "Asset",     color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-100" },
+  liability: { label: "Liability", color: "text-red-700",     bg: "bg-red-50",     border: "border-red-100" },
+  equity:    { label: "Equity",    color: "text-violet-700",  bg: "bg-violet-50",  border: "border-violet-100" },
+  revenue:   { label: "Revenue",   color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100" },
+  expense:   { label: "Expense",   color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100" },
 };
 
 type Account = {
@@ -40,97 +23,118 @@ type Account = {
   balance: number;
 };
 
-const ACCOUNTS: Account[] = [];
 const ACCOUNT_TYPES = ["asset", "liability", "equity", "revenue", "expense"] as const;
 
 export default function ChartOfAccountsPage() {
-  const [accounts, setAccounts] = useState<Account[]>(ACCOUNTS);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
+    asset: true, liability: true, equity: true, revenue: true, expense: true,
+  });
 
   useEffect(() => {
     financeApi
       .getAccounts()
       .then((rows: any[]) =>
-        setAccounts(
-          rows.map((a) => ({
-            code: a.code,
-            name: a.name,
-            type: String(a.type).toLowerCase() as Account["type"],
-            subType: a.type,
-            balance: 0,
-          })),
-        ),
+        setAccounts(rows.map((a) => ({
+          code: a.code,
+          name: a.name,
+          type: String(a.type).toLowerCase() as Account["type"],
+          subType: a.type,
+          balance: 0,
+        })))
       )
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
 
-  const totalAssets      = accounts.filter(a => a.type === "asset").reduce((s, a) => s + a.balance, 0);
-  const totalLiabilities = accounts.filter(a => a.type === "liability").reduce((s, a) => s + a.balance, 0);
-  const totalEquity      = accounts.filter(a => a.type === "equity").reduce((s, a) => s + a.balance, 0);
+  const totalAssets      = accounts.filter((a) => a.type === "asset").reduce((s, a) => s + a.balance, 0);
+  const totalLiabilities = accounts.filter((a) => a.type === "liability").reduce((s, a) => s + a.balance, 0);
+  const totalEquity      = accounts.filter((a) => a.type === "equity").reduce((s, a) => s + a.balance, 0);
 
   return (
-    <div>
-      {loading && (
-        <p className="text-sm text-muted mb-4">Loading chart of accounts…</p>
-      )}
-      {/* ── Header ── */}
-      <div className="flex items-start justify-between animate-fade-in-up">
+    <div className="space-y-6">
+      {/* Page header */}
+      <div className="flex items-start justify-between">
         <div>
-          <div className="flex items-center gap-2.5 mb-1">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-[0_4px_12px_rgba(16,185,129,0.3)]">
-              <BookOpen size={16} />
-            </div>
-            <h1 className="text-2xl font-bold text-ink">Chart of Accounts</h1>
-          </div>
-          <p className="text-sm text-muted ml-10">
-            Standard GL account codes — seeded at tenant setup. Code <span className="font-mono">2000</span> = AP, <span className="font-mono">1300</span> = Inventory, <span className="font-mono">1400</span> = AR.
+          <h1 className="page-title flex items-center gap-2">
+            <BookOpen size={18} className="text-slate-400" />
+            Chart of Accounts
+          </h1>
+          <p className="page-subtitle mt-1">
+            Standard GL account codes — double-entry bookkeeping foundation
           </p>
         </div>
-        <Button icon={<Plus size={16} />}>New Account</Button>
+        <Button icon={<Plus size={14} />}>New Account</Button>
       </div>
 
-      {/* ── KPI Cards ── */}
-      <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
-        <StatCard label="Total Assets"       value={`₹${totalAssets.toLocaleString()}`}       icon={<Landmark size={18} />}    gradient="from-green-500 to-emerald-600" delay="0.05s" />
-        <StatCard label="Total Liabilities"  value={`₹${totalLiabilities.toLocaleString()}`}  icon={<PieChart size={18} />}    gradient="from-rose-400 to-red-500"      delay="0.10s" />
-        <StatCard label="Total Equity"       value={`₹${totalEquity.toLocaleString()}`}       icon={<Wallet size={18} />}      gradient="from-blue-500 to-indigo-600"   delay="0.15s" />
-      </div>
+      {/* KPI row */}
+      {loading ? (
+        <div className="grid grid-cols-3 gap-4">
+          {[0,1,2].map(i => <div key={i} className="h-24 rounded-lg bg-slate-100 animate-pulse" />)}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <StatCard label="Total Assets"      value={`₹${totalAssets.toLocaleString()}`}      icon={<Landmark size={16} />} gradient="from-blue-500 to-blue-600"      delay="0s" />
+          <StatCard label="Total Liabilities" value={`₹${totalLiabilities.toLocaleString()}`} icon={<PieChart size={16} />} gradient="from-red-400 to-red-500"        delay="0.05s" />
+          <StatCard label="Total Equity"      value={`₹${totalEquity.toLocaleString()}`}      icon={<Wallet size={16} />}   gradient="from-violet-500 to-violet-600" delay="0.1s" />
+        </div>
+      )}
 
-      {/* ── Grouped account tables ── */}
-      <div className="mt-8 space-y-4 animate-fade-in-up" style={{ animationDelay: "0.20s" }}>
+      {/* Account groups */}
+      <div className="space-y-3">
         {ACCOUNT_TYPES.map((type) => {
-          const group = accounts.filter(a => a.type === type);
+          const group = accounts.filter((a) => a.type === type);
+          const meta  = TYPE_META[type];
           const total = group.reduce((s, a) => s + a.balance, 0);
+          const open  = openGroups[type];
+
           return (
-            <div key={type} className="border border-[#E4E2DC] rounded-lg overflow-hidden">
+            <div key={type} className="bg-white rounded-lg border border-slate-200 shadow-card overflow-hidden">
               {/* Group header */}
-              <div className="flex items-center justify-between px-4 py-2.5 bg-[#FAFAF9] border-b border-[#E4E2DC]">
-                <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full capitalize ${TYPE_COLOR[type]}`}>
-                  {type}
+              <button
+                className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors"
+                onClick={() => setOpenGroups((s) => ({ ...s, [type]: !s[type] }))}
+              >
+                <div className="flex items-center gap-2.5">
+                  <ChevronRight
+                    size={14}
+                    className={`text-slate-400 transition-transform duration-150 ${open ? "rotate-90" : ""}`}
+                  />
+                  <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize ${meta.bg} ${meta.color} ${meta.border} border`}>
+                    {meta.label}
+                  </span>
+                  <span className="text-[12px] text-slate-400">{group.length} accounts</span>
+                </div>
+                <span className="text-[12px] font-mono text-slate-500">
+                  ₹{total.toLocaleString()}
                 </span>
-                <span className="text-[12px] font-mono text-[#8A8678]">
-                  Total: ₹{total.toLocaleString()}
-                </span>
-              </div>
-              {/* Rows */}
-              <table className="w-full text-[13px]">
-                <tbody>
-                  {group.map((a, i) => (
-                    <tr
-                      key={a.code}
-                      className={`border-b border-[#F0EEE7] last:border-0 ${i % 2 === 0 ? "bg-white" : "bg-[#FAFAF9]"}`}
-                    >
-                      <td className="px-4 py-2.5 font-mono text-[#8A8678] w-16">{a.code}</td>
-                      <td className="px-4 py-2.5 font-medium text-[#14171F]">{a.name}</td>
-                      <td className="px-4 py-2.5 text-[#8A8678] text-[11px]">{a.subType.replace(/_/g, " ")}</td>
-                      <td className="px-4 py-2.5 text-right font-mono text-[#14171F]">
-                        ₹{a.balance.toLocaleString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              </button>
+
+              {open && (
+                <table className="w-full text-[13px]">
+                  <tbody className="divide-y divide-slate-100">
+                    {group.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="px-4 py-3 text-[12px] text-slate-400 italic">
+                          No {type} accounts found.
+                        </td>
+                      </tr>
+                    ) : group.map((a) => (
+                      <tr key={a.code} className="hover:bg-slate-50/60 transition-colors">
+                        <td className="px-4 py-2.5 font-mono text-[12px] text-slate-400 w-16">{a.code}</td>
+                        <td className="px-4 py-2.5 font-medium text-slate-800">{a.name}</td>
+                        <td className="px-4 py-2.5 text-[12px] text-slate-400 hidden sm:table-cell">
+                          {a.subType.replace(/_/g, " ")}
+                        </td>
+                        <td className="px-4 py-2.5 text-right font-mono text-slate-700">
+                          ₹{a.balance.toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           );
         })}

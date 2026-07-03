@@ -72,23 +72,23 @@ export default function DepartmentsPage() {
   }
 
   const columns: ColumnDef<Department>[] = [
-    { header: "Code", cell: (d) => <span className="font-mono text-xs">{d.code}</span> },
-    { header: "Name", cell: (d) => <span className="font-semibold">{d.name}</span> },
+    { header: "Code", cell: (d) => <span className="font-mono text-xs text-slate-600">{d.code}</span> },
+    { header: "Name", cell: (d) => <span className="font-semibold text-slate-900">{d.name}</span> },
     {
       header: "Actions",
       cell: (d) => (
         <div className="flex gap-2">
           <button
             onClick={() => openEdit(d)}
-            className="flex h-8 w-8 items-center justify-center rounded-xl bg-violet-50 border border-violet-200 text-brand-purple"
+            className="flex h-7 w-7 items-center justify-center rounded-md bg-slate-50 border border-slate-200 text-slate-600 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-colors"
           >
-            <Pencil size={14} />
+            <Pencil size={13} />
           </button>
           <button
             onClick={() => handleDelete(d)}
-            className="flex h-8 w-8 items-center justify-center rounded-xl bg-red-50 border border-red-200 text-red-500"
+            className="flex h-7 w-7 items-center justify-center rounded-md bg-slate-50 border border-slate-200 text-slate-600 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors"
           >
-            <Trash2 size={14} />
+            <Trash2 size={13} />
           </button>
         </div>
       ),
@@ -96,16 +96,14 @@ export default function DepartmentsPage() {
   ];
 
   return (
-    <div>
-      <div className="flex items-start justify-between mb-6">
+    <div className="space-y-6">
+      <div className="flex items-start justify-between">
         <div>
-          <div className="flex items-center gap-2.5 mb-1">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white">
-              <Building2 size={16} />
-            </div>
-            <h1 className="text-2xl font-bold text-ink">Departments</h1>
-          </div>
-          <p className="text-sm text-muted ml-10">Manage organizational departments</p>
+          <h1 className="page-title flex items-center gap-2">
+            <Building2 size={18} className="text-slate-400" />
+            Departments
+          </h1>
+          <p className="page-subtitle mt-1">Manage organizational departments</p>
         </div>
         <Button icon={<Plus size={16} />} onClick={openCreate}>
           New Department
@@ -126,7 +124,7 @@ export default function DepartmentsPage() {
       >
         <div className="space-y-4">
           <div>
-            <label className="text-xs font-medium text-muted block mb-1">Name *</label>
+            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Name *</label>
             <input
               className={inputClasses}
               value={name}
@@ -135,7 +133,7 @@ export default function DepartmentsPage() {
             />
           </div>
           <div>
-            <label className="text-xs font-medium text-muted block mb-1">Code *</label>
+            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Code *</label>
             <input
               className={inputClasses}
               value={code}
@@ -143,7 +141,7 @@ export default function DepartmentsPage() {
               placeholder="e.g. ENG-001"
             />
           </div>
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => setFormOpen(false)}>Cancel</Button>
             <Button onClick={handleSave} disabled={loading}>
               {loading ? "Saving…" : editing ? "Update" : "Create"}

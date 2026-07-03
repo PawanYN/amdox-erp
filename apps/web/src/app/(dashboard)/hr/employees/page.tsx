@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Users, UserCheck, UserMinus, TrendingUp, Pencil, Trash2 } from "lucide-react";
+import { Plus, Users, UserCheck, UserMinus, Building2, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge, statusToTone } from "@/components/ui/badge";
 import { Card } from "@/components/ui/table";
@@ -28,261 +28,195 @@ function mapEmployee(emp: any): Employee {
     startDate: emp.hireDate ? new Date(emp.hireDate).toISOString().split("T")[0] : "",
     reportsToId: emp.managerId || null,
     status: (emp.status || "ACTIVE") === "ACTIVE" ? "Active" : "Inactive",
-    dateOfBirth: emp.dateOfBirth
-      ? new Date(emp.dateOfBirth).toISOString().split("T")[0]
-      : undefined,
+    dateOfBirth: emp.dateOfBirth ? new Date(emp.dateOfBirth).toISOString().split("T")[0] : undefined,
   };
 }
 
 export default function EmployeesPage() {
   const { token, initialized } = useKeycloak();
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [employees, setEmployees]     = useState<Employee[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
-  const [view, setView] = useState<ViewMode>("list");
-  const [formOpen, setFormOpen] = useState(false);
+  const [view, setView]               = useState<ViewMode>("list");
+  const [formOpen, setFormOpen]       = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading]         = useState(false);
 
   const fetchEmployees = async () => {
     if (!token) return;
-    try {
-      const data = await hrApi.getEmployees();
-      setEmployees(data.map(mapEmployee));
-    } catch (err) {
-      console.error("Failed to fetch employees:", err);
-    }
+    try { setEmployees((await hrApi.getEmployees()).map(mapEmployee)); }
+    catch (err) { console.error(err); }
   };
 
   const fetchDepartments = async () => {
     if (!token) return;
-    try {
-      setDepartments(await hrApi.getDepartments());
-    } catch (err) {
-      console.error("Failed to fetch departments:", err);
-    }
+    try { setDepartments(await hrApi.getDepartments()); }
+    catch (err) { console.error(err); }
   };
 
   useEffect(() => {
-    if (initialized && token) {
-      fetchEmployees();
-      fetchDepartments();
-    }
+    if (initialized && token) { fetchEmployees(); fetchDepartments(); }
   }, [initialized, token]);
 
   async function handleDelete(emp: Employee) {
     if (!confirm(`Delete employee "${emp.name}"? This cannot be undone.`)) return;
-    try {
-      await hrApi.deleteEmployee(emp.id);
-      await fetchEmployees();
-    } catch (err: any) {
-      alert(err.message || "Failed to delete employee.");
-    }
+    try { await hrApi.deleteEmployee(emp.id); await fetchEmployees(); }
+    catch (err: any) { alert(err.message || "Failed to delete employee."); }
   }
+
+  const visibleEmployees = employees.filter((e) => e.id !== "EMP-100");
+  const activeCount   = visibleEmployees.filter((e) => e.status === "Active").length;
+  const inactiveCount = visibleEmployees.filter((e) => e.status !== "Active").length;
+  const deptCount     = new Set(visibleEmployees.map((e) => e.department)).size;
 
   const columns: ColumnDef<Employee>[] = [
     {
-      header: "ID",
+      header: "Employee",
       cell: (emp) => (
-        <span className="font-mono text-xs font-bold text-brand-purple bg-violet-50 border border-violet-100 rounded-lg px-2 py-1">
-          {emp.id.slice(0, 8)}…
-        </span>
-      ),
-    },
-    {
-      header: "Name",
-      cell: (emp) => (
-        <div className="flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-violet-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold shadow-sm">
-            {emp.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+        <div className="flex items-center gap-3">
+          <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-[11px] font-bold shrink-0">
+            {emp.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
           </div>
-          <span className="font-semibold text-ink">{emp.name}</span>
+          <div className="min-w-0">
+            <p className="text-[13px] font-semibold text-slate-900 truncate">{emp.name}</p>
+            <p className="text-[11px] text-slate-400 truncate">{emp.email}</p>
+          </div>
         </div>
       ),
     },
     {
       header: "Department",
       cell: (emp) => (
-        <span className="text-xs font-medium text-muted bg-canvas border border-line rounded-lg px-2.5 py-1">
-          {emp.department}
-        </span>
+        <span className="text-[12px] font-medium text-slate-600 bg-slate-100 rounded px-2 py-0.5">{emp.department}</span>
       ),
     },
     {
       header: "Designation",
-      className: "text-muted text-sm",
-      cell: (emp) => emp.designation || "—",
+      cell: (emp) => <span className="text-[13px] text-slate-500">{emp.designation || "—"}</span>,
     },
     {
       header: "Reports To",
-      className: "text-muted text-sm",
       cell: (emp) => {
-        const manager = employees.find((e) => e.id === emp.reportsToId);
-        return manager?.name ?? "—";
+        const mgr = employees.find((e) => e.id === emp.reportsToId);
+        return <span className="text-[13px] text-slate-500">{mgr?.name ?? "—"}</span>;
       },
     },
     {
       header: "Status",
-      cell: (emp) => (
-        <Badge tone={statusToTone(emp.status)}>{emp.status}</Badge>
-      ),
+      cell: (emp) => <Badge tone={statusToTone(emp.status)}>{emp.status}</Badge>,
     },
     {
-      header: "Actions",
+      header: "",
       cell: (emp) => (
-        <div className="flex gap-2">
+        <div className="flex gap-1.5 justify-end">
           <button
-            onClick={() => {
-              setEditingEmployee(emp);
-              setFormOpen(true);
-            }}
-            aria-label={`Edit ${emp.name}`}
-            className="flex h-8 w-8 items-center justify-center rounded-xl bg-violet-50 border border-violet-200 text-brand-purple hover:bg-violet-100 transition-all"
+            onClick={() => { setEditingEmployee(emp); setFormOpen(true); }}
+            className="h-7 w-7 flex items-center justify-center rounded-md bg-slate-50 border border-slate-200 text-slate-500 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-colors"
           >
-            <Pencil size={14} />
+            <Pencil size={13} />
           </button>
           <button
             onClick={() => handleDelete(emp)}
-            aria-label={`Delete ${emp.name}`}
-            className="flex h-8 w-8 items-center justify-center rounded-xl bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 transition-all"
+            className="h-7 w-7 flex items-center justify-center rounded-md bg-slate-50 border border-slate-200 text-slate-500 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors"
           >
-            <Trash2 size={14} />
+            <Trash2 size={13} />
           </button>
         </div>
       ),
     },
   ];
 
-  const potentialManagers = employees;
-  const visibleEmployees = employees.filter((e) => e.id !== "EMP-100");
-  const activeCount = visibleEmployees.filter((e) => e.status === "Active").length;
-  const inactiveCount = visibleEmployees.filter((e) => e.status !== "Active").length;
-
-  async function handleCreate(newEmployee: NewEmployeeInput) {
+  async function handleCreate(data: NewEmployeeInput) {
     setLoading(true);
     try {
-      const parts = newEmployee.name.trim().split(" ");
-      const firstName = parts[0] || "";
-      const lastName = parts.slice(1).join(" ") || "";
-
+      const parts = data.name.trim().split(" ");
       await hrApi.createEmployee({
-        firstName,
-        lastName,
-        email: newEmployee.email,
-        phone: newEmployee.phone,
-        dateOfBirth: newEmployee.dateOfBirth || "1990-01-01",
-        hireDate: newEmployee.startDate || new Date().toISOString().split("T")[0],
-        employmentType: newEmployee.contractType.toLowerCase().replace("-", "_"),
-        departmentId: newEmployee.department,
-        managerId: newEmployee.reportsToId || null,
+        firstName: parts[0] || "", lastName: parts.slice(1).join(" ") || "",
+        email: data.email, phone: data.phone,
+        dateOfBirth: data.dateOfBirth || "1990-01-01",
+        hireDate: data.startDate || new Date().toISOString().split("T")[0],
+        employmentType: data.contractType.toLowerCase().replace("-", "_"),
+        departmentId: data.department, managerId: data.reportsToId || null,
       });
       await fetchEmployees();
-    } catch (err: any) {
-      alert(err.message || "Failed to save employee.");
-    } finally {
-      setLoading(false);
-    }
+    } catch (err: any) { alert(err.message || "Failed to save."); }
+    finally { setLoading(false); }
   }
 
-  async function handleUpdate(id: string, newEmployee: NewEmployeeInput) {
+  async function handleUpdate(id: string, data: NewEmployeeInput) {
     setLoading(true);
     try {
-      const parts = newEmployee.name.trim().split(" ");
-      const firstName = parts[0] || "";
-      const lastName = parts.slice(1).join(" ") || "";
-
+      const parts = data.name.trim().split(" ");
       await hrApi.updateEmployee(id, {
-        firstName,
-        lastName,
-        email: newEmployee.email,
-        phone: newEmployee.phone,
-        dateOfBirth: newEmployee.dateOfBirth,
-        hireDate: newEmployee.startDate,
-        employmentType: newEmployee.contractType.toLowerCase().replace("-", "_"),
-        departmentId: newEmployee.department,
-        managerId: newEmployee.reportsToId || null,
+        firstName: parts[0] || "", lastName: parts.slice(1).join(" ") || "",
+        email: data.email, phone: data.phone, dateOfBirth: data.dateOfBirth,
+        hireDate: data.startDate,
+        employmentType: data.contractType.toLowerCase().replace("-", "_"),
+        departmentId: data.department, managerId: data.reportsToId || null,
       });
       await fetchEmployees();
-    } catch (err: any) {
-      alert(err.message || "Failed to update employee.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function closeForm() {
-    setFormOpen(false);
-    setEditingEmployee(null);
+    } catch (err: any) { alert(err.message || "Failed to update."); }
+    finally { setLoading(false); }
   }
 
   return (
-    <div>
-      <div className="flex items-start justify-between animate-fade-in-up">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-start justify-between">
         <div>
-          <div className="flex items-center gap-2.5 mb-1">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-[0_4px_12px_rgba(108,71,255,0.3)]">
-              <Users size={16} />
-            </div>
-            <h1 className="text-2xl font-bold text-ink font-display">Employees</h1>
-          </div>
-          <p className="text-sm text-muted ml-10">
-            Personal info, contracts, department &amp; reporting hierarchy
-          </p>
+          <h1 className="page-title flex items-center gap-2">
+            <Users size={18} className="text-slate-400" />
+            Employees
+          </h1>
+          <p className="page-subtitle mt-1">Personal info, contracts, departments and reporting hierarchy</p>
         </div>
-        <Button
-          icon={<Plus size={16} />}
-          onClick={() => {
-            setEditingEmployee(null);
-            setFormOpen(true);
-          }}
-        >
+        <Button icon={<Plus size={14} />} onClick={() => { setEditingEmployee(null); setFormOpen(true); }}>
           New Employee
         </Button>
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard label="Total Employees" value={visibleEmployees.length} icon={<Users size={18} />} gradient="from-violet-500 to-purple-600" delay="0.05s" />
-        <StatCard label="Active" value={activeCount} icon={<UserCheck size={18} />} gradient="from-emerald-400 to-teal-500" delay="0.10s" />
-        <StatCard label="Inactive" value={inactiveCount} icon={<UserMinus size={18} />} gradient="from-rose-400 to-pink-500" delay="0.15s" />
-        <StatCard label="Departments" value={new Set(visibleEmployees.map((e) => e.department)).size} icon={<TrendingUp size={18} />} gradient="from-cyan-400 to-blue-500" delay="0.20s" />
+      {/* KPIs */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <StatCard label="Total"       value={visibleEmployees.length} icon={<Users size={16} />}      gradient="from-blue-500 to-blue-600"      delay="0s" />
+        <StatCard label="Active"      value={activeCount}             icon={<UserCheck size={16} />}  gradient="from-emerald-500 to-emerald-600" delay="0.05s" />
+        <StatCard label="Inactive"    value={inactiveCount}           icon={<UserMinus size={16} />}  gradient="from-slate-400 to-slate-500"    delay="0.1s" />
+        <StatCard label="Departments" value={deptCount}               icon={<Building2 size={16} />}  gradient="from-violet-500 to-violet-600"  delay="0.15s" />
       </div>
 
-      <div className="mt-6 inline-flex rounded-xl bg-white border border-line p-1 shadow-sm animate-fade-in-up" style={{ animationDelay: "0.25s" }}>
-        <button
-          onClick={() => setView("list")}
-          className={`rounded-lg px-5 py-2 text-sm font-semibold transition-all duration-200 ${
-            view === "list"
-              ? "bg-gradient-to-r from-brand-purple to-brand-violet text-white shadow-[0_2px_8px_rgba(108,71,255,0.35)]"
-              : "text-muted hover:text-ink"
-          }`}
-        >
-          List View
-        </button>
-        <button
-          onClick={() => setView("org-chart")}
-          className={`rounded-lg px-5 py-2 text-sm font-semibold transition-all duration-200 ${
-            view === "org-chart"
-              ? "bg-gradient-to-r from-brand-purple to-brand-violet text-white shadow-[0_2px_8px_rgba(108,71,255,0.35)]"
-              : "text-muted hover:text-ink"
-          }`}
-        >
-          Org Chart
-        </button>
+      {/* View toggle */}
+      <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1 w-fit">
+        {(["list", "org-chart"] as ViewMode[]).map((v) => (
+          <button
+            key={v}
+            onClick={() => setView(v)}
+            className={`px-4 py-1.5 text-[13px] font-medium rounded-md transition-all duration-150 ${
+              view === v
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            {v === "list" ? "List View" : "Org Chart"}
+          </button>
+        ))}
       </div>
 
-      <div className="mt-4 animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
-        {view === "list" ? (
-          <DataTable data={visibleEmployees} columns={columns} keyExtractor={(emp) => emp.id} emptyMessage="No employees yet. Add the first one to get started." />
-        ) : (
-          <Card>
-            <OrgChart employees={employees} />
-          </Card>
-        )}
-      </div>
+      {/* Content */}
+      {view === "list" ? (
+        <DataTable
+          data={visibleEmployees}
+          columns={columns}
+          keyExtractor={(emp) => emp.id}
+          emptyMessage="No employees yet. Add the first one to get started."
+        />
+      ) : (
+        <Card>
+          <OrgChart employees={employees} />
+        </Card>
+      )}
 
       <EmployeeForm
         open={formOpen}
-        onClose={closeForm}
-        managers={potentialManagers}
+        onClose={() => { setFormOpen(false); setEditingEmployee(null); }}
+        managers={employees}
         departments={departments}
         editEmployee={editingEmployee}
         onCreate={handleCreate}

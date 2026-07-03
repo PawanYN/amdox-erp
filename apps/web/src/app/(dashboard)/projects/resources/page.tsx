@@ -26,6 +26,9 @@ type HeatmapRow = {
   utilisationPct: number;
 };
 
+const inputClass =
+  "w-full text-sm border border-slate-200 rounded-md px-3 py-2 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500";
+
 function AllocateModal({
   employees,
   projects,
@@ -40,9 +43,7 @@ function AllocateModal({
   const [employeeId, setEmployeeId] = useState(employees[0]?.id ?? "");
   const [projectId, setProjectId] = useState(projects[0]?.id ?? "");
   const [allocatedHours, setAllocatedHours] = useState("40");
-  const [startDate, setStartDate] = useState(
-    new Date().toISOString().slice(0, 10)
-  );
+  const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10));
   const [endDate, setEndDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,100 +69,78 @@ function AllocateModal({
     }
   };
 
-  const inputClasses =
-    "w-full text-sm border border-[#D8D5CC] rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]";
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4">
-      <div className="w-full max-w-md bg-white rounded-lg border border-[#E4E2DC] shadow-lg">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#E4E2DC]">
-          <h2 className="text-sm font-semibold text-[#14171F]">Allocate resource to project</h2>
-          <button onClick={onClose} className="text-[#8A8678] hover:text-[#14171F]">
-            <X size={16} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-[2px] px-4">
+      <div className="w-full max-w-md bg-white rounded-xl border border-slate-200 shadow-modal">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+          <h2 className="text-[15px] font-semibold text-slate-900">Allocate resource to project</h2>
+          <button
+            onClick={onClose}
+            className="h-7 w-7 flex items-center justify-center rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+          >
+            <X size={15} />
           </button>
         </div>
-        <div className="p-4 space-y-3">
-          <p className="text-[12px] text-[#8A8678]">
+        <div className="p-5 space-y-4">
+          <p className="text-[12px] text-slate-500">
             Allocation triggers{" "}
-            <span className="font-mono text-[#1E3A5F]">resources.assigned</span>{" "}
-            event. Payroll will then distribute labor cost to this project automatically.
+            <span className="font-mono text-blue-700">resources.assigned</span>{" "}
+            event. Payroll will distribute labor cost to this project automatically.
           </p>
 
-          <label className="block text-[12px] font-medium text-[#14171F]">
-            Employee
-            <select
-              className={`mt-1 ${inputClasses}`}
-              value={employeeId}
-              onChange={(e) => setEmployeeId(e.target.value)}
-            >
+          <div>
+            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Employee</label>
+            <select className={inputClass} value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
               {employees.map((emp) => (
-                <option key={emp.id} value={emp.id}>
-                  {emp.fullName}
-                </option>
+                <option key={emp.id} value={emp.id}>{emp.fullName}</option>
               ))}
             </select>
-          </label>
+          </div>
 
-          <label className="block text-[12px] font-medium text-[#14171F]">
-            Project
-            <select
-              className={`mt-1 ${inputClasses}`}
-              value={projectId}
-              onChange={(e) => setProjectId(e.target.value)}
-            >
+          <div>
+            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Project</label>
+            <select className={inputClass} value={projectId} onChange={(e) => setProjectId(e.target.value)}>
               {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
+                <option key={p.id} value={p.id}>{p.name}</option>
               ))}
             </select>
-          </label>
+          </div>
 
-          <label className="block text-[12px] font-medium text-[#14171F]">
-            Allocated hours
+          <div>
+            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Allocated hours</label>
             <input
               type="number"
               min={1}
-              className={`mt-1 ${inputClasses}`}
+              className={inputClass}
               value={allocatedHours}
               onChange={(e) => setAllocatedHours(e.target.value)}
             />
-          </label>
-
-          <div className="grid grid-cols-2 gap-3">
-            <label className="block text-[12px] font-medium text-[#14171F]">
-              Start date
-              <input
-                type="date"
-                className={`mt-1 ${inputClasses}`}
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-            </label>
-            <label className="block text-[12px] font-medium text-[#14171F]">
-              End date (optional)
-              <input
-                type="date"
-                className={`mt-1 ${inputClasses}`}
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
-            </label>
           </div>
 
-          {error && <p className="text-[12px] text-[#B4533B]">{error}</p>}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Start date</label>
+              <input type="date" className={inputClass} value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-[12px] font-medium text-slate-600 block mb-1.5">End date (optional)</label>
+              <input type="date" className={inputClass} value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            </div>
+          </div>
+
+          {error && <p className="text-[12px] text-red-600">{error}</p>}
         </div>
-        <div className="flex justify-end gap-2 px-4 py-3 border-t border-[#E4E2DC]">
+        <div className="flex justify-end gap-2 px-5 py-4 border-t border-slate-100">
           <button
             onClick={onClose}
-            className="text-[12px] px-3 py-1.5 rounded-md border border-[#D8D5CC] text-[#4A4740]"
+            className="text-[13px] font-medium px-3 py-1.5 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={submit}
             disabled={submitting || !employeeId || !projectId}
-            className="text-[12px] px-3 py-1.5 rounded-md bg-[#1E3A5F] text-white disabled:opacity-50"
+            className="text-[13px] font-medium px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
             {submitting ? "Allocating…" : "Allocate"}
           </button>
@@ -189,80 +168,74 @@ export default function ProjectsResourcesPage() {
 
   useEffect(() => {
     load();
-    // Load employees + projects for the modal (non-blocking)
     hrApi.getEmployees().then(setEmployees);
-    pmApi
-      .getProjects()
-      .then((ps: Project[]) =>
-        setProjects(ps.filter((p) => p.status !== "COMPLETED" && p.status !== "CANCELLED"))
-      );
+    pmApi.getProjects().then((ps: Project[]) =>
+      setProjects(ps.filter((p) => p.status !== "COMPLETED" && p.status !== "CANCELLED"))
+    );
   }, [load]);
 
-  if (loading) return <p className="text-sm text-muted">Loading resources…</p>;
+  if (loading) return <p className="text-sm text-slate-400">Loading resources…</p>;
+
+  const thClass = "text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500";
+  const tdClass = "px-4 py-2.5 text-sm text-slate-700";
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div className="flex gap-1">
+        <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
           <button
             onClick={() => setTab("allocations")}
-            className={`text-[12px] px-3 py-1.5 rounded-md font-medium ${
-              tab === "allocations"
-                ? "bg-[#1E3A5F] text-white"
-                : "border border-[#D8D5CC] text-[#4A4740]"
+            className={`flex items-center gap-1.5 text-[13px] font-medium px-3 py-1.5 rounded-md transition-colors ${
+              tab === "allocations" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
             }`}
           >
-            <Users size={12} className="inline mr-1" />
-            Allocations
+            <Users size={13} /> Allocations
           </button>
           <button
             onClick={() => setTab("heatmap")}
-            className={`text-[12px] px-3 py-1.5 rounded-md font-medium ${
-              tab === "heatmap"
-                ? "bg-[#1E3A5F] text-white"
-                : "border border-[#D8D5CC] text-[#4A4740]"
+            className={`flex items-center gap-1.5 text-[13px] font-medium px-3 py-1.5 rounded-md transition-colors ${
+              tab === "heatmap" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
             }`}
           >
-            <BarChart2 size={12} className="inline mr-1" />
-            Utilisation heatmap
+            <BarChart2 size={13} /> Utilisation heatmap
           </button>
         </div>
         <button
           onClick={() => setModalOpen(true)}
           disabled={employees.length === 0 || projects.length === 0}
-          className="inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-md bg-[#1E3A5F] text-white disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 text-[13px] font-medium px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
         >
           <Plus size={13} /> Allocate resource
         </button>
       </div>
 
       {tab === "allocations" && (
-        <div className="border border-[#E4E2DC] rounded-lg overflow-hidden">
+        <div className="border border-slate-200 rounded-lg overflow-hidden shadow-card">
           <table className="w-full text-sm">
-            <thead className="bg-[#FAFAF9] border-b border-[#E4E2DC]">
+            <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
-                <th className="text-left px-4 py-2 text-[11px] text-[#8A8678]">Person</th>
-                <th className="text-left px-4 py-2 text-[11px] text-[#8A8678]">Project</th>
-                <th className="text-left px-4 py-2 text-[11px] text-[#8A8678]">Task</th>
-                <th className="text-right px-4 py-2 text-[11px] text-[#8A8678]">Hours</th>
-                <th className="text-left px-4 py-2 text-[11px] text-[#8A8678]">Period</th>
+                <th className={thClass}>Person</th>
+                <th className={thClass}>Project</th>
+                <th className={thClass}>Task</th>
+                <th className={`${thClass} text-right`}>Hours</th>
+                <th className={thClass}>Period</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-100">
               {allocations.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-6 text-muted text-center text-sm">
+                  <td colSpan={5} className="px-4 py-8 text-slate-400 text-center text-sm">
                     No allocations yet. Click "Allocate resource" to assign an employee to a project.
                   </td>
                 </tr>
               ) : (
                 allocations.map((a) => (
-                  <tr key={a.id} className="border-b border-[#F0EEE7]">
-                    <td className="px-4 py-2 font-medium text-[#14171F]">{a.employeeName}</td>
-                    <td className="px-4 py-2 text-[#4A4740]">{a.project.name}</td>
-                    <td className="px-4 py-2 text-[#8A8678]">{a.task?.title ?? "—"}</td>
-                    <td className="px-4 py-2 text-right font-mono">{a.allocatedHours}h</td>
-                    <td className="px-4 py-2 text-[12px] text-[#8A8678]">
+                  <tr key={a.id} className="hover:bg-slate-50/60 transition-colors">
+                    <td className={`${tdClass} font-semibold text-slate-900`}>{a.employeeName}</td>
+                    <td className={tdClass}>{a.project.name}</td>
+                    <td className={`${tdClass} text-slate-400`}>{a.task?.title ?? "—"}</td>
+                    <td className={`${tdClass} text-right font-mono`}>{a.allocatedHours}h</td>
+                    <td className={`${tdClass} text-[12px] text-slate-400`}>
                       {new Date(a.startDate).toLocaleDateString()}
                       {a.endDate ? ` → ${new Date(a.endDate).toLocaleDateString()}` : " →"}
                     </td>
@@ -275,42 +248,42 @@ export default function ProjectsResourcesPage() {
       )}
 
       {tab === "heatmap" && (
-        <div className="border border-[#E4E2DC] rounded-lg overflow-hidden">
+        <div className="border border-slate-200 rounded-lg overflow-hidden shadow-card">
           <table className="w-full text-sm">
-            <thead className="bg-[#FAFAF9] border-b border-[#E4E2DC]">
+            <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
-                <th className="text-left px-4 py-2 text-[11px] text-[#8A8678]">Person</th>
-                <th className="text-right px-4 py-2 text-[11px] text-[#8A8678]">Hours</th>
-                <th className="text-right px-4 py-2 text-[11px] text-[#8A8678]">Utilisation</th>
-                <th className="text-right px-4 py-2 text-[11px] text-[#8A8678]">Projects</th>
+                <th className={thClass}>Person</th>
+                <th className={`${thClass} text-right`}>Hours</th>
+                <th className={`${thClass} text-right`}>Utilisation</th>
+                <th className={`${thClass} text-right`}>Projects</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-100">
               {heatmap.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-6 text-muted text-center">
+                  <td colSpan={4} className="px-4 py-8 text-slate-400 text-center">
                     No resource allocations yet.
                   </td>
                 </tr>
               ) : (
                 heatmap.map((p) => (
-                  <tr key={p.employeeId} className="border-b border-[#F0EEE7]">
-                    <td className="px-4 py-2 font-medium">{p.name}</td>
-                    <td className="px-4 py-2 text-right font-mono">{p.totalAllocatedHours}h</td>
-                    <td className="px-4 py-2 text-right">
+                  <tr key={p.employeeId} className="hover:bg-slate-50/60 transition-colors">
+                    <td className={`${tdClass} font-semibold text-slate-900`}>{p.name}</td>
+                    <td className={`${tdClass} text-right font-mono`}>{p.totalAllocatedHours}h</td>
+                    <td className={tdClass}>
                       <div className="flex items-center justify-end gap-2">
-                        <div className="w-16 h-1.5 bg-[#F0EEE7] rounded-full overflow-hidden">
+                        <div className="w-20 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                           <div
-                            className={`h-full rounded-full ${p.isOverAllocated ? "bg-[#B4533B]" : "bg-[#2F6B4F]"}`}
-                            style={{ width: `${p.utilisationPct}%` }}
+                            className={`h-full rounded-full ${p.isOverAllocated ? "bg-red-500" : "bg-emerald-500"}`}
+                            style={{ width: `${Math.min(p.utilisationPct, 100)}%` }}
                           />
                         </div>
-                        <span className={p.isOverAllocated ? "text-[#B4533B]" : "text-[#2F6B4F]"}>
+                        <span className={`text-[12px] font-mono font-semibold w-10 text-right ${p.isOverAllocated ? "text-red-600" : "text-emerald-700"}`}>
                           {p.utilisationPct}%
                         </span>
                       </div>
                     </td>
-                    <td className="px-4 py-2 text-right">{p.projectCount}</td>
+                    <td className={`${tdClass} text-right`}>{p.projectCount}</td>
                   </tr>
                 ))
               )}

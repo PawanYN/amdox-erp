@@ -63,23 +63,21 @@ export default function FiscalPeriodsPage() {
   }
 
   const columns: ColumnDef<FiscalPeriod>[] = [
-    { header: "Period", cell: (p) => <span className="font-semibold">{p.name}</span> },
+    { header: "Period", cell: (p) => <span className="font-semibold text-slate-900">{p.name}</span> },
     {
       header: "Start",
-      cell: (p) => new Date(p.startDate).toLocaleDateString(),
+      cell: (p) => <span className="text-sm text-slate-500">{new Date(p.startDate).toLocaleDateString()}</span>,
     },
     {
       header: "End",
-      cell: (p) => new Date(p.endDate).toLocaleDateString(),
+      cell: (p) => <span className="text-sm text-slate-500">{new Date(p.endDate).toLocaleDateString()}</span>,
     },
     {
       header: "Status",
       cell: (p) => (
         <span
-          className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-            p.isLocked
-              ? "bg-[#B4533B]/10 text-[#B4533B]"
-              : "bg-[#2F6B4F]/10 text-[#2F6B4F]"
+          className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
+            p.isLocked ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"
           }`}
         >
           {p.isLocked ? "Locked" : "Open"}
@@ -92,25 +90,25 @@ export default function FiscalPeriodsPage() {
         !p.isLocked ? (
           <button
             onClick={() => handleClose(p.id, p.name)}
-            className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded border border-[#B4533B] text-[#B4533B] hover:bg-[#B4533B]/10"
+            className="inline-flex items-center gap-1.5 text-[12px] font-medium px-2.5 py-1 rounded-md border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
           >
             <Lock size={12} /> Close
           </button>
         ) : (
-          <span className="text-muted text-xs">—</span>
+          <span className="text-slate-300 text-xs">—</span>
         ),
     },
   ];
 
   return (
-    <div>
-      <div className="flex items-start justify-between mb-6">
+    <div className="space-y-6">
+      <div className="flex items-start justify-between">
         <div>
-          <div className="flex items-center gap-2.5 mb-1">
-            <Calendar size={20} className="text-[#1E3A5F]" />
-            <h1 className="text-xl font-semibold text-[#14171F]">Fiscal Periods</h1>
-          </div>
-          <p className="text-[12px] text-[#8A8678]">Open and close accounting periods</p>
+          <h1 className="page-title flex items-center gap-2">
+            <Calendar size={18} className="text-slate-400" />
+            Fiscal Periods
+          </h1>
+          <p className="page-subtitle mt-1">Open and close accounting periods</p>
         </div>
         <Button icon={<Plus size={16} />} onClick={() => setFormOpen(true)}>
           Open Period
@@ -118,7 +116,7 @@ export default function FiscalPeriodsPage() {
       </div>
 
       {loading ? (
-        <p className="text-sm text-muted flex items-center gap-2">
+        <p className="text-sm text-slate-400 flex items-center gap-2">
           <Loader2 size={16} className="animate-spin" /> Loading…
         </p>
       ) : (
@@ -133,16 +131,16 @@ export default function FiscalPeriodsPage() {
       <Modal open={formOpen} onClose={() => setFormOpen(false)} title="Open Fiscal Period">
         <div className="space-y-3">
           <div>
-            <label className="text-xs text-muted block mb-1">Name * (e.g. 2026-07)</label>
+            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Name * (e.g. 2026-07)</label>
             <input className={inputClasses} value={name} onChange={(e) => setName(e.target.value)} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-muted block mb-1">Start date *</label>
+              <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Start date *</label>
               <input type="date" className={inputClasses} value={startDate} onChange={(e) => setStartDate(e.target.value)} />
             </div>
             <div>
-              <label className="text-xs text-muted block mb-1">End date *</label>
+              <label className="text-[12px] font-medium text-slate-600 block mb-1.5">End date *</label>
               <input type="date" className={inputClasses} value={endDate} onChange={(e) => setEndDate(e.target.value)} />
             </div>
           </div>

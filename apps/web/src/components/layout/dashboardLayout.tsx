@@ -13,238 +13,218 @@ import {
   Settings,
   ChevronDown,
   ChevronRight,
-  Search,
-  HelpCircle,
-  Plus,
-  Maximize2,
-  User,
-  PanelLeftClose,
-  PanelLeftOpen,
   FolderKanban,
   LogOut,
-  BarChart,
+  BarChart2,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Search,
 } from "lucide-react";
 
-/**
- * ROLES dictionary defines the personas available in the app.
- * Each persona has a label (display name), a department, and
- * a list of sections (route prefixes) they are allowed to access.
- * This is used to simulate RBAC (Role-Based Access Control) in the frontend.
- */
-const ROLES: Record<
-  string,
-  { label: string; sections: string[]; dept: string }
-> = {
-  executive: {
-    label: "Executive",
-    sections: ["/home", "/bi", "finance", "hr", "scm", "projects"],
-    dept: "Executive Office",
-  },
-  finance: {
-    label: "Finance Team",
-    sections: ["/", "finance"],
-    dept: "Finance",
-  },
-  hr: {
-    label: "HR & Payroll",
-    sections: ["/", "hr"],
-    dept: "Human Resources",
-  },
-  scm: {
-    label: "Supply Chain Mgr",
-    sections: ["/", "scm"],
-    dept: "Supply Chain",
-  },
-  pm: {
-    label: "Project Manager",
-    sections: ["/", "projects"],
-    dept: "Project Management",
-  },
-  it: {
-    label: "IT Administrator",
-    sections: ["/", "finance", "hr", "scm", "projects", "settings"],
-    dept: "IT Administration",
-  },
+const ROLES: Record<string, { label: string; sections: string[]; dept: string }> = {
+  executive: { label: "Executive",         sections: ["/home", "/bi", "finance", "hr", "scm", "projects", "/settings"], dept: "Executive Office" },
+  finance:   { label: "Finance Team",      sections: ["/home", "finance", "/settings"],                                  dept: "Finance" },
+  hr:        { label: "HR & Payroll",      sections: ["/home", "hr", "/settings"],                                       dept: "Human Resources" },
+  scm:       { label: "Supply Chain Mgr",  sections: ["/home", "scm", "/settings"],                                      dept: "Supply Chain" },
+  pm:        { label: "Project Manager",   sections: ["/home", "projects", "/settings"],                                  dept: "Project Management" },
+  it:        { label: "IT Administrator",  sections: ["/home", "finance", "hr", "scm", "projects", "/settings"],         dept: "IT Administration" },
 };
 
-interface NavChild {
-  id: string;
-  label: string;
-  day: string;
-}
-
+interface NavChild  { id: string; label: string; }
 interface NavSection {
   id: string;
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
   label: string;
   leaf?: boolean;
   children?: NavChild[];
 }
 
-/**
- * NAV array defines the structure of the sidebar navigation.
- * Each top-level item can either be a `leaf` (direct link) or contain `children` (sub-routes).
- * The `id` matches the route path, which is cross-referenced with `ROLES` to determine visibility.
- */
 const NAV: NavSection[] = [
-  { id: "/home", icon: LayoutDashboard, label: "Home", leaf: true },
-  { id: "/bi", icon: BarChart, label: "Power BI Reports", leaf: true },
+  { id: "/home",          icon: LayoutDashboard, label: "Dashboard",       leaf: true },
+  { id: "/bi",            icon: BarChart2,        label: "BI Reports",      leaf: true },
   {
-    id: "finance",
-    icon: Wallet,
-    label: "Finance",
+    id: "finance", icon: Wallet, label: "Finance",
     children: [
-      { id: "/finance/accounts", label: "Chart of Accounts", day: "Day 8" },
-      { id: "/finance/journal-entries", label: "Journal Entries", day: "Day 8" },
-      { id: "/finance/invoices", label: "Invoices (AP/AR)", day: "Day 9" },
-      { id: "/finance/aging-report", label: "Aging Report", day: "Day 9" },
+      { id: "/finance/accounts",        label: "Chart of Accounts" },
+      { id: "/finance/journal-entries", label: "Journal Entries" },
+      { id: "/finance/invoices",        label: "AP Invoices" },
+      { id: "/finance/ar-invoices",     label: "AR Invoices" },
+      { id: "/finance/aging-report",    label: "Aging Report" },
+      { id: "/finance/fiscal-periods",  label: "Fiscal Periods" },
     ],
   },
   {
-    id: "hr",
-    icon: Users,
-    label: "HR",
+    id: "hr", icon: Users, label: "Human Resources",
     children: [
-      { id: "/hr/employees", label: "Employees", day: "Day 10" },
-      { id: "/hr/departments", label: "Departments", day: "Day 10" },
-      { id: "/hr/leave-requests", label: "Leave Requests", day: "Day 10" },
-      { id: "/hr/attendance", label: "Attendance", day: "Day 10" },
-      { id: "/hr/payroll", label: "Payroll", day: "Day 11" },
+      { id: "/hr/employees",      label: "Employees" },
+      { id: "/hr/departments",    label: "Departments" },
+      { id: "/hr/leave-requests", label: "Leave Requests" },
+      { id: "/hr/attendance",     label: "Attendance" },
+      { id: "/hr/payroll",        label: "Payroll" },
     ],
   },
   {
-    id: "scm",
-    icon: Package,
-    label: "Supply Chain",
+    id: "scm", icon: Package, label: "Supply Chain",
     children: [
-      { id: "/scm/vendors", label: "Vendors", day: "Day 12" },
-      { id: "/scm/purchase-orders", label: "Purchase Orders", day: "Day 12" },
-      { id: "/scm/goods-receipt", label: "Goods Receipt", day: "Day 13" },
-      { id: "/scm/invoices", label: "AP Invoices", day: "Day 13" },
-      { id: "/scm/inventory", label: "Inventory", day: "Day 13" },
+      { id: "/scm/vendors",         label: "Vendors" },
+      { id: "/scm/purchase-orders", label: "Purchase Orders" },
+      { id: "/scm/goods-receipt",   label: "Goods Receipt" },
+      { id: "/scm/invoices",        label: "AP Invoices" },
+      { id: "/scm/inventory",       label: "Inventory" },
     ],
   },
   {
-    id: "projects",
-    icon: FolderKanban,
-    label: "Projects",
+    id: "projects", icon: FolderKanban, label: "Projects",
     children: [
-      { id: "/projects/overview", label: "Overview", day: "V2" },
-      { id: "/projects/tasks", label: "Tasks & Milestones", day: "V2" },
-      { id: "/projects/resources", label: "Resource Allocation", day: "V2" },
-      { id: "/projects/budget", label: "Budget Tracking", day: "V2" },
+      { id: "/projects/overview",   label: "Overview" },
+      { id: "/projects/tasks",      label: "Tasks & Milestones" },
+      { id: "/projects/resources",  label: "Resource Allocation" },
+      { id: "/projects/budget",     label: "Budget Tracking" },
     ],
   },
-  { id: "/notifications", icon: Bell, label: "Notifications", leaf: true },
-  { id: "/settings", icon: Settings, label: "Settings", leaf: true },
+  { id: "/notifications", icon: Bell,     label: "Notifications", leaf: true },
+  { id: "/settings",      icon: Settings, label: "Settings",      leaf: true },
 ];
 
-/**
- * TopBar component renders the top navigation header.
- * It contains the application title, breadcrumbs, search/notification actions,
- * and a dropdown to switch the current active persona (simulating user login).
- */
-function TopBar({ role, setRole, activePage }: { role: string; setRole: (r: string) => void; activePage: string }) {
+/* ─────────────────────────────────────────────
+   Top Bar
+   ───────────────────────────────────────────── */
+function TopBar({
+  role,
+  setRole,
+  activePage,
+  onMenuToggle,
+}: {
+  role: string;
+  setRole: (r: string) => void;
+  activePage: string;
+  onMenuToggle: () => void;
+}) {
   const { logout } = useKeycloak();
   const user = keycloak?.tokenParsed;
   const username = user?.preferred_username || "User";
-  const userInitials = username.substring(0, 2).toUpperCase();
+  const initials = username.substring(0, 2).toUpperCase();
 
-  const allItems = NAV.flatMap((n) => (n.children || [{ id: n.id, label: n.label, day: "" }]));
-  const current = allItems.find((i) => i.id === activePage) || { id: "/", label: "Home", day: "" };
-  const parentSection = NAV.find((n) => n.children?.some((c) => c.id === activePage));
+  const allItems = NAV.flatMap((n) =>
+    n.children || [{ id: n.id, label: n.label }],
+  );
+  const current = allItems.find((i) => i.id === activePage) || { label: "Dashboard" };
+  const parent  = NAV.find((n) => n.children?.some((c) => c.id === activePage));
 
   return (
-    <header className="h-9 bg-black flex items-center text-white text-[13px] shrink-0 divide-x divide-gray-700">
-      <button className="flex items-center gap-1.5 px-3 h-full hover:bg-gray-800">
-        <span style={{ fontFamily: "'Space Grotesk', sans-serif" }} className="font-semibold">
-          Amdox<span className="text-[#D9A85C]">ERP</span>
+    <header className="h-14 bg-white border-b border-slate-200 flex items-center px-4 gap-3 shrink-0 z-20">
+      {/* Logo */}
+      <div className="flex items-center gap-2.5 min-w-0">
+        <div className="h-7 w-7 rounded-md bg-blue-600 flex items-center justify-center shrink-0">
+          <span className="text-white text-[11px] font-bold tracking-tight">AX</span>
+        </div>
+        <span className="font-semibold text-slate-900 text-[15px] tracking-tight hidden sm:block">
+          Amdox<span className="text-blue-600">ERP</span>
         </span>
-        <ChevronDown size={12} />
-      </button>
+      </div>
 
-      <button className="hidden sm:flex items-center gap-1.5 px-3 h-full hover:bg-gray-800 text-gray-300">
-        Amdox ERP — {ROLES[role].dept}
-        <ChevronDown size={12} />
-      </button>
-
-      <div className="hidden md:flex items-center gap-1.5 px-3 h-full text-gray-400 flex-1 truncate">
+      {/* Breadcrumb */}
+      <div className="hidden md:flex items-center gap-1.5 text-[13px] text-slate-400 ml-2 min-w-0">
         <span>Amdox ERP</span>
-        {parentSection && (
+        {parent && (
           <>
-            <span>›</span>
-            <span>{parentSection.label}</span>
+            <ChevronRight size={14} className="shrink-0" />
+            <span>{parent.label}</span>
           </>
         )}
-        <span>›</span>
-        <span className="text-white">{current.label}</span>
+        <ChevronRight size={14} className="shrink-0" />
+        <span className="text-slate-700 font-medium truncate">{current.label}</span>
       </div>
 
-      <button className="px-3 h-full hover:bg-gray-800"><Search size={15} /></button>
-      <button className="px-3 h-full hover:bg-gray-800"><Bell size={15} /></button>
-      <button className="px-3 h-full hover:bg-gray-800"><HelpCircle size={15} /></button>
-      <button className="px-3 h-full hover:bg-gray-800"><Plus size={15} /></button>
-      <button className="px-3 h-full hover:bg-gray-800"><Settings size={15} /></button>
-      <button className="px-3 h-full hover:bg-gray-800"><Maximize2 size={14} /></button>
+      {/* Spacer */}
+      <div className="flex-1" />
 
-      <select
-        value={role}
-        onChange={(e) => setRole(e.target.value)}
-        className="bg-transparent text-[12px] text-gray-300 outline-none cursor-pointer px-3 h-full"
-      >
-        {Object.entries(ROLES).map(([key, r]) => (
-          <option key={key} value={key} className="text-black">
-            {r.label}
-          </option>
-        ))}
-      </select>
+      {/* Right actions */}
+      <div className="flex items-center gap-1">
+        <button className="h-8 w-8 flex items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors">
+          <Search size={16} />
+        </button>
+        <button className="h-8 w-8 flex items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors">
+          <Bell size={16} />
+        </button>
 
-      <div className="flex items-center gap-2 px-3 h-full">
-        <span className="font-medium">{username}</span>
-        <div className="h-5 w-5 rounded-full bg-[#D9A85C] text-[#14171F] flex items-center justify-center text-[10px] font-bold">
-          {userInitials}
+        {/* Role switcher */}
+        <select
+          value={role}
+          onChange={(e) => setRole(e.target.value)}
+          className="h-8 text-[12px] text-slate-600 border border-slate-200 rounded-md px-2 pr-6 bg-white outline-none cursor-pointer hover:border-slate-300 transition-colors appearance-none"
+          style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%2364748B' d='M4.5 6.5l3.5 3.5 3.5-3.5'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 6px center", backgroundSize: "14px" }}
+        >
+          {Object.entries(ROLES).map(([key, r]) => (
+            <option key={key} value={key}>{r.label}</option>
+          ))}
+        </select>
+
+        {/* Divider */}
+        <div className="h-5 w-px bg-slate-200 mx-1" />
+
+        {/* User avatar */}
+        <div className="flex items-center gap-2">
+          <div className="h-7 w-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-[11px] font-semibold">
+            {initials}
+          </div>
+          <span className="text-[13px] font-medium text-slate-700 hidden lg:block">{username}</span>
         </div>
-      </div>
 
-      <button 
-        onClick={() => {
-          if (confirm("Are you sure you want to sign out?")) {
-            logout();
-          }
-        }}
-        className="flex items-center justify-center px-3 h-full hover:bg-gray-800 text-gray-400 hover:text-[#e25555] transition-colors"
-        title="Sign Out"
-      >
-        <LogOut size={15} />
-      </button>
+        {/* Logout */}
+        <button
+          onClick={() => confirm("Sign out of Amdox ERP?") && logout()}
+          title="Sign out"
+          className="h-8 w-8 flex items-center justify-center rounded-md text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors ml-1"
+        >
+          <LogOut size={15} />
+        </button>
+      </div>
     </header>
   );
 }
 
-/**
- * Sidebar component renders the left-hand navigation menu.
- * It dynamically filters the `NAV` items based on the currently selected `role`'s allowed `sections`.
- * It handles state for collapsing the sidebar and expanding/collapsing sub-menus.
- */
-function Sidebar({ role, activePage, collapsed, setCollapsed }: { role: string; activePage: string; collapsed: boolean; setCollapsed: any }) {
+/* ─────────────────────────────────────────────
+   Sidebar
+   ───────────────────────────────────────────── */
+function Sidebar({
+  role,
+  activePage,
+  collapsed,
+  setCollapsed,
+}: {
+  role: string;
+  activePage: string;
+  collapsed: boolean;
+  setCollapsed: (v: boolean | ((prev: boolean) => boolean)) => void;
+}) {
   const router = useRouter();
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    finance: true, hr: true, scm: true, projects: true
+    finance: true, hr: true, scm: true, projects: true,
   });
   const visibleSections = ROLES[role].sections;
 
-  const toggle = (id: string) => setOpenSections((s) => ({ ...s, [id]: !s[id] }));
+  const toggle = (id: string) =>
+    setOpenSections((s) => ({ ...s, [id]: !s[id] }));
 
   const items = NAV.filter(
-    (item) => item.leaf || visibleSections.includes(item.id)
-  ).filter((item) => item.id !== "/settings" || visibleSections.includes("settings"));
+    (item) =>
+      item.leaf
+        ? visibleSections.some((s) => item.id === s || item.id.startsWith(s))
+        : visibleSections.includes(item.id),
+  ).filter((item) => item.id !== "/settings" || visibleSections.includes("/settings"));
 
   return (
-    <aside className={`border-r border-[#E4E2DC] bg-[#FAFAF9] flex flex-col transition-all duration-200 ${collapsed ? "w-14" : "w-60"}`}>
-      <nav className="flex-1 overflow-y-auto py-3 px-2">
+    <aside
+      className={`bg-white border-r border-slate-200 flex flex-col shrink-0 transition-all duration-200 ${
+        collapsed ? "w-14" : "w-56"
+      }`}
+    >
+      <nav className="flex-1 overflow-y-auto py-3 space-y-0.5 px-2 custom-scrollbar">
         {items.map((item) => {
           const Icon = item.icon;
 
+          /* Leaf item (direct link) */
           if (item.leaf) {
             const isActive = activePage === item.id;
             return (
@@ -252,17 +232,26 @@ function Sidebar({ role, activePage, collapsed, setCollapsed }: { role: string; 
                 key={item.id}
                 onClick={() => router.push(item.id)}
                 title={collapsed ? item.label : undefined}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm mb-0.5 transition-colors ${collapsed ? "justify-center px-0" : ""} ${isActive ? "bg-[#1E3A5F] text-white" : "text-[#4A4740] hover:bg-[#EFEDE6]"}`}
+                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[13px] font-medium transition-all duration-150 ${
+                  collapsed ? "justify-center" : ""
+                } ${
+                  isActive
+                    ? "bg-blue-50 text-blue-700"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                }`}
               >
-                <Icon size={16} />
-                {!collapsed && item.label}
+                <Icon size={16} className={isActive ? "text-blue-600" : "text-slate-400"} />
+                {!collapsed && <span>{item.label}</span>}
               </button>
             );
           }
 
-          const isOpen = openSections[item.id] && !collapsed;
+          /* Section with children */
+          const isOpen = !collapsed && openSections[item.id];
+          const hasActiveChild = item.children?.some((c) => c.id === activePage);
+
           return (
-            <div key={item.id} className="mb-0.5">
+            <div key={item.id}>
               <button
                 onClick={() => {
                   if (collapsed) {
@@ -273,26 +262,43 @@ function Sidebar({ role, activePage, collapsed, setCollapsed }: { role: string; 
                   }
                 }}
                 title={collapsed ? item.label : undefined}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-sm text-[#4A4740] hover:bg-[#EFEDE6] transition-colors ${collapsed ? "justify-center px-0" : ""}`}
+                className={`w-full flex items-center justify-between px-2.5 py-2 rounded-md text-[13px] font-medium transition-all duration-150 ${
+                  collapsed ? "justify-center" : ""
+                } ${
+                  hasActiveChild
+                    ? "text-blue-700"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                }`}
               >
                 <span className="flex items-center gap-2.5">
-                  <Icon size={16} />
+                  <Icon
+                    size={16}
+                    className={hasActiveChild ? "text-blue-600" : "text-slate-400"}
+                  />
                   {!collapsed && item.label}
                 </span>
-                {!collapsed && (isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />)}
+                {!collapsed && (
+                  isOpen
+                    ? <ChevronDown size={13} className="text-slate-400" />
+                    : <ChevronRight size={13} className="text-slate-400" />
+                )}
               </button>
-              {isOpen && !collapsed && item.children && (
-                <div className="ml-6 mt-0.5 border-l border-[#E4E2DC] pl-3">
+
+              {isOpen && item.children && (
+                <div className="ml-6 mt-0.5 pl-2 border-l border-slate-100">
                   {item.children.map((child) => {
                     const isActive = activePage === child.id;
                     return (
                       <button
                         key={child.id}
                         onClick={() => router.push(child.id)}
-                        className={`w-full text-left px-2.5 py-1.5 rounded-md text-[13px] mb-0.5 flex items-center justify-between transition-colors ${isActive ? "bg-[#1E3A5F]/10 text-[#1E3A5F] font-medium" : "text-[#6B675D] hover:bg-[#EFEDE6]"}`}
+                        className={`w-full text-left px-2 py-1.5 rounded-md text-[12.5px] mb-0.5 transition-all duration-150 ${
+                          isActive
+                            ? "bg-blue-50 text-blue-700 font-semibold"
+                            : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
+                        }`}
                       >
-                        <span>{child.label}</span>
-                        <span className="text-[10px] font-mono text-[#B0AC9F]">{child.day}</span>
+                        {child.label}
                       </button>
                     );
                   })}
@@ -303,37 +309,56 @@ function Sidebar({ role, activePage, collapsed, setCollapsed }: { role: string; 
         })}
       </nav>
 
-      <button onClick={() => setCollapsed((c: boolean) => !c)} className="flex items-center justify-center py-2.5 border-t border-[#E4E2DC] text-[#8A8678] hover:bg-[#EFEDE6] hover:text-[#1E3A5F] transition-colors">
-        {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
-      </button>
+      {/* Collapse toggle */}
+      <div className="border-t border-slate-100 p-2">
+        <button
+          onClick={() => setCollapsed((c) => !c)}
+          className="w-full flex items-center justify-center py-1.5 rounded-md text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors"
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {collapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
+        </button>
+      </div>
 
+      {/* Signed-in role */}
       {!collapsed && (
-        <div className="px-3 py-3 border-t border-[#E4E2DC] text-[11px] text-[#8A8678]">
-          Signed in as <span className="text-[#1E3A5F] font-medium">{ROLES[role].label}</span>
+        <div className="px-3 pb-3 pt-0">
+          <p className="text-[11px] text-slate-400 truncate">
+            {ROLES[role].label} · {ROLES[role].dept}
+          </p>
         </div>
       )}
     </aside>
   );
 }
 
-/**
- * DashboardLayout is the root layout wrapper for all authenticated dashboard pages.
- * It manages the global state for the active persona (`role`) and sidebar collapse state.
- * This layout wraps around the specific page content passed via `children`.
- */
+/* ─────────────────────────────────────────────
+   Root layout
+   ───────────────────────────────────────────── */
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const [role, setRole] = useState("executive");
+  const [role, setRole]         = useState("executive");
   const [collapsed, setCollapsed] = useState(false);
-  const pathname = usePathname();
+  const pathname                = usePathname();
 
   return (
-    <div className="h-screen flex flex-col" style={{ fontFamily: "'IBM Plex Sans', sans-serif" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap');`}</style>
-      <TopBar role={role} setRole={setRole} activePage={pathname} />
+    <div className="h-screen flex flex-col bg-slate-50">
+      <TopBar
+        role={role}
+        setRole={setRole}
+        activePage={pathname}
+        onMenuToggle={() => setCollapsed((c) => !c)}
+      />
       <div className="flex-1 flex overflow-hidden">
-        <Sidebar role={role} activePage={pathname} collapsed={collapsed} setCollapsed={setCollapsed} />
-        <main className="flex-1 overflow-y-auto bg-white p-8">
-          {children}
+        <Sidebar
+          role={role}
+          activePage={pathname}
+          collapsed={collapsed}
+          setCollapsed={setCollapsed}
+        />
+        <main className="flex-1 overflow-y-auto custom-scrollbar">
+          <div className="p-6 max-w-screen-2xl mx-auto">
+            {children}
+          </div>
         </main>
       </div>
     </div>

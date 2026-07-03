@@ -20,7 +20,6 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      // Validate the slug exists in our DB first
       const data = await tenantApi.checkExists(cleanSlug);
 
       if (!data.exists) {
@@ -28,17 +27,14 @@ export default function LoginPage() {
         return;
       }
 
-      // Save tenant slug for keycloak.ts initialization
       localStorage.setItem("tenant_slug", cleanSlug);
 
-      // Build the Keycloak login URL for this tenant's realm
       const kcBase = process.env.NEXT_PUBLIC_KEYCLOAK_URL || "http://localhost:8180";
       const clientId = process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID || "amdox-erp-web";
       const redirectUri = encodeURIComponent(`${window.location.origin}/home`);
 
       const loginUrl = `${kcBase}/realms/${cleanSlug}/protocol/openid-connect/auth?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}&scope=openid`;
 
-      // Redirect to the correct realm's login page
       window.location.href = loginUrl;
     } catch (err) {
       setError("Could not reach the server. Please try again.");
@@ -48,43 +44,38 @@ export default function LoginPage() {
   };
 
   return (
-    <div
-      className="min-h-screen bg-[#FAFAF9] flex items-center justify-center px-4"
-      style={{ fontFamily: "'IBM Plex Sans', sans-serif" }}
-    >
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap');`}</style>
-
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <span
-            className="text-2xl font-semibold tracking-tight text-[#14171F]"
-            style={{ fontFamily: "'Space Grotesk', sans-serif" }}
-          >
-            Amdox<span className="text-[#C99A4B]">ERP</span>
-          </span>
-          <p className="mt-2 text-sm text-[#8A8678]">Sign in to your company workspace</p>
+          <div className="inline-flex items-center gap-2 mb-3">
+            <div className="h-9 w-9 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
+              AX
+            </div>
+            <span className="text-xl font-semibold text-slate-900 tracking-tight">AmdoxERP</span>
+          </div>
+          <p className="text-sm text-slate-400">Sign in to your company workspace</p>
         </div>
 
         {/* Card */}
-        <div className="bg-white border border-[#E4E2DC] rounded-xl p-6 shadow-sm">
+        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-card">
           <div className="flex items-center gap-3 mb-6">
-            <div className="h-9 w-9 rounded-lg bg-[#1E3A5F]/10 flex items-center justify-center">
-              <Building2 size={18} className="text-[#1E3A5F]" />
+            <div className="h-9 w-9 rounded-lg bg-blue-50 flex items-center justify-center">
+              <Building2 size={18} className="text-blue-600" />
             </div>
             <div>
-              <h1 className="text-sm font-semibold text-[#14171F]">Enter your company domain</h1>
-              <p className="text-xs text-[#8A8678]">You'll be redirected to your company's login page</p>
+              <h1 className="text-sm font-semibold text-slate-900">Enter your company domain</h1>
+              <p className="text-xs text-slate-400 mt-0.5">You'll be redirected to your company's login page</p>
             </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-[#4A4740] mb-1.5">
+              <label className="block text-[12px] font-medium text-slate-600 mb-1.5">
                 Company Domain
               </label>
-              <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-[#1E3A5F]/30 focus-within:border-[#1E3A5F] transition-all">
-                <span className="px-3 py-2.5 text-sm text-[#8A8678] bg-gray-50 border-r border-gray-300 select-none">
+              <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
+                <span className="px-3 py-2.5 text-sm text-slate-400 bg-slate-50 border-r border-slate-200 select-none">
                   app /
                 </span>
                 <input
@@ -97,10 +88,10 @@ export default function LoginPage() {
                   placeholder="company-b"
                   autoFocus
                   required
-                  className="flex-1 px-3 py-2.5 text-sm outline-none bg-white text-[#14171F]"
+                  className="flex-1 px-3 py-2.5 text-sm outline-none bg-white text-slate-900 placeholder:text-slate-300"
                 />
               </div>
-              <p className="text-xs text-[#8A8678] mt-1.5">
+              <p className="text-xs text-slate-400 mt-1.5">
                 This is the slug you used when creating your tenant.
               </p>
             </div>
@@ -115,14 +106,12 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading || !slug.trim()}
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-[#1E3A5F] text-white text-sm font-medium rounded-lg hover:bg-[#16304d] disabled:opacity-60 transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-60 transition-colors"
             >
               {loading ? (
                 <Loader2 size={16} className="animate-spin" />
               ) : (
-                <>
-                  Continue <ArrowRight size={15} />
-                </>
+                <>Continue <ArrowRight size={15} /></>
               )}
             </button>
           </form>
@@ -130,13 +119,13 @@ export default function LoginPage() {
 
         {/* Footer */}
         <div className="mt-5 text-center space-y-2">
-          <p className="text-xs text-[#8A8678]">
+          <p className="text-xs text-slate-400">
             Don't have an account?{" "}
-            <a href="/create-tenant" className="text-[#1E3A5F] hover:underline font-medium">
+            <a href="/create-tenant" className="text-blue-600 hover:underline font-medium">
               Create a tenant
             </a>
           </p>
-          <a href="/" className="block text-xs text-[#8A8678] hover:text-[#14171F]">
+          <a href="/" className="block text-xs text-slate-400 hover:text-slate-700 transition-colors">
             ← Back to home
           </a>
         </div>

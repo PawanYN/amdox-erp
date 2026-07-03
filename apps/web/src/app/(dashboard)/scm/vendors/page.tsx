@@ -3,56 +3,32 @@
 import { useState, useEffect } from "react";
 import { Building2, Plus, Star, Users, Briefcase, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge, statusToTone } from "@/components/ui/badge";
-import { Card, Table, THead, TH, TBody, TR, TD, EmptyState } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { StatCard } from "@/components/ui/stat-card";
 import { scmApi } from "@/lib/api/scm-api";
 
 type BackendVendor = {
-  id: string;
-  name: string;
-  email?: string;
-  contactPhone?: string;
-  rating?: number;
-  isActive: boolean;
+  id: string; name: string; email?: string; contactPhone?: string;
+  rating?: number; isActive: boolean;
 };
 
 export default function VendorsPage() {
   const [vendors, setVendors] = useState<BackendVendor[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchVendors = async () => {
-    try {
-      setLoading(true);
-      const data = await scmApi.getVendors();
-      setVendors(data);
-    } catch (err) {
-      console.error("Failed to fetch vendors", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchVendors();
+    scmApi.getVendors()
+      .then(setVendors)
+      .catch(console.error)
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleAddVendor = () => {
-    // Stub
-    console.log("Add Vendor clicked");
-  };
-
   const handleIssuePortalKey = async (vendor: BackendVendor) => {
-    if (!vendor.email) {
-      alert("Add an email to this vendor before issuing a portal key.");
-      return;
-    }
+    if (!vendor.email) { alert("Add an email to this vendor before issuing a portal key."); return; }
     try {
       const result = await scmApi.issueVendorPortalKey(vendor.id);
-      alert(
-        `Portal key for ${vendor.name}:\n\n${result.accessKey}\n\nShare this with the supplier. Login at /vendor-portal`,
-      );
+      alert(`Portal key for ${vendor.name}:\n\n${result.accessKey}\n\nShare this with the supplier. Login at /vendor-portal`);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to issue portal key");
     }
@@ -60,91 +36,81 @@ export default function VendorsPage() {
 
   const columns: ColumnDef<BackendVendor>[] = [
     {
-      header: "Vendor ID",
-      cell: (vendor) => (
-        <span className="font-mono text-xs font-bold text-brand-purple bg-violet-50 border border-violet-100 rounded-lg px-2 py-1">
-          {vendor.id.slice(0, 8).toUpperCase()}
-        </span>
-      ),
-    },
-    {
-      header: "Name",
-      cell: (vendor) => <span className="font-semibold text-ink">{vendor.name}</span>,
-    },
-    {
-      header: "Email",
-      cell: (vendor) => <span className="text-sm text-muted">{vendor.email || "N/A"}</span>,
-    },
-    {
-      header: "Phone",
-      cell: (vendor) => <span className="text-sm text-muted">{vendor.contactPhone || "N/A"}</span>,
-    },
-    {
-      header: "Rating",
-      cell: (vendor) => (
-        <div className="flex items-center gap-1 text-amber-500 font-medium">
-          <Star size={14} className="fill-amber-500" />
-          {vendor.rating || "N/A"}
+      header: "Vendor",
+      cell: (v) => (
+        <div className="flex items-center gap-3">
+          <div className="h-8 w-8 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 shrink-0">
+            <Building2 size={14} />
+          </div>
+          <div>
+            <p className="text-[13px] font-semibold text-slate-900">{v.name}</p>
+            <p className="text-[11px] text-slate-400">{v.email || "No email"}</p>
+          </div>
         </div>
       ),
     },
     {
+      header: "Phone",
+      cell: (v) => <span className="text-[13px] text-slate-500">{v.contactPhone || "—"}</span>,
+    },
+    {
+      header: "Rating",
+      cell: (v) => v.rating ? (
+        <div className="flex items-center gap-1 text-amber-500 font-semibold text-[13px]">
+          <Star size={13} className="fill-amber-400" />
+          {v.rating}
+        </div>
+      ) : <span className="text-slate-300 text-[13px]">—</span>,
+    },
+    {
       header: "Status",
-      cell: (vendor) => (
-        <Badge tone={vendor.isActive ? "active" : "inactive"}>
-          {vendor.isActive ? "Active" : "Inactive"}
-        </Badge>
-      ),
+      cell: (v) => <Badge tone={v.isActive ? "active" : "inactive"}>{v.isActive ? "Active" : "Inactive"}</Badge>,
     },
     {
       header: "Portal",
-      cell: (vendor) => (
+      cell: (v) => (
         <button
-          onClick={() => handleIssuePortalKey(vendor)}
-          className="inline-flex items-center gap-1 text-xs font-medium text-brand-purple hover:underline"
+          onClick={() => handleIssuePortalKey(v)}
+          className="inline-flex items-center gap-1.5 text-[12px] font-medium text-blue-600 hover:text-blue-700 hover:underline"
         >
-          <KeyRound size={14} /> Issue key
+          <KeyRound size={13} /> Issue key
         </button>
       ),
     },
   ];
 
-  const totalVendors = vendors.length;
-  const activeVendors = vendors.filter(v => v.isActive).length;
-  const avgRating = totalVendors > 0 
-    ? (vendors.reduce((acc, curr) => acc + (curr.rating || 0), 0) / totalVendors).toFixed(1)
-    : 0;
+  const activeVendors = vendors.filter((v) => v.isActive).length;
+  const avgRating = vendors.length > 0
+    ? (vendors.reduce((a, v) => a + (v.rating || 0), 0) / vendors.length).toFixed(1)
+    : "—";
 
   return (
-    <div>
-      {/* Header */}
-      <div className="flex items-start justify-between animate-fade-in-up">
+    <div className="space-y-6">
+      <div className="flex items-start justify-between">
         <div>
-          <div className="flex items-center gap-2.5 mb-1">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-[0_4px_12px_rgba(99,102,241,0.3)]">
-              <Building2 size={16} />
-            </div>
-            <h1 className="text-2xl font-bold text-ink">Vendors</h1>
-          </div>
-          <p className="text-sm text-muted ml-10">
-            Manage vendor profiles, contacts, and performance ratings
-          </p>
+          <h1 className="page-title flex items-center gap-2">
+            <Building2 size={18} className="text-slate-400" />
+            Vendors
+          </h1>
+          <p className="page-subtitle mt-1">Manage vendor profiles, contacts, ratings and portal access</p>
         </div>
-        <Button icon={<Plus size={16} />} onClick={handleAddVendor}>
+        <Button icon={<Plus size={14} />} onClick={() => console.log("Add Vendor — FE-01 pending")}>
           Add Vendor
         </Button>
       </div>
 
-      {/* Stat cards */}
-      <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard label="Total Vendors" value={totalVendors} icon={<Briefcase size={18} />} gradient="from-indigo-500 to-purple-600" delay="0.05s" />
-        <StatCard label="Active" value={activeVendors} icon={<Users size={18} />} gradient="from-emerald-400 to-teal-500" delay="0.10s" />
-        <StatCard label="Avg Rating" value={avgRating} icon={<Star size={18} />} gradient="from-amber-400 to-orange-500" delay="0.15s" />
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+        <StatCard label="Total Vendors" value={vendors.length} icon={<Briefcase size={16} />} gradient="from-blue-500 to-blue-600"      delay="0s" />
+        <StatCard label="Active"        value={activeVendors}  icon={<Users size={16} />}     gradient="from-emerald-500 to-emerald-600" delay="0.05s" />
+        <StatCard label="Avg Rating"    value={avgRating}      icon={<Star size={16} />}      gradient="from-amber-400 to-amber-500"    delay="0.1s" />
       </div>
 
-      <div className="mt-8 animate-fade-in-up" style={{ animationDelay: "0.20s" }}>
-        <DataTable data={vendors} columns={columns} keyExtractor={(vendor) => vendor.id} emptyMessage={loading ? "Loading..." : "No vendors found."} />
-      </div>
+      <DataTable
+        data={vendors}
+        columns={columns}
+        keyExtractor={(v) => v.id}
+        emptyMessage={loading ? "Loading vendors…" : "No vendors found."}
+      />
     </div>
   );
 }

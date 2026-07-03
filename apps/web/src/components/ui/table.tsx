@@ -1,8 +1,8 @@
 import { ReactNode } from "react";
 
-export function Card({ children }: { children: ReactNode }) {
+export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <div className="rounded-2xl border border-line bg-card shadow-card overflow-hidden transition-shadow duration-200 hover:shadow-card-hover">
+    <div className={`rounded-lg border border-slate-200 bg-white shadow-card overflow-hidden ${className}`}>
       {children}
     </div>
   );
@@ -11,34 +11,34 @@ export function Card({ children }: { children: ReactNode }) {
 export function Table({ children }: { children: ReactNode }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-left text-sm">{children}</table>
+      <table className="w-full text-left text-[13px]">{children}</table>
     </div>
   );
 }
 
 export function THead({ children }: { children: ReactNode }) {
   return (
-    <thead className="border-b border-line bg-gradient-to-r from-canvas via-white to-canvas sticky top-0 z-10 backdrop-blur-sm">
+    <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
       <tr>{children}</tr>
     </thead>
   );
 }
 
-export function TH({ children }: { children: ReactNode }) {
+export function TH({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-muted/70">
+    <th className={`px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 whitespace-nowrap ${className}`}>
       {children}
     </th>
   );
 }
 
 export function TBody({ children }: { children: ReactNode }) {
-  return <tbody className="divide-y divide-line/60">{children}</tbody>;
+  return <tbody className="divide-y divide-slate-100">{children}</tbody>;
 }
 
 export function TR({ children }: { children: ReactNode }) {
   return (
-    <tr className="tr-hover hover:bg-canvas/90 group transition-colors duration-150 cursor-default">
+    <tr className="hover:bg-slate-50/60 transition-colors duration-100">
       {children}
     </tr>
   );
@@ -52,17 +52,19 @@ export function TD({
   className?: string;
 }) {
   return (
-    <td className={`px-6 py-4 align-middle ${className}`}>{children}</td>
+    <td className={`px-4 py-3 align-middle text-slate-700 ${className}`}>
+      {children}
+    </td>
   );
 }
 
 export function EmptyState({ message }: { message: string }) {
   return (
-    <div className="px-6 py-16 text-center">
-      <div className="mx-auto h-12 w-12 rounded-2xl bg-canvas border border-line flex items-center justify-center mb-3">
-        <span className="text-2xl">📭</span>
+    <div className="px-6 py-14 text-center">
+      <div className="mx-auto h-10 w-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center mb-3">
+        <span className="text-xl select-none">📭</span>
       </div>
-      <p className="text-sm text-muted">{message}</p>
+      <p className="text-[13px] text-slate-500">{message}</p>
     </div>
   );
 }

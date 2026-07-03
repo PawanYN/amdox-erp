@@ -1,34 +1,27 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, FolderKanban } from "lucide-react";
+import { Plus, ShoppingCart, ClipboardList, ArrowRight, ChevronRight } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { scmApi } from "@/lib/api/scm-api";
 
-const statusColor: Record<string, string> = {
-  DRAFT: "bg-[#F0EEE7] text-[#8A8678]",
-  SUBMITTED: "bg-[#1E3A5F]/10 text-[#1E3A5F]",
-  APPROVED: "bg-[#2F6B4F]/10 text-[#2F6B4F]",
-  RECEIVED: "bg-[#2F6B4F]/10 text-[#2F6B4F]",
-  CANCELLED: "bg-[#B4533B]/10 text-[#B4533B]",
-  PENDING_MATCH: "bg-[#D9A85C]/10 text-[#D9A85C]",
-  MATCHED: "bg-[#2F6B4F]/10 text-[#2F6B4F]",
-  PAID: "bg-[#2F6B4F]/10 text-[#2F6B4F]",
+const STATUS_TONE: Record<string, "pending" | "approved" | "processed" | "rejected" | "inactive"> = {
+  DRAFT:         "inactive",
+  SUBMITTED:     "pending",
+  APPROVED:      "approved",
+  RECEIVED:      "processed",
+  CANCELLED:     "rejected",
+  PENDING_MATCH: "pending",
+  MATCHED:       "approved",
+  PAID:          "processed",
 };
 
-function StatusPill({ status }: { status: string }) {
-  return (
-    <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full capitalize ${statusColor[status] || "bg-[#F0EEE7] text-[#8A8678]"}`}>
-      {status.replace("_", " ")}
-    </span>
-  );
-}
-
 export default function POPage() {
-  const [poList, setPoList] = useState<any[]>([]);
+  const [poList, setPoList]             = useState<any[]>([]);
   const [requisitions, setRequisitions] = useState<any[]>([]);
-  const [vendors, setVendors] = useState<any[]>([]);
-  const [creatingPo, setCreatingPo] = useState<string | null>(null);
-  const [warehouseId, setWarehouseId] = useState<string | null>(null);
+  const [vendors, setVendors]           = useState<any[]>([]);
+  const [creatingPo, setCreatingPo]     = useState<string | null>(null);
+  const [warehouseId, setWarehouseId]   = useState<string | null>(null);
 
   const fetchAll = () => {
     scmApi.getPurchaseOrders().then(setPoList);
@@ -38,83 +31,88 @@ export default function POPage() {
   useEffect(() => {
     fetchAll();
     scmApi.getVendors().then(setVendors);
-    scmApi.getWarehouses().then((warehouses) => setWarehouseId(warehouses[0]?.id ?? null));
+    scmApi.getWarehouses().then((w) => setWarehouseId(w[0]?.id ?? null));
   }, []);
 
-  const advance = async (_poNumber: string, id: string, currentStatus: string) => {
-    if (currentStatus === "DRAFT" || currentStatus === "SUBMITTED") {
+  const advance = async (id: string, status: string) => {
+    if (status === "DRAFT" || status === "SUBMITTED") {
       await scmApi.approvePurchaseOrder(id);
-    } else if (currentStatus === "APPROVED") {
-      if (!warehouseId) {
-        alert("No warehouse configured. Seed the database or create a warehouse first.");
-        return;
-      }
+    } else if (status === "APPROVED") {
+      if (!warehouseId) { alert("No warehouse configured. Seed the database first."); return; }
       await scmApi.receiveGoods(id, { warehouseId, notes: "Received via web UI" });
     }
     fetchAll();
   };
 
   const createPoFromRequisition = async (req: any) => {
-    const firstLine = req.lines?.[0];
-    const vendorId =
-      firstLine?.product?.defaultVendorId || vendors.find((v) => v.isActive)?.id;
-    if (!vendorId) {
-      alert("No vendor available. Add a vendor or set default vendor on the product.");
-      return;
-    }
-
+    const vendorId = req.lines?.[0]?.product?.defaultVendorId || vendors.find((v) => v.isActive)?.id;
+    if (!vendorId) { alert("No vendor available. Add a vendor or set default vendor on the product."); return; }
     setCreatingPo(req.id);
     try {
       await scmApi.createPurchaseOrder({
-        vendorId,
-        requisitionId: req.id,
+        vendorId, requisitionId: req.id,
         projectId: req.projectId ?? undefined,
-        lines: req.lines.map((line: any) => ({
-          productId: line.productId,
-          quantity: Number(line.quantity),
-          unitPrice: Number(line.estimatedUnitPrice ?? line.product?.unitCost ?? 0),
+        lines: req.lines.map((l: any) => ({
+          productId: l.productId,
+          quantity: Number(l.quantity),
+          unitPrice: Number(l.estimatedUnitPrice ?? l.product?.unitCost ?? 0),
         })),
       });
       fetchAll();
     } catch (e) {
       alert(e instanceof Error ? e.message : "Failed to create PO");
-    } finally {
-      setCreatingPo(null);
-    }
+    } finally { setCreatingPo(null); }
   };
 
   const actionLabel: Record<string, string> = {
-    DRAFT: "Submit for approval",
+    DRAFT: "Submit for Approval",
     SUBMITTED: "Approve PO",
-    APPROVED: "Mark received",
+    APPROVED: "Mark Received",
   };
 
-  const pendingRequisitions = requisitions.filter(
-    (r) => !r.purchaseOrders || r.purchaseOrders.length === 0,
-  );
+  const pendingRequisitions = requisitions.filter((r) => !r.purchaseOrders || r.purchaseOrders.length === 0);
 
   return (
     <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="page-title flex items-center gap-2">
+            <ShoppingCart size={18} className="text-slate-400" />
+            Purchase Orders
+          </h1>
+          <p className="page-subtitle mt-1">
+            Workflow: Draft → Submitted → Approved → Received
+          </p>
+        </div>
+        <button className="inline-flex items-center gap-1.5 text-[13px] font-medium px-3.5 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors">
+          <Plus size={14} /> New PO
+        </button>
+      </div>
+
+      {/* Open Requisitions */}
       {pendingRequisitions.length > 0 && (
-        <section className="space-y-2">
-          <h2 className="text-[13px] font-semibold text-[#14171F] flex items-center gap-1.5">
-            <FolderKanban size={14} className="text-[#B06D1A]" />
-            Open requisitions ({pendingRequisitions.length})
-          </h2>
-          {pendingRequisitions.map((req) => (
-            <div key={req.id} className="border border-[#D9A85C]/40 rounded-lg p-4 bg-[#FFFBF5]">
-              <div className="flex items-start justify-between gap-3">
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-3">
+          <div className="flex items-center gap-2 mb-2">
+            <ClipboardList size={15} className="text-amber-600" />
+            <p className="text-[13px] font-semibold text-amber-800">
+              Open Requisitions ({pendingRequisitions.length})
+            </p>
+          </div>
+          <div className="space-y-2">
+            {pendingRequisitions.map((req) => (
+              <div key={req.id} className="bg-white rounded-md border border-amber-100 p-3 flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-[13px] font-medium text-[#14171F]">
+                  <p className="text-[13px] font-semibold text-slate-900">
                     {req.project?.name ?? req.reason ?? "Inventory requisition"}
                   </p>
-                  <p className="text-[11px] text-[#8A8678] mt-0.5">
-                    {req.lines?.length ?? 0} line(s)
-                    {req.reason ? ` · ${req.reason}` : ""}
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    {req.lines?.length ?? 0} line(s){req.reason ? ` · ${req.reason}` : ""}
                   </p>
-                  <ul className="mt-2 text-[11px] text-[#4A4740] space-y-0.5">
+                  <ul className="mt-2 space-y-0.5">
                     {req.lines?.map((line: any) => (
-                      <li key={line.id}>
+                      <li key={line.id} className="text-[11px] text-slate-600">
+                        <ChevronRight size={10} className="inline text-slate-400 mr-0.5" />
                         {line.product?.name ?? line.productId} × {Number(line.quantity)}
                       </li>
                     ))}
@@ -123,66 +121,57 @@ export default function POPage() {
                 <button
                   onClick={() => createPoFromRequisition(req)}
                   disabled={creatingPo === req.id}
-                  className="text-[12px] font-medium px-3 py-1.5 rounded-md bg-[#B06D1A] text-white whitespace-nowrap disabled:opacity-50"
+                  className="text-[12px] font-semibold px-3 py-1.5 rounded-md bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50 transition-colors shrink-0"
                 >
                   {creatingPo === req.id ? "Creating…" : "Create PO"}
                 </button>
               </div>
-            </div>
-          ))}
-        </section>
+            ))}
+          </div>
+        </div>
       )}
 
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <p className="text-[12px] text-[#8A8678]">State machine: draft → submitted → approved → received</p>
-          <button className="inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-md bg-[#1E3A5F] text-white">
-            <Plus size={13} /> New PO
-          </button>
-        </div>
-
-        <div className="grid grid-cols-3 gap-3 mb-2">
-          {vendors.map((v) => (
-            <div key={v.id} className="border border-[#E4E2DC] rounded-lg p-3 bg-white">
-              <p className="text-[13px] font-medium text-[#14171F]">{v.name}</p>
-              <p className="text-[11px] text-[#8A8678] mt-0.5">Rating: {v.rating}★</p>
-              <StatusPill status={v.isActive ? "ACTIVE" : "INACTIVE"} />
-            </div>
-          ))}
-        </div>
-
-        <div className="space-y-2">
-          {poList.map((po) => (
-            <div key={po.id} className="border border-[#E4E2DC] rounded-lg p-4 bg-white">
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <p className="text-[13px] font-medium text-[#14171F] font-mono">{po.poNumber}</p>
-                  <p className="text-[11px] text-[#8A8678]">
-                    {po.vendor?.name || po.vendorId} · {new Date(po.createdAt).toLocaleDateString()}
+      {/* Purchase Orders list */}
+      <div className="space-y-2">
+        {poList.length === 0 ? (
+          <div className="bg-white rounded-lg border border-slate-200 shadow-card px-6 py-14 text-center">
+            <p className="text-[13px] text-slate-400">No purchase orders yet.</p>
+          </div>
+        ) : (
+          poList.map((po) => (
+            <div key={po.id} className="bg-white rounded-lg border border-slate-200 shadow-card p-4 hover:border-slate-300 transition-colors">
+              <div className="flex items-center justify-between">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2.5">
+                    <span className="font-mono text-[13px] font-semibold text-slate-900">{po.poNumber}</span>
+                    <Badge tone={STATUS_TONE[po.status] || "inactive"}>{po.status.replace("_", " ")}</Badge>
                     {po.project?.name && (
-                      <span className="ml-2 text-[#B06D1A]">· Project: {po.project.name}</span>
+                      <span className="text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5">
+                        {po.project.name}
+                      </span>
                     )}
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    {po.vendor?.name || po.vendorId} · {new Date(po.createdAt).toLocaleDateString()}
                   </p>
                 </div>
-                <div className="flex items-center gap-3">
-                  <StatusPill status={po.status} />
-                  <p className="text-[13px] font-medium text-[#14171F]">₹{Number(po.totalAmount).toLocaleString()}</p>
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="font-mono font-semibold text-slate-900">₹{Number(po.totalAmount).toLocaleString()}</span>
+                  {actionLabel[po.status] && (
+                    <button
+                      onClick={() => advance(po.id, po.status)}
+                      className="inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-md border border-blue-200 text-blue-700 hover:bg-blue-50 transition-colors"
+                    >
+                      {actionLabel[po.status]}
+                      <ArrowRight size={12} />
+                    </button>
+                  )}
                 </div>
               </div>
-              {actionLabel[po.status] && (
-                <div className="flex justify-end mt-3">
-                  <button
-                    onClick={() => advance(po.poNumber, po.id, po.status)}
-                    className="text-[12px] font-medium px-3 py-1.5 rounded-md border border-[#1E3A5F] text-[#1E3A5F] hover:bg-[#1E3A5F] hover:text-white transition-colors"
-                  >
-                    {actionLabel[po.status]} →
-                  </button>
-                </div>
-              )}
             </div>
-          ))}
-        </div>
-      </section>
+          ))
+        )}
+      </div>
     </div>
   );
 }

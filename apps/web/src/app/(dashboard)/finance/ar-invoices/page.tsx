@@ -18,6 +18,14 @@ type ArInvoice = {
 
 type Customer = { id: string; name: string; email?: string };
 
+const STATUS_STYLE: Record<string, string> = {
+  DRAFT:     "bg-slate-100 text-slate-600",
+  OPEN:      "bg-blue-50 text-blue-700",
+  PAID:      "bg-emerald-50 text-emerald-700",
+  OVERDUE:   "bg-red-50 text-red-600",
+  CANCELLED: "bg-slate-100 text-slate-500",
+};
+
 export default function ArInvoicesPage() {
   const [invoices, setInvoices] = useState<ArInvoice[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -126,17 +134,17 @@ export default function ArInvoicesPage() {
   const openInvoices = invoices.filter((i) => i.status !== "PAID");
 
   const columns: ColumnDef<ArInvoice>[] = [
-    { header: "Invoice #", cell: (i) => <span className="font-mono text-xs">{i.invoiceNumber}</span> },
-    { header: "Customer", cell: (i) => i.customer?.name ?? "—" },
+    { header: "Invoice #", cell: (i) => <span className="font-mono text-xs text-slate-700">{i.invoiceNumber}</span> },
+    { header: "Customer", cell: (i) => <span className="font-medium text-slate-900">{i.customer?.name ?? "—"}</span> },
     {
       header: "Amount",
-      cell: (i) => `₹${Number(i.totalAmount).toLocaleString("en-IN")}`,
+      cell: (i) => <span className="font-mono font-semibold text-slate-900">₹{Number(i.totalAmount).toLocaleString("en-IN")}</span>,
     },
-    { header: "Due", cell: (i) => new Date(i.dueDate).toLocaleDateString() },
+    { header: "Due", cell: (i) => <span className="text-sm text-slate-500">{new Date(i.dueDate).toLocaleDateString()}</span> },
     {
       header: "Status",
       cell: (i) => (
-        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-violet-50 text-brand-purple">
+        <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${STATUS_STYLE[i.status] || "bg-slate-100 text-slate-600"}`}>
           {i.status}
         </span>
       ),
@@ -144,14 +152,14 @@ export default function ArInvoicesPage() {
   ];
 
   return (
-    <div>
-      <div className="flex items-start justify-between mb-6">
+    <div className="space-y-6">
+      <div className="flex items-start justify-between">
         <div>
-          <div className="flex items-center gap-2.5 mb-1">
-            <TrendingUp size={20} className="text-[#2F6B4F]" />
-            <h1 className="text-xl font-semibold text-[#14171F]">AR (Receivable)</h1>
-          </div>
-          <p className="text-[12px] text-[#8A8678]">Customer invoices and payment recording</p>
+          <h1 className="page-title flex items-center gap-2">
+            <TrendingUp size={18} className="text-slate-400" />
+            AR Receivable
+          </h1>
+          <p className="page-subtitle mt-1">Customer invoices and payment recording</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" icon={<CreditCard size={16} />} onClick={() => setPaymentFormOpen(true)}>
@@ -164,7 +172,7 @@ export default function ArInvoicesPage() {
       </div>
 
       {loading ? (
-        <p className="text-sm text-muted flex items-center gap-2">
+        <p className="text-sm text-slate-400 flex items-center gap-2">
           <Loader2 size={16} className="animate-spin" /> Loading…
         </p>
       ) : (
@@ -180,12 +188,8 @@ export default function ArInvoicesPage() {
         <div className="space-y-3">
           {customers.length > 0 ? (
             <div>
-              <label className="text-xs text-muted block mb-1">Customer</label>
-              <select
-                className={inputClasses}
-                value={customerId}
-                onChange={(e) => setCustomerId(e.target.value)}
-              >
+              <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Customer</label>
+              <select className={inputClasses} value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
                 {customers.map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
@@ -193,35 +197,30 @@ export default function ArInvoicesPage() {
             </div>
           ) : (
             <div>
-              <label className="text-xs text-muted block mb-1">New customer name</label>
-              <input
-                className={inputClasses}
-                value={newCustomerName}
-                onChange={(e) => setNewCustomerName(e.target.value)}
-                placeholder="Customer name"
-              />
+              <label className="text-[12px] font-medium text-slate-600 block mb-1.5">New customer name</label>
+              <input className={inputClasses} value={newCustomerName} onChange={(e) => setNewCustomerName(e.target.value)} placeholder="Customer name" />
             </div>
           )}
           <div>
-            <label className="text-xs text-muted block mb-1">Invoice number *</label>
+            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Invoice number *</label>
             <input className={inputClasses} value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} />
           </div>
           <div>
-            <label className="text-xs text-muted block mb-1">Description</label>
+            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Description</label>
             <input className={inputClasses} value={description} onChange={(e) => setDescription(e.target.value)} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-muted block mb-1">Issue date</label>
+              <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Issue date</label>
               <input type="date" className={inputClasses} value={issueDate} onChange={(e) => setIssueDate(e.target.value)} />
             </div>
             <div>
-              <label className="text-xs text-muted block mb-1">Due date</label>
+              <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Due date</label>
               <input type="date" className={inputClasses} value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
             </div>
           </div>
           <div>
-            <label className="text-xs text-muted block mb-1">Total amount (₹) *</label>
+            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Total amount (₹) *</label>
             <input type="number" min={0} className={inputClasses} value={amount} onChange={(e) => setAmount(e.target.value)} />
           </div>
           <div className="flex justify-end gap-2 pt-2">
@@ -236,12 +235,8 @@ export default function ArInvoicesPage() {
       <Modal open={paymentFormOpen} onClose={() => setPaymentFormOpen(false)} title="Record Payment">
         <div className="space-y-3">
           <div>
-            <label className="text-xs text-muted block mb-1">Invoice *</label>
-            <select
-              className={inputClasses}
-              value={paymentInvoiceId}
-              onChange={(e) => setPaymentInvoiceId(e.target.value)}
-            >
+            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Invoice *</label>
+            <select className={inputClasses} value={paymentInvoiceId} onChange={(e) => setPaymentInvoiceId(e.target.value)}>
               <option value="">Select invoice…</option>
               {openInvoices.map((i) => (
                 <option key={i.id} value={i.id}>
@@ -251,11 +246,11 @@ export default function ArInvoicesPage() {
             </select>
           </div>
           <div>
-            <label className="text-xs text-muted block mb-1">Amount (₹) *</label>
+            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Amount (₹) *</label>
             <input type="number" min={0} className={inputClasses} value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} />
           </div>
           <div>
-            <label className="text-xs text-muted block mb-1">Bank reference</label>
+            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Bank reference</label>
             <input className={inputClasses} value={bankReference} onChange={(e) => setBankReference(e.target.value)} />
           </div>
           <div className="flex justify-end gap-2 pt-2">

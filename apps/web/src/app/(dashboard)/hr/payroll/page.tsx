@@ -67,17 +67,17 @@ export default function PayrollPage() {
       header: "Employee",
       cell: (rec) => (
         <div className="flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-xs font-bold shadow-sm">
-            {rec.employeeName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+          <div className="h-8 w-8 rounded-full bg-emerald-600 flex items-center justify-center text-white text-[11px] font-bold shrink-0">
+            {rec.employeeName.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
           </div>
-          <span className="font-semibold text-ink">{rec.employeeName}</span>
+          <span className="font-semibold text-slate-900">{rec.employeeName}</span>
         </div>
       ),
     },
     {
       header: "Pay Period",
       cell: (rec) => (
-        <span className="text-xs font-medium text-muted bg-canvas border border-line rounded-lg px-2.5 py-1">
+        <span className="text-[12px] font-medium text-slate-600 bg-slate-100 rounded px-2 py-0.5">
           {rec.payPeriod}
         </span>
       ),
@@ -110,35 +110,31 @@ export default function PayrollPage() {
           return (
             <button
               onClick={() => setPreviewRecord(rec)}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-violet-50 border border-violet-200 px-3 py-1.5 text-xs font-semibold text-brand-purple hover:bg-violet-100 transition-all hover:shadow-sm hover:-translate-y-0.5 active:scale-95"
+              className="inline-flex items-center gap-1.5 rounded-md bg-slate-50 border border-slate-200 px-2.5 py-1 text-[12px] font-medium text-slate-700 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-colors"
             >
               <Download size={12} />
               Payslip
             </button>
           );
         }
-        return <span className="text-muted">—</span>;
+        return <span className="text-slate-300">—</span>;
       },
     },
   ];
 
   return (
-    <div>
-      <div className="flex items-start justify-between animate-fade-in-up">
+    <div className="space-y-6">
+      <div className="flex items-start justify-between">
         <div>
-          <div className="flex items-center gap-2.5 mb-1">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 text-white shadow-[0_4px_12px_rgba(16,185,129,0.3)]">
-              <Wallet size={16} />
-            </div>
-            <h1 className="text-2xl font-bold text-ink">Payroll</h1>
-          </div>
-          <p className="text-sm text-muted ml-10">
-            Gross-to-net calculation, batch runs &amp; payslips
-          </p>
+          <h1 className="page-title flex items-center gap-2">
+            <Wallet size={18} className="text-slate-400" />
+            Payroll
+          </h1>
+          <p className="page-subtitle mt-1">Gross-to-net calculation, batch runs and payslips</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 border border-line rounded-lg px-3 py-1.5 bg-white">
-            <Calendar size={14} className="text-muted" />
+          <div className="flex items-center gap-2 border border-slate-200 rounded-md px-3 py-1.5 bg-white">
+            <Calendar size={14} className="text-slate-400" />
             <input
               type="month"
               value={period}
@@ -164,28 +160,26 @@ export default function PayrollPage() {
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4 animate-fade-in-up" style={{ animationDelay: "0.05s" }}>
-        <div className="rounded-2xl border border-line bg-card p-5 shadow-card hover:shadow-card-hover transition-all hover:-translate-y-0.5 group">
-          <p className="text-xs font-bold uppercase tracking-widest text-muted/70">Total Gross</p>
-          <p className="mt-2 text-2xl font-bold text-ink">{formatINR(totalGross)}</p>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="bg-white rounded-lg border border-slate-200 shadow-card p-5">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-1.5">Total Gross</p>
+          <p className="text-2xl font-semibold text-slate-900">{formatINR(totalGross)}</p>
         </div>
-        <div className="rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-teal-50 p-5 shadow-card hover:shadow-card-hover transition-all hover:-translate-y-0.5 group">
-          <p className="text-xs font-bold uppercase tracking-widest text-emerald-600/70">Total Net Pay</p>
-          <p className="mt-2 text-2xl font-bold text-emerald-700">{formatINR(totalNet)}</p>
+        <div className="bg-emerald-50 rounded-lg border border-emerald-100 p-5">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-emerald-600 mb-1.5">Net Pay</p>
+          <p className="text-2xl font-semibold text-emerald-700">{formatINR(totalNet)}</p>
         </div>
-        <div className="rounded-2xl border border-red-100 bg-gradient-to-br from-red-50 to-rose-50 p-5 shadow-card hover:shadow-card-hover transition-all hover:-translate-y-0.5 group">
-          <p className="text-xs font-bold uppercase tracking-widest text-red-500/70">Total Deductions</p>
-          <p className="mt-2 text-2xl font-bold text-red-600">{formatINR(totalDeductions)}</p>
+        <div className="bg-red-50 rounded-lg border border-red-100 p-5">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-red-500 mb-1.5">Deductions</p>
+          <p className="text-2xl font-semibold text-red-600">{formatINR(totalDeductions)}</p>
         </div>
-        <div className="rounded-2xl border border-line bg-card p-5 shadow-card hover:shadow-card-hover transition-all hover:-translate-y-0.5 group">
-          <p className="text-xs font-bold uppercase tracking-widest text-muted/70">Processed</p>
-          <p className="mt-2 text-2xl font-bold text-ink">{processedCount} / {records.length}</p>
+        <div className="bg-white rounded-lg border border-slate-200 shadow-card p-5">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-1.5">Processed</p>
+          <p className="text-2xl font-semibold text-slate-900">{processedCount} / {records.length}</p>
         </div>
       </div>
 
-      <div className="mt-6 animate-fade-in-up" style={{ animationDelay: "0.15s" }}>
-        <DataTable data={records} columns={columns} keyExtractor={(rec) => rec.id} emptyMessage="No payroll records for this period yet." />
-      </div>
+      <DataTable data={records} columns={columns} keyExtractor={(rec) => rec.id} emptyMessage="No payroll records for this period yet." />
 
       <PayslipModal record={previewRecord} onClose={() => setPreviewRecord(null)} />
     </div>

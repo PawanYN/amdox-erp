@@ -6,11 +6,11 @@ import { pmApi } from "@/lib/api/pm-api";
 
 const STATUSES = ["TODO", "IN_PROGRESS", "BLOCKED", "DONE"] as const;
 
-const barColor: Record<string, string> = {
-  TODO: "bg-[#8A8678]",
-  IN_PROGRESS: "bg-[#1E3A5F]",
-  BLOCKED: "bg-[#B4533B]",
-  DONE: "bg-[#2F6B4F]",
+const BAR_COLOR: Record<string, string> = {
+  TODO:        "bg-slate-400",
+  IN_PROGRESS: "bg-blue-600",
+  BLOCKED:     "bg-red-500",
+  DONE:        "bg-emerald-500",
 };
 
 function parseDate(d: string | Date | null | undefined): Date | null {
@@ -82,40 +82,36 @@ export default function ProjectsTasksPage() {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <label className="text-[12px] font-medium text-[#4A4740]">
+        <label className="text-[13px] font-medium text-slate-700 flex items-center gap-2">
           Project
           <select
-            className="ml-2 text-sm border border-[#D8D5CC] rounded-md px-2 py-1.5"
+            className="text-sm border border-slate-200 rounded-md px-2 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
             value={projectId}
             onChange={(e) => setProjectId(e.target.value)}
           >
             <option value="">All projects</option>
             {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
+              <option key={p.id} value={p.id}>{p.name}</option>
             ))}
           </select>
         </label>
         {projectId && (
-          <Link
-            href={`/projects/${projectId}`}
-            className="text-[12px] text-[#1E3A5F] hover:underline"
-          >
+          <Link href={`/projects/${projectId}`} className="text-[12px] text-blue-600 hover:text-blue-700 hover:underline">
             Open project detail →
           </Link>
         )}
       </div>
 
       {loading ? (
-        <p className="text-sm text-muted">Loading Gantt data…</p>
+        <p className="text-sm text-slate-400">Loading Gantt data…</p>
       ) : (
-        <div className="border border-[#E4E2DC] rounded-lg bg-white overflow-x-auto">
+        <div className="border border-slate-200 rounded-lg bg-white overflow-x-auto shadow-card">
           <div style={{ minWidth: Math.max(700, range.days * 28) }}>
-            <div className="flex border-b border-[#E4E2DC] text-[10px] text-[#8A8678] py-2 px-3">
-              <span className="w-52 shrink-0">Task</span>
+            {/* Header row */}
+            <div className="flex border-b border-slate-200 text-[10px] text-slate-400 py-2 px-3 bg-slate-50">
+              <span className="w-52 shrink-0 font-semibold uppercase tracking-wider">Task</span>
               <div
                 className="flex-1 grid"
                 style={{ gridTemplateColumns: `repeat(${range.days}, minmax(24px, 1fr))` }}
@@ -127,8 +123,9 @@ export default function ProjectsTasksPage() {
                 ))}
               </div>
             </div>
+
             {tasks.length === 0 ? (
-              <p className="p-4 text-sm text-muted">No tasks defined yet.</p>
+              <p className="p-6 text-sm text-slate-400 text-center">No tasks defined yet.</p>
             ) : (
               tasks.map((t) => {
                 const start = toIndex(t.startDate);
@@ -138,23 +135,21 @@ export default function ProjectsTasksPage() {
                 return (
                   <div
                     key={t.id}
-                    className="flex items-center py-2 px-3 border-b border-[#F0EEE7] last:border-0 gap-2"
+                    className="flex items-center py-2 px-3 border-b border-slate-100 last:border-0 gap-2 hover:bg-slate-50/50 transition-colors"
                   >
                     <div className="w-52 shrink-0 pr-2">
-                      <p className="text-[12px] text-[#14171F] truncate">{t.title}</p>
-                      <p className="text-[10px] text-[#8A8678] truncate">
+                      <p className="text-[12px] font-medium text-slate-900 truncate">{t.title}</p>
+                      <p className="text-[10px] text-slate-400 truncate">
                         {t.project?.name}
                         {deps?.length ? ` · after ${deps.join(", ")}` : ""}
                       </p>
                       <select
                         value={t.status}
                         onChange={(e) => onStatusChange(t.id, e.target.value)}
-                        className="mt-1 text-[10px] border border-[#D8D5CC] rounded px-1 py-0.5"
+                        className="mt-1 text-[10px] border border-slate-200 rounded px-1 py-0.5 bg-white focus:outline-none"
                       >
                         {STATUSES.map((s) => (
-                          <option key={s} value={s}>
-                            {s}
-                          </option>
+                          <option key={s} value={s}>{s}</option>
                         ))}
                       </select>
                     </div>
@@ -163,7 +158,7 @@ export default function ProjectsTasksPage() {
                       style={{ gridTemplateColumns: `repeat(${range.days}, minmax(24px, 1fr))` }}
                     >
                       <div
-                        className={`absolute h-4 top-1 rounded-md opacity-90 ${barColor[t.status] || barColor.TODO}`}
+                        className={`absolute h-4 top-1 rounded-md opacity-90 ${BAR_COLOR[t.status] || BAR_COLOR.TODO}`}
                         style={{
                           left: `${(start / range.days) * 100}%`,
                           width: `${(len / range.days) * 100}%`,
@@ -176,8 +171,14 @@ export default function ProjectsTasksPage() {
               })
             )}
           </div>
-          <div className="px-3 py-2 text-[11px] text-[#8A8678] border-t border-[#E4E2DC]">
-            Timeline auto-scales to task dates. Bar color = status. Update status inline.
+
+          <div className="flex items-center gap-4 px-3 py-2 text-[11px] text-slate-400 border-t border-slate-100">
+            {Object.entries(BAR_COLOR).map(([status, color]) => (
+              <span key={status} className="flex items-center gap-1.5">
+                <span className={`h-2 w-2 rounded-sm ${color}`} />
+                {status.replace("_", " ")}
+              </span>
+            ))}
           </div>
         </div>
       )}

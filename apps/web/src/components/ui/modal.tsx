@@ -20,50 +20,42 @@ export function Modal({
   onClose: () => void;
   children: ReactNode;
   width?: string;
-  /** Renders children only — no default header, accent bar, or close button */
   hideHeader?: boolean;
-  /** Removes default body padding (use with hideHeader for custom layouts) */
   flush?: boolean;
-  /** Accessible name when hideHeader hides the visible title */
   ariaLabel?: string;
 }) {
   if (!open) return null;
 
-  const dialogLabel = ariaLabel ?? title;
-
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 backdrop-blur-sm px-4 animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-[2px] px-4 animate-fade-in"
       role="dialog"
       aria-modal="true"
-      aria-label={dialogLabel}
+      aria-label={ariaLabel ?? title}
       onClick={onClose}
     >
       <div
-        className={`w-full ${width} rounded-2xl bg-card shadow-[0_24px_64px_rgba(15,10,46,0.25)] animate-fade-in-up border border-line overflow-hidden`}
+        className={`w-full ${width} rounded-xl bg-white shadow-modal border border-slate-200 overflow-hidden animate-fade-in-up`}
         onClick={(e) => e.stopPropagation()}
       >
         {!hideHeader && (
-          <>
-            <div className="h-1 rounded-t-2xl bg-brand-gradient" />
-            <div className="flex items-start justify-between border-b border-line px-6 py-5">
-              <div>
-                <h2 className="text-lg font-bold text-ink">{title}</h2>
-                {description && (
-                  <p className="mt-1 text-sm text-muted">{description}</p>
-                )}
-              </div>
-              <button
-                onClick={onClose}
-                aria-label="Close"
-                className="rounded-xl p-1.5 text-muted hover:bg-canvas hover:text-ink transition-all"
-              >
-                <X size={18} />
-              </button>
+          <div className="flex items-start justify-between border-b border-slate-100 px-5 py-4">
+            <div>
+              <h2 className="text-[15px] font-semibold text-slate-900">{title}</h2>
+              {description && (
+                <p className="mt-0.5 text-[13px] text-slate-500">{description}</p>
+              )}
             </div>
-          </>
+            <button
+              onClick={onClose}
+              aria-label="Close"
+              className="h-7 w-7 flex items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors ml-3 shrink-0"
+            >
+              <X size={16} />
+            </button>
+          </div>
         )}
-        <div className={flush ? "" : "px-6 py-5"}>{children}</div>
+        <div className={flush ? "" : "px-5 py-4"}>{children}</div>
       </div>
     </div>
   );
@@ -71,18 +63,26 @@ export function Modal({
 
 export function FormField({
   label,
+  required,
   children,
 }: {
   label: string;
+  required?: boolean;
   children: ReactNode;
 }) {
   return (
-    <label className="block text-sm">
-      <span className="mb-1.5 block font-semibold text-ink">{label}</span>
+    <label className="block">
+      <span className="mb-1 block text-[12px] font-medium text-slate-600">
+        {label}
+        {required && <span className="text-red-500 ml-0.5">*</span>}
+      </span>
       {children}
     </label>
   );
 }
 
 export const inputClasses =
-  "w-full rounded-xl border border-line bg-canvas px-3.5 py-2.5 text-sm text-ink placeholder:text-muted/50 focus:border-brand-purple focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-purple/20 transition-all";
+  "input-base";
+
+export const selectClasses =
+  "input-base cursor-pointer";

@@ -1,32 +1,147 @@
 @import "tailwindcss";
 
+/* ─────────────────────────────────────────────────────────
+   AMDOX ERP — Design System
+   Professional blue + slate palette, Inter/IBM Plex Sans
+   ───────────────────────────────────────────────────────── */
+
 @theme {
-  --color-brand-purple: #6D28D9;
-  --color-ink: #14171F;
-  --color-muted: #8A8678;
-  --color-line: #E4E2DC;
-  --color-canvas: #FAFAF9;
+  /* ── Primary action color ── */
+  --color-brand-purple: #2563EB;
+  --color-brand-violet: #3B82F6;
+
+  /* ── Text ── */
+  --color-ink:   #0F172A;   /* slate-900 */
+  --color-ink-2: #334155;   /* slate-700 */
+  --color-muted: #64748B;   /* slate-500 */
+
+  /* ── Surfaces ── */
+  --color-canvas: #F8FAFC;  /* slate-50 — page bg */
+  --color-card:   #FFFFFF;  /* white — card bg */
+  --color-hover:  #F1F5F9;  /* slate-100 — hover bg */
+
+  /* ── Borders ── */
+  --color-line:   #E2E8F0;  /* slate-200 */
+  --color-line-2: #CBD5E1;  /* slate-300 */
+
+  /* ── Status ── */
+  --color-success: #059669;
+  --color-warning: #D97706;
+  --color-danger:  #DC2626;
 }
 
+/* ─────────────────────────────────────────────────────────
+   Base styles
+   ───────────────────────────────────────────────────────── */
 body {
-  background-color: var(--color-canvas, #f9fafb);
-  color: var(--color-ink, #111827);
-  font-family: system-ui, -apple-system, sans-serif;
+  background-color: #F8FAFC;
+  color: #0F172A;
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-  width: 5px;
+/* ─────────────────────────────────────────────────────────
+   Typography utilities
+   ───────────────────────────────────────────────────────── */
+.font-mono {
+  font-family: 'IBM Plex Mono', 'Fira Code', 'Consolas', monospace;
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+/* ─────────────────────────────────────────────────────────
+   Card / elevation utilities
+   ───────────────────────────────────────────────────────── */
+.bg-card { background-color: #FFFFFF; }
+
+.shadow-card {
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05), 0 1px 3px 0 rgb(0 0 0 / 0.06);
+}
+.shadow-card-hover {
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+}
+.shadow-modal {
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.08);
+}
+.shadow-topbar {
+  box-shadow: 0 1px 0 0 #E2E8F0;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 9999px;
+/* ─────────────────────────────────────────────────────────
+   Brand gradient (modal accent bar, progress fills)
+   ───────────────────────────────────────────────────────── */
+.bg-brand-gradient {
+  background: linear-gradient(90deg, #2563EB 0%, #3B82F6 100%);
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+/* ─────────────────────────────────────────────────────────
+   Animations
+   ───────────────────────────────────────────────────────── */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.animate-fade-in     { animation: fade-in 0.2s ease both; }
+.animate-fade-in-up  { animation: fade-in-up 0.25s ease both; }
+.animate-slide-right { animation: slide-in-right 0.2s ease both; }
+
+/* ─────────────────────────────────────────────────────────
+   Scrollbar
+   ───────────────────────────────────────────────────────── */
+.custom-scrollbar::-webkit-scrollbar        { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track  { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb  { background: #CBD5E1; border-radius: 9999px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+/* ─────────────────────────────────────────────────────────
+   Form inputs — global consistent style
+   ───────────────────────────────────────────────────────── */
+.input-base {
+  width: 100%;
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  background: #FFFFFF;
+  padding: 7px 12px;
+  font-size: 13px;
+  color: #0F172A;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.input-base::placeholder { color: #94A3B8; }
+.input-base:focus {
+  border-color: #2563EB;
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 0.10);
+}
+
+/* ─────────────────────────────────────────────────────────
+   Page header utility
+   ───────────────────────────────────────────────────────── */
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+.page-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #0F172A;
+  letter-spacing: -0.01em;
+}
+.page-subtitle {
+  font-size: 13px;
+  color: #64748B;
+  margin-top: 2px;
 }

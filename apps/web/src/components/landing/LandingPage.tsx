@@ -4,8 +4,6 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
-  Lock,
-  Loader2,
   TrendingUp,
   Users,
   Package,
@@ -13,49 +11,22 @@ import {
   BarChart3,
 } from "lucide-react";
 
-/* ──────────────────────────────────────────────
-   Amdox ERP — Landing Page
-   - Matches the existing layout (nav, hero, preview panel, modules row)
-   - "Login" button routes to a TEMPORARY placeholder page
-     (real flow: redirect to Keycloak hosted login — see TODO below)
-   ────────────────────────────────────────────── */
-
-const FONT_IMPORT = `
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap');
-`;
-
 const MODULES = [
-  { icon: TrendingUp, name: "Finance", desc: "GL, AP/AR, multi-currency" },
-  { icon: Users, name: "HR & Payroll", desc: "Lifecycle, leave, payroll" },
-  { icon: Package, name: "Supply Chain", desc: "Inventory, vendors, PO" },
-  { icon: FolderKanban, name: "Projects", desc: "Budgets, milestones" },
-  { icon: BarChart3, name: "Analytics", desc: "Dashboards, forecasting" },
+  { icon: TrendingUp,   name: "Finance",      desc: "GL, AP/AR, multi-currency" },
+  { icon: Users,        name: "HR & Payroll", desc: "Lifecycle, leave, payroll" },
+  { icon: Package,      name: "Supply Chain", desc: "Inventory, vendors, PO" },
+  { icon: FolderKanban, name: "Projects",     desc: "Budgets, milestones" },
+  { icon: BarChart3,    name: "Analytics",    desc: "Dashboards, forecasting" },
 ];
 
-interface LiveKPIProps {
-  label: string;
-  value: string | number;
-  prefix?: string;
-  suffix?: string;
-  tone?: "navy" | "mint";
-}
-
-function LiveKPI({ label, value, prefix = "", suffix = "", tone = "navy" }: LiveKPIProps) {
-  const toneMap = {
-    navy: "text-[#1E3A5F]",
-    mint: "text-[#2F6B4F]",
-  };
+function LiveKPI({ label, value, prefix = "", suffix = "", highlight = false }: {
+  label: string; value: string | number; prefix?: string; suffix?: string; highlight?: boolean;
+}) {
   return (
-    <div className="rounded-lg border border-[#E4E2DC] bg-white px-4 py-3">
-      <p className="text-[11px] uppercase tracking-wide text-[#8A8678] font-medium">
-        {label}
-      </p>
-      <p
-        className={`mt-1 font-mono text-xl font-medium ${toneMap[tone]} tabular-nums`}
-      >
-        {prefix}
-        {value}
-        {suffix}
+    <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
+      <p className="text-[11px] uppercase tracking-wide text-slate-400 font-medium">{label}</p>
+      <p className={`mt-1 font-mono text-xl font-semibold tabular-nums ${highlight ? "text-emerald-600" : "text-blue-700"}`}>
+        {prefix}{value}{suffix}
       </p>
     </div>
   );
@@ -66,7 +37,6 @@ function DashboardPreview() {
   const [approvals, setApprovals] = useState(7);
   const [stock, setStock] = useState(94.2);
 
-  // Subtle ambient motion — the one "alive" element on the page
   useEffect(() => {
     const id = setInterval(() => {
       setRevenue((r) => r + Math.floor(Math.random() * 400));
@@ -77,25 +47,25 @@ function DashboardPreview() {
   }, []);
 
   return (
-    <div className="rounded-xl border border-[#E4E2DC] bg-[#FCFCFB] p-5 shadow-sm">
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <span className="text-xs font-mono text-[#8A8678]">LIVE DASHBOARD</span>
-        <span className="flex items-center gap-1.5 text-[11px] text-[#2F6B4F]">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#2F6B4F] animate-pulse" />
+        <span className="text-xs font-mono text-slate-400 font-medium">LIVE DASHBOARD</span>
+        <span className="flex items-center gap-1.5 text-[11px] text-emerald-600 font-medium">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
           syncing
         </span>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <LiveKPI label="Revenue (MTD)" value={revenue.toLocaleString("en-US")} prefix="$" tone="navy" />
-        <LiveKPI label="Stock Health" value={stock} suffix="%" tone="mint" />
-        <LiveKPI label="Pending Approvals" value={approvals} tone="navy" />
-        <LiveKPI label="Forecast Accuracy" value="91.4" suffix="%" tone="mint" />
+        <LiveKPI label="Revenue (MTD)" value={revenue.toLocaleString("en-US")} prefix="$" />
+        <LiveKPI label="Stock Health" value={stock} suffix="%" highlight />
+        <LiveKPI label="Pending Approvals" value={approvals} />
+        <LiveKPI label="Forecast Accuracy" value="91.4" suffix="%" highlight />
       </div>
       <div className="mt-4 flex items-end gap-1 h-12">
         {[40, 55, 48, 62, 58, 70, 66, 78, 74, 85].map((h, i) => (
           <div
             key={i}
-            className="flex-1 rounded-sm bg-[#1E3A5F]/15"
+            className="flex-1 rounded-sm bg-blue-600/15"
             style={{ height: `${h}%` }}
           />
         ))}
@@ -106,22 +76,22 @@ function DashboardPreview() {
 
 function Nav() {
   return (
-    <nav className="flex items-center justify-between px-8 py-5 border-b border-[#E4E2DC]">
-      <span
-        className="text-lg font-semibold tracking-tight text-[#14171F]"
-        style={{ fontFamily: "'Space Grotesk', sans-serif" }}
-      >
-        Amdox<span className="text-[#C99A4B]">ERP</span>
-      </span>
-      <div className="hidden md:flex items-center gap-8 text-sm text-[#4A4740]">
-        <a href="#features" className="hover:text-[#14171F]">Features</a>
-        <a href="#modules" className="hover:text-[#14171F]">Modules</a>
-        <a href="#about" className="hover:text-[#14171F]">About</a>
-        <a href="#contact" className="hover:text-[#14171F]">Contact</a>
+    <nav className="flex items-center justify-between px-8 py-4 border-b border-slate-200 bg-white">
+      <div className="flex items-center gap-2">
+        <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
+          AX
+        </div>
+        <span className="text-lg font-semibold text-slate-900 tracking-tight">AmdoxERP</span>
+      </div>
+      <div className="hidden md:flex items-center gap-8 text-sm text-slate-500">
+        <a href="#features" className="hover:text-slate-900 transition-colors">Features</a>
+        <a href="#modules" className="hover:text-slate-900 transition-colors">Modules</a>
+        <a href="#about" className="hover:text-slate-900 transition-colors">About</a>
+        <a href="#contact" className="hover:text-slate-900 transition-colors">Contact</a>
       </div>
       <Link
         href="/login"
-        className="text-sm font-medium px-4 py-2 rounded-md border border-[#1E3A5F] text-[#1E3A5F] hover:bg-[#1E3A5F] hover:text-white transition-colors"
+        className="text-sm font-medium px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors"
       >
         Login
       </Link>
@@ -133,32 +103,29 @@ function Hero() {
   return (
     <section className="px-8 py-20 max-w-7xl mx-auto grid md:grid-cols-2 gap-12 items-center">
       <div>
-        <h1
-          className="text-5xl leading-[1.05] font-semibold text-[#14171F]"
-          style={{ fontFamily: "'Space Grotesk', sans-serif" }}
-        >
+        <h1 className="text-5xl leading-[1.05] font-semibold text-slate-900">
           Transform Your Business
           <br />
           With AI-Powered ERP
         </h1>
-        <p className="mt-5 text-[#4A4740] text-lg max-w-md">
+        <p className="mt-5 text-slate-500 text-lg max-w-md">
           Manage HR, Payroll, Inventory, Projects and Analytics from a single
           intelligent platform.
         </p>
         <div className="mt-7 flex gap-3 flex-wrap">
           <Link
             href="/login"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-[#1E3A5F] text-white text-sm font-medium hover:bg-[#16304d] transition-colors"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors"
           >
             Get Started <ArrowRight size={15} />
           </Link>
-          <button className="px-5 py-2.5 rounded-md border border-[#D8D5CC] text-sm font-medium text-[#14171F] hover:bg-[#F4F2EC] transition-colors">
+          <button className="px-5 py-2.5 rounded-md border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
             Request Demo
           </button>
-          <Link href="/home" className="inline-flex items-center px-5 py-2.5 rounded-md border border-[#D8D5CC] text-sm font-medium text-[#14171F] bg-[#F4F2EC] hover:bg-[#E4E2DC] transition-colors">
+          <Link href="/home" className="inline-flex items-center px-5 py-2.5 rounded-md border border-slate-200 text-sm font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 transition-colors">
             Bypass to Dashboard
           </Link>
-          <Link href="/create-tenant" className="inline-flex items-center px-5 py-2.5 rounded-md border border-[#1E3A5F] text-sm font-medium text-[#1E3A5F] bg-white hover:bg-[#F4F2EC] transition-colors">
+          <Link href="/create-tenant" className="inline-flex items-center px-5 py-2.5 rounded-md border border-blue-200 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors">
             Create Tenant
           </Link>
         </div>
@@ -170,22 +137,19 @@ function Hero() {
 
 function ModulesRow() {
   return (
-    <section id="modules" className="px-8 py-16 bg-[#FAFAF9] border-t border-[#E4E2DC]">
-      <h2
-        className="text-center text-2xl font-semibold text-[#14171F] mb-10"
-        style={{ fontFamily: "'Space Grotesk', sans-serif" }}
-      >
+    <section id="modules" className="px-8 py-16 bg-slate-50 border-t border-slate-200">
+      <h2 className="text-center text-2xl font-semibold text-slate-900 mb-10">
         All Your Business Needs In One Platform
       </h2>
       <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-5 gap-4">
         {MODULES.map(({ icon: Icon, name, desc }) => (
           <div
             key={name}
-            className="rounded-lg border border-[#E4E2DC] bg-white p-4 text-center hover:border-[#1E3A5F] transition-colors"
+            className="rounded-lg border border-slate-200 bg-white p-4 text-center hover:border-blue-300 hover:shadow-sm transition-all"
           >
-            <Icon size={20} className="mx-auto text-[#1E3A5F]" />
-            <p className="mt-2 text-sm font-medium text-[#14171F]">{name}</p>
-            <p className="text-xs text-[#8A8678] mt-0.5">{desc}</p>
+            <Icon size={20} className="mx-auto text-blue-600" />
+            <p className="mt-2 text-sm font-semibold text-slate-900">{name}</p>
+            <p className="text-xs text-slate-400 mt-0.5">{desc}</p>
           </div>
         ))}
       </div>
@@ -193,53 +157,12 @@ function ModulesRow() {
   );
 }
 
-/* ──────────────────────────────────────────────
-   TEMPORARY login placeholder page.
-   Real flow (per our earlier diagram):
-     window.location.href =
-       `${KEYCLOAK_URL}/realms/${tenantSlug}/protocol/openid-connect/auth
-        ?client_id=amdox-erp-web&response_type=code&redirect_uri=...`
-   Keycloak hosts the actual login form + SSO buttons —
-   this screen is just the transition state until that's wired up.
-   ────────────────────────────────────────────── */
-interface LoginPlaceholderProps {
-  onBack: () => void;
-}
-
-function LoginPlaceholder({ onBack }: LoginPlaceholderProps) {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-[#FAFAF9]">
-      <div className="text-center max-w-sm px-6">
-        <div className="mx-auto h-12 w-12 rounded-full bg-[#1E3A5F]/10 flex items-center justify-center">
-          <Lock size={20} className="text-[#1E3A5F]" />
-        </div>
-        <Loader2 size={22} className="mx-auto mt-5 animate-spin text-[#8A8678]" />
-        <p className="mt-4 text-[#14171F] font-medium">
-          Redirecting you to secure sign-in…
-        </p>
-        <p className="mt-1.5 text-sm text-[#8A8678]">
-          This will hand off to Keycloak SSO once integration is wired up.
-        </p>
-        <button
-          onClick={onBack}
-          className="mt-6 text-sm text-[#1E3A5F] hover:underline"
-        >
-          ← Back to home
-        </button>
-      </div>
-    </div>
-  );
-}
-
 export default function LandingPage() {
   return (
-    <div style={{ fontFamily: "'IBM Plex Sans', sans-serif" }}>
-      <style>{FONT_IMPORT}</style>
-      <div className="bg-white min-h-screen">
-        <Nav />
-        <Hero />
-        <ModulesRow />
-      </div>
+    <div className="bg-white min-h-screen">
+      <Nav />
+      <Hero />
+      <ModulesRow />
     </div>
   );
 }
