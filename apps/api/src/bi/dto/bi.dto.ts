@@ -40,6 +40,21 @@ export class WidgetConfigDto {
   @IsOptional()
   @IsIn(DATA_SOURCES)
   dataSource?: BiDataSource;
+
+  /** Query Guard read-model attributes (dimension, metric, aggregation, etc.) */
+  @IsOptional()
+  @IsObject()
+  queryAttrs?: Record<string, string>;
+
+  /** Field filters applied before aggregation */
+  @IsOptional()
+  @IsArray()
+  filters?: { field: string; op: string; value: string }[];
+
+  /** Visual formatting (colors, labels, layout) */
+  @IsOptional()
+  @IsObject()
+  style?: Record<string, unknown>;
 }
 
 export class AddWidgetDto {

@@ -21,12 +21,13 @@ import { CardKpi } from "@/components/bi/advanced-charts";
 import { VisualizationPane } from "@/components/bi/visualization-pane";
 import { SlicerBar, slicersToFilterParams, type SlicerState } from "@/components/bi/slicer-bar";
 import { DrillThroughPane } from "@/components/bi/drill-through-pane";
-import { PowerBiRibbon, PageTabs, ReportsDrawer } from "@/components/bi/power-bi-ribbon";
+import { BiToolbar, PageTabs, ReportsDrawer } from "@/components/bi/power-bi-ribbon";
 import { GridLayoutWrapper, generateLayout, type GridLayoutConfig } from "@/components/bi/grid-layout-wrapper";
 import { PBI } from "@/components/bi/power-bi-theme";
 import { Modal, inputClasses } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { DATA_SOURCE_OPTIONS } from "@/components/bi/widget-chart";
+import { DEFAULT_STYLE, type WidgetFilter, type WidgetQueryAttrs, type WidgetStyleConfig } from "@/components/bi/widget-config-schema";
 import type { ReportRunStatus } from "@/lib/types/bi";
 
 const EXECUTIVE_PAGE_ID = "__executive__";
@@ -53,6 +54,9 @@ export function BiWorkspace() {
   const [widgetTitle, setWidgetTitle] = useState("");
   const [widgetType, setWidgetType] = useState<WidgetType>("bar");
   const [widgetSource, setWidgetSource] = useState<BiDataSource>("ar_aging");
+  const [widgetQueryAttrs, setWidgetQueryAttrs] = useState<WidgetQueryAttrs>({});
+  const [widgetFilters, setWidgetFilters] = useState<WidgetFilter[]>([]);
+  const [widgetStyle, setWidgetStyle] = useState<WidgetStyleConfig>(DEFAULT_STYLE.bar);
   const [reportName, setReportName] = useState("");
   const [reportCron, setReportCron] = useState("weekly");
   const [reportFormat, setReportFormat] = useState<"PDF" | "EXCEL">("PDF");
@@ -67,15 +71,11 @@ export function BiWorkspace() {
 
   const pages = useMemo(
     () => [
-      { id: EXECUTIVE_PAGE_ID, name: "Executive overview" },
-      ...dashboards.map((d) => ({ id: d.id, name: d.name })),
+      { id: EXECUTIVE_PAGE_ID, name: "Executive overview", deletable: false },
+      ...dashboards.map((d) => ({ id: d.id, name: d.name, deletable: true })),
     ],
     [dashboards],
   );
-
-  const reportName_display = isExecutive
-    ? "Amdox ERP — Executive Report"
-    : activeDashboard?.name || "Untitled report";
 
   const currentLayout = useMemo(() => {
     if (!activeDashboard) return { lg: [], md: [], sm: [] };
@@ -131,10 +131,43 @@ export function BiWorkspace() {
     if (!selectedWidgetId || !activeDashboard) return;
     const widget = activeDashboard.widgets.find((w) => w.id === selectedWidgetId);
     if (!widget) return;
+    loadWidgetDraft(widget);
+  }, [selectedWidgetId, activeDashboard]);
+
+  function resetWidgetDraft(type: WidgetType = "bar") {
+    setWidgetTitle("");
+    setWidgetType(type);
+    setWidgetSource("ar_aging");
+    setWidgetQueryAttrs({});
+    setWidgetFilters([]);
+    setWidgetStyle(DEFAULT_STYLE[type] || {});
+  }
+
+  function buildWidgetConfig(): Record<string, unknown> {
+    return {
+      title: widgetTitle || widgetSource,
+      dataSource: widgetSource,
+      queryAttrs: widgetQueryAttrs,
+      filters: widgetFilters.filter((f) => f.field && f.value),
+      style: widgetStyle,
+      ...(widgetStyle.format ? { format: widgetStyle.format } : {}),
+      ...(widgetStyle.max !== undefined ? { max: widgetStyle.max } : {}),
+      ...(widgetStyle.trend ? { trend: widgetStyle.trend } : {}),
+    };
+  }
+
+  function loadWidgetDraft(widget: BiDashboard["widgets"][number]) {
+    const type = widget.type as WidgetType;
     setWidgetTitle(widget.config?.title || "");
     setWidgetType(widget.type as WidgetType);
     setWidgetSource((widget.config?.dataSource || "ar_aging") as BiDataSource);
-  }, [selectedWidgetId, activeDashboard]);
+    setWidgetQueryAttrs(widget.config?.queryAttrs || {});
+    setWidgetFilters(widget.config?.filters || []);
+    setWidgetStyle({
+      ...(DEFAULT_STYLE[type] || {}),
+      ...(widget.config?.style || {}),
+    });
+  }
 
   useEffect(() => {
     if (!activeDashboard?.widgets.length) return;
@@ -177,15 +210,31 @@ export function BiWorkspace() {
     setEditMode(true);
   }
 
+  async function deletePage(id: string) {
+    const page = dashboards.find((d) => d.id === id);
+    if (!page) return;
+    if (
+      !confirm(
+        `Delete report page "${page.name}"? All visuals on this page will be removed.`,
+      )
+    ) {
+      return;
+    }
+    await biApi.deleteDashboard(id);
+    setDashboards((prev) => prev.filter((d) => d.id !== id));
+    if (activePageId === id) {
+      setActivePageId(EXECUTIVE_PAGE_ID);
+      setSelectedWidgetId(null);
+      resetWidgetDraft();
+      setDrillDown(null);
+      setCrossFilterKey(null);
+    }
+  }
+
   async function addWidget() {
     if (!activeDashboard) return;
-    await biApi.addWidget(activeDashboard.id, widgetType, {
-      title: widgetTitle || widgetSource,
-      dataSource: widgetSource,
-    });
-    setWidgetTitle("");
-    setWidgetType("bar");
-    setWidgetSource("ar_aging");
+    await biApi.addWidget(activeDashboard.id, widgetType, buildWidgetConfig());
+    resetWidgetDraft(widgetType);
     const updated = await biApi.getDashboard(activeDashboard.id);
     setDashboards((prev) => prev.map((d) => (d.id === updated.id ? updated : d)));
   }
@@ -194,27 +243,39 @@ export function BiWorkspace() {
     if (!selectedWidgetId || !activeDashboard) return;
     await biApi.updateWidget(selectedWidgetId, {
       type: widgetType,
-      config: { title: widgetTitle || widgetSource, dataSource: widgetSource },
+      config: buildWidgetConfig(),
     });
     const updated = await biApi.getDashboard(activeDashboard.id);
     setDashboards((prev) => prev.map((d) => (d.id === updated.id ? updated : d)));
     const data = await biApi.getWidgetData(selectedWidgetId, filterParams);
     setWidgetDataMap((prev) => ({ ...prev, [selectedWidgetId]: data }));
     setSelectedWidgetId(null);
-    setWidgetTitle("");
+    resetWidgetDraft();
   }
 
   function cancelWidgetEdit() {
     setSelectedWidgetId(null);
-    setWidgetTitle("");
-    setWidgetType("bar");
-    setWidgetSource("ar_aging");
+    resetWidgetDraft();
+  }
+
+  function handleTypeChange(type: WidgetType) {
+    setWidgetType(type);
+    setWidgetQueryAttrs({});
+    setWidgetStyle(DEFAULT_STYLE[type] || {});
   }
 
   function handleSourceChange(source: BiDataSource) {
     setWidgetSource(source);
     const match = DATA_SOURCE_OPTIONS.find((o) => o.value === source);
-    if (match) setWidgetType(match.defaultType);
+    if (match) handleTypeChange(match.defaultType);
+  }
+
+  function handleQueryAttrChange(key: string, val: string) {
+    setWidgetQueryAttrs((a) => ({ ...a, [key]: val }));
+  }
+
+  function handleStyleChange(key: string, val: string | number | boolean) {
+    setWidgetStyle((s) => ({ ...s, [key]: val }));
   }
 
   async function deleteWidget(id: string) {
@@ -270,11 +331,11 @@ export function BiWorkspace() {
 
   const agingData = kpis
     ? [
-        { name: "Current", value: kpis.arAging.current, key: "Current" },
-        { name: "31–60", value: kpis.arAging.d31_60, key: "31-60" },
-        { name: "61–90", value: kpis.arAging.d61_90, key: "61-90" },
-        { name: "90+", value: kpis.arAging.over90, key: "90+" },
-      ]
+      { name: "Current", value: kpis.arAging.current, key: "Current" },
+      { name: "31–60", value: kpis.arAging.d31_60, key: "31-60" },
+      { name: "61–90", value: kpis.arAging.d61_90, key: "61-90" },
+      { name: "90+", value: kpis.arAging.over90, key: "90+" },
+    ]
     : [];
 
   const totalArOutstanding = kpis ? computeTotalArOutstanding(kpis.arAging) : 0;
@@ -293,16 +354,13 @@ export function BiWorkspace() {
       className="-m-8 flex flex-col min-h-[calc(100vh-36px)] relative overflow-hidden"
       style={{ fontFamily: "'Segoe UI', 'IBM Plex Sans', sans-serif" }}
     >
-      <PowerBiRibbon
-        reportName={reportName_display}
+      <BiToolbar
         editMode={editMode}
         live={live}
         onSetEditMode={setEditMode}
         onToggleLive={() => setLive((v) => !v)}
         onRefresh={loadKpis}
-        onSubscribe={() => setReportsOpen(true)}
       />
-
       <div className="flex flex-1 min-h-0">
         <div className="flex-1 flex flex-col min-w-0">
           <SlicerBar
@@ -347,10 +405,10 @@ export function BiWorkspace() {
                     />
                   </PowerBiVisual>
                   <PowerBiVisual title="Active employees" span="sm">
-                    <PowerBiKpiCard 
-                      label="Headcount" 
-                      value={kpis.totals.activeEmployees} 
-                      trend="Live from HR module" 
+                    <PowerBiKpiCard
+                      label="Headcount"
+                      value={kpis.totals.activeEmployees}
+                      trend="Live from HR module"
                     />
                   </PowerBiVisual>
                   <PowerBiVisual title="Open purchase orders" span="sm">
@@ -473,6 +531,7 @@ export function BiWorkspace() {
               setCrossFilterKey(null);
             }}
             onAdd={() => setDashModalOpen(true)}
+            onDelete={deletePage}
           />
         </div>
 
@@ -481,10 +540,16 @@ export function BiWorkspace() {
             selectedType={widgetType}
             selectedSource={widgetSource}
             widgetTitle={widgetTitle}
+            queryAttrs={widgetQueryAttrs}
+            filters={widgetFilters}
+            style={widgetStyle}
             editingWidgetId={selectedWidgetId}
-            onTypeChange={setWidgetType}
+            onTypeChange={handleTypeChange}
             onSourceChange={handleSourceChange}
             onTitleChange={setWidgetTitle}
+            onQueryAttrChange={handleQueryAttrChange}
+            onFilterChange={setWidgetFilters}
+            onStyleChange={handleStyleChange}
             onAddVisual={addWidget}
             onUpdateVisual={updateSelectedWidget}
             onCancelEdit={cancelWidgetEdit}

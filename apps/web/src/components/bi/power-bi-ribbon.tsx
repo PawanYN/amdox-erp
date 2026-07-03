@@ -4,103 +4,69 @@ import {
   Download,
   Edit3,
   Eye,
-  FileText,
-  MoreHorizontal,
   Play,
   Plus,
   Radio,
   RefreshCw,
-  Share2,
+  X,
 } from "lucide-react";
 import { PBI } from "./power-bi-theme";
 import type { BiScheduledReport, ReportRunStatus } from "@/lib/types/bi";
 
-type RibbonProps = {
-  reportName: string;
-  editMode: boolean;
-  live: boolean;
-  onSetEditMode: (edit: boolean) => void;
-  onToggleLive: () => void;
-  onRefresh: () => void;
-  onSubscribe?: () => void;
-};
-
-export function PowerBiRibbon({
-  reportName,
+export function BiToolbar({
   editMode,
   live,
   onSetEditMode,
   onToggleLive,
   onRefresh,
-  onSubscribe,
-}: RibbonProps) {
+}: {
+  editMode: boolean;
+  live: boolean;
+  onSetEditMode: (edit: boolean) => void;
+  onToggleLive: () => void;
+  onRefresh: () => void;
+}) {
   return (
-    <header
-      className="shrink-0 flex flex-col"
-      style={{ background: PBI.ribbon, fontFamily: "'Segoe UI', 'IBM Plex Sans', sans-serif" }}
+    <div
+      className="shrink-0 flex items-center justify-end gap-1 px-3 py-1.5"
+      style={{ background: PBI.tabBar, borderBottom: `1px solid ${PBI.paneBorder}` }}
     >
-      <div className="flex items-center h-9 px-2 text-white text-[13px] gap-1">
-        <span className="font-semibold px-2 truncate max-w-[200px]">{reportName}</span>
-        <span className="text-[#A19F9D]">|</span>
-        <button type="button" className="flex items-center gap-1.5 px-3 h-7 rounded hover:bg-[#323130]">
-          <FileText size={14} /> File
-        </button>
-        <button type="button" className="px-3 h-7 rounded hover:bg-[#323130]">View</button>
-        <button type="button" className="px-3 h-7 rounded hover:bg-[#323130]">Insert</button>
-        <button type="button" className="px-3 h-7 rounded hover:bg-[#323130]">Modeling</button>
-        <div className="flex-1" />
-        <button
-          type="button"
-          onClick={onToggleLive}
-          className={`flex items-center gap-1.5 px-3 h-7 rounded text-[12px] ${
-            live ? "bg-[#107C10] text-white" : "hover:bg-[#323130] text-[#F3F2F1]"
-          }`}
-        >
-          <Radio size={13} /> {live ? "Live" : "Live off"}
-        </button>
-        <button type="button" onClick={onRefresh} className="flex items-center gap-1.5 px-3 h-7 rounded hover:bg-[#323130] text-[#F3F2F1]">
-          <RefreshCw size={13} /> Refresh
-        </button>
-        <button type="button" onClick={onSubscribe} className="flex items-center gap-1.5 px-3 h-7 rounded hover:bg-[#323130] text-[#F3F2F1]">
-          <Share2 size={13} /> Subscribe
-        </button>
-        <button type="button" className="p-1.5 rounded hover:bg-[#323130] text-[#F3F2F1]">
-          <MoreHorizontal size={16} />
-        </button>
-      </div>
-
-      <div
-        className="flex items-center gap-2 px-3 py-1.5"
-        style={{ background: "#323130", borderTop: "1px solid #3B3A39" }}
+      <button
+        type="button"
+        onClick={() => onSetEditMode(false)}
+        className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-[11px] font-medium transition-colors ${
+          !editMode ? "bg-[#F2C811] text-[#252423]" : "hover:bg-[#EDEBE9] text-[#605E5C]"
+        }`}
       >
-        <button
-          type="button"
-          onClick={() => onSetEditMode(false)}
-          className={`flex items-center gap-1.5 px-3 py-1 rounded text-[12px] font-medium transition-colors ${
-            !editMode
-              ? "bg-[#F2C811] text-[#252423]"
-              : "text-[#F3F2F1] hover:bg-[#3B3A39]"
-          }`}
-        >
-          <Eye size={14} /> Reading view
-        </button>
-        <button
-          type="button"
-          onClick={() => onSetEditMode(true)}
-          className={`flex items-center gap-1.5 px-3 py-1 rounded text-[12px] font-medium transition-colors ${
-            editMode
-              ? "bg-[#F2C811] text-[#252423]"
-              : "text-[#F3F2F1] hover:bg-[#3B3A39]"
-          }`}
-        >
-          <Edit3 size={14} /> Edit
-        </button>
-        <span className="text-[#605E5C] mx-1">|</span>
-        <span className="text-[11px] text-[#A19F9D]">
-          Click a data point to cross-filter · Drill-through opens below
-        </span>
-      </div>
-    </header>
+        <Eye size={13} /> Read
+      </button>
+      <button
+        type="button"
+        onClick={() => onSetEditMode(true)}
+        className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-[11px] font-medium transition-colors ${
+          editMode ? "bg-[#F2C811] text-[#252423]" : "hover:bg-[#EDEBE9] text-[#605E5C]"
+        }`}
+      >
+        <Edit3 size={13} /> Edit
+      </button>
+      <span className="text-[#C8C6C4] mx-0.5">|</span>
+      <button
+        type="button"
+        onClick={onToggleLive}
+        className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-[11px] font-medium transition-colors ${
+          live ? "bg-[#DFF6DD] text-[#107C10]" : "hover:bg-[#EDEBE9] text-[#605E5C]"
+        }`}
+      >
+        <Radio size={13} /> {live ? "Live" : "Live off"}
+      </button>
+      <button
+        type="button"
+        onClick={onRefresh}
+        className="flex items-center gap-1 px-2.5 py-1.5 rounded text-[11px] font-medium hover:bg-[#EDEBE9] text-[#605E5C] transition-colors"
+      >
+        <RefreshCw size={13} /> Refresh
+      </button>
+    </div>
   );
 }
 
@@ -109,37 +75,61 @@ export function PageTabs({
   activeId,
   onSelect,
   onAdd,
+  onDelete,
 }: {
-  pages: { id: string; name: string }[];
+  pages: { id: string; name: string; deletable?: boolean }[];
   activeId: string;
   onSelect: (id: string) => void;
   onAdd: () => void;
+  onDelete?: (id: string) => void;
 }) {
   return (
     <div
-      className="flex items-center gap-0 shrink-0 overflow-x-auto"
+      className="shrink-0 flex items-center min-h-[40px] overflow-x-auto"
       style={{ background: PBI.tabBar, borderTop: `1px solid ${PBI.paneBorder}` }}
     >
-      {pages.map((p) => (
-        <button
-          key={p.id}
-          type="button"
-          onClick={() => onSelect(p.id)}
-          className="px-4 py-2 text-[12px] font-medium whitespace-nowrap transition-colors relative"
-          style={{
-            color: activeId === p.id ? PBI.text : PBI.textMuted,
-            background: activeId === p.id ? PBI.tabActive : "transparent",
-            borderRight: `1px solid ${PBI.paneBorder}`,
-            borderTop: activeId === p.id ? `2px solid ${PBI.accent}` : "2px solid transparent",
-          }}
-        >
-          {p.name}
-        </button>
-      ))}
+      {pages.map((p) => {
+        const isActive = activeId === p.id;
+        return (
+          <div
+            key={p.id}
+            className="group flex items-center shrink-0"
+            style={{
+              background: isActive ? PBI.tabActive : "transparent",
+              borderRight: `1px solid ${PBI.paneBorder}`,
+              borderTop: isActive ? `2px solid ${PBI.accent}` : "2px solid transparent",
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => onSelect(p.id)}
+              className="px-4 py-2 text-[12px] font-medium whitespace-nowrap transition-colors"
+              style={{ color: isActive ? PBI.text : PBI.textMuted }}
+            >
+              {p.name}
+            </button>
+            {p.deletable && onDelete && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(p.id);
+                }}
+                title={`Delete "${p.name}"`}
+                aria-label={`Delete page ${p.name}`}
+                className="mr-1.5 p-0.5 rounded opacity-60 hover:opacity-100 hover:bg-[#FDE7E9] hover:text-[#A4262C] transition-all"
+                style={{ color: PBI.textMuted }}
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
+        );
+      })}
       <button
         type="button"
         onClick={onAdd}
-        className="flex items-center gap-1 px-3 py-2 text-[12px] hover:bg-[#EDEBE9]"
+        className="flex items-center gap-1 px-3 py-2 text-[12px] hover:bg-[#EDEBE9] shrink-0"
         style={{ color: PBI.accent }}
       >
         <Plus size={14} /> New page

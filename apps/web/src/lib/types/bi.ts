@@ -32,9 +32,64 @@ export type BiKpis = {
 
 export type ReportRunStatus = 'idle' | 'running' | 'done' | 'failed';
 
+export type BiWidgetFilter = { field: string; op: string; value: string };
+
+export type BiWidgetStyleConfig = {
+  orientation?: "vertical" | "horizontal";
+  showDataLabels?: boolean;
+  showGrid?: boolean;
+  showLegend?: boolean;
+  barRadius?: number;
+  colorPalette?: string;
+  smooth?: boolean;
+  showPoints?: boolean;
+  showArea?: boolean;
+  lineColor?: string;
+  donut?: boolean;
+  showLabels?: boolean;
+  innerRadiusPct?: number;
+  colorScheme?: string;
+  showValues?: boolean;
+  sort?: "desc" | "asc" | "none";
+  gap?: number;
+  min?: number;
+  max?: number;
+  format?: "number" | "percent" | "currency";
+  targetColor?: string;
+  showTarget?: boolean;
+  trend?: "up" | "down" | "neutral";
+  accentColor?: string;
+  showConnectors?: boolean;
+  positiveColor?: string;
+  negativeColor?: string;
+  pointSize?: number;
+};
+
+export type BiWidgetQueryAttrs = {
+  dimension?: string;
+  metric?: string;
+  aggregation?: string;
+  groupBy?: string;
+  interval?: string;
+  maxSlices?: string;
+  xDimension?: string;
+  yDimension?: string;
+  stages?: string;
+  target?: string;
+  xMetric?: string;
+  yMetric?: string;
+  sizeMetric?: string;
+};
+
 export type BiWidgetConfig = {
   title?: string;
   dataSource?: BiDataSource;
+  /** Query Guard read-model attributes */
+  queryAttrs?: BiWidgetQueryAttrs;
+  filters?: BiWidgetFilter[];
+  /** Visual formatting (Power BI–style) */
+  style?: BiWidgetStyleConfig;
+  /** Legacy / KPI fields */
   max?: number;
   format?: "number" | "percent" | "currency";
   change?: number;

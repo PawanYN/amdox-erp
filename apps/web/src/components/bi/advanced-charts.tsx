@@ -138,9 +138,11 @@ export function CardKpi({ title, value, change, trend, format = "number", icon }
 
 type WaterfallChartProps = {
   data: { name: string; value: number; isTotal?: boolean }[];
+  positiveColor?: string;
+  negativeColor?: string;
 };
 
-export function WaterfallChart({ data }: WaterfallChartProps) {
+export function WaterfallChart({ data, positiveColor = "#107C10", negativeColor = "#D13438" }: WaterfallChartProps) {
   const option = {
     title: {
       show: false,
@@ -185,7 +187,7 @@ export function WaterfallChart({ data }: WaterfallChartProps) {
           color: (params: any) => {
             const isTotal = data[params.dataIndex]?.isTotal;
             if (isTotal) return "#118DFF";
-            return data[params.dataIndex].value >= 0 ? "#107C10" : "#D13438";
+            return data[params.dataIndex].value >= 0 ? positiveColor : negativeColor;
           },
         },
         data: data.map((d, i) => {
@@ -205,7 +207,7 @@ export function WaterfallChart({ data }: WaterfallChartProps) {
           color: (params: any) => {
             const isTotal = data[params.dataIndex]?.isTotal;
             if (isTotal) return "transparent";
-            return data[params.dataIndex].value >= 0 ? "#107C10" : "#D13438";
+            return data[params.dataIndex].value >= 0 ? positiveColor : negativeColor;
           },
         },
         data: data.map((d) => (d.isTotal ? 0 : d.value)),
@@ -220,9 +222,11 @@ type ScatterChartProps = {
   data: { name: string; x: number; y: number; size?: number }[];
   xLabel?: string;
   yLabel?: string;
+  pointSize?: number;
+  color?: string;
 };
 
-export function ScatterChart({ data, xLabel, yLabel }: ScatterChartProps) {
+export function ScatterChart({ data, xLabel, yLabel, pointSize = 10, color = "#118DFF" }: ScatterChartProps) {
   const option = {
     grid: {
       left: 60,
@@ -252,14 +256,14 @@ export function ScatterChart({ data, xLabel, yLabel }: ScatterChartProps) {
     series: [
       {
         type: "scatter",
-        symbolSize: (data: any) => data.size || 10,
+        symbolSize: (val: { size?: number }) => val.size || pointSize,
         data: data.map((d) => ({
           name: d.name,
           value: [d.x, d.y],
-          size: d.size,
+          size: d.size || pointSize,
         })),
         itemStyle: {
-          color: PBI_CHART_COLORS[0],
+          color,
           opacity: 0.7,
         },
         emphasis: {
@@ -276,9 +280,11 @@ export function ScatterChart({ data, xLabel, yLabel }: ScatterChartProps) {
 
 type TreemapChartProps = {
   data: { name: string; value: number; children?: { name: string; value: number }[] }[];
+  colors?: string[];
+  showLabels?: boolean;
 };
 
-export function TreemapChart({ data }: TreemapChartProps) {
+export function TreemapChart({ data, colors = PBI_CHART_COLORS, showLabels = true }: TreemapChartProps) {
   const option = {
     tooltip: {
       formatter: (params: any) => {
@@ -294,9 +300,10 @@ export function TreemapChart({ data }: TreemapChartProps) {
         nodeClick: false,
         breadcrumb: { show: false },
         label: {
+          show: showLabels,
           fontSize: 11,
-          formatter: (params: any) => {
-            return `${params.name}\n${params.value.toLocaleString()}`;
+          formatter: (params: { name: string; value: number }) => {
+            return showLabels ? `${params.name}\n${params.value.toLocaleString()}` : "";
           },
         },
         itemStyle: {
@@ -321,13 +328,13 @@ export function TreemapChart({ data }: TreemapChartProps) {
           name: d.name,
           value: d.value,
           itemStyle: {
-            color: PBI_CHART_COLORS[i % PBI_CHART_COLORS.length],
+            color: colors[i % colors.length],
           },
           children: d.children?.map((c, j) => ({
             name: c.name,
             value: c.value,
             itemStyle: {
-              color: PBI_CHART_COLORS[i % PBI_CHART_COLORS.length],
+              color: colors[(i + j) % colors.length],
             },
           })),
         })),

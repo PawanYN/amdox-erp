@@ -2,7 +2,7 @@
 
 > **Sources:** Amdox Web.pdf · amdox-erp-detailed-2.html · Live codebase review (July 2026)  
 > **Audience:** Project Manager — task ownership and sprint tracking  
-> **Last updated:** 3 July 2026 — BI builder complete; mock→API wiring on finance/HR pages; pawan backend BE-02–BE-06, BE-09, BE-10 done
+> **Last updated:** 3 July 2026 — verified against `apps/api`, `apps/web`, `packages/db` (27 dashboard routes, 11 API modules, 12 BI components)
 
 ---
 
@@ -26,10 +26,39 @@
 
 ## 2. Executive Snapshot
 
+### Done (verified in repo)
+
+| Area | Evidence |
+| ---- | -------- |
+| **Auth & Multi-tenant** | `apps/api/src/auth/` (Keycloak, JWT, roles guard); `tenant.controller.ts` + `tenant-api.ts`; `create-tenant/page.tsx` |
+| **Finance GL (core)** | Journal entries, fiscal periods, intercompany, aging report — `finance/journal-entries`, `fiscal-periods`, `aging-report` pages |
+| **Finance AR / Order-to-Cash** | `sales-order.service.ts` (BE-02); `finance/ar-invoices/page.tsx` (FE-09) |
+| **HR & Payroll** | Employee/department CRUD, payroll month picker, payslip PDF — `hr/employees`, `departments`, `payroll` pages |
+| **Project Management** | Wizard, edit/status, tasks, milestones, budget, material requests — `projects/[id]/page.tsx` (FE-13) |
+| **BI Dashboard Builder** | Full stack: `apps/api/src/bi/` (8 files) + `components/bi/` (12 files) → `/bi` route |
+| **Notifications (in-app)** | `notifications/page.tsx` → `PATCH /notifications/:id/read` (FE-15) |
+| **ML Forecast service** | `apps/ml-service/main.py` + `forecast.controller.ts` (BE-09) |
+| **Audit pipeline** | `audit-event.listener.ts` — 25+ events with hash chain (BE-06) |
+
+### Remaining (open tasks)
+
+| Area | Gap | Task IDs |
+| ---- | --- | -------- |
+| **SCM admin UI** | Vendor add = `console.log` stub; no product page; inventory PR is local state only | FE-01–FE-05, BE-01 |
+| **Finance forms** | "New Account" button inert; AP OCR upload API exists but no file-upload UI | FE-06, FE-08 |
+| **Forecast UI** | `forecast-api.ts` exists; no train button on inventory page | FE-14, INT-06 |
+| **Integrations E2E** | Backend listeners exist; P2P, payroll→GL, PM bridges not verified end-to-end | INT-01–INT-05, INT-08 |
+| **Notifications delivery** | Email/webhook channels are log-only stubs | BE-07 |
+| **FIFO outbound** | Inbound cost layers on goods receipt ✅; outbound consumption ❌ | BE-05 |
+| **Platform / Deploy** | No `.github/workflows/`, no live demo URL, no demo video | PLAT-01–PLAT-03 |
+| **Security hardening** | ValidationPipe + CORS only; no Helmet/rate limiting | PLAT-04 |
+
+### Area status
+
 
 | Area                          | Status        | Gap summary                                                                                      |
 | ----------------------------- | ------------- | ------------------------------------------------------------------------------------------------ |
-| Auth & Multi-tenant           | ✅ Mostly done | Keycloak OIDC, tenant context, create-tenant via `tenantApi`                                     |
+| Auth & Multi-tenant           | ✅ Mostly done | Keycloak OIDC, tenant context, create-tenant via `tenantApi`; `current-user.ts` still hardcodes manager ID |
 | Finance GL/AP                 | ⚠️ Partial    | Journal entries ✅; fiscal periods ✅; aging report ✅; GL Account create stub (FE-06); AP upload API only (FE-08) |
 | Finance AR / Order-to-Cash    | ✅ Mostly done | Sales Order module ✅ (BE-02); AR invoice + payment UI ✅ (FE-09)                                |
 | HR & Payroll                  | ✅ Mostly done | Employee CRUD ✅; departments ✅; leave/attendance/payroll on live APIs ✅; payslip PDF ✅; period picker ✅ |
@@ -46,10 +75,12 @@
 | Layer              | ✅ Done | ⚠️ Partial | ❌ Not started | Total  |
 | ------------------ | ------ | ---------- | ------------- | ------ |
 | Frontend (FE)      | 10     | 2          | 6             | 18     |
-| Backend (BE)       | 7      | 1          | 3             | 11     |
-| Integrations (INT) | 1      | 4          | 4             | 9      |
+| Backend (BE)       | 6      | 2          | 3             | 11     |
+| Integrations (INT) | 1      | 5          | 3             | 9      |
 | Platform (PLAT)    | 0      | 1          | 4             | 5      |
-| **All tasks**      | **18** | **8**      | **17**        | **43** |
+| **All tasks**      | **17** | **10**     | **16**        | **43** |
+
+**Completion:** ~40% done · ~23% partial · ~37% not started
 
 
 
@@ -64,7 +95,7 @@
 | **sibi**       | —                                                                           | —                                                                   | FE-03, FE-04, FE-05, FE-14                                                                     |
 | **Agrim**      | —                                                                           | FE-08                                                               | FE-06                                                                                          |
 | **Shreya**     | —                                                                           | —                                                                   | BE-01                                                                                          |
-| **Unassigned** | —                                                                           | BE-11, PLAT-04, INT-02, INT-04, INT-05, INT-07                      | BE-07, BE-08, INT-01, INT-03, INT-06, INT-08, PLAT-01–03, PLAT-05                             |
+| **Unassigned** | —                                                                           | BE-05, BE-11, PLAT-04, INT-02, INT-04, INT-05, INT-07, INT-08       | BE-07, BE-08, INT-01, INT-03, INT-06, PLAT-01–03, PLAT-05                                    |
 
 
 ---
@@ -92,7 +123,7 @@
 | FE-14 | ❌      | `#frontend` `#forecast` `#api-wire`           | Forecast train button on inventory   | Per-SKU → `POST /forecast/products/:id/train`                         | P2       | sibi        |
 | FE-15 | ✅      | `#frontend` `#notifications` `#api-wire`      | Mark notification as read            | Wire `PATCH /notifications/:id/read` on click                         | P2       | pawan       |
 | FE-16 | ✅      | `#frontend` `#cleanup`                        | Replace hardcoded `localhost:3001`   | All pages use `apiClient` / `hrApi` / `tenantApi`                     | P1       | pawan       |
-| FE-17 | ✅      | `#frontend` `#cleanup`                        | Remove dead mock imports             | Mock imports removed; `@/lib/mock/*` orphaned                         | P2       | pawan       |
+| FE-17 | ✅      | `#frontend` `#cleanup`                        | Remove dead mock imports             | No `@/lib/mock` imports in app code; 3 orphan files remain (`hr.ts`, `it.ts`, `pm-v2.ts`) | P2 | pawan |
 | FE-18 | ✅      | `#frontend` `#hr`                             | Payroll period selector              | Replace hardcoded `2026-06` with month picker                         | P2       | pawan       |
 
 
@@ -134,7 +165,7 @@
 | INT-05 | ⚠️     | `#integration` `#fullstack` | HR → Finance (payroll)         | `payroll.completed` event emitted; GL journal not verified | P1       |             |
 | INT-06 | ❌      | `#integration` `#fullstack` | SCM → Forecasting              | Historical data feeds ML train; forecast on inventory      | P2       |             |
 | INT-07 | ⚠️     | `#integration` `#fullstack` | All → Notifications            | In-app DB ✅; PO/invoice email alerts log-only             | P2       |             |
-| INT-08 | ⚠️     | `#integration` `#fullstack` | All → Audit                    | Event-driven audit ✅; `userId` often missing on mutations   | P2       |             |
+| INT-08 | ⚠️     | `#integration` `#fullstack` | All → Audit                    | Event-driven audit ✅ (`audit-event.listener.ts`); `userId` not passed in listeners | P2 | |
 | INT-09 | ✅      | `#integration` `#spec-gap`  | Order-to-Cash                  | BE-02 Sales Order + FE-09 AR flow complete                 | P2       | pawan       |
 
 
@@ -163,7 +194,7 @@
 
 | Model / Screen              | Backend  | Frontend | Status                                         | Task ID    | Assigned To |
 | --------------------------- | -------- | -------- | ---------------------------------------------- | ---------- | ----------- |
-| Vendor                      | ✅ CRUD   | ❌        | List only; add = console.log stub              | FE-01      | shraddha    |
+| Vendor                      | ✅ CRUD   | ❌        | List wired; `handleAddVendor` = `console.log` stub; UI shows phone/rating not in schema | FE-01, FE-02 | shraddha |
 | Product                     | ✅ CRUD   | ❌        | No dedicated page; inventory lists via API     | FE-03      | sibi        |
 | Warehouse / Stock / Reorder | ✅        | ❌        | Read-only inventory page; PR is local state    | FE-04      | sibi        |
 | Purchase Order              | ✅        | ⚠️       | Create from requisition only                   | OK for MVP | —           |
@@ -231,7 +262,14 @@
 | BE-09 | `apps/ml-service/main.py` + Dockerfile + forecast API fallback       |
 | BE-10 | `bi/` module — widget CRUD, drill-down, SSE, scheduled reports       |
 
-**Also shipped (not in task table):** BI workspace UI — `components/bi/bi-workspace.tsx` (drag-drop builder, ECharts, scheduled reports drawer).
+**Also shipped (not in task table):** BI workspace UI — full Power BI-style builder:
+
+| Layer | Files | Capabilities |
+| ----- | ----- | ------------ |
+| **Frontend** (`components/bi/`) | `bi-workspace.tsx`, `visualization-pane.tsx`, `widget-chart.tsx`, `widget-config-schema.ts`, `power-bi-ribbon.tsx`, `advanced-charts.tsx`, `power-bi-visual.tsx`, `slicer-bar.tsx`, `drill-down-panel.tsx`, `drill-through-pane.tsx`, `grid-layout-wrapper.tsx`, `power-bi-theme.ts` | Drag-drop grid, 10+ chart types, slicers, cross-filter, drill-down/through, SSE live KPIs, scheduled reports drawer |
+| **API client** | `lib/api/bi-api.ts`, `lib/types/bi.ts` | REST + SSE subscriber with reconnect |
+| **Backend** (`apps/api/src/bi/`) | `bi.controller.ts`, `bi.service.ts`, `bi-data.service.ts`, `bi-report.service.ts`, `bi-report.scheduler.ts` | Dashboard/widget CRUD, 6 live data sources, drill-down, PDF/Excel reports, cron scheduler |
+| **Route** | `app/(dashboard)/bi/page.tsx` | Renders `<BiWorkspace />` |
 
 
 ---
@@ -244,13 +282,27 @@
 | Sprint       | Priority | Task IDs                                      | Goal                                                         | Status                                       |
 | ------------ | -------- | --------------------------------------------- | ------------------------------------------------------------ | -------------------------------------------- |
 | **Sprint 1** | P0       | FE-01, FE-06, FE-07, INT-01, PLAT-01, PLAT-02 | Demo-ready: vendor form, GL forms, P2P E2E, live URL + video | ⚠️ **1/6** (FE-07 ✅)                         |
-| **Sprint 2** | P1       | FE-03–FE-05, FE-08–FE-11, INT-02–INT-05       | SCM admin, AP OCR, AR, HR polish, PM bridges                 | ⚠️ **3/7 FE** (FE-09–FE-11 ✅; FE-03–05, FE-08 open) |
+| **Sprint 2** | P1       | FE-03–FE-05, FE-08–FE-11, INT-02–INT-05       | SCM admin, AP OCR, AR, HR polish, PM bridges                 | ⚠️ **3/11** (FE-09–FE-11 ✅; FE-03–05, FE-08 open; INT-02–05 all partial) |
 | **Sprint 3** | P2       | BE-02, FE-14, BE-06, PLAT-03, PLAT-04         | Order-to-Cash, forecast, audit, CI + security                | ⚠️ **2/5** (BE-02, BE-06 ✅; FE-14, PLAT-03, PLAT-04 open) |
 
 
 **Sprint 1 blockers:** FE-01, FE-06, INT-01, PLAT-01, PLAT-02.
 
-**Recent wins (outside sprint scope):** BI builder (F-08), finance/HR mock→API cleanup, ML service (BE-09), intercompany (BE-04).
+**Recent wins (outside sprint scope):** BI builder (F-08, BE-10 + 12 FE components), finance/HR mock→API cleanup (FE-16, FE-17), ML service (BE-09), intercompany (BE-04), fiscal periods (BE-03).
+
+### Priority order for remaining work
+
+| # | Task(s) | Why |
+| - | ------- | --- |
+| 1 | FE-01 + BE-01 | Sprint 1 P0 — vendor form blocked on schema (no `phone` in Prisma `Vendor` model) |
+| 2 | FE-06 | Sprint 1 P0 — GL account create; backend `POST /finance/gl/accounts` ready |
+| 3 | INT-01, PLAT-01, PLAT-02 | Sprint 1 P0 — demo submission (P2P E2E, live URL, video) |
+| 4 | FE-03–FE-05 | SCM admin pages; backend CRUD exists for products/inventory/reorder |
+| 5 | FE-08 | AP OCR upload; `financeApi.uploadInvoice` in client, no UI on `finance/invoices/page.tsx` |
+| 6 | FE-14 + INT-06 | Forecast train button; `forecastApi.train()` unused in any page |
+| 7 | BE-05 | Outbound FIFO consumption (inbound layers in `purchase.service.ts` only) |
+| 8 | INT-04, INT-05 | Payroll → GL journal not verified (`payroll.completed` event exists) |
+| 9 | BE-07, PLAT-03, PLAT-04 | Email delivery, CI pipeline, security hardening |
 
 ---
 
@@ -290,4 +342,30 @@
 
 ---
 
-*Update this document when a task moves from Partial → Done. Cross-reference* `docs/project_status.md` *for detailed evidence.*
+---
+
+## 12. Codebase Inventory (3 July 2026)
+
+| Item | Count | Location |
+| ---- | ----- | -------- |
+| Dashboard routes | 27 | `apps/web/src/app/(dashboard)/**/page.tsx` |
+| API modules | 11 | `auth`, `tenant`, `finance`, `hr`, `scm`, `pm`, `bi`, `forecast`, `audit`, `notification`, `health` |
+| BI frontend components | 12 | `apps/web/src/components/bi/` |
+| BI backend files | 8 | `apps/api/src/bi/` |
+| ML service | 1 | `apps/ml-service/main.py` + `Dockerfile` |
+| Orphan mock files | 3 | `lib/mock/hr.ts`, `it.ts`, `pm-v2.ts` (no imports; safe to delete) |
+| GitHub Actions CI | 0 | No `.github/workflows/` directory |
+
+### Key stubs still in code
+
+| File | Line | Issue |
+| ---- | ---- | ----- |
+| `scm/vendors/page.tsx` | 41–43 | `handleAddVendor` → `console.log("Add Vendor clicked")` |
+| `finance/accounts/page.tsx` | 90 | "New Account" `<Button>` has no `onClick` handler |
+| `scm/inventory/page.tsx` | 61 | "Raise PR" sets local `raised` state — no API call |
+| `finance/invoices/page.tsx` | — | Approve list only; `financeApi.uploadInvoice` not used |
+| `notification/channels/email.channel.ts` | — | Log-only stub (inherits BE-07) |
+
+---
+
+*Update this document when a task moves from Partial → Done. Cross-reference* `docs/project_status.md` *for detailed PDF requirement mapping.*
