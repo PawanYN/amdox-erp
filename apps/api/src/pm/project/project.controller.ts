@@ -157,7 +157,7 @@ export class ProjectController {
   @Roles('SuperAdmin', 'TenantAdmin', 'Manager')
   @Post()
   createProject(@Req() req: any, @Body() dto: CreateProjectDto) {
-    return this.projectService.createProject(this.tenantId(req), dto);
+    return this.projectService.createProject(this.tenantId(req), dto, req.user?.id ?? req.user?.sub);
   }
 
   @Roles('SuperAdmin', 'TenantAdmin', 'Manager')

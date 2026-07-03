@@ -61,6 +61,20 @@ export class BudgetService {
     });
   }
 
+  async getBudgetLines(tenantId: string, budgetId: string) {
+    const lines = await this.prisma.projectBudgetLine.findMany({
+      where: { tenantId, projectBudgetId: budgetId },
+      orderBy: { id: 'desc' },
+    });
+    return lines.map((l) => ({
+      id: l.id,
+      description: l.description,
+      amount: Number(l.amount),
+      sourceModule: l.sourceModule,
+      sourceId: l.sourceId,
+    }));
+  }
+
   @OnEvent('cost.reported')
   async handleCostReported(payload: CostReportedPayload) {
     const { tenantId, projectId, amount, source, sourceId, description } =

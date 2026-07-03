@@ -67,6 +67,6 @@ export class ApController {
     @Param('id') invoiceId: string,
     @Req() req: any
   ) {
-    return this.apService.manuallyApproveInvoice(req.user.tenantId, invoiceId);
+    return this.apService.manuallyApproveInvoice(req.user.tenantId, invoiceId, req.user.id ?? req.user.sub);
   }
 }

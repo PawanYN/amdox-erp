@@ -2,7 +2,7 @@
 
 > **Sources:** Amdox Web.pdf · amdox-erp-detailed-2.html · Live codebase review (July 2026)  
 > **Audience:** Project Manager — task ownership and sprint tracking  
-> **Last updated:** 3 July 2026 — verified against `apps/api`, `apps/web`, `packages/db`; BE-11 RBAC audit complete (`docs/rbac-role-matrix.md`)
+> **Last updated:** 3 July 2026 — INT-02–INT-05 completed; payroll GL journal added (BE INT-05); budget lines drill-down added (INT-04); resource allocation form added (INT-03); PM→SCM→Finance chain verified E2E (INT-02)
 
 ---
 
@@ -54,7 +54,7 @@
 | **SCM admin UI**           | Vendor add = `console.log` stub; no product page; inventory PR is local state only | FE-01–FE-05, BE-01    |
 | **Finance forms**          | "New Account" button inert; AP OCR upload API exists but no file-upload UI         | FE-06, FE-08          |
 | **Forecast UI**            | `forecast-api.ts` exists; no train button on inventory page                        | FE-14, INT-06         |
-| **Integrations E2E**       | PM bridges, payroll→GL not verified end-to-end                                     | INT-02–INT-05, INT-08 |
+| **Integrations E2E**       | All PM/HR/Finance bridges verified; INT-08 audit userId still partial               | INT-08                |
 | **Notifications delivery** | Email/webhook channels are log-only stubs                                          | BE-07                 |
 | **FIFO outbound**          | Inbound cost layers on goods receipt ✅; outbound consumption ❌                     | BE-05                 |
 | **Platform / Deploy**      | No `.github/workflows/`, no live demo URL, no demo video                           | PLAT-01–PLAT-03       |
@@ -168,13 +168,13 @@
 | ID     | Status | Tags                        | Flow                           | What to verify / finish                                                            | Priority | Assigned To |
 | ------ | ------ | --------------------------- | ------------------------------ | ---------------------------------------------------------------------------------- | -------- | ----------- |
 | INT-01 | ✅      | `#integration` `#fullstack` | Procure-to-Pay                 | Low stock → PR/PO → GR → 3-way match → GL journal                                  | P0       | pawan       |
-| INT-02 | ⚠️     | `#integration` `#fullstack` | PM → SCM → Finance (materials) | Backend listener exists; E2E UI flow not verified                                  | P0       | PAWAN       |
-| INT-03 | ❌      | `#integration` `#fullstack` | PM ↔ HR (people)               | Resource allocation + utilisation heatmap from real data                           | P1       | pawan       |
-| INT-04 | ⚠️     | `#integration` `#fullstack` | PM ↔ Finance (labor cost)      | `labor-cost-bridge.listener.ts` exists; E2E not verified                           | P1       | pawan       |
-| INT-05 | ⚠️     | `#integration` `#fullstack` | HR → Finance (payroll)         | `payroll.completed` event emitted; GL journal not verified                         | P1       | pawan       |
-| INT-06 | ❌      | `#integration` `#fullstack` | SCM → Forecasting              | Historical data feeds ML train; forecast on inventory                              | P2       |             |
-| INT-07 | ⚠️     | `#integration` `#fullstack` | All → Notifications            | In-app DB ✅; PO/invoice email alerts log-only                                      | P2       |             |
-| INT-08 | ⚠️     | `#integration` `#fullstack` | All → Audit                    | Event-driven audit ✅ (`audit-event.listener.ts`); `userId` not passed in listeners | P2       |             |
+| INT-02 | ✅      | `#integration` `#fullstack` | PM → SCM → Finance (materials) | E2E verified: material request → requisition (with projectId) → PO → GR → invoice.approved → PmCostBridgeListener → budget.actualAmount updated | P0       | pawan       |
+| INT-03 | ✅      | `#integration` `#fullstack` | PM ↔ HR (people)               | Resource allocation form added to `/projects/resources`; allocations list + utilisation heatmap from real API; POST /pm/resources/allocate wired | P1       | pawan       |
+| INT-04 | ✅      | `#integration` `#fullstack` | PM ↔ Finance (labor cost)      | LaborCostBridgeListener → BudgetService confirmed E2E; `GET /pm/budgets/:id/lines` added; budget page shows drill-down of AP + payroll cost lines | P1       | pawan       |
+| INT-05 | ✅      | `#integration` `#fullstack` | HR → Finance (payroll)         | `@OnEvent('payroll.completed')` added to GlService: Dr 6000 Salary Expense / Cr 2100 Payroll Payable; accounts added to seed; duplicate guard included | P1       | pawan       |
+| INT-06 | ✅      | `#integration` `#fullstack` | SCM → Forecasting              | Inventory page: per-SKU ▸ expand row → "Train forecast" button → `POST /forecast/products/:id/train` (feeds StockMovement history to Prophet ML); bar chart predictions displayed | P2       | pawan       |
+| INT-07 | ✅      | `#integration` `#fullstack` | All → Notifications            | `WebhookChannel` implemented with HMAC-SHA256 signing; `NotificationService` reads `tenant.settings.webhookUrl` and dispatches; added payroll.completed, leave.status.changed, employee.created, invoice.issued notifications; delivery logged per channel | P2       | pawan       |
+| INT-08 | ✅      | `#integration` `#fullstack` | All → Audit                    | `userId` now threaded through 25+ event payloads: employee CRUD, PO approve/receive, invoice approve, journal entry, fiscal period close, intercompany transfer, project created. AuditEventListener passes userId to hash-chain record. | P2       | pawan       |
 | INT-09 | ✅      | `#integration` `#spec-gap`  | Order-to-Cash                  | BE-02 Sales Order + FE-09 AR flow complete                                         | P2       | pawan       |
 
 

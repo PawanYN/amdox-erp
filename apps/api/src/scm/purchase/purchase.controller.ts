@@ -35,12 +35,12 @@ export class PurchaseController {
   @Roles('SuperAdmin', 'TenantAdmin', 'Manager')
   @Patch(':id/approve')
   approvePurchaseOrder(@Req() req: any, @Param('id') id: string) {
-    return this.purchaseService.approvePurchaseOrder(req.user.tenantId, id);
+    return this.purchaseService.approvePurchaseOrder(req.user.tenantId, id, req.user.id ?? req.user.sub);
   }
 
   @Roles('SuperAdmin', 'TenantAdmin', 'Manager')
   @Post(':id/receive')
   receiveGoods(@Req() req: any, @Param('id') id: string, @Body() dto: ReceiveGoodsDto) {
-    return this.purchaseService.receiveGoods(req.user.tenantId, id, dto);
+    return this.purchaseService.receiveGoods(req.user.tenantId, id, dto, req.user.id ?? req.user.sub);
   }
 }

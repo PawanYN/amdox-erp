@@ -215,7 +215,7 @@ export class ApService {
    * WHAT: Manually approves an AP Invoice and emits approval events.
    * WHY: Fallback for when the automatic 3-way match fails (e.g., tolerance exceeded or missing GR).
    */
-  async manuallyApproveInvoice(tenantId: string, invoiceId: string) {
+  async manuallyApproveInvoice(tenantId: string, invoiceId: string, actingUserId?: string) {
     let approvalEvent: InvoiceApprovedEvent | null = null;
 
     const approvedInvoice = await this.prisma.$transaction(async (tx) => {
@@ -233,6 +233,7 @@ export class ApService {
         projectId: invoice.projectId,
         totalAmount: Number(updated.totalAmount),
         invoiceNumber: invoice.invoiceNumber,
+        userId: actingUserId,
       };
 
       await tx.outboxEvent.create({

@@ -14,7 +14,7 @@ export class EmployeeService {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  async create(tenantId: string, createEmployeeDto: CreateEmployeeDto) {
+  async create(tenantId: string, createEmployeeDto: CreateEmployeeDto, actingUserId?: string) {
     // Prisma requires strict Date objects, so we safely convert the string from the DTO
     const employee = await this.prisma.employee.create({
       data: {
@@ -56,7 +56,7 @@ export class EmployeeService {
         data: { userId },
       });
       console.log(`\x1b[38;2;99;102;241m[EMPLOYEE CREATED] ${JSON.stringify(updatedEmployee, null, 2)}\x1b[0m`);
-      this.eventEmitter.emit('employee.created', { tenantId, employeeId: updatedEmployee.id });
+      this.eventEmitter.emit('employee.created', { tenantId, employeeId: updatedEmployee.id, userId: actingUserId });
       return updatedEmployee;
     } catch (err) {
       // Rollback: delete the leave balances and employee if provisioning fails
@@ -119,7 +119,7 @@ export class EmployeeService {
     return employee;
   }
 
-  async update(tenantId: string, id: string, updateEmployeeDto: UpdateEmployeeDto) {
+  async update(tenantId: string, id: string, updateEmployeeDto: UpdateEmployeeDto, actingUserId?: string) {
     await this.findOne(tenantId, id); // Ensure it exists in this tenant
     
     const data: any = { ...updateEmployeeDto };
@@ -134,11 +134,11 @@ export class EmployeeService {
       where: { id },
       data,
     });
-    this.eventEmitter.emit('employee.updated', { tenantId, employeeId: id });
+    this.eventEmitter.emit('employee.updated', { tenantId, employeeId: id, userId: actingUserId });
     return updated;
   }
 
-  async remove(tenantId: string, id: string) {
+  async remove(tenantId: string, id: string, actingUserId?: string) {
     await this.findOne(tenantId, id);
     const result = await this.prisma.employee.update({
       where: { id },
@@ -147,7 +147,7 @@ export class EmployeeService {
         status: 'TERMINATED'
       }
     });
-    this.eventEmitter.emit('employee.deleted', { tenantId, employeeId: id });
+    this.eventEmitter.emit('employee.deleted', { tenantId, employeeId: id, userId: actingUserId });
     return result;
   }
 }

@@ -55,8 +55,10 @@ async function main() {
     { code: '1500', name: 'Intercompany Receivable', type: 'ASSET' },
     { code: '2000', name: 'Accounts Payable', type: 'LIABILITY' },
     { code: '2500', name: 'Intercompany Payable', type: 'LIABILITY' },
+    { code: '2100', name: 'Payroll Payable', type: 'LIABILITY' },
     { code: '4000', name: 'Sales Revenue', type: 'REVENUE' },
     { code: '5000', name: 'Cost of Goods Sold', type: 'EXPENSE' },
+    { code: '6000', name: 'Salary Expense', type: 'EXPENSE' },
   ];
 
   for (const acc of accountsData) {

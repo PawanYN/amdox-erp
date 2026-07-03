@@ -166,7 +166,7 @@ export class ProjectService {
     });
   }
 
-  async createProject(tenantId: string, dto: CreateProjectDto) {
+  async createProject(tenantId: string, dto: CreateProjectDto, actingUserId?: string) {
     const project = await this.prisma.project.create({
       data: {
         tenantId,
@@ -179,6 +179,7 @@ export class ProjectService {
     this.eventEmitter.emit('project.created', {
       projectId: project.id,
       tenantId,
+      userId: actingUserId,
     });
     return project;
   }

@@ -18,7 +18,7 @@ export class EmployeeController {
   @Post()
   create(@Req() req: any, @Body() createEmployeeDto: CreateEmployeeDto) {
     console.log(`\x1b[1;93m[EMPLOYEE POST REQUEST] Received payload: ${JSON.stringify(createEmployeeDto, null, 2)}\x1b[0m`);
-    return this.employeeService.create(req.user.tenantId, createEmployeeDto);
+    return this.employeeService.create(req.user.tenantId, createEmployeeDto, req.user.id ?? req.user.sub);
   }
 
   @Roles('SuperAdmin', 'TenantAdmin', 'Manager', 'Viewer')
@@ -43,12 +43,12 @@ export class EmployeeController {
   @Roles('SuperAdmin', 'TenantAdmin', 'Manager')
   @Patch(':id')
   update(@Req() req: any, @Param('id') id: string, @Body() updateEmployeeDto: UpdateEmployeeDto) {
-    return this.employeeService.update(req.user.tenantId, id, updateEmployeeDto);
+    return this.employeeService.update(req.user.tenantId, id, updateEmployeeDto, req.user.id ?? req.user.sub);
   }
 
   @Roles('SuperAdmin', 'TenantAdmin')
   @Delete(':id')
   remove(@Req() req: any, @Param('id') id: string) {
-    return this.employeeService.remove(req.user.tenantId, id);
+    return this.employeeService.remove(req.user.tenantId, id, req.user.id ?? req.user.sub);
   }
 }

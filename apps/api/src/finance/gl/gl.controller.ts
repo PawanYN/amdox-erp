@@ -67,7 +67,7 @@ export class GlController {
     @Req() req: any,
     @Param('id') periodId: string
   ) {
-    return this.glService.closeFiscalPeriod(req.user.tenantId, periodId);
+    return this.glService.closeFiscalPeriod(req.user.tenantId, periodId, req.user.id ?? req.user.sub);
   }
 
   @Roles('Manager', 'TenantAdmin', 'Viewer', 'SuperAdmin')
@@ -97,7 +97,7 @@ export class GlController {
     @Req() req: any, 
     @Body() createJournalEntryDto: CreateJournalEntryDto
   ) {
-    return this.glService.createJournalEntry(req.user.tenantId, createJournalEntryDto);
+    return this.glService.createJournalEntry(req.user.tenantId, createJournalEntryDto, req.user.id ?? req.user.sub);
   }
 
   @Roles('Manager', 'TenantAdmin', 'Viewer', 'SuperAdmin')
@@ -121,6 +121,6 @@ export class GlController {
     @Req() req: any,
     @Body() dto: CreateIntercompanyTransferDto,
   ) {
-    return this.glService.createIntercompanyTransfer(req.user.tenantId, dto);
+    return this.glService.createIntercompanyTransfer(req.user.tenantId, dto, req.user.id ?? req.user.sub);
   }
 }

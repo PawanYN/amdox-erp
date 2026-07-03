@@ -2,6 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { AuditService } from './audit.service';
 
+/**
+ * Central audit event listener — INT-08.
+ * All event payloads now carry optional `userId` (the acting user's Keycloak sub/ID).
+ * Automated system events (payroll processor, ML service) will have userId = null.
+ */
 @Injectable()
 export class AuditEventListener {
   constructor(private readonly auditService: AuditService) {}
@@ -10,9 +15,11 @@ export class AuditEventListener {
   async onInvoiceApproved(payload: {
     tenantId: string;
     invoiceId: string;
+    userId?: string;
   }) {
     await this.auditService.record({
       tenantId: payload.tenantId,
+      userId: payload.userId,
       action: 'INVOICE_APPROVED',
       entityType: 'Invoice',
       entityId: payload.invoiceId,
@@ -21,9 +28,10 @@ export class AuditEventListener {
   }
 
   @OnEvent('invoice.issued')
-  async onInvoiceIssued(payload: { tenantId: string; invoiceId: string }) {
+  async onInvoiceIssued(payload: { tenantId: string; invoiceId: string; userId?: string }) {
     await this.auditService.record({
       tenantId: payload.tenantId,
+      userId: payload.userId,
       action: 'AR_INVOICE_ISSUED',
       entityType: 'Invoice',
       entityId: payload.invoiceId,
@@ -35,9 +43,11 @@ export class AuditEventListener {
     tenantId: string;
     paymentId: string;
     invoiceId: string;
+    userId?: string;
   }) {
     await this.auditService.record({
       tenantId: payload.tenantId,
+      userId: payload.userId,
       action: 'PAYMENT_RECEIVED',
       entityType: 'Payment',
       entityId: payload.paymentId,
@@ -50,9 +60,11 @@ export class AuditEventListener {
     tenantId: string;
     salesOrderId: string;
     orderNumber: string;
+    userId?: string;
   }) {
     await this.auditService.record({
       tenantId: payload.tenantId,
+      userId: payload.userId,
       action: 'SALES_ORDER_CONFIRMED',
       entityType: 'SalesOrder',
       entityId: payload.salesOrderId,
@@ -65,9 +77,11 @@ export class AuditEventListener {
     tenantId: string;
     journalEntryId: string;
     reference?: string;
+    userId?: string;
   }) {
     await this.auditService.record({
       tenantId: payload.tenantId,
+      userId: payload.userId,
       action: 'JOURNAL_ENTRY_POSTED',
       entityType: 'JournalEntry',
       entityId: payload.journalEntryId,
@@ -80,9 +94,11 @@ export class AuditEventListener {
     tenantId: string;
     periodId: string;
     periodName: string;
+    userId?: string;
   }) {
     await this.auditService.record({
       tenantId: payload.tenantId,
+      userId: payload.userId,
       action: 'FISCAL_PERIOD_CLOSED',
       entityType: 'FiscalPeriod',
       entityId: payload.periodId,
@@ -95,9 +111,11 @@ export class AuditEventListener {
     tenantId: string;
     transferId: string;
     amount: number;
+    userId?: string;
   }) {
     await this.auditService.record({
       tenantId: payload.tenantId,
+      userId: payload.userId,
       action: 'INTERCOMPANY_TRANSFER',
       entityType: 'IntercompanyTransfer',
       entityId: payload.transferId,
@@ -106,9 +124,10 @@ export class AuditEventListener {
   }
 
   @OnEvent('po.created')
-  async onPoCreated(payload: { tenantId: string; poId: string }) {
+  async onPoCreated(payload: { tenantId: string; poId: string; userId?: string }) {
     await this.auditService.record({
       tenantId: payload.tenantId,
+      userId: payload.userId,
       action: 'PO_CREATED',
       entityType: 'PurchaseOrder',
       entityId: payload.poId,
@@ -120,9 +139,11 @@ export class AuditEventListener {
     tenantId: string;
     purchaseOrderId: string;
     goodsReceiptId: string;
+    userId?: string;
   }) {
     await this.auditService.record({
       tenantId: payload.tenantId,
+      userId: payload.userId,
       action: 'GOODS_RECEIVED',
       entityType: 'GoodsReceipt',
       entityId: payload.goodsReceiptId,
@@ -134,9 +155,11 @@ export class AuditEventListener {
   async onRequisitionCreated(payload: {
     tenantId: string;
     requisitionId: string;
+    userId?: string;
   }) {
     await this.auditService.record({
       tenantId: payload.tenantId,
+      userId: payload.userId,
       action: 'REQUISITION_CREATED',
       entityType: 'PurchaseRequisition',
       entityId: payload.requisitionId,
@@ -147,9 +170,11 @@ export class AuditEventListener {
   async onPayrollCompleted(payload: {
     tenantId: string;
     payrollRunId: string;
+    userId?: string;
   }) {
     await this.auditService.record({
       tenantId: payload.tenantId,
+      userId: payload.userId ?? null,
       action: 'PAYROLL_COMPLETED',
       entityType: 'PayrollRun',
       entityId: payload.payrollRunId,
@@ -157,9 +182,10 @@ export class AuditEventListener {
   }
 
   @OnEvent('employee.created')
-  async onEmployeeCreated(payload: { tenantId: string; employeeId: string }) {
+  async onEmployeeCreated(payload: { tenantId: string; employeeId: string; userId?: string }) {
     await this.auditService.record({
       tenantId: payload.tenantId,
+      userId: payload.userId,
       action: 'EMPLOYEE_CREATED',
       entityType: 'Employee',
       entityId: payload.employeeId,
@@ -167,9 +193,10 @@ export class AuditEventListener {
   }
 
   @OnEvent('employee.updated')
-  async onEmployeeUpdated(payload: { tenantId: string; employeeId: string }) {
+  async onEmployeeUpdated(payload: { tenantId: string; employeeId: string; userId?: string }) {
     await this.auditService.record({
       tenantId: payload.tenantId,
+      userId: payload.userId,
       action: 'EMPLOYEE_UPDATED',
       entityType: 'Employee',
       entityId: payload.employeeId,
@@ -177,9 +204,10 @@ export class AuditEventListener {
   }
 
   @OnEvent('employee.deleted')
-  async onEmployeeDeleted(payload: { tenantId: string; employeeId: string }) {
+  async onEmployeeDeleted(payload: { tenantId: string; employeeId: string; userId?: string }) {
     await this.auditService.record({
       tenantId: payload.tenantId,
+      userId: payload.userId,
       action: 'EMPLOYEE_DELETED',
       entityType: 'Employee',
       entityId: payload.employeeId,
@@ -187,9 +215,10 @@ export class AuditEventListener {
   }
 
   @OnEvent('department.created')
-  async onDepartmentCreated(payload: { tenantId: string; departmentId: string }) {
+  async onDepartmentCreated(payload: { tenantId: string; departmentId: string; userId?: string }) {
     await this.auditService.record({
       tenantId: payload.tenantId,
+      userId: payload.userId,
       action: 'DEPARTMENT_CREATED',
       entityType: 'Department',
       entityId: payload.departmentId,
@@ -197,9 +226,10 @@ export class AuditEventListener {
   }
 
   @OnEvent('department.updated')
-  async onDepartmentUpdated(payload: { tenantId: string; departmentId: string }) {
+  async onDepartmentUpdated(payload: { tenantId: string; departmentId: string; userId?: string }) {
     await this.auditService.record({
       tenantId: payload.tenantId,
+      userId: payload.userId,
       action: 'DEPARTMENT_UPDATED',
       entityType: 'Department',
       entityId: payload.departmentId,
@@ -207,9 +237,10 @@ export class AuditEventListener {
   }
 
   @OnEvent('department.deleted')
-  async onDepartmentDeleted(payload: { tenantId: string; departmentId: string }) {
+  async onDepartmentDeleted(payload: { tenantId: string; departmentId: string; userId?: string }) {
     await this.auditService.record({
       tenantId: payload.tenantId,
+      userId: payload.userId,
       action: 'DEPARTMENT_DELETED',
       entityType: 'Department',
       entityId: payload.departmentId,
@@ -221,9 +252,11 @@ export class AuditEventListener {
     tenantId: string;
     leaveId: string;
     status: string;
+    userId?: string;
   }) {
     await this.auditService.record({
       tenantId: payload.tenantId,
+      userId: payload.userId,
       action: 'LEAVE_STATUS_CHANGED',
       entityType: 'LeaveRequest',
       entityId: payload.leaveId,
@@ -232,9 +265,10 @@ export class AuditEventListener {
   }
 
   @OnEvent('product.created')
-  async onProductCreated(payload: { tenantId: string; productId: string }) {
+  async onProductCreated(payload: { tenantId: string; productId: string; userId?: string }) {
     await this.auditService.record({
       tenantId: payload.tenantId,
+      userId: payload.userId,
       action: 'PRODUCT_CREATED',
       entityType: 'Product',
       entityId: payload.productId,
@@ -242,9 +276,10 @@ export class AuditEventListener {
   }
 
   @OnEvent('product.updated')
-  async onProductUpdated(payload: { tenantId: string; productId: string }) {
+  async onProductUpdated(payload: { tenantId: string; productId: string; userId?: string }) {
     await this.auditService.record({
       tenantId: payload.tenantId,
+      userId: payload.userId,
       action: 'PRODUCT_UPDATED',
       entityType: 'Product',
       entityId: payload.productId,
@@ -252,9 +287,10 @@ export class AuditEventListener {
   }
 
   @OnEvent('product.deleted')
-  async onProductDeleted(payload: { tenantId: string; productId: string }) {
+  async onProductDeleted(payload: { tenantId: string; productId: string; userId?: string }) {
     await this.auditService.record({
       tenantId: payload.tenantId,
+      userId: payload.userId,
       action: 'PRODUCT_DELETED',
       entityType: 'Product',
       entityId: payload.productId,
@@ -267,9 +303,11 @@ export class AuditEventListener {
     projectId: string;
     actual: number;
     budget: number;
+    userId?: string;
   }) {
     await this.auditService.record({
       tenantId: payload.tenantId,
+      userId: payload.userId,
       action: 'BUDGET_OVERRUN',
       entityType: 'Project',
       entityId: payload.projectId,
@@ -278,9 +316,10 @@ export class AuditEventListener {
   }
 
   @OnEvent('project.created')
-  async onProjectCreated(payload: { tenantId: string; projectId: string }) {
+  async onProjectCreated(payload: { tenantId: string; projectId: string; userId?: string }) {
     await this.auditService.record({
       tenantId: payload.tenantId,
+      userId: payload.userId,
       action: 'PROJECT_CREATED',
       entityType: 'Project',
       entityId: payload.projectId,

@@ -15,10 +15,10 @@ import { Logger } from 'nestjs-pino';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
-  
+
   // Use Pino as the core logger for NestJS
   app.useLogger(app.get(Logger));
-  
+
   // Enable CORS so the Next.js frontend can make requests
   app.enableCors();
 
@@ -43,7 +43,7 @@ async function bootstrap() {
   // Set up port from env or default to 3001
   const port = process.env.PORT || 3001;
   await app.listen(port);
-  
+
   NestLogger.log(`Application is running on: http://localhost:${port}`, 'Bootstrap');
 }
 bootstrap();

@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Req, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Body, Req, Param, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { RolesGuard } from '../../auth/guards/roles.guard';
@@ -26,5 +26,13 @@ export class BudgetController {
   setBudget(@Req() req: any, @Body() dto: SetBudgetDto) {
     const tenantId = req.user?.tenantId || req.tenantId || 'default-tenant-id';
     return this.budgetService.setBudget(tenantId, dto);
+  }
+
+  @Roles('SuperAdmin', 'TenantAdmin', 'Manager', 'Viewer')
+  @Get(':id/lines')
+  @ApiOperation({ summary: 'Get budget cost lines for a project budget' })
+  getBudgetLines(@Req() req: any, @Param('id') budgetId: string) {
+    const tenantId = req.user?.tenantId || req.tenantId || 'default-tenant-id';
+    return this.budgetService.getBudgetLines(tenantId, budgetId);
   }
 }

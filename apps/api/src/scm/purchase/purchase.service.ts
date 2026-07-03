@@ -110,7 +110,7 @@ export class PurchaseService {
     return po;
   }
 
-  async approvePurchaseOrder(tenantId: string, id: string) {
+  async approvePurchaseOrder(tenantId: string, id: string, actingUserId?: string) {
     const po = await this.getPurchaseOrder(tenantId, id);
     const updatedPo = await this.prisma.purchaseOrder.update({
       where: { id },
@@ -122,6 +122,7 @@ export class PurchaseService {
       poId: id,
       poNumber: updatedPo.poNumber,
       vendorId: po.vendorId,
+      userId: actingUserId,
     });
     this.logger.log(`PO ${updatedPo.poNumber} approved and po.created event emitted`);
 
@@ -141,7 +142,7 @@ export class PurchaseService {
   }
 
   // --- Goods Receipt ---
-  async receiveGoods(tenantId: string, id: string, dto: ReceiveGoodsDto) {
+  async receiveGoods(tenantId: string, id: string, dto: ReceiveGoodsDto, actingUserId?: string) {
     const result = await this.prisma.$transaction(async (tx) => {
       const po = await tx.purchaseOrder.findFirst({
         where: { id, tenantId },
@@ -241,6 +242,7 @@ export class PurchaseService {
       tenantId,
       purchaseOrderId: id,
       goodsReceiptId: result.id,
+      userId: actingUserId,
     });
     this.logger.log(`Queued goods.received event for PO ${id}`);
 

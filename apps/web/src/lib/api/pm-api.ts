@@ -56,6 +56,7 @@ export const pmApi = {
   getBudgets: () => apiClient('/pm/budgets'),
   setBudget: (body: object) =>
     apiClient('/pm/budgets', { method: 'POST', body: JSON.stringify(body) }),
+  getBudgetLines: (budgetId: string) => apiClient(`/pm/budgets/${budgetId}/lines`),
   getResourceHeatmap: () => apiClient('/pm/resources/heatmap'),
   getAllocations: () => apiClient('/pm/resources'),
   allocateResource: (body: {

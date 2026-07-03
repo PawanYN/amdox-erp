@@ -69,12 +69,12 @@ export class GlService {
    * WHY: Essential financial control (Period Close) to prevent back-dated transactions from altering
    * finalized financial reports for a given month/quarter.
    */
-  async closeFiscalPeriod(tenantId: string, periodId: string) {
+  async closeFiscalPeriod(tenantId: string, periodId: string, actingUserId?: string) {
     const period = await this.prisma.fiscalPeriod.update({
       where: { id: periodId, tenantId },
       data: { isLocked: true }
     });
-    this.eventEmitter.emit('fiscal.period.closed', { tenantId, periodId, periodName: period.name });
+    this.eventEmitter.emit('fiscal.period.closed', { tenantId, periodId, periodName: period.name, userId: actingUserId });
     return period;
   }
 
@@ -107,7 +107,7 @@ export class GlService {
    * WHY: Allows accountants to record depreciation, accruals, or corrections. The system
    * enforces the fundamental accounting equation (Debit = Credit) and fiscal period locks.
    */
-  async createJournalEntry(tenantId: string, dto: CreateJournalEntryDto) {
+  async createJournalEntry(tenantId: string, dto: CreateJournalEntryDto, actingUserId?: string) {
     return this.prisma.$transaction(async (tx) => {
       // 1. Check Fiscal Period lock
       const period = await tx.fiscalPeriod.findFirst({ where: { id: dto.fiscalPeriodId, tenantId } });
@@ -156,6 +156,7 @@ export class GlService {
         tenantId,
         journalEntryId: entry.id,
         reference: entry.reference,
+        userId: actingUserId,
       });
       return entry;
     });
@@ -241,7 +242,7 @@ export class GlService {
     });
   }
 
-  async createIntercompanyTransfer(tenantId: string, dto: CreateIntercompanyTransferDto) {
+  async createIntercompanyTransfer(tenantId: string, dto: CreateIntercompanyTransferDto, actingUserId?: string) {
     if (dto.fromAccountId === dto.toAccountId) {
       throw new BadRequestException('Source and destination accounts must differ.');
     }
@@ -285,6 +286,7 @@ export class GlService {
       tenantId,
       transferId: transfer.id,
       amount: dto.amount,
+      userId: actingUserId,
     });
 
     return transfer;
@@ -354,6 +356,80 @@ export class GlService {
       this.logger.log(`Posted AR invoice ${invoice.invoiceNumber} to GL.`);
     } catch (err) {
       this.logger.error(`Failed GL posting for AR invoice ${invoice.invoiceNumber}`, err);
+    }
+  }
+
+  /**
+   * WHAT: Domain Event Listener that posts a payroll expense to the GL when payroll completes.
+   * WHY: Automates the financial ledger update (Debit Salary Expense, Credit Payroll Payable)
+   * so the P&L reflects payroll costs without manual intervention.
+   * INT-05: HR → Finance (payroll) integration.
+   */
+  @OnEvent('payroll.completed')
+  async handlePayrollCompleted(event: {
+    tenantId: string;
+    payrollRunId: string;
+    label: string;
+  }) {
+    this.logger.log(
+      `Received payroll.completed for run ${event.payrollRunId} (${event.label}). Posting GL entry…`,
+    );
+
+    const payrollRun = await this.prisma.payrollRun.findUnique({
+      where: { id: event.payrollRunId },
+    });
+    if (!payrollRun || !payrollRun.totalNetPay) {
+      this.logger.warn(
+        `Payroll run ${event.payrollRunId} not found or has no totalNetPay — skipping GL post.`,
+      );
+      return;
+    }
+
+    const amount = Number(payrollRun.totalNetPay);
+    if (amount <= 0) return;
+
+    // Prevent duplicate GL postings for the same payroll run
+    const duplicate = await this.prisma.journalEntry.findFirst({
+      where: { tenantId: event.tenantId, sourceModule: 'PAYROLL', sourceId: event.payrollRunId },
+    });
+    if (duplicate) {
+      this.logger.debug(`GL entry for payroll run ${event.payrollRunId} already exists — skipping.`);
+      return;
+    }
+
+    const period = await this.getOrCreateCurrentFiscalPeriod(event.tenantId);
+
+    // Upsert payroll-specific accounts if they don't exist yet
+    const [salaryAccount, payrollPayableAccount] = await Promise.all([
+      this.prisma.account.upsert({
+        where: { tenantId_code: { tenantId: event.tenantId, code: '6000' } },
+        update: {},
+        create: { tenantId: event.tenantId, code: '6000', name: 'Salary Expense', type: 'EXPENSE', isActive: true },
+      }),
+      this.prisma.account.upsert({
+        where: { tenantId_code: { tenantId: event.tenantId, code: '2100' } },
+        update: {},
+        create: { tenantId: event.tenantId, code: '2100', name: 'Payroll Payable', type: 'LIABILITY', isActive: true },
+      }),
+    ]);
+
+    try {
+      await this.createJournalEntry(event.tenantId, {
+        fiscalPeriodId: period.id,
+        reference: `PAYROLL-${event.payrollRunId.slice(0, 8)}`,
+        description: `Payroll run — ${event.label} (total net pay: ${amount.toLocaleString()})`,
+        sourceModule: 'PAYROLL',
+        sourceId: event.payrollRunId,
+        lines: [
+          { accountId: salaryAccount.id, debit: amount, credit: 0 },
+          { accountId: payrollPayableAccount.id, debit: 0, credit: amount },
+        ],
+      });
+      this.logger.log(
+        `Posted payroll GL entry for run ${event.payrollRunId}: Dr 6000 / Cr 2100 = ${amount}`,
+      );
+    } catch (err) {
+      this.logger.error(`Failed to post GL entry for payroll run ${event.payrollRunId}`, err);
     }
   }
 

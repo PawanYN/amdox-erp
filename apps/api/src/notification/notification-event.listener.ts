@@ -119,4 +119,69 @@ export class NotificationEventListener {
       body: `"${payload.name}" completed on project ${payload.projectId}`,
     });
   }
+
+  @OnEvent('payroll.completed')
+  async onPayrollCompleted(payload: {
+    tenantId: string;
+    payrollRunId: string;
+    label: string;
+  }) {
+    await this.notifications.notify({
+      tenantId: payload.tenantId,
+      eventType: 'payroll.completed',
+      title: 'Payroll run completed',
+      body: `Payroll for ${payload.label} processed. GL journal posted to accounts 6000/2100.`,
+    });
+  }
+
+  @OnEvent('leave.status.changed')
+  async onLeaveStatusChanged(payload: {
+    tenantId: string;
+    leaveId: string;
+    status: string;
+    userId?: string;
+  }) {
+    await this.notifications.notify({
+      tenantId: payload.tenantId,
+      eventType: 'leave.status.changed',
+      title: `Leave request ${payload.status.toLowerCase()}`,
+      body: `Leave request ${payload.leaveId} is now ${payload.status}`,
+      userId: payload.userId,
+    });
+  }
+
+  @OnEvent('budget.overrun')
+  async onBudgetOverrunWebhook(payload: {
+    tenantId: string;
+    projectId: string;
+    actual: number;
+    budget: number;
+  }) {
+    // budget.overrun is already handled above — this handler is deduplicated by NestJS
+    // so we only add it once. The original handler above covers it.
+  }
+
+  @OnEvent('employee.created')
+  async onEmployeeCreated(payload: {
+    tenantId: string;
+    employeeId: string;
+    userId?: string;
+  }) {
+    await this.notifications.notify({
+      tenantId: payload.tenantId,
+      eventType: 'employee.created',
+      title: 'New employee added',
+      body: `Employee ${payload.employeeId} has been onboarded`,
+    });
+  }
+
+  @OnEvent('invoice.issued')
+  async onInvoiceIssued(payload: { tenantId: string; invoiceId: string; invoiceNumber?: string }) {
+    await this.notifications.notify({
+      tenantId: payload.tenantId,
+      eventType: 'invoice.issued',
+      title: 'AR invoice issued',
+      body: `Invoice ${payload.invoiceNumber ?? payload.invoiceId} raised to customer`,
+    });
+  }
 }
