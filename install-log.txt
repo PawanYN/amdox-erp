@@ -1,0 +1,22 @@
+Scope: all 4 workspace projects
+Lockfile is up to date, resolution step is skipped
+Already up to date
+
+dependencies:
++ recharts 3.9.0
+
+devDependencies:
++ prettier 3.8.4
++ turbo 2.9.18
+
+packages/db prepare$ pnpm build
+packages/db prepare: > @amdox/db@0.1.0 build C:\Users\Lenovo\Desktop\jsJuly2026\Amdox Group EPR Software\amdox-erp\packages\db
+packages/db prepare: > tsc
+packages/db prepare: src/client.ts(1,10): error TS2305: Module '"@prisma/client"' has no exported member 'PrismaClient'.
+packages/db prepare: src/client.ts(21,30): error TS7031: Binding element 'model' implicitly has an 'any' type.
+packages/db prepare: src/client.ts(21,37): error TS7031: Binding element 'operation' implicitly has an 'any' type.
+packages/db prepare: src/client.ts(21,48): error TS7031: Binding element 'args' implicitly has an 'any' type.
+packages/db prepare: src/client.ts(21,54): error TS7031: Binding element 'query' implicitly has an 'any' type.
+packages/db prepare:  ELIFECYCLE  Command failed with exit code 2.
+packages/db prepare: Failed
+ ELIFECYCLE  Command failed with exit code 2.
