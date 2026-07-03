@@ -22,12 +22,13 @@ import {
 } from "lucide-react";
 
 const ROLES: Record<string, { label: string; sections: string[]; dept: string }> = {
-  executive: { label: "Executive",         sections: ["/home", "/bi", "finance", "hr", "scm", "projects", "/settings"], dept: "Executive Office" },
-  finance:   { label: "Finance Team",      sections: ["/home", "finance", "/settings"],                                  dept: "Finance" },
-  hr:        { label: "HR & Payroll",      sections: ["/home", "hr", "/settings"],                                       dept: "Human Resources" },
-  scm:       { label: "Supply Chain Mgr",  sections: ["/home", "scm", "/settings"],                                      dept: "Supply Chain" },
-  pm:        { label: "Project Manager",   sections: ["/home", "projects", "/settings"],                                  dept: "Project Management" },
-  it:        { label: "IT Administrator",  sections: ["/home", "finance", "hr", "scm", "projects", "/settings"],         dept: "IT Administration" },
+  tenantadmin: { label: "Tenant Admin",       sections: ["/home", "/bi", "finance", "hr", "scm", "projects", "/notifications", "/settings"], dept: "Administration" },
+  executive:   { label: "Executive",          sections: ["/home", "/bi", "finance", "hr", "scm", "projects", "/settings"], dept: "Executive Office" },
+  finance:     { label: "Finance Team",       sections: ["/home", "finance", "/settings"],                                  dept: "Finance" },
+  hr:          { label: "HR & Payroll",       sections: ["/home", "hr", "/settings"],                                       dept: "Human Resources" },
+  scm:         { label: "Supply Chain Mgr",   sections: ["/home", "scm", "/settings"],                                      dept: "Supply Chain" },
+  pm:          { label: "Project Manager",    sections: ["/home", "projects", "/settings"],                                  dept: "Project Management" },
+  it:          { label: "IT Administrator",   sections: ["/home", "/settings"],                                              dept: "IT Administration" },
 };
 
 interface NavChild  { id: string; label: string; }
@@ -336,7 +337,7 @@ function Sidebar({
    Root layout
    ───────────────────────────────────────────── */
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const [role, setRole]         = useState("executive");
+  const [role, setRole]         = useState("tenantadmin");
   const [collapsed, setCollapsed] = useState(false);
   const pathname                = usePathname();
 
