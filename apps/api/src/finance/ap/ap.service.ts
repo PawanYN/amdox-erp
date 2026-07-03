@@ -163,6 +163,55 @@ export class ApService {
   }
 
   /**
+   * WHAT: Auto-generates an AP invoice from a goods receipt and attempts 3-way match.
+   * WHY: Shared entry point for sync event bridge and async BullMQ worker (idempotent).
+   */
+  async createInvoiceFromGoodsReceipt(
+    tenantId: string,
+    purchaseOrderId: string,
+    goodsReceiptId: string,
+  ) {
+    const existing = await this.prisma.invoice.findFirst({
+      where: { tenantId, type: 'AP', purchaseOrderId },
+    });
+    if (existing) {
+      this.logger.log(
+        `AP invoice already exists for PO ${purchaseOrderId}; skipping auto-generation`,
+      );
+      return existing;
+    }
+
+    const po = await this.prisma.purchaseOrder.findFirst({
+      where: { id: purchaseOrderId, tenantId },
+      include: { lines: true },
+    });
+    if (!po) {
+      throw new NotFoundException(`Purchase order ${purchaseOrderId} not found`);
+    }
+
+    return this.createInvoice(
+      tenantId,
+      {
+        type: InvoiceType.AP,
+        invoiceNumber: `INV-AUTO-${Date.now()}`,
+        vendorId: po.vendorId,
+        purchaseOrderId: po.id,
+        issueDate: new Date(),
+        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        totalAmount: Number(po.totalAmount),
+        lines: po.lines.map((line) => ({
+          description: `Auto-generated for Product ${line.productId}`,
+          quantity: Number(line.quantity),
+          unitPrice: Number(line.unitPrice),
+          lineTotal: Number(line.quantity) * Number(line.unitPrice),
+        })),
+      },
+      undefined,
+      goodsReceiptId,
+    );
+  }
+
+  /**
    * WHAT: Manually approves an AP Invoice and emits approval events.
    * WHY: Fallback for when the automatic 3-way match fails (e.g., tolerance exceeded or missing GR).
    */

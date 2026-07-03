@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Building2, Plus, Star, Users, Briefcase } from "lucide-react";
+import { Building2, Plus, Star, Users, Briefcase, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge, statusToTone } from "@/components/ui/badge";
 import { Card, Table, THead, TH, TBody, TR, TD, EmptyState } from "@/components/ui/table";
@@ -43,6 +43,21 @@ export default function VendorsPage() {
     console.log("Add Vendor clicked");
   };
 
+  const handleIssuePortalKey = async (vendor: BackendVendor) => {
+    if (!vendor.email) {
+      alert("Add an email to this vendor before issuing a portal key.");
+      return;
+    }
+    try {
+      const result = await scmApi.issueVendorPortalKey(vendor.id);
+      alert(
+        `Portal key for ${vendor.name}:\n\n${result.accessKey}\n\nShare this with the supplier. Login at /vendor-portal`,
+      );
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to issue portal key");
+    }
+  };
+
   const columns: ColumnDef<BackendVendor>[] = [
     {
       header: "Vendor ID",
@@ -79,6 +94,17 @@ export default function VendorsPage() {
         <Badge tone={vendor.isActive ? "active" : "inactive"}>
           {vendor.isActive ? "Active" : "Inactive"}
         </Badge>
+      ),
+    },
+    {
+      header: "Portal",
+      cell: (vendor) => (
+        <button
+          onClick={() => handleIssuePortalKey(vendor)}
+          className="inline-flex items-center gap-1 text-xs font-medium text-brand-purple hover:underline"
+        >
+          <KeyRound size={14} /> Issue key
+        </button>
       ),
     },
   ];

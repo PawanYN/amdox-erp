@@ -268,7 +268,7 @@ The company PDF uses many single-word or short labels without full definitions. 
 | **Saga** | Multi-step workflow with compensating transactions (payroll). | **Done** — payroll BullMQ + `SagaState`. |
 | **DDD** | Domain-Driven Design — bounded contexts per module. | **Partial** — module folders match Finance/HR/SCM/PM. |
 | **CQRS** | Separate read/write models for BI queries. | **Not started** |
-| **RBAC** | Role-based access control. | **Partial** — backend guards; frontend uses **simulated** persona dropdown, not Keycloak roles. |
+| **RBAC** | Role-based access control. | **Done** (business modules) — 21/24 controllers guarded; matrix in `docs/rbac-role-matrix.md`; frontend still uses simulated persona dropdown |
 | **ABAC** | Attribute-based access control. | **Not started** |
 | **BullMQ** | Redis-backed job queue (payroll, notifications). | **Done** — payroll queue; notification queue not wired. |
 | **Webhook** | HTTP callback on business events (HMAC-signed per PDF). | **Not started** |

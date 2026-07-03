@@ -836,6 +836,8 @@ model Vendor {
   name      String
   email     String?
   webhookUrl String?
+  portalAccessKeyHash String?
+  portalKeyIssuedAt   DateTime?
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -938,6 +940,9 @@ model PurchaseOrder {
   status          PurchaseOrderStatus @default(DRAFT)
   totalAmount     Decimal             @db.Decimal(18, 4)
   orderedAt       DateTime?
+  vendorAcknowledgedAt     DateTime?
+  vendorExpectedDeliveryAt DateTime?
+  vendorShipmentNotes      String?
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
   deletedAt       DateTime?

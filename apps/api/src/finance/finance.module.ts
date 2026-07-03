@@ -15,6 +15,7 @@ import { OutboxProcessor } from './automation/outbox.processor';
 
 import { ScmEventsWorker } from './ap/scm-events.worker';
 import { PmCostBridgeListener } from './pm-cost-bridge.listener';
+import { ScmFinanceBridgeListener } from './scm-finance-bridge.listener';
 
 @Module({
   imports: [
@@ -39,9 +40,11 @@ import { PmCostBridgeListener } from './pm-cost-bridge.listener';
     OutboxProcessor,
     ScmEventsWorker,
     PmCostBridgeListener,
+    ScmFinanceBridgeListener,
   ],
   exports: [
-    FxRateService // In case other modules need currency conversions
+    FxRateService,
+    ApService,
   ]
 })
 export class FinanceModule {}

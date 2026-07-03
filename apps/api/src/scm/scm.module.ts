@@ -18,6 +18,8 @@ import { ReorderAutomationService } from './automation/reorder.service';
 import { RequisitionController } from './requisition/requisition.controller';
 import { RequisitionService } from './requisition/requisition.service';
 import { RequisitionListener } from './requisition/requisition.listener';
+import { VendorPortalModule } from './vendor-portal/vendor-portal.module';
+import { VendorPortalService } from './vendor-portal/vendor-portal.service';
 
 import { BullModule } from '@nestjs/bullmq';
 
@@ -26,6 +28,7 @@ import { BullModule } from '@nestjs/bullmq';
     BullModule.registerQueue({
       name: 'scm-events',
     }),
+    VendorPortalModule,
   ],
   controllers: [
     VendorController,

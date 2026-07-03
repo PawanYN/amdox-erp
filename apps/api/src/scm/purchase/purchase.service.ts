@@ -37,6 +37,7 @@ import { ReceiveGoodsDto } from '../dto/receive-goods.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import { VendorPortalService } from '../vendor-portal/vendor-portal.service';
 
 @Injectable()
 export class PurchaseService {
@@ -45,7 +46,8 @@ export class PurchaseService {
 
   constructor(
     private eventEmitter: EventEmitter2,
-    @InjectQueue('scm-events') private scmQueue: Queue
+    @InjectQueue('scm-events') private scmQueue: Queue,
+    private vendorPortalService: VendorPortalService,
   ) {}
 
   // --- Purchase Orders ---
@@ -109,15 +111,31 @@ export class PurchaseService {
   }
 
   async approvePurchaseOrder(tenantId: string, id: string) {
-    await this.getPurchaseOrder(tenantId, id);
+    const po = await this.getPurchaseOrder(tenantId, id);
     const updatedPo = await this.prisma.purchaseOrder.update({
       where: { id },
       data: { status: 'APPROVED' },
     });
 
-    // Fire lightweight synchronous event for Notification/Audit
-    this.eventEmitter.emit('po.created', { tenantId, poId: id, poNumber: updatedPo.poNumber });
+    this.eventEmitter.emit('po.created', {
+      tenantId,
+      poId: id,
+      poNumber: updatedPo.poNumber,
+      vendorId: po.vendorId,
+    });
     this.logger.log(`PO ${updatedPo.poNumber} approved and po.created event emitted`);
+
+    if (po.vendor?.webhookUrl) {
+      await this.vendorPortalService.notifyVendorWebhook(po.vendor.webhookUrl, {
+        event: 'po.approved',
+        tenantId,
+        poId: id,
+        poNumber: updatedPo.poNumber,
+        totalAmount: Number(updatedPo.totalAmount),
+        portalUrl: '/vendor-portal',
+        message: `Purchase order ${updatedPo.poNumber} is ready for supplier acknowledgement`,
+      });
+    }
 
     return updatedPo;
   }

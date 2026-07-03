@@ -237,6 +237,7 @@ Every API request carries a JWT from Keycloak. The `TenantContextInterceptor` ex
 - **Keycloak JWT Strategy** verifies the Bearer token on every protected route.
 - **RolesGuard** checks the `roles` claim in the token against `@Roles(...)` on each endpoint.
 - Roles in use: `SuperAdmin`, `TenantAdmin`, `Manager`, `Viewer`, `Employee`.
+- **Full role matrix:** see [`docs/rbac-role-matrix.md`](./rbac-role-matrix.md) (BE-11 audit, July 2026).
 
 ### 3. SCM → Finance Async Event Flow (3-Way Match)
 Think of this like a conveyor belt:

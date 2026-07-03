@@ -28,6 +28,7 @@ export default function POPage() {
   const [requisitions, setRequisitions] = useState<any[]>([]);
   const [vendors, setVendors] = useState<any[]>([]);
   const [creatingPo, setCreatingPo] = useState<string | null>(null);
+  const [warehouseId, setWarehouseId] = useState<string | null>(null);
 
   const fetchAll = () => {
     scmApi.getPurchaseOrders().then(setPoList);
@@ -37,13 +38,18 @@ export default function POPage() {
   useEffect(() => {
     fetchAll();
     scmApi.getVendors().then(setVendors);
+    scmApi.getWarehouses().then((warehouses) => setWarehouseId(warehouses[0]?.id ?? null));
   }, []);
 
   const advance = async (_poNumber: string, id: string, currentStatus: string) => {
     if (currentStatus === "DRAFT" || currentStatus === "SUBMITTED") {
       await scmApi.approvePurchaseOrder(id);
     } else if (currentStatus === "APPROVED") {
-      await scmApi.receiveGoods(id, { warehouseId: "default", notes: "Received via web UI" });
+      if (!warehouseId) {
+        alert("No warehouse configured. Seed the database or create a warehouse first.");
+        return;
+      }
+      await scmApi.receiveGoods(id, { warehouseId, notes: "Received via web UI" });
     }
     fetchAll();
   };
@@ -93,14 +99,14 @@ export default function POPage() {
         <section className="space-y-2">
           <h2 className="text-[13px] font-semibold text-[#14171F] flex items-center gap-1.5">
             <FolderKanban size={14} className="text-[#B06D1A]" />
-            Project requisitions ({pendingRequisitions.length})
+            Open requisitions ({pendingRequisitions.length})
           </h2>
           {pendingRequisitions.map((req) => (
             <div key={req.id} className="border border-[#D9A85C]/40 rounded-lg p-4 bg-[#FFFBF5]">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-[13px] font-medium text-[#14171F]">
-                    {req.project?.name ?? "Unlinked requisition"}
+                    {req.project?.name ?? req.reason ?? "Inventory requisition"}
                   </p>
                   <p className="text-[11px] text-[#8A8678] mt-0.5">
                     {req.lines?.length ?? 0} line(s)

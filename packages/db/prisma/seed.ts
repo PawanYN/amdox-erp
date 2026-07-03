@@ -176,21 +176,36 @@ async function seedBiDemoData(tenantId: string) {
     },
   });
 
+  const vendor = await prisma.vendor.upsert({
+    where: { id: '00000000-0000-4000-8000-000000000011' },
+    update: {},
+    create: {
+      id: '00000000-0000-4000-8000-000000000011',
+      tenantId,
+      name: 'TechSupply India',
+      email: 'orders@techsupply.demo',
+      isActive: true,
+    },
+  });
+
   const products = [
-    { sku: 'SKU-001', name: 'Laptop Dock', qty: 120 },
-    { sku: 'SKU-002', name: 'Office Chair', qty: 45 },
-    { sku: 'SKU-003', name: 'Network Switch', qty: 18 },
-    { sku: 'SKU-004', name: 'Monitor 27"', qty: 62 },
+    { sku: 'SKU-001', name: 'Laptop Dock', qty: 120, threshold: 30, reorderQty: 50 },
+    { sku: 'SKU-002', name: 'Office Chair', qty: 45, threshold: 20, reorderQty: 40 },
+    { sku: 'SKU-003', name: 'Network Switch', qty: 8, threshold: 25, reorderQty: 30 },
+    { sku: 'SKU-004', name: 'Monitor 27"', qty: 62, threshold: 15, reorderQty: 25 },
   ];
   for (const p of products) {
     const product = await prisma.product.upsert({
       where: { tenantId_sku: { tenantId, sku: p.sku } },
-      update: {},
+      update: {
+        defaultVendorId: vendor.id,
+      },
       create: {
         tenantId,
         sku: p.sku,
         name: p.name,
         unitCost: 5000,
+        defaultVendorId: vendor.id,
       },
     });
     await prisma.stockLevel.upsert({
@@ -201,6 +216,18 @@ async function seedBiDemoData(tenantId: string) {
         productId: product.id,
         warehouseId: warehouse.id,
         quantity: p.qty,
+      },
+    });
+    await prisma.reorderRule.deleteMany({
+      where: { tenantId, productId: product.id },
+    });
+    await prisma.reorderRule.create({
+      data: {
+        tenantId,
+        productId: product.id,
+        thresholdQty: p.threshold,
+        reorderQty: p.reorderQty,
+        isActive: true,
       },
     });
   }

@@ -12,12 +12,14 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { DataSubjectRequestType } from '@amdox/db';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { Roles } from '../../auth/decorators/roles.decorator';
 import { GdprService } from './gdpr.service';
 import { AuditService } from '../audit.service';
 
 @ApiTags('GDPR')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('keycloak'))
+@UseGuards(AuthGuard('keycloak'), RolesGuard)
 @Controller('gdpr')
 export class GdprController {
   constructor(
@@ -29,12 +31,14 @@ export class GdprController {
     return req.user?.tenantId || req.headers['x-tenant-id'] || 'default-tenant-id';
   }
 
+  @Roles('SuperAdmin', 'TenantAdmin')
   @Get('requests')
   @ApiOperation({ summary: 'List GDPR data subject requests' })
   listRequests(@Req() req: any) {
     return this.gdprService.listRequests(this.tenantId(req));
   }
 
+  @Roles('SuperAdmin', 'TenantAdmin')
   @Post('requests')
   @ApiOperation({ summary: 'Create a data subject request (access, erasure, portability)' })
   async createRequest(
@@ -55,6 +59,7 @@ export class GdprController {
     return dsr;
   }
 
+  @Roles('SuperAdmin', 'TenantAdmin')
   @Patch('requests/:id/fulfill')
   @ApiOperation({ summary: 'Mark a DSR as fulfilled (target < 72h per PDF)' })
   async fulfill(@Req() req: any, @Param('id') id: string) {
@@ -70,6 +75,7 @@ export class GdprController {
     return dsr;
   }
 
+  @Roles('SuperAdmin', 'TenantAdmin')
   @Post('consent')
   recordConsent(
     @Req() req: any,
@@ -85,6 +91,7 @@ export class GdprController {
     );
   }
 
+  @Roles('SuperAdmin', 'TenantAdmin')
   @Get('consent')
   listConsent(@Req() req: any, @Query('subjectEmail') subjectEmail?: string) {
     return this.gdprService.listConsents(this.tenantId(req), subjectEmail);

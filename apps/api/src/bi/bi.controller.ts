@@ -14,6 +14,8 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { Response } from 'express';
 import { interval, mergeMap, Observable } from 'rxjs';
 import * as fs from 'fs';
@@ -30,7 +32,7 @@ import {
 
 @ApiTags('Business Intelligence')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('keycloak'))
+@UseGuards(AuthGuard('keycloak'), RolesGuard)
 @Controller('bi')
 export class BiController {
   constructor(
@@ -51,18 +53,21 @@ export class BiController {
     };
   }
 
+  @Roles('SuperAdmin', 'TenantAdmin', 'Manager', 'Viewer')
   @Get('dashboards')
   @ApiOperation({ summary: 'List saved dashboards' })
   listDashboards(@Req() req: any) {
     return this.biService.listDashboards(this.tenantId(req));
   }
 
+  @Roles('SuperAdmin', 'TenantAdmin', 'Manager', 'Viewer')
   @Get('dashboards/:id')
   @ApiOperation({ summary: 'Get dashboard with widgets' })
   getDashboard(@Req() req: any, @Param('id') id: string) {
     return this.biService.getDashboard(this.tenantId(req), id);
   }
 
+  @Roles('SuperAdmin', 'TenantAdmin', 'Manager')
   @Post('dashboards')
   @ApiOperation({ summary: 'Create a dashboard shell' })
   createDashboard(@Req() req: any, @Body('name') name: string) {
@@ -73,6 +78,7 @@ export class BiController {
     );
   }
 
+  @Roles('SuperAdmin', 'TenantAdmin', 'Manager')
   @Patch('dashboards/:id')
   @ApiOperation({ summary: 'Update dashboard name or layout' })
   updateDashboard(
@@ -83,12 +89,14 @@ export class BiController {
     return this.biService.updateDashboard(this.tenantId(req), id, body);
   }
 
+  @Roles('SuperAdmin', 'TenantAdmin', 'Manager')
   @Delete('dashboards/:id')
   @ApiOperation({ summary: 'Soft-delete a dashboard' })
   deleteDashboard(@Req() req: any, @Param('id') id: string) {
     return this.biService.deleteDashboard(this.tenantId(req), id);
   }
 
+  @Roles('SuperAdmin', 'TenantAdmin', 'Manager')
   @Post('dashboards/widgets')
   @ApiOperation({ summary: 'Add widget to dashboard' })
   addWidget(@Req() req: any, @Body() dto: AddWidgetDto) {
@@ -100,6 +108,7 @@ export class BiController {
     );
   }
 
+  @Roles('SuperAdmin', 'TenantAdmin', 'Manager')
   @Patch('widgets/:id')
   @ApiOperation({ summary: 'Update widget type or config' })
   updateWidget(
@@ -110,12 +119,14 @@ export class BiController {
     return this.biService.updateWidget(this.tenantId(req), id, body);
   }
 
+  @Roles('SuperAdmin', 'TenantAdmin', 'Manager')
   @Delete('widgets/:id')
   @ApiOperation({ summary: 'Delete a widget' })
   deleteWidget(@Req() req: any, @Param('id') id: string) {
     return this.biService.deleteWidget(this.tenantId(req), id);
   }
 
+  @Roles('SuperAdmin', 'TenantAdmin', 'Manager', 'Viewer')
   @Get('widgets/:id/data')
   @ApiOperation({ summary: 'Resolve widget chart data from JSON config' })
   async getWidgetData(
@@ -135,6 +146,7 @@ export class BiController {
     return { widget, ...data };
   }
 
+  @Roles('SuperAdmin', 'TenantAdmin', 'Manager', 'Viewer')
   @Get('data/:source')
   @ApiOperation({ summary: 'Fetch chart data by source key' })
   getDataBySource(
@@ -149,6 +161,7 @@ export class BiController {
     );
   }
 
+  @Roles('SuperAdmin', 'TenantAdmin', 'Manager', 'Viewer')
   @Post('drill-down')
   @ApiOperation({ summary: 'Drill-down: chart segment → filtered table rows' })
   drillDown(@Req() req: any, @Body() dto: DrillDownDto) {
@@ -160,6 +173,7 @@ export class BiController {
     );
   }
 
+  @Roles('SuperAdmin', 'TenantAdmin', 'Manager', 'Viewer')
   @Get('kpis')
   @ApiOperation({ summary: 'Executive KPI aggregates for dashboards' })
   getKpis(@Req() req: any, @Query() query: BiFilterQueryDto) {
@@ -169,6 +183,7 @@ export class BiController {
     );
   }
 
+  @Roles('SuperAdmin', 'TenantAdmin', 'Manager', 'Viewer')
   @Sse('metrics/stream')
   @ApiOperation({ summary: 'Real-time KPI refresh via Server-Sent Events' })
   streamMetrics(@Req() req: any, @Query() query: BiFilterQueryDto): Observable<MessageEvent> {
@@ -182,30 +197,35 @@ export class BiController {
     );
   }
 
+  @Roles('SuperAdmin', 'TenantAdmin', 'Manager', 'Viewer')
   @Get('reports')
   @ApiOperation({ summary: 'List scheduled BI reports' })
   listReports(@Req() req: any) {
     return this.biReportService.listReports(this.tenantId(req));
   }
 
+  @Roles('SuperAdmin', 'TenantAdmin', 'Manager')
   @Post('reports')
   @ApiOperation({ summary: 'Create scheduled report (PDF/Excel + email)' })
   createReport(@Req() req: any, @Body() dto: CreateScheduledReportDto) {
     return this.biReportService.createReport(this.tenantId(req), dto);
   }
 
+  @Roles('SuperAdmin', 'TenantAdmin', 'Manager')
   @Delete('reports/:id')
   @ApiOperation({ summary: 'Delete scheduled report' })
   deleteReport(@Req() req: any, @Param('id') id: string) {
     return this.biReportService.deleteReport(this.tenantId(req), id);
   }
 
+  @Roles('SuperAdmin', 'TenantAdmin', 'Manager')
   @Post('reports/:id/run')
   @ApiOperation({ summary: 'Run scheduled report now' })
   runReport(@Req() req: any, @Param('id') id: string) {
     return this.biReportService.runReport(this.tenantId(req), id);
   }
 
+  @Roles('SuperAdmin', 'TenantAdmin', 'Manager', 'Viewer')
   @Get('reports/:id/download')
   @ApiOperation({ summary: 'Download last generated report file' })
   async downloadReport(

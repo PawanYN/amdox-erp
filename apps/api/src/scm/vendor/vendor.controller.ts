@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Req, UseGuards } from '@nestjs/common';
 import { VendorService } from './vendor.service';
+import { VendorPortalService } from '../vendor-portal/vendor-portal.service';
 import { CreateVendorDto } from '../dto/create-vendor.dto';
 import { UpdateVendorDto } from '../dto/update-vendor.dto';
 import { AuthGuard } from '@nestjs/passport';
@@ -12,7 +13,10 @@ import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 @UseGuards(AuthGuard('keycloak'), RolesGuard)
 @Controller('scm/vendors')
 export class VendorController {
-  constructor(private readonly vendorService: VendorService) {}
+  constructor(
+    private readonly vendorService: VendorService,
+    private readonly vendorPortalService: VendorPortalService,
+  ) {}
 
   @Roles('SuperAdmin', 'TenantAdmin', 'Manager')
   @Post()
@@ -36,6 +40,12 @@ export class VendorController {
   @Patch(':id')
   update(@Req() req: any, @Param('id') id: string, @Body() updateVendorDto: UpdateVendorDto) {
     return this.vendorService.update(req.user.tenantId, id, updateVendorDto);
+  }
+
+  @Roles('SuperAdmin', 'TenantAdmin')
+  @Post(':id/portal-key')
+  issuePortalKey(@Req() req: any, @Param('id') id: string) {
+    return this.vendorPortalService.issuePortalKey(req.user.tenantId, id);
   }
 
   @Roles('SuperAdmin', 'TenantAdmin')

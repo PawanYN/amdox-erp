@@ -8,7 +8,8 @@
     "dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "postman": "openapi-to-postmanv2 -s openapi-spec.json -o postman_collection.json -p"
+    "postman": "openapi-to-postmanv2 -s openapi-spec.json -o postman_collection.json -p",
+    "verify:p2p": "ts-node scripts/verify-p2p-flow.ts"
   },
   "dependencies": {
     "@amdox/db": "workspace:*",
