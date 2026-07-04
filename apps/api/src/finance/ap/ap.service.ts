@@ -11,6 +11,7 @@ interface InvoiceApprovedEvent {
   projectId?: string | null;
   totalAmount?: number;
   invoiceNumber?: string;
+  userId?: string;
 }
 
 /**

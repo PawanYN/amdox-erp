@@ -93,7 +93,7 @@ export class NotificationService {
           status: ok ? NotificationDeliveryStatus.SENT : NotificationDeliveryStatus.FAILED,
           attempts: 1,
           sentAt: ok ? new Date() : undefined,
-          failedAt: ok ? undefined : new Date(),
+          lastError: ok ? undefined : 'Webhook dispatch failed',
         },
       });
     } catch (err: any) {
