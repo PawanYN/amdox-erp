@@ -13,6 +13,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { TenantContextInterceptor } from './common/interceptors/tenant-context.interceptor';
+import { HttpLoggingInterceptor } from './common/interceptors/http-logging.interceptor';
 import { AuthModule } from './auth/auth.module';
 import { NotificationModule } from './notification/notification.module';
 import { BiModule } from './bi/bi.module';
@@ -24,28 +25,10 @@ import { LoggerModule } from 'nestjs-pino';
   imports: [
     LoggerModule.forRoot({
       pinoHttp: {
-        serializers: {
-          req(req) {
-            let auth = req.headers.authorization;
-            if (auth && auth.startsWith('Bearer ')) {
-              const token = auth.replace('Bearer ', '');
-              if (token.length > 10) {
-                auth = `Bearer ${token.substring(0, 3)}...${token.substring(token.length - 3)}`;
-              }
-            }
-            return {
-              method: req.method,
-              url: req.url,
-              auth,
-              tenantId: req.headers['x-tenant-id']
-            };
-          },
-          res(res) {
-            return { statusCode: res.statusCode };
-          }
-        },
+        // HTTP request logs are handled by AmdoxHttpLoggingInterceptor — suppress Pino's default
+        autoLogging: false,
         transport: process.env.NODE_ENV !== 'production'
-          ? { target: 'pino-pretty', options: { singleLine: true, colorize: true } }
+          ? { target: 'pino-pretty', options: { singleLine: true, colorize: false } }
           : undefined,
       },
     }),
@@ -74,8 +57,12 @@ import { LoggerModule } from 'nestjs-pino';
   providers: [
     {
       provide: APP_INTERCEPTOR,
+      useClass: HttpLoggingInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
       useClass: TenantContextInterceptor,
-    }
+    },
   ]
 })
 export class AppModule {}

@@ -37,6 +37,8 @@ const COLOR = {
   tenant:  fg(201) + BOLD,
   // Events / bus — sky blue
   event:   fg(75)  + BOLD,
+  // HTTP requests — teal
+  http:    fg(51)  + BOLD,
   // Info — white
   info:    fg(255),
   // Debug — grey
@@ -69,6 +71,7 @@ const LABELS: Record<Domain, string> = {
   pm:       '   PM    ',
   tenant:   ' TENANT  ',
   event:    '  EVENT  ',
+  http:     '  HTTP   ',
   info:     '  INFO   ',
   debug:    '  DEBUG  ',
   warn:     '  WARN   ',
@@ -114,6 +117,9 @@ export class AmdoxLogger {
 
   /** Cross-module domain events */
   static event(msg: string, extra?: string)    { print('event',   msg, extra); }
+
+  /** HTTP request/response — method, path, status, timing */
+  static http(msg: string, extra?: string)     { print('http',    msg, extra); }
 
   /** Generic informational */
   static info(msg: string, extra?: string)     { print('info',    msg, extra); }

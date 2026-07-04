@@ -67,7 +67,7 @@ export class ForecastController {
     const tenantId = this.tenantId(req);
     const products = await this.prisma.product.findMany({
       where: { tenantId },
-      select: { id: true, sku: true, name: true, category: true },
+      select: { id: true, sku: true, name: true },
       orderBy: { name: 'asc' },
     });
 
