@@ -2,7 +2,7 @@
 
 > **Sources:** Amdox Web.pdf · amdox-erp-detailed-2.html · Live codebase review (July 2026)  
 > **Audience:** Project Manager — task ownership and sprint tracking  
-> **Last updated:** 3 July 2026 (session 2) — Complete frontend UI redesign (40+ files); BI workspace redesign with fixed scroll + data pane; Settings page auth/role fix; `GET /auth/me` endpoint added; TenantAdmin role standardised in DB + Keycloak; `POST /tenant/provision-kc-roles` migration endpoint added; IT Admin nav restricted; Settings converted to horizontal tabs
+> **Last updated:** 4 July 2026 (session 3) — AmdoxLogger 256-color branded terminal logger created + integrated across 9 critical API files; `docs/amdox-logger.md` documentation written; Identity Providers tab completely rebuilt with Keycloak-reference UI (provider card picker, per-provider forms for Google/Microsoft/GitHub/SAML/OIDC, Redirect URI copy, toggle switches, secret show/hide, breadcrumb nav) — fulfils PDF F-01
 
 ---
 
@@ -44,6 +44,8 @@
 | **UI Design System**           | 40+ files overhauled: consistent blue/slate palette, Inter font, `globals.css` `@theme` tokens, shadow-card, page-title/subtitle, custom scrollbar, all modules                          |
 | **Dashboard shell**            | `DashboardLayoutClient` (`ssr:false`) fixes hydration mismatch; collapsible sidebar; Settings visible to all roles; IT Admin restricted to Home + Settings                               |
 | **Settings page**              | Role-based tab access via `/auth/me`; admin-only tabs (Identity Settings, Auth, IdP) show `AdminRequired` for non-admins; horizontal tab bar; TenantAdmin RBAC                           |
+| **Identity Providers UI**      | Full Keycloak-reference IdP manager (`components/settings/idp-manager.tsx`): card picker (User-defined + Social sections), per-provider forms (Google, Microsoft, GitHub, SAML, Keycloak OIDC, OpenID Connect v1.0), Redirect URI read-only+copy, toggle switches, secret show/hide, breadcrumb nav — fulfils F-01 |
+| **AmdoxLogger**                | `apps/api/src/common/logger/amdox-logger.ts` — 256-color ANSI branded logger with 14 domain/severity methods; integrated into 9 critical files (auth strategy, GL service, payroll processor, tenant service, purchase service, 3 bridge listeners, main.ts); startup banner; `docs/amdox-logger.md` written |
 
 
 ### Remaining (open tasks)
@@ -66,14 +68,14 @@
 
 | Area                          | Status        | Gap summary                                                                                                                      |
 | ----------------------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Auth & Multi-tenant           | ✅ Mostly done | Keycloak OIDC, tenant context, create-tenant; `/auth/me` endpoint; Keycloak realm role provisioning; role name unified           |
+| Auth & Multi-tenant           | ✅ Mostly done | Keycloak OIDC, tenant context, create-tenant; `/auth/me` endpoint; Keycloak realm role provisioning; role name unified; IdP UI (Google/Microsoft/GitHub/SAML/OIDC) per F-01 |
 | Finance GL/AP                 | ⚠️ Partial    | Journal entries ✅; fiscal periods ✅; aging report ✅; GL Account create stub (FE-06); AP upload API only (FE-08)                  |
 | Finance AR / Order-to-Cash    | ✅ Mostly done | Sales Order module ✅ (BE-02); AR invoice + payment UI ✅ (FE-09)                                                                  |
 | HR & Payroll                  | ✅ Mostly done | Employee CRUD ✅; departments ✅; leave/attendance/payroll on live APIs ✅; payslip PDF ✅; period picker ✅                          |
 | SCM                           | ⚠️ Partial    | PO + requisition flow works; vendor add stub; product/inventory admin UI missing (FE-01–FE-05)                                   |
 | Project Management            | ✅ Strong      | Project edit/status UI ✅ (FE-13); wizard, material requests, budget bridges                                                      |
 | BI / Forecast / Notifications | ⚠️ Partial    | BI workspace redesigned ✅ — fixed scroll, Data pane, Filters pane, clean toolbar; mark-read ✅; forecast train UI missing (FE-14) |
-| Settings                      | ✅ Mostly done | Horizontal tab bar; role-based tab access via `/auth/me`; AdminRequired guard; TenantAdmin provisioning                          |
+| Settings                      | ✅ Mostly done | Horizontal tab bar; role-based tab access via `/auth/me`; AdminRequired guard; TenantAdmin provisioning; IdP manager fully rebuilt (F-01) |
 | UI Design System              | ✅ Done        | 40+ pages overhauled; blue/slate palette; Inter font; design tokens in `globals.css`; consistent across all modules              |
 | Platform / Deploy             | ❌ Not started | No live demo URL, CI, or security hardening (PLAT-01–PLAT-04)                                                                    |
 
@@ -92,6 +94,8 @@
 
 > **Also shipped (session 2, not in task table):** Complete UI overhaul (40+ files), BI workspace redesign, Settings RBAC fix, `/auth/me` endpoint, Keycloak role provisioning, `TenantAdmin` role standardisation, `DashboardLayoutClient` hydration fix.
 
+> **Also shipped (session 3, not in task table):** AmdoxLogger 256-color branded logger (`common/logger/amdox-logger.ts`) integrated into 9 API files with startup banner; `docs/amdox-logger.md`; Identity Providers tab rebuilt from scratch matching Keycloak reference screenshots — provider card picker grid (User-defined + Social), dedicated add forms per provider (Google, Microsoft, GitHub, SAML v2.0, Keycloak OIDC, OpenID Connect v1.0) with all correct fields, Redirect URI copy button, toggle switches, secret show/hide, breadcrumb navigation — fulfils PDF F-01.
+
 **Completion:** ~65% done · ~9% partial · ~26% not started
 
 ### Progress by owner
@@ -99,7 +103,7 @@
 
 | Owner          | ✅ Done                                                                                                                                                                                                                                                                              | ⚠️ Partial     | ❌ Open                     |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- | -------------------------- |
-| **pawan**      | FE-07, FE-09, FE-10, FE-11, FE-12, FE-13, FE-15, FE-16, FE-17, FE-18, BE-02, BE-03, BE-04, BE-05, BE-06, BE-08, BE-09, BE-10, BE-11, INT-01, INT-02, INT-03, INT-04, INT-05, INT-06, INT-07, INT-08, INT-09 + UI overhaul + BI redesign + Settings RBAC + Auth/me + KC provisioning | —              | —                          |
+| **pawan**      | FE-07, FE-09, FE-10, FE-11, FE-12, FE-13, FE-15, FE-16, FE-17, FE-18, BE-02, BE-03, BE-04, BE-05, BE-06, BE-08, BE-09, BE-10, BE-11, INT-01, INT-02, INT-03, INT-04, INT-05, INT-06, INT-07, INT-08, INT-09 + UI overhaul + BI redesign + Settings RBAC + Auth/me + KC provisioning + AmdoxLogger + IdP UI (F-01) | —              | —                          |
 | **shraddha**   | —                                                                                                                                                                                                                                                                                   | FE-02          | FE-01                      |
 | **sibi**       | —                                                                                                                                                                                                                                                                                   | —              | FE-03, FE-04, FE-05, FE-14 |
 | **Agrim**      | —                                                                                                                                                                                                                                                                                   | FE-08          | FE-06                      |
@@ -325,6 +329,7 @@
 
 | PDF  | Description                     | Remaining          | Status                                      |
 | ---- | ------------------------------- | ------------------ | ------------------------------------------- |
+| F-01 | Multi-Tenant Auth / SSO         | —                  | ✅ Done — Keycloak OIDC/SAML, `/auth/me`, realm roles, IdP UI (Google/Microsoft/GitHub/SAML/OIDC forms) |
 | F-02 | GL — period close, intercompany | FE-06              | ⚠️ Partial (BE-03 ✅, BE-04 ✅, journal UI ✅) |
 | F-03 | AP/AR — OCR, payment runs       | FE-08              | ⚠️ Partial (FE-09 ✅, aging report ✅)        |
 | F-05 | SCM — vendor portal, notify     | FE-01–FE-05, BE-07 | ⚠️ Partial (BE-08 portal ✅; email stub)     |
@@ -349,7 +354,10 @@
 | API modules            | 11    | `auth`, `tenant`, `finance`, `hr`, `scm`, `pm`, `bi`, `forecast`, `audit`, `notification`, `health` |
 | BI frontend components | 12    | `apps/web/src/components/bi/`                                                                       |
 | BI backend files       | 8     | `apps/api/src/bi/`                                                                                  |
+| Settings components    | 1     | `apps/web/src/components/settings/idp-manager.tsx`                                                  |
 | ML service             | 1     | `apps/ml-service/main.py` + `Dockerfile`                                                            |
+| Logger utility         | 1     | `apps/api/src/common/logger/amdox-logger.ts`                                                        |
+| Logger documentation   | 1     | `docs/amdox-logger.md`                                                                              |
 | Orphan mock files      | 3     | `lib/mock/hr.ts`, `it.ts`, `pm-v2.ts` (no imports; safe to delete)                                  |
 | GitHub Actions CI      | 0     | No `.github/workflows/` directory                                                                   |
 
