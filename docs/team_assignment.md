@@ -2,7 +2,7 @@
 
 > **Sources:** Amdox Web.pdf · amdox-erp-detailed-2.html · Live codebase review (July 2026)  
 > **Audience:** Project Manager — task ownership and sprint tracking  
-> **Last updated:** 4 July 2026 (session 4) — AI Demand Forecast dashboard completed: ForecastPanel upgraded with Recharts BarChart + 14d/30d horizon selector + model status; `GET /forecast/products` backend endpoint added; new `/scm/forecast` global dashboard (stats cards, MAPE-by-SKU chart, SKU table with Train/Re-train per row, train-all); AI Forecast tab added to SCM nav — closes FE-14, INT-06, F-06
+> **Last updated:** 4 July 2026 (session 5) — Functional test suite created (`testing/`): 9 suites, 64 tests, 64/64 pass; covers health, Finance GL, HR/Payroll, SCM, PM, AI Forecast, Auth/RBAC, cross-module P2P smoke test (Day 14 PDF), Audit/GDPR; AmdoxLogger-style ANSI output + JSON result files; HTTP log interceptor replacing Pino raw logs; RolesGuard console.log → AmdoxLogger; AI Forecast sidebar entry added
 
 ---
 
@@ -47,6 +47,9 @@
 | **Settings page**              | Role-based tab access via `/auth/me`; admin-only tabs (Identity Settings, Auth, IdP) show `AdminRequired` for non-admins; horizontal tab bar; TenantAdmin RBAC                           |
 | **Identity Providers UI**      | Full Keycloak-reference IdP manager (`components/settings/idp-manager.tsx`): card picker (User-defined + Social sections), per-provider forms (Google, Microsoft, GitHub, SAML, Keycloak OIDC, OpenID Connect v1.0), Redirect URI read-only+copy, toggle switches, secret show/hide, breadcrumb nav — fulfils F-01 |
 | **AmdoxLogger**                | `apps/api/src/common/logger/amdox-logger.ts` — 256-color ANSI branded logger with 14 domain/severity methods; integrated into 9 critical files (auth strategy, GL service, payroll processor, tenant service, purchase service, 3 bridge listeners, main.ts); startup banner; `docs/amdox-logger.md` written |
+| **HTTP logging + RolesGuard** | `HttpLoggingInterceptor` replaces Pino raw "request completed" JSON with AmdoxLogger `[ HTTP ]` teal lines (warn on 4xx, error on 5xx); RolesGuard `console.log` → `AmdoxLogger.warn()` on deny only; Pino `autoLogging: false` |
+| **Functional test suite**     | `testing/` — 9 suites, 64 tests, **64/64 pass** (Day 14 PDF); custom ESM runner + AmdoxLogger-style ANSI output + JSON result files; covers: health, Finance GL (double-entry enforcement), HR, SCM, PM, AI Forecast (MAPE ≤ 12%), Auth/RBAC (tenant isolation), cross-module P2P chain, Audit hash chain |
+| **AI Forecast sidebar**       | `AI Forecast` leaf entry added to global sidebar nav (TrendingUp icon); standalone `/forecast` page with design system tokens; visible to tenantadmin, executive, scm roles |
 
 
 ### Remaining (open tasks)
@@ -98,6 +101,8 @@
 
 > **Also shipped (session 4, not in task table):** ForecastPanel (inventory page) upgraded — Recharts `BarChart` with date/qty axes, 14d/30d horizon selector, model type badge, last trained date; `GET /forecast/products` backend endpoint (mapeScore, trainedAt, modelType, predictionCount per SKU); `forecastApi.getAllForecastStatus()` frontend client method; `/scm/forecast` global AI Forecast dashboard — stats cards (total SKUs, trained, avg MAPE, stale count), MAPE-by-SKU bar chart, full SKU table with per-row Train/Re-train button and train-all; AI Forecast tab added to SCM nav — closes FE-14, INT-06, F-06.
 
+> **Also shipped (session 5, not in task table):** Functional test suite (`testing/`) — 9 suites, 64 tests, 64/64 pass; zero-dependency ESM runner with AmdoxLogger-style ANSI output and JSON result artifacts; suites: health & gateway, Finance GL (double-entry enforcement), HR & Payroll, SCM & Inventory, Project Management, AI Forecast (MAPE ≤ 12% assertion + ML health), Auth/RBAC (tenant isolation breach detection), cross-module P2P smoke test (PO→GR→stock→AP invoice→GL journal — PDF Day 14), Audit hash chain. `HttpLoggingInterceptor` replaces Pino raw HTTP logs with branded `[ HTTP ]` teal lines; `RolesGuard` de-noised (warn on deny only). AI Forecast leaf item added to global sidebar.
+
 **Completion:** ~67% done · ~9% partial · ~23% not started
 
 ### Progress by owner
@@ -105,7 +110,7 @@
 
 | Owner          | ✅ Done                                                                                                                                                                                                                                                                              | ⚠️ Partial     | ❌ Open                     |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- | -------------------------- |
-| **pawan**      | FE-07, FE-09, FE-10, FE-11, FE-12, FE-13, FE-14, FE-15, FE-16, FE-17, FE-18, BE-02, BE-03, BE-04, BE-05, BE-06, BE-08, BE-09, BE-10, BE-11, INT-01, INT-02, INT-03, INT-04, INT-05, INT-06, INT-07, INT-08, INT-09 + UI overhaul + BI redesign + Settings RBAC + Auth/me + KC provisioning + AmdoxLogger + IdP UI (F-01) + AI Forecast dashboard (F-06) | —              | —                          |
+| **pawan**      | FE-07, FE-09, FE-10, FE-11, FE-12, FE-13, FE-14, FE-15, FE-16, FE-17, FE-18, BE-02, BE-03, BE-04, BE-05, BE-06, BE-08, BE-09, BE-10, BE-11, INT-01, INT-02, INT-03, INT-04, INT-05, INT-06, INT-07, INT-08, INT-09 + UI overhaul + BI redesign + Settings RBAC + Auth/me + KC provisioning + AmdoxLogger + IdP UI (F-01) + AI Forecast dashboard (F-06) + functional test suite (64 tests, Day 14) + HTTP logging interceptor | —              | —                          |
 | **shraddha**   | —                                                                                                                                                                                                                                                                                   | FE-02          | FE-01                      |
 | **sibi**       | —                                                                                                                                                                                                                                                                                   | —              | FE-03, FE-04, FE-05        |
 | **Agrim**      | —                                                                                                                                                                                                                                                                                   | FE-08          | FE-06                      |
@@ -346,22 +351,43 @@
 
 ---
 
-## 12. Codebase Inventory (3 July 2026)
+## 12. Codebase Inventory (4 July 2026)
 
 
 | Item                   | Count | Location                                                                                            |
 | ---------------------- | ----- | --------------------------------------------------------------------------------------------------- |
-| Dashboard routes       | 28    | `apps/web/src/app/(dashboard)/**/page.tsx`                                                          |
+| Dashboard routes       | 29    | `apps/web/src/app/(dashboard)/**/page.tsx` (incl. `/forecast` standalone)                          |
 | API modules            | 11    | `auth`, `tenant`, `finance`, `hr`, `scm`, `pm`, `bi`, `forecast`, `audit`, `notification`, `health` |
 | BI frontend components | 12    | `apps/web/src/components/bi/`                                                                       |
 | BI backend files       | 8     | `apps/api/src/bi/`                                                                                  |
 | Settings components    | 1     | `apps/web/src/components/settings/idp-manager.tsx`                                                  |
 | ML service             | 1     | `apps/ml-service/main.py` + `Dockerfile`                                                            |
-| Logger utility         | 1     | `apps/api/src/common/logger/amdox-logger.ts`                                                        |
+| Logger utility         | 1     | `apps/api/src/common/logger/amdox-logger.ts` (15 methods incl. `http` domain)                      |
 | Logger documentation   | 1     | `docs/amdox-logger.md`                                                                              |
+| HTTP logging interceptor | 1   | `apps/api/src/common/interceptors/http-logging.interceptor.ts`                                      |
+| Test suites            | 9     | `testing/suites/01–09` — 64 tests, 64/64 pass                                                      |
+| Test helpers           | 3     | `testing/helpers/client.js`, `assert.js`, `runner.js`                                               |
+| Test results (artifacts) | 3+  | `testing/results/*.json` — timestamped JSON per run                                                 |
 | Orphan mock files      | 3     | `lib/mock/hr.ts`, `it.ts`, `pm-v2.ts` (no imports; safe to delete)                                  |
 | GitHub Actions CI      | 0     | No `.github/workflows/` directory                                                                   |
 
+
+### Test Suite Coverage (Day 14 — AMX-ERP-2026-04)
+
+Run: `cd testing && node run-all.js` · With token: `TEST_TOKEN=<jwt> node run-all.js`
+
+| Suite | File | Tests | What it covers |
+|---|---|---|---|
+| 01 Health | `01-health.test.js` | 6 | live/ready/db endpoints, 401 guard, 404 unknown route |
+| 02 Finance GL | `02-finance-gl.test.js` | 7 | GL accounts (codes 1000/2000/4000), journal entries, **double-entry enforcement** (unbalanced → 400), fiscal periods, aging report |
+| 03 HR & Payroll | `03-hr-payroll.test.js` | 8 | Employees, departments, leave, attendance, payroll runs, validation |
+| 04 SCM | `04-scm.test.js` | 9 | Vendors, products (id/sku/name), POs, stock levels, reorder rules, AP invoices, PO validation |
+| 05 PM | `05-pm.test.js` | 8 | Projects, tasks, milestones, allocations, budgets (plannedAmount/actualAmount), material requests |
+| 06 AI Forecast | `06-forecast.test.js` | 6 | All-SKU forecast list, MAPE ≤ 12% assertion, per-product predictions, train endpoint, ML service health |
+| 07 Auth/RBAC | `07-auth-rbac.test.js` | 6 | /auth/me fields, userRoles non-empty, tenantId present, **tenant isolation breach detection**, SuperAdmin RBAC |
+| 08 Smoke P2P | `08-smoke-p2p-chain.test.js` | 8 | **Day 14 cross-module chain:** PO create → approve → GR → stock update → AP invoice auto-created → approve → GL journal posted + balanced |
+| 09 Audit | `09-audit.test.js` | 5 | Audit events, required fields, **hash chain integrity**, GDPR DSR, notifications |
+| **Total** | | **64 / 64 pass** | |
 
 ### Key stubs still in code
 
