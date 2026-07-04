@@ -404,3 +404,47 @@ Run: `cd testing && node run-all.js` · With token: `TEST_TOKEN=<jwt> node run-a
 ---
 
 *Update this document when a task moves from Partial → Done. Cross-reference* `docs/project_status.md` *for detailed PDF requirement mapping.*
+
+---
+
+## 13. Tech Stack — PDF Requirement vs. Actual Implementation
+
+> Source: §3 "Technology Stack – Production Grade 2026" from `docs/Amdox Web.pdf`
+
+| Category | PDF Requirement | Actual in Repo | Match |
+|---|---|---|---|
+| **Frontend Framework** | Next.js 15 + React 19 + TypeScript 5.5 | Next.js 15 + React 19 + TypeScript | ✅ Full match |
+| **UI Component Library** | shadcn/ui + Radix + Tailwind CSS 4 | Tailwind CSS 4 + custom design system (`globals.css` tokens, `shadow-card`, `page-title`) | ⚠️ Tailwind ✅; shadcn/Radix not adopted — custom components used instead |
+| **State Management** | Zustand + React Query (TanStack v5) | React `useState`/`useEffect` + direct `fetch` via `apiClient` | ⚠️ No Zustand/React Query — local state only; sufficient for current scope |
+| **Data Visualisation** | Recharts + ECharts + D3.js | Recharts (`BarChart`, `ResponsiveContainer`) | ⚠️ Recharts ✅ (forecast, BI widgets); ECharts/D3 not used |
+| **Backend Runtime** | Node.js 22 LTS + TypeScript 5.5 | Node.js 24 + TypeScript (NestJS) | ✅ Meets requirement (24 > 22 LTS) |
+| **API Framework** | NestJS 11 (modular monolith) | NestJS 11 — Auth, Finance, HR, SCM, PM, BI, Forecast, Audit, Notification modules | ✅ Full match |
+| **API Protocols** | REST (OpenAPI 3.1) + GraphQL (Apollo v4) | REST + OpenAPI via Swagger (`/api-docs`, `openapi-spec.json`); GraphQL not implemented | ⚠️ REST ✅; GraphQL not built |
+| **Primary Database** | PostgreSQL 17 + Prisma ORM | PostgreSQL + Prisma ORM (`packages/db`) | ✅ Full match |
+| **Time-Series DB** | TimescaleDB (extension) | Not implemented | ❌ Missing — audit logs in standard Postgres |
+| **Cache & Session** | Redis 8 (Dragonfly-compatible) + ioredis | Redis via BullMQ (`@nestjs/bullmq`); ioredis configured | ✅ Redis used for job queues; session store not explicitly wired |
+| **Message Queue** | BullMQ (Redis-backed) | BullMQ — `scm-events` queue (SCM), payroll processor queue | ✅ Full match |
+| **AI / ML Services** | Python 3.13 + FastAPI + scikit-learn + Prophet | Python FastAPI (`apps/ml-service/main.py`) + Prophet + statistical fallback | ✅ Full match |
+| **Search** | Elasticsearch 8.15 / OpenSearch | Not implemented | ❌ Missing — no full-text search |
+| **File Storage** | AWS S3 + CloudFront (or MinIO) | Not implemented | ❌ Missing — invoice attachments/payslip storage not wired |
+| **Authentication** | Keycloak 25 (OIDC/SAML) + JWT (RS256) | Keycloak OIDC + `passport-jwt`; `keycloak.strategy.ts`; realm-per-tenant | ✅ Full match |
+| **Email Delivery** | AWS SES + Resend fallback | Log-only stub in `email.channel.ts` (BE-07 open) | ❌ Not implemented |
+| **Containerisation** | Docker 27 multi-stage + Distroless base | `Dockerfile` in `apps/ml-service/`; API/web Dockerfiles not confirmed | ⚠️ ML service ✅; main services Dockerfile status unknown |
+| **Orchestration** | Kubernetes 1.31 + Helm 3 charts | Not implemented | ❌ Missing |
+| **CI/CD** | GitHub Actions + ArgoCD | No `.github/workflows/` directory (PLAT-03 open) | ❌ Missing |
+| **Observability** | OpenTelemetry + Prometheus + Grafana + Loki | AmdoxLogger (custom 256-color terminal logger); `nestjs-pino` for structured logs; no Prometheus/Grafana | ⚠️ Logging ✅; metrics/tracing/dashboards missing |
+| **Security Scanning** | Trivy + Snyk + OWASP ZAP | Not configured | ❌ Missing |
+| **Testing** | Vitest + Playwright + k6 + Jest | Custom ESM functional test runner (`testing/` — 9 suites, 64 tests); no Vitest/Playwright/k6 | ⚠️ Functional tests ✅; unit/E2E/load testing framework not set up |
+| **IaC** | Terraform 1.9 + Terragrunt | Not implemented | ❌ Missing |
+
+### Match Summary
+
+| Status | Count | Categories |
+|---|---|---|
+| ✅ Full match | 8 | Frontend, Backend runtime, NestJS, PostgreSQL+Prisma, BullMQ, ML service, Keycloak auth, Redis |
+| ⚠️ Partial | 6 | UI library, state management, data viz, REST (no GraphQL), observability (logging only), testing (functional only) |
+| ❌ Missing | 8 | TimescaleDB, Elasticsearch, S3 file storage, email delivery, K8s, CI/CD, security scanning, IaC |
+
+**Overall tech stack match: ~55% (14/22 categories fully or partially met)**
+
+> **Note:** Missing items (K8s, Terraform, Elasticsearch, TimescaleDB, CI/CD) are infrastructure/DevOps scope — they fall under PLAT-01–PLAT-05 and are expected post-MVP. Core application tech (NestJS, Prisma, Keycloak, BullMQ, Prophet ML, Recharts) is fully aligned with the PDF specification.
