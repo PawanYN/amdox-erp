@@ -1,0 +1,13 @@
+{
+  "timestamp": "2026-07-04T07:13:35.525Z",
+  "pass": 63,
+  "fail": 1,
+  "skip": 0,
+  "failures": [
+    {
+      "suite": "Smoke Test — Procure-to-Pay Chain (INT-01)",
+      "test": "Step 7: GL journal entry posted (Dr 1300 Inventory / Cr 2000 AP)",
+      "error": "GL journal entry not found for invoice=fdcf040a-8c66-4bb5-9354-da9c828c65bd — invoice.approved → GL bridge may be broken"
+    }
+  ]
+}

@@ -52,10 +52,10 @@ suite('Supply Chain & Inventory', () => {
     assertArray(res.data, 'Purchase orders');
   });
 
-  test('GET /scm/inventory/stock-levels → 200', async () => {
+  test('GET /scm/inventory/warehouses → 200', async () => {
     if (!api.hasToken()) return;
-    const res = await api.get('/scm/inventory/stock-levels');
-    assertOk(res, 'GET /scm/inventory/stock-levels');
+    const res = await api.get('/scm/inventory/warehouses');
+    assertOk(res, 'GET /scm/inventory/warehouses');
   });
 
   test('GET /scm/inventory/reorder-rules → 200 array', async () => {
@@ -65,10 +65,10 @@ suite('Supply Chain & Inventory', () => {
     assertArray(res.data, 'Reorder rules list');
   });
 
-  test('GET /scm/invoices → 200 array (AP)', async () => {
+  test('GET /finance/ap/invoices → 200 array (AP)', async () => {
     if (!api.hasToken()) return;
-    const res = await api.get('/scm/invoices');
-    assertOk(res, 'GET /scm/invoices');
+    const res = await api.get('/finance/ap/invoices');
+    assertOk(res, 'GET /finance/ap/invoices');
     assertArray(res.data, 'AP invoices');
   });
 

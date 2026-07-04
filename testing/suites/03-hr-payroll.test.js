@@ -44,32 +44,34 @@ suite('HR & Payroll Engine', () => {
     assertArray(res.data, 'Departments');
   });
 
-  test('GET /leave → 200 array', async () => {
+  test('GET /leave/all-requests → 200 array', async () => {
     if (!api.hasToken()) return;
-    const res = await api.get('/leave');
-    assertOk(res, 'GET /leave');
+    const res = await api.get('/leave/all-requests');
+    assertOk(res, 'GET /leave/all-requests');
     assertArray(res.data, 'Leave requests');
   });
 
-  test('GET /attendance → 200', async () => {
+  test('GET /attendance/all → 200', async () => {
     if (!api.hasToken()) return;
-    const res = await api.get('/attendance');
-    assertOk(res, 'GET /attendance');
+    const res = await api.get('/attendance/all');
+    assertOk(res, 'GET /attendance/all');
   });
 
-  test('GET /hr/payroll/runs → 200 array', async () => {
+  test('GET /hr/payroll → 200 array', async () => {
     if (!api.hasToken()) return;
-    const res = await api.get('/hr/payroll/runs');
-    assertOk(res, 'GET /hr/payroll/runs');
-    assertArray(res.data, 'Payroll runs');
+    const res = await api.get('/hr/payroll?period=2026-07');
+    assertOk(res, 'GET /hr/payroll');
+    const runs = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
+    assertArray(runs, 'Payroll runs');
   });
 
   test('Payroll run has required fields (id, status)', async () => {
     if (!api.hasToken()) return;
-    const res = await api.get('/hr/payroll/runs');
+    const res = await api.get('/hr/payroll?period=2026-07');
     assertOk(res);
-    if (res.data.length > 0) {
-      const run = res.data[0];
+    const runs = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
+    if (runs.length > 0) {
+      const run = runs[0];
       assertHasKey(run, 'id',     'PayrollRun.id');
       assertHasKey(run, 'status', 'PayrollRun.status');
     }

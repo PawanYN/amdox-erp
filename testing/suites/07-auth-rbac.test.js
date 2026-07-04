@@ -24,15 +24,15 @@ suite('Auth & RBAC', () => {
     assertOk(res, 'GET /auth/me');
     assertHasKey(res.data, 'email',     '/auth/me email');
     assertHasKey(res.data, 'tenantId',  '/auth/me tenantId');
-    assertHasKey(res.data, 'userRoles', '/auth/me userRoles');
+    assertHasKey(res.data, 'roles', '/auth/me roles');
   });
 
-  test('/auth/me userRoles is a non-empty array', async () => {
+  test('/auth/me roles is a non-empty array', async () => {
     if (!api.hasToken()) return;
     const res = await api.get('/auth/me');
     assertOk(res);
-    if (!Array.isArray(res.data.userRoles) || res.data.userRoles.length === 0) {
-      throw new Error('userRoles is empty — RBAC will deny all access');
+    if (!Array.isArray(res.data.roles) || res.data.roles.length === 0) {
+      throw new Error('roles is empty — RBAC will deny all access');
     }
   });
 
@@ -68,7 +68,7 @@ suite('Auth & RBAC', () => {
     if (!api.hasToken()) return;
     const me = await api.get('/auth/me');
     assertOk(me);
-    const roles = me.data.userRoles?.map((r) => r.role?.name) ?? [];
+    const roles = me.data.roles ?? [];
     if (roles.includes('SuperAdmin')) return; // would pass anyway
     const res = await api.post('/tenant/provision', { name: 'test', slug: 'test' });
     if (res.status === 200 || res.status === 201) {

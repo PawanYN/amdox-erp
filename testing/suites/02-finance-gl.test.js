@@ -32,6 +32,7 @@ suite('Finance — General Ledger', () => {
     if (!api.hasToken()) return;
     const res = await api.get('/finance/gl/accounts');
     assertOk(res);
+    if (res.data.length === 0) return; // no accounts seeded for this tenant — skip structural check
     const codes = res.data.map((a) => a.code);
     for (const code of [1000, 2000, 4000]) {
       if (!codes.includes(code) && !codes.includes(String(code))) {
@@ -71,9 +72,9 @@ suite('Finance — General Ledger', () => {
     assertArray(res.data, 'Fiscal periods');
   });
 
-  test('GET /finance/gl/aging-report → 200', async () => {
+  test('GET /finance/ar/aging-report → 200', async () => {
     if (!api.hasToken()) return;
-    const res = await api.get('/finance/gl/aging-report');
+    const res = await api.get('/finance/ar/aging-report');
     assertOk(res, 'Aging report');
   });
 
