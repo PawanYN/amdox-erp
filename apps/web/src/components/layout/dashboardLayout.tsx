@@ -16,17 +16,18 @@ import {
   FolderKanban,
   LogOut,
   BarChart2,
+  TrendingUp,
   PanelLeftClose,
   PanelLeftOpen,
   Search,
 } from "lucide-react";
 
 const ROLES: Record<string, { label: string; sections: string[]; dept: string }> = {
-  tenantadmin: { label: "Tenant Admin",       sections: ["/home", "/bi", "finance", "hr", "scm", "projects", "/notifications", "/settings"], dept: "Administration" },
-  executive:   { label: "Executive",          sections: ["/home", "/bi", "finance", "hr", "scm", "projects", "/settings"], dept: "Executive Office" },
+  tenantadmin: { label: "Tenant Admin",       sections: ["/home", "/bi", "/forecast", "finance", "hr", "scm", "projects", "/notifications", "/settings"], dept: "Administration" },
+  executive:   { label: "Executive",          sections: ["/home", "/bi", "/forecast", "finance", "hr", "scm", "projects", "/settings"], dept: "Executive Office" },
   finance:     { label: "Finance Team",       sections: ["/home", "finance", "/settings"],                                  dept: "Finance" },
   hr:          { label: "HR & Payroll",       sections: ["/home", "hr", "/settings"],                                       dept: "Human Resources" },
-  scm:         { label: "Supply Chain Mgr",   sections: ["/home", "scm", "/settings"],                                      dept: "Supply Chain" },
+  scm:         { label: "Supply Chain Mgr",   sections: ["/home", "scm", "/forecast", "/settings"],                         dept: "Supply Chain" },
   pm:          { label: "Project Manager",    sections: ["/home", "projects", "/settings"],                                  dept: "Project Management" },
   it:          { label: "IT Administrator",   sections: ["/home", "/settings"],                                              dept: "IT Administration" },
 };
@@ -43,6 +44,7 @@ interface NavSection {
 const NAV: NavSection[] = [
   { id: "/home",          icon: LayoutDashboard, label: "Dashboard",       leaf: true },
   { id: "/bi",            icon: BarChart2,        label: "BI Reports",      leaf: true },
+  { id: "/forecast",      icon: TrendingUp,       label: "AI Forecast",     leaf: true },
   {
     id: "finance", icon: Wallet, label: "Finance",
     children: [
