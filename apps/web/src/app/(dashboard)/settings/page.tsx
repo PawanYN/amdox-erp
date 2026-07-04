@@ -1,25 +1,21 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { 
-  Building2, 
-  ShieldCheck, 
-  Key, 
-  ScrollText, 
-  Save, 
+import {
+  Building2,
+  ShieldCheck,
+  ScrollText,
+  Save,
   AlertCircle,
   FileText,
   Mail,
   Clock,
   UserCheck,
   Share2,
-  Trash2,
-  Plus,
   Settings2,
   CheckCircle2,
   Sliders,
   ShieldAlert,
-  HelpCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
@@ -27,6 +23,7 @@ import { auditApi } from "@/lib/api/audit-api";
 import { tenantApi } from "@/lib/api/tenant-api";
 import { useKeycloak } from "@/components/KeycloakProvider";
 import { apiClient } from "@/lib/api/client";
+import { IdpManager } from "@/components/settings/idp-manager";
 
 function AdminRequired() {
   return (
@@ -99,7 +96,6 @@ export default function SettingsPage() {
   const [requiredActions, setRequiredActions] = useState<any[]>([]);
   const [authFlows, setAuthFlows] = useState<any[]>([]);
   const [identityProviders, setIdentityProviders] = useState<any[]>([]);
-  const [newIdp, setNewIdp] = useState({ alias: "", providerId: "", displayName: "", enabled: true });
 
   const tabs = [
     { id: "general", label: "General", icon: Building2 },
@@ -194,24 +190,6 @@ export default function SettingsPage() {
       setRequiredActions(await tenantApi.getRequiredActions());
     } catch (err) {
       setErrorMsg("Connection failure while updating action.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCreateIdp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newIdp.alias || !newIdp.providerId) return;
-    setLoading(true);
-    setSuccessMsg(null);
-    setErrorMsg(null);
-    try {
-      await tenantApi.createIdentityProvider(newIdp);
-      setSuccessMsg(`Identity provider '${newIdp.alias}' added!`);
-      setNewIdp({ alias: "", providerId: "", displayName: "", enabled: true });
-      setIdentityProviders(await tenantApi.getIdentityProviders());
-    } catch (err) {
-      setErrorMsg("Connection failure while adding identity provider.");
     } finally {
       setLoading(false);
     }
@@ -908,81 +886,19 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {/* IDENTITY PROVIDERS (OIDC / SAML / Microsoft / Google) */}
-          {activeTab === "idp" && !isAdmin && (
-            <AdminRequired />
-          )}
+          {/* IDENTITY PROVIDERS (OIDC / SAML / Microsoft / Google / GitHub …) */}
+          {activeTab === "idp" && !isAdmin && <AdminRequired />}
           {activeTab === "idp" && isAdmin && (
-            <div className="space-y-6">
-              <h2 className="text-sm font-semibold text-gray-900 pb-2 border-b">Configured Identity Providers</h2>
-              <p className="text-xs text-gray-500">Add external social or enterprise (SAML 2.0 / Azure AD) connections for Single Sign-On (SSO).</p>
-
-              {/* Add form */}
-              <form onSubmit={handleCreateIdp} className="p-4 bg-gray-50 rounded-lg border border-gray-200 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                <div>
-                  <label className="block text-[10px] font-medium text-gray-700 mb-1">Provider ID</label>
-                  <select 
-                    value={newIdp.providerId}
-                    onChange={(e) => setNewIdp({ ...newIdp, providerId: e.target.value })}
-                    required
-                    className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-xs bg-white"
-                  >
-                    <option value="">-- Choose Provider --</option>
-                    <option value="saml">SAML v2.0</option>
-                    <option value="microsoft">Microsoft (Entra ID/Azure AD)</option>
-                    <option value="google">Google Workspace</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-medium text-gray-700 mb-1">Alias ID</label>
-                  <input 
-                    type="text"
-                    placeholder="my-saml-provider"
-                    value={newIdp.alias}
-                    onChange={(e) => setNewIdp({ ...newIdp, alias: e.target.value })}
-                    required
-                    className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-medium text-gray-700 mb-1">Display Name</label>
-                  <input 
-                    type="text"
-                    placeholder="SSO Login"
-                    value={newIdp.displayName}
-                    onChange={(e) => setNewIdp({ ...newIdp, displayName: e.target.value })}
-                    className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-xs"
-                  />
-                </div>
-                <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white py-1.5 text-xs">
-                  <Plus size={14} className="mr-1" /> Add Provider
-                </Button>
-              </form>
-
-              {/* List */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {identityProviders.map((idp: any) => (
-                  <div key={idp.alias} className="p-4 border border-gray-200 rounded-lg flex items-center justify-between">
-                    <div>
-                      <h4 className="text-xs font-bold text-gray-900">{idp.displayName || idp.alias}</h4>
-                      <p className="text-[10px] text-gray-500 mt-1">Type: {idp.providerId} · Alias: {idp.alias}</p>
-                    </div>
-                    <Button 
-                      variant="ghost" 
-                      onClick={() => handleDeleteIdp(idp.alias)}
-                      className="text-red-600 hover:text-red-800 hover:bg-red-50 p-1"
-                    >
-                      <Trash2 size={14} />
-                    </Button>
-                  </div>
-                ))}
-                {identityProviders.length === 0 && (
-                  <div className="col-span-2 py-8 text-center text-xs text-gray-400">
-                    No Identity Providers configured for this workspace.
-                  </div>
-                )}
-              </div>
-            </div>
+            <IdpManager
+              identityProviders={identityProviders}
+              tenantSlug={tenantConfig.slug || "my-realm"}
+              onAdd={async (body) => {
+                await tenantApi.createIdentityProvider(body);
+                setSuccessMsg(`Identity provider '${(body as any).alias}' added!`);
+                try { setIdentityProviders(await tenantApi.getIdentityProviders()); } catch { /* ignore */ }
+              }}
+              onDelete={handleDeleteIdp}
+            />
           )}
 
           {/* AUDIT LOGS */}
