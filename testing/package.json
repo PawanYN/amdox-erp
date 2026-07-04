@@ -1,0 +1,18 @@
+{
+  "name": "amdox-erp-tests",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Amdox ERP functional test suite — Day 14 (AMX-ERP-2026-04)",
+  "scripts": {
+    "test": "node run-all.js",
+    "test:health": "node run-all.js --suite 01",
+    "test:finance": "node run-all.js --suite 02",
+    "test:hr": "node run-all.js --suite 03",
+    "test:scm": "node run-all.js --suite 04",
+    "test:pm": "node run-all.js --suite 05",
+    "test:forecast": "node run-all.js --suite 06",
+    "test:auth": "node run-all.js --suite 07",
+    "test:smoke": "node run-all.js --suite 08",
+    "test:audit": "node run-all.js --suite 09"
+  }
+}

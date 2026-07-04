@@ -1,0 +1,13 @@
+{
+  "timestamp": "2026-07-04T06:26:30.967Z",
+  "pass": 63,
+  "fail": 1,
+  "skip": 0,
+  "failures": [
+    {
+      "suite": "HR & Payroll Engine",
+      "test": "GET /hr/employees → 401 without token",
+      "error": "No token → 401: expected HTTP 401, got 404.\n  Body: undefined"
+    }
+  ]
+}
