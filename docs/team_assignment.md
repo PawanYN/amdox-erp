@@ -2,7 +2,7 @@
 
 > **Sources:** Amdox Web.pdf · amdox-erp-detailed-2.html · Live codebase review (July 2026)  
 > **Audience:** Project Manager — task ownership and sprint tracking  
-> **Last updated:** 4 July 2026 (session 3) — AmdoxLogger 256-color branded terminal logger created + integrated across 9 critical API files; `docs/amdox-logger.md` documentation written; Identity Providers tab completely rebuilt with Keycloak-reference UI (provider card picker, per-provider forms for Google/Microsoft/GitHub/SAML/OIDC, Redirect URI copy, toggle switches, secret show/hide, breadcrumb nav) — fulfils PDF F-01
+> **Last updated:** 4 July 2026 (session 4) — AI Demand Forecast dashboard completed: ForecastPanel upgraded with Recharts BarChart + 14d/30d horizon selector + model status; `GET /forecast/products` backend endpoint added; new `/scm/forecast` global dashboard (stats cards, MAPE-by-SKU chart, SKU table with Train/Re-train per row, train-all); AI Forecast tab added to SCM nav — closes FE-14, INT-06, F-06
 
 ---
 
@@ -40,6 +40,7 @@
 | **BI Dashboard Builder**       | Full stack: `apps/api/src/bi/` (8 files) + `components/bi/` (12 files) → `/bi` route; redesigned with fixed scroll, Data pane, Filters pane, clean toolbar                               |
 | **Notifications (in-app)**     | `notifications/page.tsx` → `PATCH /notifications/:id/read` (FE-15)                                                                                                                       |
 | **ML Forecast service**        | `apps/ml-service/main.py` + `forecast.controller.ts` (BE-09)                                                                                                                             |
+| **AI Forecast UI**             | ForecastPanel upgraded with Recharts + horizon selector + model status (inventory page); `/scm/forecast` global dashboard — stats cards, MAPE chart, SKU table with per-row train button; `GET /forecast/products` backend endpoint — closes FE-14, INT-06, F-06 |
 | **Audit pipeline**             | `audit-event.listener.ts` — 25+ events with hash chain (BE-06)                                                                                                                           |
 | **UI Design System**           | 40+ files overhauled: consistent blue/slate palette, Inter font, `globals.css` `@theme` tokens, shadow-card, page-title/subtitle, custom scrollbar, all modules                          |
 | **Dashboard shell**            | `DashboardLayoutClient` (`ssr:false`) fixes hydration mismatch; collapsible sidebar; Settings visible to all roles; IT Admin restricted to Home + Settings                               |
@@ -55,7 +56,6 @@
 | -------------------------- | ---------------------------------------------------------------------------------- | ------------------ | -------------------------------------------------------------- | ----- | --- |
 | **SCM admin UI**           | Vendor add = `console.log` stub; no product page; inventory PR is local state only | FE-01–FE-05, BE-01 |                                                                |       |     |
 | **Finance forms**          | "New Account" button inert; AP OCR upload API exists but no file-upload UI         | FE-06, FE-08       |                                                                |       |     |
-| **Forecast UI**            | `forecast-api.ts` exists; no train button on inventory page                        | FE-14, INT-06      |                                                                |       |     |
 | **Integrations E2E**       | All PM/HR/Finance bridges verified; INT-08 audit userId still partial              | INT-08             |                                                                |       |     |
 | **Notifications delivery** | Email/webhook channels are log-only stubs                                          | BE-07              |                                                                |       |     |
 |                            |                                                                                    | **FIFO outbound**  | Inbound cost layers on goods receipt ✅; outbound consumption ❌ | BE-05 |     |
@@ -74,7 +74,7 @@
 | HR & Payroll                  | ✅ Mostly done | Employee CRUD ✅; departments ✅; leave/attendance/payroll on live APIs ✅; payslip PDF ✅; period picker ✅                          |
 | SCM                           | ⚠️ Partial    | PO + requisition flow works; vendor add stub; product/inventory admin UI missing (FE-01–FE-05)                                   |
 | Project Management            | ✅ Strong      | Project edit/status UI ✅ (FE-13); wizard, material requests, budget bridges                                                      |
-| BI / Forecast / Notifications | ⚠️ Partial    | BI workspace redesigned ✅ — fixed scroll, Data pane, Filters pane, clean toolbar; mark-read ✅; forecast train UI missing (FE-14) |
+| BI / Forecast / Notifications | ✅ Mostly done | BI workspace redesigned ✅ — fixed scroll, Data pane, Filters pane, clean toolbar; mark-read ✅; AI Forecast dashboard ✅ — Recharts panel + `/scm/forecast` global view (FE-14 ✅, INT-06 ✅, F-06 ✅) |
 | Settings                      | ✅ Mostly done | Horizontal tab bar; role-based tab access via `/auth/me`; AdminRequired guard; TenantAdmin provisioning; IdP manager fully rebuilt (F-01) |
 | UI Design System              | ✅ Done        | 40+ pages overhauled; blue/slate palette; Inter font; design tokens in `globals.css`; consistent across all modules              |
 | Platform / Deploy             | ❌ Not started | No live demo URL, CI, or security hardening (PLAT-01–PLAT-04)                                                                    |
@@ -85,27 +85,29 @@
 
 | Layer              | ✅ Done | ⚠️ Partial | ❌ Not started | Total  |
 | ------------------ | ------ | ---------- | ------------- | ------ |
-| Frontend (FE)      | 10     | 2          | 6             | 18     |
+| Frontend (FE)      | 11     | 2          | 5             | 18     |
 | Backend (BE)       | 9      | 1          | 1             | 11     |
 | Integrations (INT) | 9      | 0          | 0             | 9      |
 | Platform (PLAT)    | 0      | 1          | 4             | 5      |
-| **All tasks**      | **28** | **4**      | **11**        | **43** |
+| **All tasks**      | **29** | **4**      | **10**        | **43** |
 
 
 > **Also shipped (session 2, not in task table):** Complete UI overhaul (40+ files), BI workspace redesign, Settings RBAC fix, `/auth/me` endpoint, Keycloak role provisioning, `TenantAdmin` role standardisation, `DashboardLayoutClient` hydration fix.
 
 > **Also shipped (session 3, not in task table):** AmdoxLogger 256-color branded logger (`common/logger/amdox-logger.ts`) integrated into 9 API files with startup banner; `docs/amdox-logger.md`; Identity Providers tab rebuilt from scratch matching Keycloak reference screenshots — provider card picker grid (User-defined + Social), dedicated add forms per provider (Google, Microsoft, GitHub, SAML v2.0, Keycloak OIDC, OpenID Connect v1.0) with all correct fields, Redirect URI copy button, toggle switches, secret show/hide, breadcrumb navigation — fulfils PDF F-01.
 
-**Completion:** ~65% done · ~9% partial · ~26% not started
+> **Also shipped (session 4, not in task table):** ForecastPanel (inventory page) upgraded — Recharts `BarChart` with date/qty axes, 14d/30d horizon selector, model type badge, last trained date; `GET /forecast/products` backend endpoint (mapeScore, trainedAt, modelType, predictionCount per SKU); `forecastApi.getAllForecastStatus()` frontend client method; `/scm/forecast` global AI Forecast dashboard — stats cards (total SKUs, trained, avg MAPE, stale count), MAPE-by-SKU bar chart, full SKU table with per-row Train/Re-train button and train-all; AI Forecast tab added to SCM nav — closes FE-14, INT-06, F-06.
+
+**Completion:** ~67% done · ~9% partial · ~23% not started
 
 ### Progress by owner
 
 
 | Owner          | ✅ Done                                                                                                                                                                                                                                                                              | ⚠️ Partial     | ❌ Open                     |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- | -------------------------- |
-| **pawan**      | FE-07, FE-09, FE-10, FE-11, FE-12, FE-13, FE-15, FE-16, FE-17, FE-18, BE-02, BE-03, BE-04, BE-05, BE-06, BE-08, BE-09, BE-10, BE-11, INT-01, INT-02, INT-03, INT-04, INT-05, INT-06, INT-07, INT-08, INT-09 + UI overhaul + BI redesign + Settings RBAC + Auth/me + KC provisioning + AmdoxLogger + IdP UI (F-01) | —              | —                          |
+| **pawan**      | FE-07, FE-09, FE-10, FE-11, FE-12, FE-13, FE-14, FE-15, FE-16, FE-17, FE-18, BE-02, BE-03, BE-04, BE-05, BE-06, BE-08, BE-09, BE-10, BE-11, INT-01, INT-02, INT-03, INT-04, INT-05, INT-06, INT-07, INT-08, INT-09 + UI overhaul + BI redesign + Settings RBAC + Auth/me + KC provisioning + AmdoxLogger + IdP UI (F-01) + AI Forecast dashboard (F-06) | —              | —                          |
 | **shraddha**   | —                                                                                                                                                                                                                                                                                   | FE-02          | FE-01                      |
-| **sibi**       | —                                                                                                                                                                                                                                                                                   | —              | FE-03, FE-04, FE-05, FE-14 |
+| **sibi**       | —                                                                                                                                                                                                                                                                                   | —              | FE-03, FE-04, FE-05        |
 | **Agrim**      | —                                                                                                                                                                                                                                                                                   | FE-08          | FE-06                      |
 | **Shreya**     | —                                                                                                                                                                                                                                                                                   | —              | BE-01                      |
 | **Unassigned** | —                                                                                                                                                                                                                                                                                   | BE-05, PLAT-04 | BE-07, PLAT-01–03, PLAT-05 |
@@ -131,7 +133,7 @@
 | FE-11 | ✅      | `#frontend` `#hr` `#form` `#api-wire`         | Employee edit/delete actions         | Row actions → `PATCH/DELETE /employees/:id`                                               | P1       | pawan       |
 | FE-12 | ✅      | `#frontend` `#hr` `#form`                     | Department admin page                | CRUD for `/departments`                                                                   | P2       | pawan       |
 | FE-13 | ✅      | `#frontend` `#pm` `#form`                     | Project edit / status change UI      | Edit metadata; lifecycle status change via PATCH                                          | P2       | pawan       |
-| FE-14 | ❌      | `#frontend` `#forecast` `#api-wire`           | Forecast train button on inventory   | Per-SKU → `POST /forecast/products/:id/train`                                             | P2       | sibi        |
+| FE-14 | ✅      | `#frontend` `#forecast` `#api-wire`           | Forecast train button on inventory + global dashboard | Recharts ForecastPanel with horizon selector; `/scm/forecast` page with MAPE chart, SKU table, train-all | P2       | pawan       |
 | FE-15 | ✅      | `#frontend` `#notifications` `#api-wire`      | Mark notification as read            | Wire `PATCH /notifications/:id/read` on click                                             | P2       | pawan       |
 | FE-16 | ✅      | `#frontend` `#cleanup`                        | Replace hardcoded `localhost:3001`   | All pages use `apiClient` / `hrApi` / `tenantApi`                                         | P1       | pawan       |
 | FE-17 | ✅      | `#frontend` `#cleanup`                        | Remove dead mock imports             | No `@/lib/mock` imports in app code; 3 orphan files remain (`hr.ts`, `it.ts`, `pm-v2.ts`) | P2       | pawan       |
@@ -218,7 +220,7 @@
 | Material Request            | ✅        | ✅        | Done                                                                                    | —            | —           |
 | Tenant / SSO Settings       | ✅        | ✅        | Real API via `tenantApi` + Keycloak admin                                               | FE-16        | pawan       |
 | GDPR DSR                    | ⚠️       | ⚠️       | Settings tab wired; fulfill = status flip only                                          | QA           | —           |
-| Forecast Train              | ✅        | ❌        | No UI on inventory                                                                      | FE-14        | sibi        |
+| Forecast Train              | ✅        | ✅        | Recharts panel on inventory + `/scm/forecast` global dashboard                          | FE-14        | pawan       |
 | BI Custom Dashboard         | ✅ CRUD   | ✅        | Full workspace at `/bi`                                                                 | —            | pawan       |
 | Notifications (mark read)   | ✅        | ✅        | Click to mark read                                                                      | FE-15        | pawan       |
 
@@ -231,7 +233,7 @@
 | Slot       | Assigned To | Focus area        | Open task IDs                                              | Layer               |
 | ---------- | ----------- | ----------------- | ---------------------------------------------------------- | ------------------- |
 | **Slot 1** | shraddha    | SCM — Vendor      | FE-01, FE-02                                               | Frontend            |
-| **Slot 2** | sibi        | SCM — Catalog/Inv | FE-03, FE-04, FE-05, FE-14                                 | Frontend            |
+| **Slot 2** | sibi        | SCM — Catalog/Inv | FE-03, FE-04, FE-05                                        | Frontend            |
 | **Slot 3** | Agrim       | Finance UI        | FE-06, FE-08                                               | Frontend            |
 | **Slot 4** | pawan       | —                 | **All pawan tasks complete** (19 tasks incl. BE-08, BE-11) | Backend + Frontend  |
 | **Slot 5** | Shreya      | Backend SCM + GL  | BE-01                                                      | Backend             |
@@ -285,7 +287,7 @@
 | ------------ | -------- | --------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------ |
 | **Sprint 1** | P0       | FE-01, FE-06, FE-07, INT-01, PLAT-01, PLAT-02 | Demo-ready: vendor form, GL forms, P2P E2E, live URL + video | ⚠️ **2/6** (FE-07 ✅, INT-01 ✅)                                           |
 | **Sprint 2** | P1       | FE-03–FE-05, FE-08–FE-11, INT-02–INT-05       | SCM admin, AP OCR, AR, HR polish, PM bridges                 | ⚠️ **3/11** (FE-09–FE-11 ✅; FE-03–05, FE-08 open; INT-02–05 all partial) |
-| **Sprint 3** | P2       | BE-02, FE-14, BE-06, PLAT-03, PLAT-04, BE-11  | Order-to-Cash, forecast, audit, CI + security, RBAC          | ⚠️ **3/6** (BE-02, BE-06, BE-11 ✅; FE-14, PLAT-03, PLAT-04 open)         |
+| **Sprint 3** | P2       | BE-02, FE-14, BE-06, PLAT-03, PLAT-04, BE-11  | Order-to-Cash, forecast, audit, CI + security, RBAC          | ⚠️ **4/6** (BE-02, BE-06, BE-11, FE-14 ✅; PLAT-03, PLAT-04 open)        |
 
 
 **Sprint 1 blockers:** FE-01, FE-06, PLAT-01, PLAT-02.
@@ -302,7 +304,6 @@
 | 3   | PLAT-01, PLAT-02        | Sprint 1 P0 — demo submission (live URL, video)                                           |
 | 4   | FE-03–FE-05             | SCM admin pages; backend CRUD exists for products/inventory/reorder                       |
 | 5   | FE-08                   | AP OCR upload; `financeApi.uploadInvoice` in client, no UI on `finance/invoices/page.tsx` |
-| 6   | FE-14 + INT-06          | Forecast train button; `forecastApi.train()` unused in any page                           |
 | 7   | BE-05                   | Outbound FIFO consumption (inbound layers in `purchase.service.ts` only)                  |
 | 8   | INT-04, INT-05          | Payroll → GL journal not verified (`payroll.completed` event exists)                      |
 | 9   | BE-07, PLAT-03, PLAT-04 | Email delivery, CI pipeline, security hardening                                           |
@@ -333,7 +334,7 @@
 | F-02 | GL — period close, intercompany | FE-06              | ⚠️ Partial (BE-03 ✅, BE-04 ✅, journal UI ✅) |
 | F-03 | AP/AR — OCR, payment runs       | FE-08              | ⚠️ Partial (FE-09 ✅, aging report ✅)        |
 | F-05 | SCM — vendor portal, notify     | FE-01–FE-05, BE-07 | ⚠️ Partial (BE-08 portal ✅; email stub)     |
-| F-06 | AI demand forecasting           | FE-14, INT-06      | ⚠️ Partial (BE-09 ✅, ml-service ✅)          |
+| F-06 | AI demand forecasting           | —                  | ✅ Done — BE-09 ✅, ml-service ✅, FE-14 ✅ (Recharts panel + `/scm/forecast` global dashboard) |
 | F-07 | PM — Gantt, milestone alerts    | INT-02–INT-04      | ⚠️ Partial (FE-13 ✅)                        |
 | F-08 | BI — dashboard builder          | —                  | ✅ Done (BE-10 + bi-workspace)               |
 | F-09 | Audit & GDPR                    | GDPR export/erase  | ⚠️ Partial (BE-06 ✅, audit API live)        |
@@ -350,7 +351,7 @@
 
 | Item                   | Count | Location                                                                                            |
 | ---------------------- | ----- | --------------------------------------------------------------------------------------------------- |
-| Dashboard routes       | 27    | `apps/web/src/app/(dashboard)/**/page.tsx`                                                          |
+| Dashboard routes       | 28    | `apps/web/src/app/(dashboard)/**/page.tsx`                                                          |
 | API modules            | 11    | `auth`, `tenant`, `finance`, `hr`, `scm`, `pm`, `bi`, `forecast`, `audit`, `notification`, `health` |
 | BI frontend components | 12    | `apps/web/src/components/bi/`                                                                       |
 | BI backend files       | 8     | `apps/api/src/bi/`                                                                                  |
