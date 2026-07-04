@@ -5,4 +5,6 @@ export const forecastApi = {
     apiClient(`/forecast/products/${productId}/train`, { method: 'POST' }),
   getPredictions: (productId: string) =>
     apiClient(`/forecast/products/${productId}`),
+  getAllForecastStatus: () =>
+    apiClient(`/forecast/products`),
 };

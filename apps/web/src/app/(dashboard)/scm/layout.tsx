@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Package, Truck, FileText, CheckCircle } from "lucide-react";
+import { Package, Truck, FileText, CheckCircle, TrendingUp } from "lucide-react";
 
 const TABS = [
   { id: "inventory", label: "Inventory",        path: "/scm/inventory",       icon: Package },
   { id: "po",        label: "Purchase Orders",   path: "/scm/purchase-orders", icon: FileText },
   { id: "gr",        label: "Goods Receipt",     path: "/scm/goods-receipt",   icon: Truck },
   { id: "invoice",   label: "AP Invoice (3-way)", path: "/scm/invoices",       icon: CheckCircle },
+  { id: "forecast",  label: "AI Forecast",        path: "/scm/forecast",        icon: TrendingUp },
 ];
 
 export default function SCMLayout({ children }: { children: React.ReactNode }) {

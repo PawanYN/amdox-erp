@@ -59,4 +59,36 @@ export class ForecastController {
   getPredictions(@Req() req: any, @Param('productId') productId: string) {
     return this.forecastService.getPredictions(this.tenantId(req), productId);
   }
+
+  @Roles('SuperAdmin', 'TenantAdmin', 'Manager', 'Viewer')
+  @Get('products')
+  @ApiOperation({ summary: 'List all products with their latest forecast model info' })
+  async getAllForecastStatus(@Req() req: any) {
+    const tenantId = this.tenantId(req);
+    const products = await this.prisma.product.findMany({
+      where: { tenantId },
+      select: { id: true, sku: true, name: true, category: true },
+      orderBy: { name: 'asc' },
+    });
+
+    const results = await Promise.all(
+      products.map(async (product) => {
+        const predictions = await this.prisma.forecastPrediction.findMany({
+          where: { tenantId, productId: product.id },
+          include: { forecastModel: true },
+          orderBy: { forecastDate: 'asc' },
+        });
+        const model = predictions[0]?.forecastModel ?? null;
+        return {
+          ...product,
+          predictionCount: predictions.length,
+          mapeScore: model?.mapeScore ?? null,
+          trainedAt: model?.trainedAt ?? null,
+          modelType: model?.type ?? null,
+        };
+      }),
+    );
+
+    return results;
+  }
 }

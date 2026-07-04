@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { AlertTriangle, Check, TrendingUp, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import { AlertTriangle, Check, TrendingUp, ChevronDown, ChevronRight, Loader2, BarChart2 } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { scmApi } from "@/lib/api/scm-api";
 import { forecastApi } from "@/lib/api/forecast-api";
 
@@ -26,20 +27,31 @@ type InventoryItem = {
 
 type Prediction = { forecastDate: string; predictedQty: number };
 
+const HORIZON_OPTIONS = [14, 30] as const;
+type Horizon = (typeof HORIZON_OPTIONS)[number];
+
 function ForecastPanel({ productId, productName }: { productId: string; productName: string }) {
   const [training, setTraining] = useState(false);
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [mape, setMape] = useState<number | null>(null);
+  const [modelType, setModelType] = useState<string | null>(null);
+  const [trainedAt, setTrainedAt] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [horizon, setHorizon] = useState<Horizon>(30);
 
   const load = useCallback(async () => {
-    const data = await forecastApi.getPredictions(productId);
-    if (data.length > 0) {
-      setPredictions(data.slice(0, 14));
-      setMape(data[0]?.forecastModel?.mapeScore ?? null);
-      setLoaded(true);
-    }
+    try {
+      const data = await forecastApi.getPredictions(productId);
+      if (data.length > 0) {
+        setPredictions(data);
+        const fm = data[0]?.forecastModel;
+        setMape(fm?.mapeScore ?? null);
+        setModelType(fm?.type ?? null);
+        setTrainedAt(fm?.trainedAt ?? null);
+        setLoaded(true);
+      }
+    } catch { /* no predictions yet */ }
   }, [productId]);
 
   useEffect(() => { load(); }, [load]);
@@ -50,7 +62,9 @@ function ForecastPanel({ productId, productName }: { productId: string; productN
     try {
       const result = await forecastApi.train(productId);
       setMape(result.mape ?? null);
-      setPredictions((result.predictions ?? []).slice(0, 14).map((p: any) => ({
+      setModelType(result.model?.type ?? null);
+      setTrainedAt(result.model?.trainedAt ?? new Date().toISOString());
+      setPredictions((result.predictions ?? []).map((p: any) => ({
         forecastDate: p.date,
         predictedQty: p.quantity,
       })));
@@ -62,56 +76,96 @@ function ForecastPanel({ productId, productName }: { productId: string; productN
     }
   };
 
-  const maxQty = predictions.length > 0 ? Math.max(...predictions.map((p) => p.predictedQty)) : 1;
+  const displayed = predictions.slice(0, horizon);
+  const chartData = displayed.map((p) => ({
+    date: new Date(p.forecastDate).toLocaleDateString("en-IN", { month: "short", day: "numeric" }),
+    qty: p.predictedQty,
+  }));
 
   return (
     <div className="mt-3 border-t border-[#F0EEE7] pt-3">
       <div className="flex items-center justify-between mb-2">
-        <p className="text-[11px] font-semibold text-[#8A8678] flex items-center gap-1">
-          <TrendingUp size={11} className="text-[#1E3A5F]" />
-          AI Demand Forecast — <span className="font-mono text-[#1E3A5F]">{productName}</span>
+        <div className="flex items-center gap-2 flex-wrap">
+          <p className="text-[11px] font-semibold text-[#8A8678] flex items-center gap-1">
+            <TrendingUp size={11} className="text-[#1E3A5F]" />
+            AI Demand Forecast — <span className="font-mono text-[#1E3A5F]">{productName}</span>
+          </p>
           {mape !== null && (
-            <span className="ml-2 text-[#2F6B4F]">MAPE {(mape * 100).toFixed(1)}%</span>
+            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-[#2F6B4F]/10 text-[#2F6B4F]">
+              MAPE {(mape * 100).toFixed(1)}%
+            </span>
           )}
-        </p>
-        <button
-          onClick={train}
-          disabled={training}
-          className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md bg-[#1E3A5F] text-white disabled:opacity-50"
-        >
-          {training ? <Loader2 size={10} className="animate-spin" /> : <TrendingUp size={10} />}
-          {training ? "Training…" : loaded ? "Re-train" : "Train forecast"}
-        </button>
+          {modelType && (
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#1E3A5F]/10 text-[#1E3A5F]">
+              {modelType}
+            </span>
+          )}
+          {trainedAt && (
+            <span className="text-[10px] text-[#8A8678]">
+              trained {new Date(trainedAt).toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "2-digit" })}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5">
+          {loaded && (
+            <div className="flex rounded overflow-hidden border border-[#E4E2DC] text-[10px]">
+              {HORIZON_OPTIONS.map((h) => (
+                <button
+                  key={h}
+                  onClick={() => setHorizon(h)}
+                  className={`px-2 py-0.5 ${horizon === h ? "bg-[#1E3A5F] text-white" : "bg-white text-[#8A8678] hover:bg-[#F0EEE7]"}`}
+                >
+                  {h}d
+                </button>
+              ))}
+            </div>
+          )}
+          <button
+            onClick={train}
+            disabled={training}
+            className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md bg-[#1E3A5F] text-white disabled:opacity-50"
+          >
+            {training ? <Loader2 size={10} className="animate-spin" /> : <BarChart2 size={10} />}
+            {training ? "Training…" : loaded ? "Re-train" : "Train forecast"}
+          </button>
+        </div>
       </div>
 
       {error && <p className="text-[11px] text-[#B4533B] mb-2">{error}</p>}
 
-      {loaded && predictions.length > 0 ? (
-        <div className="space-y-1">
-          <p className="text-[10px] text-[#8A8678] mb-1">
-            Next {predictions.length} days demand forecast (units/day)
+      {loaded && chartData.length > 0 ? (
+        <div>
+          <p className="text-[10px] text-[#8A8678] mb-1.5">
+            {horizon}-day demand forecast (units/day)
           </p>
-          <div className="flex items-end gap-0.5 h-12">
-            {predictions.map((p) => (
-              <div
-                key={p.forecastDate}
-                className="flex-1 bg-[#1E3A5F]/20 rounded-sm hover:bg-[#1E3A5F]/40 transition-colors relative group"
-                style={{ height: `${Math.max(4, (p.predictedQty / maxQty) * 48)}px` }}
-              >
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block bg-[#14171F] text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap z-10">
-                  {new Date(p.forecastDate).toLocaleDateString("en-IN", { month: "short", day: "numeric" })}: {p.predictedQty}u
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="flex justify-between text-[9px] text-[#8A8678] font-mono">
-            <span>{new Date(predictions[0].forecastDate).toLocaleDateString("en-IN", { month: "short", day: "numeric" })}</span>
-            <span>{new Date(predictions[predictions.length - 1].forecastDate).toLocaleDateString("en-IN", { month: "short", day: "numeric" })}</span>
-          </div>
+          <ResponsiveContainer width="100%" height={90}>
+            <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#F0EEE7" vertical={false} />
+              <XAxis
+                dataKey="date"
+                tick={{ fontSize: 9, fill: "#8A8678" }}
+                interval={Math.floor(chartData.length / 5)}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                tick={{ fontSize: 9, fill: "#8A8678" }}
+                axisLine={false}
+                tickLine={false}
+                allowDecimals={false}
+              />
+              <Tooltip
+                contentStyle={{ fontSize: 11, border: "1px solid #E4E2DC", borderRadius: 6, padding: "4px 8px" }}
+                formatter={(v) => [`${v} units`, "Forecast"]}
+                cursor={{ fill: "#1E3A5F10" }}
+              />
+              <Bar dataKey="qty" fill="#1E3A5F" radius={[2, 2, 0, 0]} maxBarSize={16} />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       ) : !loaded ? (
         <p className="text-[11px] text-[#8A8678]">
-          Click "Train forecast" to use {"{"}SCM stock movements{"}"}  as training data for the Prophet ML model.
+          Click "Train forecast" to run the Prophet ML model on SCM stock movement history.
         </p>
       ) : null}
     </div>
