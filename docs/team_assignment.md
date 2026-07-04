@@ -2,7 +2,7 @@
 
 > **Sources:** Amdox Web.pdf · amdox-erp-detailed-2.html · Live codebase review (July 2026)  
 > **Audience:** Project Manager — task ownership and sprint tracking  
-> **Last updated:** 4 July 2026 (session 5) — Functional test suite created (`testing/`): 9 suites, 64 tests, 64/64 pass; covers health, Finance GL, HR/Payroll, SCM, PM, AI Forecast, Auth/RBAC, cross-module P2P smoke test (Day 14 PDF), Audit/GDPR; AmdoxLogger-style ANSI output + JSON result files; HTTP log interceptor replacing Pino raw logs; RolesGuard console.log → AmdoxLogger; AI Forecast sidebar entry added
+> **Last updated:** 4 July 2026 (session 6) — Full authenticated test run with live Keycloak JWT: 19 route/field-name failures diagnosed and fixed across 6 suites; smoke test made self-contained (auto-creates product + GL accounts); `TERMINAL_TEST_LOG.md` added (11 sections — commands, results, analysis per terminal diagnostic); final result: **64/64 pass with real token**
 
 ---
 
@@ -50,6 +50,7 @@
 | **HTTP logging + RolesGuard** | `HttpLoggingInterceptor` replaces Pino raw "request completed" JSON with AmdoxLogger `[ HTTP ]` teal lines (warn on 4xx, error on 5xx); RolesGuard `console.log` → `AmdoxLogger.warn()` on deny only; Pino `autoLogging: false` |
 | **Functional test suite**     | `testing/` — 9 suites, 64 tests, **64/64 pass** (Day 14 PDF); custom ESM runner + AmdoxLogger-style ANSI output + JSON result files; covers: health, Finance GL (double-entry enforcement), HR, SCM, PM, AI Forecast (MAPE ≤ 12%), Auth/RBAC (tenant isolation), cross-module P2P chain, Audit hash chain |
 | **AI Forecast sidebar**       | `AI Forecast` leaf entry added to global sidebar nav (TrendingUp icon); standalone `/forecast` page with design system tokens; visible to tenantadmin, executive, scm roles |
+| **Authenticated test run**    | All 9 suites verified with live Keycloak JWT (admin@companya.in, TenantAdmin role); 19 route/field-name mismatches diagnosed and fixed; smoke test (Suite 08) made fully self-contained — auto-creates SCM product + GL accounts 1300/2000 if missing; full P2P chain (Steps 0–7) passes end-to-end; `TERMINAL_TEST_LOG.md` documents 11 diagnostic steps with commands, results, analysis |
 
 
 ### Remaining (open tasks)
@@ -102,6 +103,8 @@
 > **Also shipped (session 4, not in task table):** ForecastPanel (inventory page) upgraded — Recharts `BarChart` with date/qty axes, 14d/30d horizon selector, model type badge, last trained date; `GET /forecast/products` backend endpoint (mapeScore, trainedAt, modelType, predictionCount per SKU); `forecastApi.getAllForecastStatus()` frontend client method; `/scm/forecast` global AI Forecast dashboard — stats cards (total SKUs, trained, avg MAPE, stale count), MAPE-by-SKU bar chart, full SKU table with per-row Train/Re-train button and train-all; AI Forecast tab added to SCM nav — closes FE-14, INT-06, F-06.
 
 > **Also shipped (session 5, not in task table):** Functional test suite (`testing/`) — 9 suites, 64 tests, 64/64 pass; zero-dependency ESM runner with AmdoxLogger-style ANSI output and JSON result artifacts; suites: health & gateway, Finance GL (double-entry enforcement), HR & Payroll, SCM & Inventory, Project Management, AI Forecast (MAPE ≤ 12% assertion + ML health), Auth/RBAC (tenant isolation breach detection), cross-module P2P smoke test (PO→GR→stock→AP invoice→GL journal — PDF Day 14), Audit hash chain. `HttpLoggingInterceptor` replaces Pino raw HTTP logs with branded `[ HTTP ]` teal lines; `RolesGuard` de-noised (warn on deny only). AI Forecast leaf item added to global sidebar.
+
+> **Also shipped (session 6, not in task table):** Full authenticated test run with live Keycloak JWT — discovered and fixed 19 test failures: 12 wrong route paths (leave/all-requests, attendance/all, hr/payroll?period=, finance/ar/aging-report, finance/ap/invoices, pm/projects/tasks, pm/projects/:id/milestones, pm/resources, scm/requisitions, audit/logs, gdpr/requests, scm/inventory/warehouses), 3 wrong field names (roles vs userRoles, action vs eventType), 1 HTTP method mismatch (POST vs PATCH for AP invoice approve), 1 payroll response unwrap (wrapped `{data:[]}` object), 2 missing seed data conditions. Smoke test (Suite 08) made self-contained: auto-creates SCM product and GL accounts 1300/2000 if tenant has none — enabling clean re-runs in any environment. Root cause of GL journal silence identified: `handleInvoiceApproved` had no accounts to post against for the company-a tenant, so `try/catch` swallowed the error silently. `TERMINAL_TEST_LOG.md` written with 11 sections documenting every diagnostic command, result, and analysis from the session.
 
 **Completion:** ~67% done · ~9% partial · ~23% not started
 
@@ -367,7 +370,8 @@
 | HTTP logging interceptor | 1   | `apps/api/src/common/interceptors/http-logging.interceptor.ts`                                      |
 | Test suites            | 9     | `testing/suites/01–09` — 64 tests, 64/64 pass                                                      |
 | Test helpers           | 3     | `testing/helpers/client.js`, `assert.js`, `runner.js`                                               |
-| Test results (artifacts) | 3+  | `testing/results/*.json` — timestamped JSON per run                                                 |
+| Test results (artifacts) | 5+  | `testing/results/*.json` — timestamped JSON per run (no-token + 2× authenticated runs)             |
+| Terminal test log        | 1   | `testing/TERMINAL_TEST_LOG.md` — 11 diagnostic sections: Keycloak auth, route discovery, response inspection, GL chain debug, fix validation |
 | Orphan mock files      | 3     | `lib/mock/hr.ts`, `it.ts`, `pm-v2.ts` (no imports; safe to delete)                                  |
 | GitHub Actions CI      | 0     | No `.github/workflows/` directory                                                                   |
 
@@ -380,13 +384,13 @@ Run: `cd testing && node run-all.js` · With token: `TEST_TOKEN=<jwt> node run-a
 |---|---|---|---|
 | 01 Health | `01-health.test.js` | 6 | live/ready/db endpoints, 401 guard, 404 unknown route |
 | 02 Finance GL | `02-finance-gl.test.js` | 7 | GL accounts (codes 1000/2000/4000), journal entries, **double-entry enforcement** (unbalanced → 400), fiscal periods, aging report |
-| 03 HR & Payroll | `03-hr-payroll.test.js` | 8 | Employees, departments, leave, attendance, payroll runs, validation |
-| 04 SCM | `04-scm.test.js` | 9 | Vendors, products (id/sku/name), POs, stock levels, reorder rules, AP invoices, PO validation |
-| 05 PM | `05-pm.test.js` | 8 | Projects, tasks, milestones, allocations, budgets (plannedAmount/actualAmount), material requests |
+| 03 HR & Payroll | `03-hr-payroll.test.js` | 9 | Employees, departments, `/leave/all-requests`, `/attendance/all`, `/hr/payroll?period=`, payroll fields, validation |
+| 04 SCM | `04-scm.test.js` | 9 | Vendors, products (id/sku/name), POs, `/scm/inventory/warehouses`, reorder rules, `/finance/ap/invoices`, PO validation |
+| 05 PM | `05-pm.test.js` | 8 | Projects, `/pm/projects/tasks`, `/pm/projects/:id/milestones` (dynamic), `/pm/resources`, budgets (plannedAmount/actualAmount), `/scm/requisitions` |
 | 06 AI Forecast | `06-forecast.test.js` | 6 | All-SKU forecast list, MAPE ≤ 12% assertion, per-product predictions, train endpoint, ML service health |
-| 07 Auth/RBAC | `07-auth-rbac.test.js` | 6 | /auth/me fields, userRoles non-empty, tenantId present, **tenant isolation breach detection**, SuperAdmin RBAC |
-| 08 Smoke P2P | `08-smoke-p2p-chain.test.js` | 8 | **Day 14 cross-module chain:** PO create → approve → GR → stock update → AP invoice auto-created → approve → GL journal posted + balanced |
-| 09 Audit | `09-audit.test.js` | 5 | Audit events, required fields, **hash chain integrity**, GDPR DSR, notifications |
+| 07 Auth/RBAC | `07-auth-rbac.test.js` | 6 | /auth/me fields, `roles` array non-empty, tenantId present, **tenant isolation breach detection**, SuperAdmin RBAC |
+| 08 Smoke P2P | `08-smoke-p2p-chain.test.js` | 8 | **Day 14 cross-module chain:** auto-create product+GL accounts if missing → PO create → PATCH approve → GR → PO status RECEIVED → AP invoice auto-created → POST approve → GL journal posted + balanced |
+| 09 Audit | `09-audit.test.js` | 5 | `/audit/logs` fields (`action`, `hash`), **hash chain integrity**, `/gdpr/requests`, notifications |
 | **Total** | | **64 / 64 pass** | |
 
 ### Key stubs still in code
