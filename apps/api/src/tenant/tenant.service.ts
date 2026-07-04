@@ -104,7 +104,7 @@ export class TenantService implements OnModuleInit {
       }
 
     } catch (error) {
-      this.logger.error('Keycloak provisioning failed:', error);
+      AmdoxLogger.critical('Keycloak provisioning failed', (error as Error).message);
       throw new InternalServerErrorException('Failed to provision Identity Provider for Tenant');
     }
 
@@ -151,10 +151,9 @@ export class TenantService implements OnModuleInit {
       const adminRole = newTenant.roles.find(r => r.systemRole === 'TENANT_ADMIN');
       const adminUser = newTenant.users[0];
 
-      // Logs with Orange ANSI Color (\x1b[38;5;208m)
-      this.logger.log(`Tenant created: \x1b[38;5;208m${newTenant.name}\x1b[0m`);
+      AmdoxLogger.tenant(`Tenant provisioned: ${newTenant.name}`, `slug=${slug}  id=${newTenant.id}`);
       if (adminUser) {
-        this.logger.log(`User created: \x1b[38;5;208m${adminUser.fullName} (${adminUser.email})\x1b[0m`);
+        AmdoxLogger.tenant(`Admin user created: ${adminUser.email}`, `name=${adminUser.fullName}`);
       }
 
       if (adminRole && adminUser) {
@@ -170,7 +169,7 @@ export class TenantService implements OnModuleInit {
       return newTenant;
 
     } catch (error) {
-      this.logger.error('Database provisioning failed:', error);
+      AmdoxLogger.critical('DB provisioning failed for tenant', (error as Error).message);
       throw new InternalServerErrorException('Failed to provision database for Tenant');
     }
   }
@@ -202,12 +201,10 @@ export class TenantService implements OnModuleInit {
         credential: { temporary: true, type: 'password', value: tempPassword },
       });
 
-      console.log(`\x1b[33m[KEYCLOAK USER PROVISIONED] Created KC User: ${kcUserId} for ${email}\x1b[0m`);
-
-      // 3. Log password in BOLD DARK PINK (ANSI: \x1b[1;38;5;198m ... \x1b[0m)
-      this.logger.log(`\x1b[1;38;5;198m[NEW EMPLOYEE LOGIN] Email: ${email} | Temporary Password: ${tempPassword}\x1b[0m`);
+      AmdoxLogger.tenant(`KC user provisioned: ${email}`, `kcUserId=${kcUserId}`);
+      AmdoxLogger.hr(`NEW EMPLOYEE LOGIN  email=${email}`, `tempPassword=${tempPassword}`);
     } catch (error) {
-      this.logger.error('Failed to provision Keycloak user for employee:', error);
+      AmdoxLogger.critical('KC user provisioning failed for employee', (error as Error).message);
       throw new InternalServerErrorException('Failed to create Keycloak user');
     }
 
@@ -226,7 +223,7 @@ export class TenantService implements OnModuleInit {
           ssoSubject: kcUserId,
         }
       });
-      console.log(`\x1b[34m[PRISMA USER PROVISIONED] Created Prisma User: ${newUser.id} for ${email}\x1b[0m`);
+      AmdoxLogger.tenant(`DB user created: ${email}`, `userId=${newUser.id}`);
 
       if (employeeRole) {
         await prisma.userRole.create({
@@ -236,21 +233,20 @@ export class TenantService implements OnModuleInit {
             roleId: employeeRole.id,
           }
         });
-        console.log(`\x1b[38;2;99;102;241m[PRISMA USER ROLE] Assigned Role ${employeeRole.name} to User ${newUser.id}\x1b[0m`);
+        AmdoxLogger.tenant(`Role assigned: ${employeeRole.name}`, `userId=${newUser.id}`);
       }
 
       return newUser.id;
     } catch (error: any) {
       if (kcUserId) {
-        console.log(`\x1b[31m[ROLLBACK] Prisma creation failed. Deleting Keycloak User: ${kcUserId}\x1b[0m`);
+        AmdoxLogger.warn('DB user creation failed — rolling back KC user', `kcUserId=${kcUserId}`);
         try {
           await this.kcAdminClient.users.del({ realm: tenant.slug, id: kcUserId });
         } catch (kcErr) {
-          console.error(`\x1b[31m[CRITICAL] Failed to rollback Keycloak user: ${kcUserId}\x1b[0m`);
+          AmdoxLogger.critical('KC user rollback failed!', `kcUserId=${kcUserId}`);
         }
       }
-      this.logger.error('Failed to provision Prisma user for employee: ' + (error.message || error));
-      if (error.stack) this.logger.error(error.stack);
+      AmdoxLogger.critical('DB provisioning failed for employee', error.message || error);
       throw new InternalServerErrorException('Failed to create Prisma user');
     }
   }
@@ -341,7 +337,7 @@ export class TenantService implements OnModuleInit {
         }
       };
     } catch (error) {
-      this.logger.error(`Failed to fetch full Keycloak config for ${tenant.slug}:`, (error as Error).message);
+      AmdoxLogger.error(`Failed to fetch KC config for ${tenant.slug}`, (error as Error).message);
       return { error: 'Failed to communicate with Identity Provider' };
     }
   }
@@ -362,7 +358,7 @@ export class TenantService implements OnModuleInit {
       await this.kcAdminClient.realms.update({ realm: tenant.slug }, payload);
       return { success: true };
     } catch (error) {
-      this.logger.error(`Failed to update Keycloak config for ${tenant.slug}:`, (error as Error).message);
+      AmdoxLogger.error(`Failed to update KC config for ${tenant.slug}`, (error as Error).message);
       return { error: 'Failed to update Identity Provider configuration' };
     }
   }
@@ -373,7 +369,7 @@ export class TenantService implements OnModuleInit {
     try {
       return await this.kcAdminClient.authenticationManagement.getRequiredActions({ realm: tenant.slug } as any);
     } catch (error) {
-      this.logger.error(`Failed to fetch required actions for ${tenant.slug}:`, (error as Error).message);
+      AmdoxLogger.error(`Failed to fetch required actions for ${tenant.slug}`, (error as Error).message);
       return [];
     }
   }
@@ -388,7 +384,7 @@ export class TenantService implements OnModuleInit {
       );
       return { success: true };
     } catch (error) {
-      this.logger.error(`Failed to update required action ${alias} for ${tenant.slug}:`, (error as Error).message);
+      AmdoxLogger.error(`Failed to update required action ${alias} for ${tenant.slug}`, (error as Error).message);
       return { error: 'Failed to update required action' };
     }
   }
@@ -399,7 +395,7 @@ export class TenantService implements OnModuleInit {
     try {
       return await this.kcAdminClient.identityProviders.find({ realm: tenant.slug });
     } catch (error) {
-      this.logger.error(`Failed to fetch identity providers for ${tenant.slug}:`, (error as Error).message);
+      AmdoxLogger.error(`Failed to fetch identity providers for ${tenant.slug}`, (error as Error).message);
       return [];
     }
   }
@@ -411,7 +407,7 @@ export class TenantService implements OnModuleInit {
       await this.kcAdminClient.identityProviders.create({ realm: tenant.slug }, provider);
       return { success: true };
     } catch (error) {
-      this.logger.error(`Failed to create identity provider for ${tenant.slug}:`, (error as Error).message);
+      AmdoxLogger.error(`Failed to create identity provider for ${tenant.slug}`, (error as Error).message);
       return { error: 'Failed to create identity provider' };
     }
   }
@@ -423,7 +419,7 @@ export class TenantService implements OnModuleInit {
       await this.kcAdminClient.identityProviders.del({ realm: tenant.slug, alias });
       return { success: true };
     } catch (error) {
-      this.logger.error(`Failed to delete identity provider ${alias} for ${tenant.slug}:`, (error as Error).message);
+      AmdoxLogger.error(`Failed to delete identity provider ${alias} for ${tenant.slug}`, (error as Error).message);
       return { error: 'Failed to delete identity provider' };
     }
   }
@@ -434,7 +430,7 @@ export class TenantService implements OnModuleInit {
     try {
       return await this.kcAdminClient.authenticationManagement.getFlows({ realm: tenant.slug });
     } catch (error) {
-      this.logger.error(`Failed to fetch auth flows for ${tenant.slug}:`, (error as Error).message);
+      AmdoxLogger.error(`Failed to fetch auth flows for ${tenant.slug}`, (error as Error).message);
       return [];
     }
   }
@@ -487,7 +483,7 @@ export class TenantService implements OnModuleInit {
       }
     }
 
-    this.logger.log(`✅ Keycloak realm roles provisioned for tenant: ${tenant.slug}`);
+    AmdoxLogger.success(`KC realm roles provisioned for tenant: ${tenant.slug}`);
     return { success: true, tenant: tenant.slug, admins: adminUsers.map(u => u.user.email) };
   }
 

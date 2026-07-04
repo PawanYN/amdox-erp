@@ -38,6 +38,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { VendorPortalService } from '../vendor-portal/vendor-portal.service';
+import { AmdoxLogger } from '../../common/logger/amdox-logger';
 
 @Injectable()
 export class PurchaseService {
@@ -124,7 +125,8 @@ export class PurchaseService {
       vendorId: po.vendorId,
       userId: actingUserId,
     });
-    this.logger.log(`PO ${updatedPo.poNumber} approved and po.created event emitted`);
+    AmdoxLogger.scm(`PO approved`, `poNumber=${updatedPo.poNumber}  total=${updatedPo.totalAmount}`);
+    AmdoxLogger.event('Emitted po.created', `poId=${id}`);
 
     if (po.vendor?.webhookUrl) {
       await this.vendorPortalService.notifyVendorWebhook(po.vendor.webhookUrl, {
@@ -227,7 +229,7 @@ export class PurchaseService {
       });
 
       // 4. Trigger AI Forecasting pipeline placeholder
-      this.logger.log(`[AI FORECASTING PLACEHOLDER] Triggering Prophet/LSTM re-eval due to incoming stock for PO ${po.poNumber}`);
+      AmdoxLogger.scm('AI forecast re-eval queued (Prophet/LSTM)', `po=${po.poNumber}`);
 
       return receipt;
     });
@@ -244,7 +246,8 @@ export class PurchaseService {
       goodsReceiptId: result.id,
       userId: actingUserId,
     });
-    this.logger.log(`Queued goods.received event for PO ${id}`);
+    AmdoxLogger.scm(`Goods received`, `poId=${id}  grId=${result.id}`);
+    AmdoxLogger.event('Emitted goods.received → AP invoice + GL chain triggered');
 
     return result;
   }
