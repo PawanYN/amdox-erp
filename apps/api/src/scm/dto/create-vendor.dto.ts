@@ -8,6 +8,10 @@ export class CreateVendorDto {
   @IsOptional()
   email?: string;
 
+  @IsString()
+  @IsOptional()
+  phone?: string;
+
   @IsUrl()
   @IsOptional()
   webhookUrl?: string;

@@ -14,16 +14,34 @@ function formatTime(date: Date): string {
   });
 }
 
+type RawAttendance = {
+  id: string;
+  employee?: { fullName?: string };
+  clockIn: string;
+  clockOut?: string | null;
+  overtimeMins?: number | null;
+};
+
+type AttendanceRow = {
+  id: string;
+  employeeName: string;
+  date: string;
+  clockIn: string;
+  clockOut: string | null;
+  totalHours: number | null;
+  overtimeHours: number | null;
+};
+
 export default function AttendancePage() {
   const { token } = useKeycloak();
-  const [records, setRecords] = useState<any[]>([]);
+  const [records, setRecords] = useState<AttendanceRow[]>([]);
 
   useEffect(() => {
     if (!token) return;
     const fetchAttendance = async () => {
       try {
-        const data = await hrApi.getAllAttendance();
-        const formatted = data.map((rec: any) => {
+        const data: RawAttendance[] = await hrApi.getAllAttendance();
+        const formatted = data.map((rec) => {
           const cIn = new Date(rec.clockIn);
           const cOut = rec.clockOut ? new Date(rec.clockOut) : null;
           return {
@@ -32,7 +50,9 @@ export default function AttendancePage() {
             date: cIn.toISOString().slice(0, 10),
             clockIn: formatTime(cIn),
             clockOut: cOut ? formatTime(cOut) : null,
-            totalHours: cOut ? Math.round(((cOut.getTime() - cIn.getTime()) / (1000 * 60 * 60)) * 10) / 10 : null,
+            totalHours: cOut
+              ? Math.round(((cOut.getTime() - cIn.getTime()) / (1000 * 60 * 60)) * 10) / 10
+              : null,
             overtimeHours: rec.overtimeMins ? Math.round((rec.overtimeMins / 60) * 10) / 10 : null,
           };
         });
@@ -53,7 +73,11 @@ export default function AttendancePage() {
       cell: (rec) => (
         <div className="flex items-center gap-2.5">
           <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-[11px] font-bold shrink-0">
-            {rec.employeeName.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
+            {rec.employeeName
+              .split(" ")
+              .map((n: string) => n[0])
+              .join("")
+              .slice(0, 2)}
           </div>
           <span className="font-semibold text-slate-900">{rec.employeeName}</span>
         </div>
@@ -91,8 +115,7 @@ export default function AttendancePage() {
       cell: (rec) =>
         rec.overtimeHours != null ? (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
-            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-            +{rec.overtimeHours} hrs
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />+{rec.overtimeHours} hrs
           </span>
         ) : (
           <span className="text-slate-300">—</span>
@@ -112,20 +135,31 @@ export default function AttendancePage() {
 
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-white rounded-lg border border-slate-200 shadow-card p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-1.5">Total Records</p>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-1.5">
+            Total Records
+          </p>
           <p className="text-2xl font-semibold text-slate-900">{records.length}</p>
         </div>
         <div className="bg-white rounded-lg border border-slate-200 shadow-card p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-1.5">Hours This Week</p>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-1.5">
+            Hours This Week
+          </p>
           <p className="text-2xl font-semibold text-slate-900">{totalHoursThisWeek.toFixed(1)}</p>
         </div>
         <div className="bg-amber-50 rounded-lg border border-amber-100 p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-amber-600 mb-1.5">Overtime Sessions</p>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-amber-600 mb-1.5">
+            Overtime Sessions
+          </p>
           <p className="text-2xl font-semibold text-amber-700">{overtimeCount}</p>
         </div>
       </div>
 
-      <DataTable data={records} columns={columns} keyExtractor={(rec) => rec.id} emptyMessage="No attendance records yet." />
+      <DataTable
+        data={records}
+        columns={columns}
+        keyExtractor={(rec) => rec.id}
+        emptyMessage="No attendance records yet."
+      />
     </div>
   );
 }

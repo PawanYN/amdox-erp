@@ -8,7 +8,7 @@ dotenv.config({ path: path.join(__dirname, '../../../.env') });
 dotenv.config({ path: path.join(__dirname, '../../../../.env') });
 
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, Logger as NestLogger } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { Logger } from 'nestjs-pino';
@@ -38,7 +38,7 @@ async function bootstrap() {
   // Auto-generate the OpenAPI spec for Postman
   fs.writeFileSync(
     path.join(process.cwd(), 'openapi-spec.json'),
-    JSON.stringify(document, null, 2)
+    JSON.stringify(document, null, 2),
   );
 
   // Set up port from env or default to 3001

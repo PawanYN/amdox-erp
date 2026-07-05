@@ -45,8 +45,8 @@ export default function FiscalPeriodsPage() {
       setStartDate("");
       setEndDate("");
       await load();
-    } catch (err: any) {
-      alert(err.message || "Failed to open period.");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to open period.");
     } finally {
       setSaving(false);
     }
@@ -57,20 +57,27 @@ export default function FiscalPeriodsPage() {
     try {
       await financeApi.closeFiscalPeriod(id);
       await load();
-    } catch (err: any) {
-      alert(err.message || "Failed to close period.");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to close period.");
     }
   }
 
   const columns: ColumnDef<FiscalPeriod>[] = [
-    { header: "Period", cell: (p) => <span className="font-semibold text-slate-900">{p.name}</span> },
+    {
+      header: "Period",
+      cell: (p) => <span className="font-semibold text-slate-900">{p.name}</span>,
+    },
     {
       header: "Start",
-      cell: (p) => <span className="text-sm text-slate-500">{new Date(p.startDate).toLocaleDateString()}</span>,
+      cell: (p) => (
+        <span className="text-sm text-slate-500">{new Date(p.startDate).toLocaleDateString()}</span>
+      ),
     },
     {
       header: "End",
-      cell: (p) => <span className="text-sm text-slate-500">{new Date(p.endDate).toLocaleDateString()}</span>,
+      cell: (p) => (
+        <span className="text-sm text-slate-500">{new Date(p.endDate).toLocaleDateString()}</span>
+      ),
     },
     {
       header: "Status",
@@ -131,21 +138,43 @@ export default function FiscalPeriodsPage() {
       <Modal open={formOpen} onClose={() => setFormOpen(false)} title="Open Fiscal Period">
         <div className="space-y-3">
           <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Name * (e.g. 2026-07)</label>
-            <input className={inputClasses} value={name} onChange={(e) => setName(e.target.value)} />
+            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+              Name * (e.g. 2026-07)
+            </label>
+            <input
+              className={inputClasses}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Start date *</label>
-              <input type="date" className={inputClasses} value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+                Start date *
+              </label>
+              <input
+                type="date"
+                className={inputClasses}
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
             </div>
             <div>
-              <label className="text-[12px] font-medium text-slate-600 block mb-1.5">End date *</label>
-              <input type="date" className={inputClasses} value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+              <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+                End date *
+              </label>
+              <input
+                type="date"
+                className={inputClasses}
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => setFormOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setFormOpen(false)}>
+              Cancel
+            </Button>
             <Button onClick={handleOpenPeriod} disabled={saving}>
               {saving ? "Opening…" : "Open Period"}
             </Button>

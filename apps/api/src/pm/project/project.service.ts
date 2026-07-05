@@ -5,7 +5,6 @@ import { CreateTaskDto } from '../dto/create-task.dto';
 import { MaterialRequestDto } from '../dto/material-request.dto';
 import { CreateMilestoneDto } from '../dto/create-milestone.dto';
 import { UpdateMilestoneDto } from '../dto/update-milestone.dto';
-import { UpdateTaskStatusDto } from '../dto/update-task-status.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { TaskStatus } from '@amdox/db';
 
@@ -131,11 +130,7 @@ export class ProjectService {
     };
   }
 
-  async updateTaskStatus(
-    tenantId: string,
-    taskId: string,
-    status: TaskStatus,
-  ) {
+  async updateTaskStatus(tenantId: string, taskId: string, status: TaskStatus) {
     const task = await this.prisma.task.findFirst({
       where: { id: taskId, tenantId },
     });
@@ -184,7 +179,11 @@ export class ProjectService {
     return project;
   }
 
-  async updateProject(tenantId: string, projectId: string, dto: import('../dto/update-project.dto').UpdateProjectDto) {
+  async updateProject(
+    tenantId: string,
+    projectId: string,
+    dto: import('../dto/update-project.dto').UpdateProjectDto,
+  ) {
     const project = await this.prisma.project.findFirst({
       where: { id: projectId, tenantId, deletedAt: null },
     });
@@ -196,7 +195,9 @@ export class ProjectService {
         ...(dto.name !== undefined && { name: dto.name }),
         ...(dto.description !== undefined && { description: dto.description }),
         ...(dto.status !== undefined && { status: dto.status }),
-        ...(dto.startDate !== undefined && { startDate: dto.startDate ? new Date(dto.startDate) : null }),
+        ...(dto.startDate !== undefined && {
+          startDate: dto.startDate ? new Date(dto.startDate) : null,
+        }),
         ...(dto.endDate !== undefined && { endDate: dto.endDate ? new Date(dto.endDate) : null }),
       },
     });
@@ -265,16 +266,9 @@ export class ProjectService {
     const tempId = 'new-task';
     if (
       dto.dependsOn?.length &&
-      (await this.wouldCreateCycle(
-        tenantId,
-        dto.projectId,
-        tempId,
-        dto.dependsOn,
-      ))
+      (await this.wouldCreateCycle(tenantId, dto.projectId, tempId, dto.dependsOn))
     ) {
-      throw new BadRequestException(
-        'Task dependencies would create a cycle (DAG violation).',
-      );
+      throw new BadRequestException('Task dependencies would create a cycle (DAG violation).');
     }
 
     const task = await this.prisma.task.create({
@@ -326,11 +320,7 @@ export class ProjectService {
     }));
   }
 
-  async createMilestone(
-    tenantId: string,
-    projectId: string,
-    dto: CreateMilestoneDto,
-  ) {
+  async createMilestone(tenantId: string, projectId: string, dto: CreateMilestoneDto) {
     const project = await this.prisma.project.findFirst({
       where: { id: projectId, tenantId, deletedAt: null },
     });
@@ -404,11 +394,7 @@ export class ProjectService {
     return formatted;
   }
 
-  async achieveMilestone(
-    tenantId: string,
-    projectId: string,
-    milestoneId: string,
-  ) {
+  async achieveMilestone(tenantId: string, projectId: string, milestoneId: string) {
     const existing = await this.prisma.milestone.findFirst({
       where: { id: milestoneId, projectId, tenantId },
     });
@@ -466,9 +452,7 @@ export class ProjectService {
       },
     });
     if (products.length !== dto.lines.length) {
-      throw new BadRequestException(
-        'One or more products are invalid or inactive.',
-      );
+      throw new BadRequestException('One or more products are invalid or inactive.');
     }
 
     this.eventEmitter.emit('project.material_requested', {

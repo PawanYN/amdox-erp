@@ -5,14 +5,35 @@ import { BookOpen, Landmark, PieChart, Wallet, Plus, ChevronRight } from "lucide
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/ui/stat-card";
+import { Modal, inputClasses } from "@/components/ui/modal";
 import { financeApi } from "@/lib/api/finance-api";
 
 const TYPE_META: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  asset:     { label: "Asset",     color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-100" },
-  liability: { label: "Liability", color: "text-red-700",     bg: "bg-red-50",     border: "border-red-100" },
-  equity:    { label: "Equity",    color: "text-violet-700",  bg: "bg-violet-50",  border: "border-violet-100" },
-  revenue:   { label: "Revenue",   color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100" },
-  expense:   { label: "Expense",   color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-100" },
+  asset: { label: "Asset", color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-100" },
+  liability: {
+    label: "Liability",
+    color: "text-red-700",
+    bg: "bg-red-50",
+    border: "border-red-100",
+  },
+  equity: {
+    label: "Equity",
+    color: "text-violet-700",
+    bg: "bg-violet-50",
+    border: "border-violet-100",
+  },
+  revenue: {
+    label: "Revenue",
+    color: "text-emerald-700",
+    bg: "bg-emerald-50",
+    border: "border-emerald-100",
+  },
+  expense: {
+    label: "Expense",
+    color: "text-amber-700",
+    bg: "bg-amber-50",
+    border: "border-amber-100",
+  },
 };
 
 type Account = {
@@ -25,32 +46,79 @@ type Account = {
 
 const ACCOUNT_TYPES = ["asset", "liability", "equity", "revenue", "expense"] as const;
 
+type RawAccount = {
+  code: string;
+  name: string;
+  type: string;
+};
+
 export default function ChartOfAccountsPage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
-    asset: true, liability: true, equity: true, revenue: true, expense: true,
+    asset: true,
+    liability: true,
+    equity: true,
+    revenue: true,
+    expense: true,
   });
+  const [formOpen, setFormOpen] = useState(false);
+  const [code, setCode] = useState("");
+  const [name, setName] = useState("");
+  const [type, setType] = useState<"ASSET" | "LIABILITY" | "EQUITY" | "REVENUE" | "EXPENSE">(
+    "ASSET",
+  );
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
+  const load = () =>
     financeApi
       .getAccounts()
-      .then((rows: any[]) =>
-        setAccounts(rows.map((a) => ({
-          code: a.code,
-          name: a.name,
-          type: String(a.type).toLowerCase() as Account["type"],
-          subType: a.type,
-          balance: 0,
-        })))
+      .then((rows: RawAccount[]) =>
+        setAccounts(
+          rows.map((a) => ({
+            code: a.code,
+            name: a.name,
+            type: String(a.type).toLowerCase() as Account["type"],
+            subType: a.type,
+            balance: 0,
+          })),
+        ),
       )
       .catch(console.error)
       .finally(() => setLoading(false));
+
+  useEffect(() => {
+    load();
   }, []);
 
-  const totalAssets      = accounts.filter((a) => a.type === "asset").reduce((s, a) => s + a.balance, 0);
-  const totalLiabilities = accounts.filter((a) => a.type === "liability").reduce((s, a) => s + a.balance, 0);
-  const totalEquity      = accounts.filter((a) => a.type === "equity").reduce((s, a) => s + a.balance, 0);
+  function openCreate() {
+    setCode("");
+    setName("");
+    setType("ASSET");
+    setFormOpen(true);
+  }
+
+  async function handleSave() {
+    if (!code.trim() || !name.trim()) return;
+    setSaving(true);
+    try {
+      await financeApi.createAccount({ code: code.trim(), name: name.trim(), type });
+      await load();
+      setFormOpen(false);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to create account.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const totalAssets = accounts.filter((a) => a.type === "asset").reduce((s, a) => s + a.balance, 0);
+  const totalLiabilities = accounts
+    .filter((a) => a.type === "liability")
+    .reduce((s, a) => s + a.balance, 0);
+  const totalEquity = accounts
+    .filter((a) => a.type === "equity")
+    .reduce((s, a) => s + a.balance, 0);
 
   return (
     <div className="space-y-6">
@@ -65,19 +133,41 @@ export default function ChartOfAccountsPage() {
             Standard GL account codes — double-entry bookkeeping foundation
           </p>
         </div>
-        <Button icon={<Plus size={14} />}>New Account</Button>
+        <Button icon={<Plus size={14} />} onClick={openCreate}>
+          New Account
+        </Button>
       </div>
 
       {/* KPI row */}
       {loading ? (
         <div className="grid grid-cols-3 gap-4">
-          {[0,1,2].map(i => <div key={i} className="h-24 rounded-lg bg-slate-100 animate-pulse" />)}
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-24 rounded-lg bg-slate-100 animate-pulse" />
+          ))}
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-          <StatCard label="Total Assets"      value={`₹${totalAssets.toLocaleString()}`}      icon={<Landmark size={16} />} gradient="from-blue-500 to-blue-600"      delay="0s" />
-          <StatCard label="Total Liabilities" value={`₹${totalLiabilities.toLocaleString()}`} icon={<PieChart size={16} />} gradient="from-red-400 to-red-500"        delay="0.05s" />
-          <StatCard label="Total Equity"      value={`₹${totalEquity.toLocaleString()}`}      icon={<Wallet size={16} />}   gradient="from-violet-500 to-violet-600" delay="0.1s" />
+          <StatCard
+            label="Total Assets"
+            value={`₹${totalAssets.toLocaleString()}`}
+            icon={<Landmark size={16} />}
+            gradient="from-blue-500 to-blue-600"
+            delay="0s"
+          />
+          <StatCard
+            label="Total Liabilities"
+            value={`₹${totalLiabilities.toLocaleString()}`}
+            icon={<PieChart size={16} />}
+            gradient="from-red-400 to-red-500"
+            delay="0.05s"
+          />
+          <StatCard
+            label="Total Equity"
+            value={`₹${totalEquity.toLocaleString()}`}
+            icon={<Wallet size={16} />}
+            gradient="from-violet-500 to-violet-600"
+            delay="0.1s"
+          />
         </div>
       )}
 
@@ -85,12 +175,15 @@ export default function ChartOfAccountsPage() {
       <div className="space-y-3">
         {ACCOUNT_TYPES.map((type) => {
           const group = accounts.filter((a) => a.type === type);
-          const meta  = TYPE_META[type];
+          const meta = TYPE_META[type];
           const total = group.reduce((s, a) => s + a.balance, 0);
-          const open  = openGroups[type];
+          const open = openGroups[type];
 
           return (
-            <div key={type} className="bg-white rounded-lg border border-slate-200 shadow-card overflow-hidden">
+            <div
+              key={type}
+              className="bg-white rounded-lg border border-slate-200 shadow-card overflow-hidden"
+            >
               {/* Group header */}
               <button
                 className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors"
@@ -101,7 +194,9 @@ export default function ChartOfAccountsPage() {
                     size={14}
                     className={`text-slate-400 transition-transform duration-150 ${open ? "rotate-90" : ""}`}
                   />
-                  <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize ${meta.bg} ${meta.color} ${meta.border} border`}>
+                  <span
+                    className={`text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize ${meta.bg} ${meta.color} ${meta.border} border`}
+                  >
                     {meta.label}
                   </span>
                   <span className="text-[12px] text-slate-400">{group.length} accounts</span>
@@ -120,18 +215,22 @@ export default function ChartOfAccountsPage() {
                           No {type} accounts found.
                         </td>
                       </tr>
-                    ) : group.map((a) => (
-                      <tr key={a.code} className="hover:bg-slate-50/60 transition-colors">
-                        <td className="px-4 py-2.5 font-mono text-[12px] text-slate-400 w-16">{a.code}</td>
-                        <td className="px-4 py-2.5 font-medium text-slate-800">{a.name}</td>
-                        <td className="px-4 py-2.5 text-[12px] text-slate-400 hidden sm:table-cell">
-                          {a.subType.replace(/_/g, " ")}
-                        </td>
-                        <td className="px-4 py-2.5 text-right font-mono text-slate-700">
-                          ₹{a.balance.toLocaleString()}
-                        </td>
-                      </tr>
-                    ))}
+                    ) : (
+                      group.map((a) => (
+                        <tr key={a.code} className="hover:bg-slate-50/60 transition-colors">
+                          <td className="px-4 py-2.5 font-mono text-[12px] text-slate-400 w-16">
+                            {a.code}
+                          </td>
+                          <td className="px-4 py-2.5 font-medium text-slate-800">{a.name}</td>
+                          <td className="px-4 py-2.5 text-[12px] text-slate-400 hidden sm:table-cell">
+                            {a.subType.replace(/_/g, " ")}
+                          </td>
+                          <td className="px-4 py-2.5 text-right font-mono text-slate-700">
+                            ₹{a.balance.toLocaleString()}
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               )}
@@ -139,6 +238,51 @@ export default function ChartOfAccountsPage() {
           );
         })}
       </div>
+
+      <Modal open={formOpen} onClose={() => setFormOpen(false)} title="New Account">
+        <div className="space-y-4">
+          <div>
+            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Code *</label>
+            <input
+              className={inputClasses}
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="e.g. 1300"
+            />
+          </div>
+          <div>
+            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Name *</label>
+            <input
+              className={inputClasses}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Inventory"
+            />
+          </div>
+          <div>
+            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Type *</label>
+            <select
+              className={inputClasses}
+              value={type}
+              onChange={(e) => setType(e.target.value as typeof type)}
+            >
+              {ACCOUNT_TYPES.map((t) => (
+                <option key={t} value={t.toUpperCase()}>
+                  {TYPE_META[t].label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setFormOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? "Saving…" : "Create"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

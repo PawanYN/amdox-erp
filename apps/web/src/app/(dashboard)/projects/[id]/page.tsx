@@ -18,10 +18,49 @@ const statusColor: Record<string, string> = {
   DONE: "bg-[#2F6B4F]/10 text-[#2F6B4F]",
 };
 
+type ProjectMilestone = {
+  id: string;
+  name: string;
+  dueDate: string;
+  isOverdue: boolean;
+  isAchieved: boolean;
+};
+
+type ProjectTask = {
+  id: string;
+  title: string;
+  status: string;
+  milestone?: { name: string };
+};
+
+type ProjectResource = {
+  id: string;
+  employeeName: string;
+  taskTitle?: string;
+  allocatedHours: number;
+};
+
+type ProjectData = {
+  name: string;
+  description?: string;
+  status: string;
+  startDate?: string;
+  endDate?: string;
+  budget?: {
+    isOverrun: boolean;
+    plannedAmount: number;
+    actualAmount: number;
+    variancePct: number;
+  };
+  milestones: ProjectMilestone[];
+  tasks: ProjectTask[];
+  resources: ProjectResource[];
+};
+
 export default function ProjectDetailPage() {
   const params = useParams();
   const projectId = params.id as string;
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<ProjectData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
@@ -76,8 +115,8 @@ export default function ProjectDetailPage() {
       });
       setEditOpen(false);
       load();
-    } catch (err: any) {
-      alert(err.message || "Failed to update project.");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to update project.");
     } finally {
       setSaving(false);
     }
@@ -131,7 +170,7 @@ export default function ProjectDetailPage() {
           {data.milestones.length === 0 ? (
             <p className="text-sm text-muted">No milestones.</p>
           ) : (
-            data.milestones.map((m: any) => (
+            data.milestones.map((m) => (
               <div
                 key={m.id}
                 className={`flex items-center justify-between border rounded-lg px-3 py-2 text-[13px] ${
@@ -156,9 +195,11 @@ export default function ProjectDetailPage() {
       </section>
 
       <section>
-        <h3 className="text-[13px] font-semibold text-[#14171F] mb-2">Tasks ({data.tasks.length})</h3>
+        <h3 className="text-[13px] font-semibold text-[#14171F] mb-2">
+          Tasks ({data.tasks.length})
+        </h3>
         <div className="space-y-2">
-          {data.tasks.map((t: any) => (
+          {data.tasks.map((t) => (
             <div
               key={t.id}
               className="flex flex-wrap items-center gap-2 border border-[#E4E2DC] rounded-lg px-3 py-2 bg-white"
@@ -200,7 +241,7 @@ export default function ProjectDetailPage() {
                 </tr>
               </thead>
               <tbody>
-                {data.resources.map((r: any) => (
+                {data.resources.map((r) => (
                   <tr key={r.id} className="border-t border-[#F0EEE7]">
                     <td className="px-3 py-2">{r.employeeName}</td>
                     <td className="px-3 py-2 text-[#8A8678]">{r.taskTitle ?? "—"}</td>
@@ -217,7 +258,11 @@ export default function ProjectDetailPage() {
         <div className="space-y-3">
           <div>
             <label className="text-xs text-muted block mb-1">Name *</label>
-            <input className={inputClasses} value={editName} onChange={(e) => setEditName(e.target.value)} />
+            <input
+              className={inputClasses}
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+            />
           </div>
           <div>
             <label className="text-xs text-muted block mb-1">Description</label>
@@ -236,22 +281,36 @@ export default function ProjectDetailPage() {
               onChange={(e) => setEditStatus(e.target.value)}
             >
               {PROJECT_STATUSES.map((s) => (
-                <option key={s} value={s}>{s.replace("_", " ")}</option>
+                <option key={s} value={s}>
+                  {s.replace("_", " ")}
+                </option>
               ))}
             </select>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-muted block mb-1">Start date</label>
-              <input type="date" className={inputClasses} value={editStart} onChange={(e) => setEditStart(e.target.value)} />
+              <input
+                type="date"
+                className={inputClasses}
+                value={editStart}
+                onChange={(e) => setEditStart(e.target.value)}
+              />
             </div>
             <div>
               <label className="text-xs text-muted block mb-1">End date</label>
-              <input type="date" className={inputClasses} value={editEnd} onChange={(e) => setEditEnd(e.target.value)} />
+              <input
+                type="date"
+                className={inputClasses}
+                value={editEnd}
+                onChange={(e) => setEditEnd(e.target.value)}
+              />
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>
+              Cancel
+            </Button>
             <Button onClick={handleSaveProject} disabled={saving}>
               {saving ? "Saving…" : "Save Changes"}
             </Button>

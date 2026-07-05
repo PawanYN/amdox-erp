@@ -16,7 +16,7 @@ interface InvoiceApprovedEvent {
 
 /**
  * Service to handle Accounts Payable (AP) operations.
- * 
+ *
  * WHAT: This service manages the lifecycle of vendor invoices, from creation/OCR extraction
  * to approval and outbox event publishing.
  * WHY: We need a centralized place to enforce AP business logic, ensure transactions are atomic,
@@ -30,7 +30,7 @@ export class ApService {
   constructor(
     private readonly invoiceMatchingService: InvoiceMatchingService,
     private readonly ocrService: OcrService,
-    private readonly eventEmitter: EventEmitter2
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   /**
@@ -40,7 +40,7 @@ export class ApService {
     return this.prisma.invoice.findMany({
       where: { tenantId, type: 'AP' },
       include: { lines: true },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
   }
 
@@ -50,8 +50,9 @@ export class ApService {
    * extracted data matches a Goods Receipt and Purchase Order perfectly.
    */
   async processInvoiceDocument(tenantId: string, documentBuffer: Buffer, goodsReceiptId?: string) {
-    const { data: ocrData, confidenceScore } = await this.ocrService.extractInvoiceData(documentBuffer);
-    
+    const { data: ocrData, confidenceScore } =
+      await this.ocrService.extractInvoiceData(documentBuffer);
+
     // We will save it to the DB as pending match initially
     return this.createInvoice(tenantId, ocrData, confidenceScore, goodsReceiptId);
   }
@@ -61,7 +62,12 @@ export class ApService {
    * WHY: Central creation logic that handles the 3-way match attempt within a database transaction.
    * If purchaseOrderId is present and goodsReceiptId is provided, it attempts a 3-way match.
    */
-  async createInvoice(tenantId: string, dto: CreateInvoiceDto, ocrConfidence?: number, goodsReceiptId?: string) {
+  async createInvoice(
+    tenantId: string,
+    dto: CreateInvoiceDto,
+    ocrConfidence?: number,
+    goodsReceiptId?: string,
+  ) {
     if (dto.type !== InvoiceType.AP) {
       throw new Error('AP Service only handles AP invoices.');
     }
@@ -70,7 +76,7 @@ export class ApService {
     let approvalEvent: InvoiceApprovedEvent | null = null;
 
     const result = await this.prisma.$transaction(async (tx) => {
-      let initialStatus: InvoiceStatus = 'PENDING_MATCH';
+      const initialStatus: InvoiceStatus = 'PENDING_MATCH';
       let projectId: string | undefined;
 
       if (dto.purchaseOrderId) {
@@ -96,38 +102,40 @@ export class ApService {
           ocrConfidence: ocrConfidence,
           status: initialStatus,
           lines: {
-            create: dto.lines.map(line => ({
+            create: dto.lines.map((line) => ({
               tenantId,
               description: line.description,
               quantity: line.quantity,
               unitPrice: line.unitPrice,
-              lineTotal: line.lineTotal
-            }))
-          }
+              lineTotal: line.lineTotal,
+            })),
+          },
         },
-        include: { lines: true }
+        include: { lines: true },
       });
 
       // Attempt 3-way match if we have the necessary references
       if (dto.purchaseOrderId && goodsReceiptId) {
-        const po = await tx.purchaseOrder.findFirst({ where: { id: dto.purchaseOrderId, tenantId }});
-        const gr = await tx.goodsReceipt.findFirst({ where: { id: goodsReceiptId, tenantId }});
-        
+        const po = await tx.purchaseOrder.findFirst({
+          where: { id: dto.purchaseOrderId, tenantId },
+        });
+        const gr = await tx.goodsReceipt.findFirst({ where: { id: goodsReceiptId, tenantId } });
+
         if (po && gr && po.vendorId === dto.vendorId && gr.purchaseOrderId === po.id) {
           const invoiceTotal = invoice.totalAmount.toNumber();
           const poTotal = po.totalAmount?.toNumber() || 0;
           const diff = poTotal === 0 ? 1 : Math.abs(invoiceTotal - poTotal) / poTotal;
-          
+
           if (diff <= 0.02) {
             // MATCH SUCCESSFUL -> Auto-approve
             this.logger.log(`Invoice ${invoice.id} matched successfully! Auto-approving.`);
-            
+
             const approvedInvoice = await tx.invoice.update({
               where: { id: invoice.id },
               data: {
                 status: 'APPROVED',
-                matchedAt: new Date()
-              }
+                matchedAt: new Date(),
+              },
             });
 
             approvalEvent = {
@@ -143,9 +151,12 @@ export class ApService {
               data: {
                 tenantId,
                 eventType: 'invoice.approved',
-                payload: { invoiceId: approvedInvoice.id, totalAmount: approvedInvoice.totalAmount },
-                status: 'PENDING'
-              }
+                payload: {
+                  invoiceId: approvedInvoice.id,
+                  totalAmount: approvedInvoice.totalAmount,
+                },
+                status: 'PENDING',
+              },
             });
 
             return approvedInvoice;
@@ -220,12 +231,14 @@ export class ApService {
     let approvalEvent: InvoiceApprovedEvent | null = null;
 
     const approvedInvoice = await this.prisma.$transaction(async (tx) => {
-      const invoice = await tx.invoice.findFirst({ where: { id: invoiceId, tenantId, type: 'AP' } });
+      const invoice = await tx.invoice.findFirst({
+        where: { id: invoiceId, tenantId, type: 'AP' },
+      });
       if (!invoice) throw new NotFoundException('Invoice not found');
 
       const updated = await tx.invoice.update({
         where: { id: invoice.id },
-        data: { status: 'APPROVED', matchedAt: new Date() }
+        data: { status: 'APPROVED', matchedAt: new Date() },
       });
 
       approvalEvent = {
@@ -242,8 +255,8 @@ export class ApService {
           tenantId,
           eventType: 'invoice.approved',
           payload: { invoiceId: updated.id, totalAmount: updated.totalAmount },
-          status: 'PENDING'
-        }
+          status: 'PENDING',
+        },
       });
 
       return updated;

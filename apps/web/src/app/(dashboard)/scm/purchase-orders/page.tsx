@@ -5,23 +5,54 @@ import { Plus, ShoppingCart, ClipboardList, ArrowRight, ChevronRight } from "luc
 import { Badge } from "@/components/ui/badge";
 import { scmApi } from "@/lib/api/scm-api";
 
-const STATUS_TONE: Record<string, "pending" | "approved" | "processed" | "rejected" | "inactive"> = {
-  DRAFT:         "inactive",
-  SUBMITTED:     "pending",
-  APPROVED:      "approved",
-  RECEIVED:      "processed",
-  CANCELLED:     "rejected",
-  PENDING_MATCH: "pending",
-  MATCHED:       "approved",
-  PAID:          "processed",
+const STATUS_TONE: Record<string, "pending" | "approved" | "processed" | "rejected" | "inactive"> =
+  {
+    DRAFT: "inactive",
+    SUBMITTED: "pending",
+    APPROVED: "approved",
+    RECEIVED: "processed",
+    CANCELLED: "rejected",
+    PENDING_MATCH: "pending",
+    MATCHED: "approved",
+    PAID: "processed",
+  };
+
+type RequisitionLine = {
+  id: string;
+  productId: string;
+  quantity: number;
+  estimatedUnitPrice?: number;
+  product?: { name?: string; defaultVendorId?: string; unitCost?: number };
+};
+
+type Requisition = {
+  id: string;
+  projectId?: string;
+  reason?: string;
+  project?: { name?: string };
+  purchaseOrders?: unknown[];
+  lines?: RequisitionLine[];
+};
+
+type Vendor = { id: string; name?: string; isActive: boolean };
+
+type PurchaseOrder = {
+  id: string;
+  poNumber: string;
+  status: string;
+  vendorId: string;
+  vendor?: { name?: string };
+  project?: { name?: string };
+  totalAmount: number | string;
+  createdAt: string;
 };
 
 export default function POPage() {
-  const [poList, setPoList]             = useState<any[]>([]);
-  const [requisitions, setRequisitions] = useState<any[]>([]);
-  const [vendors, setVendors]           = useState<any[]>([]);
-  const [creatingPo, setCreatingPo]     = useState<string | null>(null);
-  const [warehouseId, setWarehouseId]   = useState<string | null>(null);
+  const [poList, setPoList] = useState<PurchaseOrder[]>([]);
+  const [requisitions, setRequisitions] = useState<Requisition[]>([]);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [creatingPo, setCreatingPo] = useState<string | null>(null);
+  const [warehouseId, setWarehouseId] = useState<string | null>(null);
 
   const fetchAll = () => {
     scmApi.getPurchaseOrders().then(setPoList);
@@ -38,21 +69,29 @@ export default function POPage() {
     if (status === "DRAFT" || status === "SUBMITTED") {
       await scmApi.approvePurchaseOrder(id);
     } else if (status === "APPROVED") {
-      if (!warehouseId) { alert("No warehouse configured. Seed the database first."); return; }
+      if (!warehouseId) {
+        alert("No warehouse configured. Seed the database first.");
+        return;
+      }
       await scmApi.receiveGoods(id, { warehouseId, notes: "Received via web UI" });
     }
     fetchAll();
   };
 
-  const createPoFromRequisition = async (req: any) => {
-    const vendorId = req.lines?.[0]?.product?.defaultVendorId || vendors.find((v) => v.isActive)?.id;
-    if (!vendorId) { alert("No vendor available. Add a vendor or set default vendor on the product."); return; }
+  const createPoFromRequisition = async (req: Requisition) => {
+    const vendorId =
+      req.lines?.[0]?.product?.defaultVendorId || vendors.find((v) => v.isActive)?.id;
+    if (!vendorId) {
+      alert("No vendor available. Add a vendor or set default vendor on the product.");
+      return;
+    }
     setCreatingPo(req.id);
     try {
       await scmApi.createPurchaseOrder({
-        vendorId, requisitionId: req.id,
+        vendorId,
+        requisitionId: req.id,
         projectId: req.projectId ?? undefined,
-        lines: req.lines.map((l: any) => ({
+        lines: (req.lines ?? []).map((l) => ({
           productId: l.productId,
           quantity: Number(l.quantity),
           unitPrice: Number(l.estimatedUnitPrice ?? l.product?.unitCost ?? 0),
@@ -61,7 +100,9 @@ export default function POPage() {
       fetchAll();
     } catch (e) {
       alert(e instanceof Error ? e.message : "Failed to create PO");
-    } finally { setCreatingPo(null); }
+    } finally {
+      setCreatingPo(null);
+    }
   };
 
   const actionLabel: Record<string, string> = {
@@ -70,7 +111,9 @@ export default function POPage() {
     APPROVED: "Mark Received",
   };
 
-  const pendingRequisitions = requisitions.filter((r) => !r.purchaseOrders || r.purchaseOrders.length === 0);
+  const pendingRequisitions = requisitions.filter(
+    (r) => !r.purchaseOrders || r.purchaseOrders.length === 0,
+  );
 
   return (
     <div className="space-y-6">
@@ -81,9 +124,7 @@ export default function POPage() {
             <ShoppingCart size={18} className="text-slate-400" />
             Purchase Orders
           </h1>
-          <p className="page-subtitle mt-1">
-            Workflow: Draft → Submitted → Approved → Received
-          </p>
+          <p className="page-subtitle mt-1">Workflow: Draft → Submitted → Approved → Received</p>
         </div>
         <button className="inline-flex items-center gap-1.5 text-[13px] font-medium px-3.5 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors">
           <Plus size={14} /> New PO
@@ -101,7 +142,10 @@ export default function POPage() {
           </div>
           <div className="space-y-2">
             {pendingRequisitions.map((req) => (
-              <div key={req.id} className="bg-white rounded-md border border-amber-100 p-3 flex items-start justify-between gap-3">
+              <div
+                key={req.id}
+                className="bg-white rounded-md border border-amber-100 p-3 flex items-start justify-between gap-3"
+              >
                 <div>
                   <p className="text-[13px] font-semibold text-slate-900">
                     {req.project?.name ?? req.reason ?? "Inventory requisition"}
@@ -110,7 +154,7 @@ export default function POPage() {
                     {req.lines?.length ?? 0} line(s){req.reason ? ` · ${req.reason}` : ""}
                   </p>
                   <ul className="mt-2 space-y-0.5">
-                    {req.lines?.map((line: any) => (
+                    {req.lines?.map((line) => (
                       <li key={line.id} className="text-[11px] text-slate-600">
                         <ChevronRight size={10} className="inline text-slate-400 mr-0.5" />
                         {line.product?.name ?? line.productId} × {Number(line.quantity)}
@@ -139,12 +183,19 @@ export default function POPage() {
           </div>
         ) : (
           poList.map((po) => (
-            <div key={po.id} className="bg-white rounded-lg border border-slate-200 shadow-card p-4 hover:border-slate-300 transition-colors">
+            <div
+              key={po.id}
+              className="bg-white rounded-lg border border-slate-200 shadow-card p-4 hover:border-slate-300 transition-colors"
+            >
               <div className="flex items-center justify-between">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2.5">
-                    <span className="font-mono text-[13px] font-semibold text-slate-900">{po.poNumber}</span>
-                    <Badge tone={STATUS_TONE[po.status] || "inactive"}>{po.status.replace("_", " ")}</Badge>
+                    <span className="font-mono text-[13px] font-semibold text-slate-900">
+                      {po.poNumber}
+                    </span>
+                    <Badge tone={STATUS_TONE[po.status] || "inactive"}>
+                      {po.status.replace("_", " ")}
+                    </Badge>
                     {po.project?.name && (
                       <span className="text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5">
                         {po.project.name}
@@ -156,7 +207,9 @@ export default function POPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
-                  <span className="font-mono font-semibold text-slate-900">₹{Number(po.totalAmount).toLocaleString()}</span>
+                  <span className="font-mono font-semibold text-slate-900">
+                    ₹{Number(po.totalAmount).toLocaleString()}
+                  </span>
                   {actionLabel[po.status] && (
                     <button
                       onClick={() => advance(po.id, po.status)}

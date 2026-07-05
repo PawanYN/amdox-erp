@@ -1,11 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaClient } from '@amdox/db';
 
 @Injectable()
 export class TaxSlabService {
   private prisma = new PrismaClient();
 
-  async create(tenantId: string, data: { name: string; minSalary: number; maxSalary?: number; rate: number }) {
+  async create(
+    tenantId: string,
+    data: { name: string; minSalary: number; maxSalary?: number; rate: number },
+  ) {
     return this.prisma.taxSlab.create({
       data: {
         ...data,

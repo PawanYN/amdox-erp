@@ -11,9 +11,14 @@
     "db:migrate": "turbo run db:migrate --filter=@amdox/db",
     "db:seed": "turbo run db:seed --filter=@amdox/db",
     "clean": "turbo run clean",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "prepare": "husky"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.2.0",
+    "@commitlint/config-conventional": "^21.2.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.8",
     "prettier": "^3.2.5",
     "turbo": "^2.0.4"
   },

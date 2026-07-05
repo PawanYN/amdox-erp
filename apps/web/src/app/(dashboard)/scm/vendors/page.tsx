@@ -1,34 +1,102 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Building2, Plus, Star, Users, Briefcase, KeyRound } from "lucide-react";
+import { Building2, Plus, Users, Briefcase, KeyRound, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { StatCard } from "@/components/ui/stat-card";
+import { Modal, inputClasses } from "@/components/ui/modal";
 import { scmApi } from "@/lib/api/scm-api";
 
 type BackendVendor = {
-  id: string; name: string; email?: string; contactPhone?: string;
-  rating?: number; isActive: boolean;
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  isActive: boolean;
 };
 
 export default function VendorsPage() {
   const [vendors, setVendors] = useState<BackendVendor[]>([]);
   const [loading, setLoading] = useState(true);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<BackendVendor | null>(null);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    scmApi.getVendors()
+  const load = () =>
+    scmApi
+      .getVendors()
       .then(setVendors)
       .catch(console.error)
       .finally(() => setLoading(false));
+
+  useEffect(() => {
+    load();
   }, []);
 
+  function openCreate() {
+    setEditing(null);
+    setName("");
+    setEmail("");
+    setPhone("");
+    setFormOpen(true);
+  }
+
+  function openEdit(vendor: BackendVendor) {
+    setEditing(vendor);
+    setName(vendor.name);
+    setEmail(vendor.email || "");
+    setPhone(vendor.phone || "");
+    setFormOpen(true);
+  }
+
+  async function handleSave() {
+    if (!name.trim()) return;
+    setSaving(true);
+    try {
+      const payload = {
+        name: name.trim(),
+        email: email.trim() || undefined,
+        phone: phone.trim() || undefined,
+      };
+      if (editing) {
+        await scmApi.updateVendor(editing.id, payload);
+      } else {
+        await scmApi.createVendor(payload);
+      }
+      await load();
+      setFormOpen(false);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to save vendor.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete(vendor: BackendVendor) {
+    if (!confirm(`Delete vendor "${vendor.name}"?`)) return;
+    try {
+      await scmApi.deleteVendor(vendor.id);
+      await load();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete vendor.");
+    }
+  }
+
   const handleIssuePortalKey = async (vendor: BackendVendor) => {
-    if (!vendor.email) { alert("Add an email to this vendor before issuing a portal key."); return; }
+    if (!vendor.email) {
+      alert("Add an email to this vendor before issuing a portal key.");
+      return;
+    }
     try {
       const result = await scmApi.issueVendorPortalKey(vendor.id);
-      alert(`Portal key for ${vendor.name}:\n\n${result.accessKey}\n\nShare this with the supplier. Login at /vendor-portal`);
+      alert(
+        `Portal key for ${vendor.name}:\n\n${result.accessKey}\n\nShare this with the supplier. Login at /vendor-portal`,
+      );
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to issue portal key");
     }
@@ -51,20 +119,15 @@ export default function VendorsPage() {
     },
     {
       header: "Phone",
-      cell: (v) => <span className="text-[13px] text-slate-500">{v.contactPhone || "—"}</span>,
-    },
-    {
-      header: "Rating",
-      cell: (v) => v.rating ? (
-        <div className="flex items-center gap-1 text-amber-500 font-semibold text-[13px]">
-          <Star size={13} className="fill-amber-400" />
-          {v.rating}
-        </div>
-      ) : <span className="text-slate-300 text-[13px]">—</span>,
+      cell: (v) => <span className="text-[13px] text-slate-500">{v.phone || "—"}</span>,
     },
     {
       header: "Status",
-      cell: (v) => <Badge tone={v.isActive ? "active" : "inactive"}>{v.isActive ? "Active" : "Inactive"}</Badge>,
+      cell: (v) => (
+        <Badge tone={v.isActive ? "active" : "inactive"}>
+          {v.isActive ? "Active" : "Inactive"}
+        </Badge>
+      ),
     },
     {
       header: "Portal",
@@ -77,12 +140,28 @@ export default function VendorsPage() {
         </button>
       ),
     },
+    {
+      header: "Actions",
+      cell: (v) => (
+        <div className="flex gap-2">
+          <button
+            onClick={() => openEdit(v)}
+            className="flex h-7 w-7 items-center justify-center rounded-md bg-slate-50 border border-slate-200 text-slate-600 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-colors"
+          >
+            <Pencil size={13} />
+          </button>
+          <button
+            onClick={() => handleDelete(v)}
+            className="flex h-7 w-7 items-center justify-center rounded-md bg-slate-50 border border-slate-200 text-slate-600 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors"
+          >
+            <Trash2 size={13} />
+          </button>
+        </div>
+      ),
+    },
   ];
 
   const activeVendors = vendors.filter((v) => v.isActive).length;
-  const avgRating = vendors.length > 0
-    ? (vendors.reduce((a, v) => a + (v.rating || 0), 0) / vendors.length).toFixed(1)
-    : "—";
 
   return (
     <div className="space-y-6">
@@ -92,17 +171,28 @@ export default function VendorsPage() {
             <Building2 size={18} className="text-slate-400" />
             Vendors
           </h1>
-          <p className="page-subtitle mt-1">Manage vendor profiles, contacts, ratings and portal access</p>
+          <p className="page-subtitle mt-1">Manage vendor profiles, contacts and portal access</p>
         </div>
-        <Button icon={<Plus size={14} />} onClick={() => console.log("Add Vendor — FE-01 pending")}>
+        <Button icon={<Plus size={14} />} onClick={openCreate}>
           Add Vendor
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-        <StatCard label="Total Vendors" value={vendors.length} icon={<Briefcase size={16} />} gradient="from-blue-500 to-blue-600"      delay="0s" />
-        <StatCard label="Active"        value={activeVendors}  icon={<Users size={16} />}     gradient="from-emerald-500 to-emerald-600" delay="0.05s" />
-        <StatCard label="Avg Rating"    value={avgRating}      icon={<Star size={16} />}      gradient="from-amber-400 to-amber-500"    delay="0.1s" />
+      <div className="grid grid-cols-2 gap-4">
+        <StatCard
+          label="Total Vendors"
+          value={vendors.length}
+          icon={<Briefcase size={16} />}
+          gradient="from-blue-500 to-blue-600"
+          delay="0s"
+        />
+        <StatCard
+          label="Active"
+          value={activeVendors}
+          icon={<Users size={16} />}
+          gradient="from-emerald-500 to-emerald-600"
+          delay="0.05s"
+        />
       </div>
 
       <DataTable
@@ -111,6 +201,51 @@ export default function VendorsPage() {
         keyExtractor={(v) => v.id}
         emptyMessage={loading ? "Loading vendors…" : "No vendors found."}
       />
+
+      <Modal
+        open={formOpen}
+        onClose={() => setFormOpen(false)}
+        title={editing ? "Edit Vendor" : "Add Vendor"}
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Name *</label>
+            <input
+              className={inputClasses}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Acme Supplies"
+            />
+          </div>
+          <div>
+            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Email</label>
+            <input
+              className={inputClasses}
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="contact@vendor.com"
+            />
+          </div>
+          <div>
+            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Phone</label>
+            <input
+              className={inputClasses}
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+91 98765 43210"
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setFormOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? "Saving…" : editing ? "Update" : "Create"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

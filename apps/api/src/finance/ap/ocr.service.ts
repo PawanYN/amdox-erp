@@ -31,8 +31,7 @@ interface TextractExpenseField {
 @Injectable()
 export class OcrService {
   private readonly logger = new Logger(OcrService.name);
-  private readonly provider: OcrProvider =
-    (process.env.OCR_PROVIDER as OcrProvider) || 'mock';
+  private readonly provider: OcrProvider = (process.env.OCR_PROVIDER as OcrProvider) || 'mock';
 
   /**
    * Main entry point: turn a raw invoice file (PDF/image bytes) into a DTO
@@ -47,9 +46,7 @@ export class OcrService {
         return await this.extractWithTextract(documentBuffer);
       } catch (err) {
         // Never block AP flow — fall back to mock so dev/demo still works.
-        this.logger.warn(
-          `Textract OCR failed, falling back to mock: ${(err as Error).message}`,
-        );
+        this.logger.warn(`Textract OCR failed, falling back to mock: ${(err as Error).message}`);
       }
     }
 
@@ -59,9 +56,7 @@ export class OcrService {
   /** Textract needs all three; missing any one keeps us on mock mode. */
   private hasAwsCredentials(): boolean {
     return Boolean(
-      process.env.AWS_ACCESS_KEY_ID &&
-        process.env.AWS_SECRET_ACCESS_KEY &&
-        process.env.AWS_REGION,
+      process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && process.env.AWS_REGION,
     );
   }
 
@@ -77,6 +72,10 @@ export class OcrService {
     documentBuffer: Buffer,
   ): Promise<{ data: CreateInvoiceDto; confidenceScore: number }> {
     // Dynamic require so the app starts without the SDK when using mock mode.
+    // `@aws-sdk/client-textract` is deliberately not a package.json dependency —
+    // a static `import()` would fail module resolution at build time since it may
+    // not be installed at all in mock-mode deployments.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const mod = require('@aws-sdk/client-textract') as {
       TextractClient: new (cfg: object) => { send: (cmd: object) => Promise<any> };
       AnalyzeExpenseCommand: new (input: object) => object;
@@ -119,10 +118,7 @@ export class OcrService {
       fieldMap.get('INVOICE_NUMBER')?.text ??
       `INV-OCR-${Date.now()}`;
 
-    const totalText =
-      fieldMap.get('TOTAL')?.text ??
-      fieldMap.get('AMOUNT_DUE')?.text ??
-      '0';
+    const totalText = fieldMap.get('TOTAL')?.text ?? fieldMap.get('AMOUNT_DUE')?.text ?? '0';
     const totalAmount = parseFloat(totalText.replace(/[^0-9.-]/g, '')) || 0;
 
     const confidences: number[] = [];
@@ -132,8 +128,7 @@ export class OcrService {
     const lines: CreateInvoiceDto['lines'] = [];
     for (const group of lineItemGroups) {
       for (const item of group.LineItems ?? []) {
-        const itemFields = (item.LineItemExpenseFields ??
-          []) as TextractExpenseField[];
+        const itemFields = (item.LineItemExpenseFields ?? []) as TextractExpenseField[];
         let description = 'Line item';
         let quantity = 1;
         let unitPrice = 0;
@@ -146,7 +141,8 @@ export class OcrService {
           confidences.push(conf / 100);
           if (type.includes('ITEM')) description = text;
           if (type.includes('QUANTITY')) quantity = parseFloat(text) || 1;
-          if (type.includes('UNIT_PRICE')) unitPrice = parseFloat(text.replace(/[^0-9.-]/g, '')) || 0;
+          if (type.includes('UNIT_PRICE'))
+            unitPrice = parseFloat(text.replace(/[^0-9.-]/g, '')) || 0;
           if (type.includes('PRICE') && !type.includes('UNIT')) {
             lineTotal = parseFloat(text.replace(/[^0-9.-]/g, '')) || 0;
           }
@@ -168,9 +164,7 @@ export class OcrService {
 
     // Average confidence across all extracted fields (PDF asks for >= 95%).
     const confidenceScore =
-      confidences.length > 0
-        ? confidences.reduce((a, b) => a + b, 0) / confidences.length
-        : 0.97;
+      confidences.length > 0 ? confidences.reduce((a, b) => a + b, 0) / confidences.length : 0.97;
 
     this.logger.log(
       `Textract OCR complete. Invoice ${invoiceNumber}, confidence ${(confidenceScore * 100).toFixed(1)}%`,

@@ -9,7 +9,8 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "postman": "openapi-to-postmanv2 -s openapi-spec.json -o postman_collection.json -p",
-    "verify:p2p": "ts-node scripts/verify-p2p-flow.ts"
+    "verify:p2p": "ts-node scripts/verify-p2p-flow.ts",
+    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\""
   },
   "dependencies": {
     "@amdox/db": "workspace:*",
@@ -45,7 +46,11 @@
     "@types/node": "^20.11.0",
     "@types/passport-jwt": "^4.0.1",
     "@types/pdfkit": "^0.13.4",
+    "eslint": "^9",
+    "eslint-config-prettier": "^9",
+    "globals": "^15",
     "ts-node": "^10.9.2",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "typescript-eslint": "^8"
   }
 }

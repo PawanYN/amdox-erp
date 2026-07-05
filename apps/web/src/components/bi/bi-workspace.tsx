@@ -22,17 +22,43 @@ import { VisualizationPane } from "@/components/bi/visualization-pane";
 import { SlicerBar, slicersToFilterParams, type SlicerState } from "@/components/bi/slicer-bar";
 import { DrillThroughPane } from "@/components/bi/drill-through-pane";
 import { PageTabs, ReportsDrawer } from "@/components/bi/power-bi-ribbon";
-import { GridLayoutWrapper, generateLayout, type GridLayoutConfig } from "@/components/bi/grid-layout-wrapper";
+import {
+  GridLayoutWrapper,
+  generateLayout,
+  type GridLayoutConfig,
+} from "@/components/bi/grid-layout-wrapper";
 import { Modal, inputClasses } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { DATA_SOURCE_OPTIONS } from "@/components/bi/widget-chart";
-import { DEFAULT_STYLE, type WidgetFilter, type WidgetQueryAttrs, type WidgetStyleConfig } from "@/components/bi/widget-config-schema";
+import {
+  DEFAULT_STYLE,
+  type WidgetFilter,
+  type WidgetQueryAttrs,
+  type WidgetStyleConfig,
+} from "@/components/bi/widget-config-schema";
 import type { ReportRunStatus } from "@/lib/types/bi";
 import {
-  RefreshCw, Radio, Edit3, Eye, Plus, ChevronDown, ChevronRight,
-  Wallet, Users, Package, FolderKanban, Calendar, Database,
-  AlertCircle, X, SlidersHorizontal, BarChart3, Filter,
-  TrendingUp, TrendingDown, Minus,
+  RefreshCw,
+  Radio,
+  Edit3,
+  Eye,
+  Plus,
+  ChevronDown,
+  ChevronRight,
+  Wallet,
+  Users,
+  Package,
+  FolderKanban,
+  Calendar,
+  Database,
+  AlertCircle,
+  X,
+  SlidersHorizontal,
+  BarChart3,
+  Filter,
+  TrendingUp,
+  TrendingDown,
+  Minus,
 } from "lucide-react";
 
 const EXECUTIVE_PAGE_ID = "__executive__";
@@ -41,7 +67,9 @@ const LAYOUT_SAVE_DEBOUNCE_MS = 400;
 /* ─── Fields Pane ─────────────────────────────────── */
 const FIELD_TABLES = [
   {
-    id: "finance", label: "Finance", icon: Wallet,
+    id: "finance",
+    label: "Finance",
+    icon: Wallet,
     fields: [
       { name: "Revenue", type: "measure" },
       { name: "Expenses", type: "measure" },
@@ -54,7 +82,9 @@ const FIELD_TABLES = [
     ],
   },
   {
-    id: "hr", label: "Human Resources", icon: Users,
+    id: "hr",
+    label: "Human Resources",
+    icon: Users,
     fields: [
       { name: "Headcount", type: "measure" },
       { name: "Salary Expense", type: "measure" },
@@ -65,7 +95,9 @@ const FIELD_TABLES = [
     ],
   },
   {
-    id: "scm", label: "Supply Chain", icon: Package,
+    id: "scm",
+    label: "Supply Chain",
+    icon: Package,
     fields: [
       { name: "Open POs", type: "measure" },
       { name: "Inventory Value", type: "measure" },
@@ -76,7 +108,9 @@ const FIELD_TABLES = [
     ],
   },
   {
-    id: "projects", label: "Projects", icon: FolderKanban,
+    id: "projects",
+    label: "Projects",
+    icon: FolderKanban,
     fields: [
       { name: "Active Projects", type: "measure" },
       { name: "Budget Total", type: "measure" },
@@ -87,7 +121,9 @@ const FIELD_TABLES = [
     ],
   },
   {
-    id: "calendar", label: "Calendar", icon: Calendar,
+    id: "calendar",
+    label: "Calendar",
+    icon: Calendar,
     fields: [
       { name: "Date", type: "date" },
       { name: "Month", type: "dimension" },
@@ -99,8 +135,10 @@ const FIELD_TABLES = [
 ];
 
 function FieldTypeIcon({ type }: { type: string }) {
-  if (type === "measure") return <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-1 rounded">Σ</span>;
-  if (type === "date") return <span className="text-[9px] font-bold text-amber-600 bg-amber-50 px-1 rounded">📅</span>;
+  if (type === "measure")
+    return <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-1 rounded">Σ</span>;
+  if (type === "date")
+    return <span className="text-[9px] font-bold text-amber-600 bg-amber-50 px-1 rounded">📅</span>;
   return <span className="text-[9px] font-bold text-slate-400 bg-slate-100 px-1 rounded">Aa</span>;
 }
 
@@ -113,7 +151,9 @@ function FieldsPane({ visible }: { visible: boolean }) {
     <aside className="w-56 shrink-0 flex flex-col overflow-hidden border-r border-slate-200 bg-white">
       <div className="px-3 py-2.5 border-b border-slate-100 flex items-center gap-2">
         <Database size={13} className="text-slate-400" />
-        <span className="text-[11px] font-semibold text-slate-600 uppercase tracking-wider">Data</span>
+        <span className="text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
+          Data
+        </span>
       </div>
       <div className="flex-1 overflow-y-auto custom-scrollbar py-1">
         {FIELD_TABLES.map((table) => {
@@ -127,8 +167,14 @@ function FieldsPane({ visible }: { visible: boolean }) {
                 className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-slate-50 transition-colors"
               >
                 <Icon size={13} className="text-slate-400 shrink-0" />
-                <span className="flex-1 text-[12px] font-medium text-slate-700 truncate">{table.label}</span>
-                {isOpen ? <ChevronDown size={11} className="text-slate-400" /> : <ChevronRight size={11} className="text-slate-400" />}
+                <span className="flex-1 text-[12px] font-medium text-slate-700 truncate">
+                  {table.label}
+                </span>
+                {isOpen ? (
+                  <ChevronDown size={11} className="text-slate-400" />
+                ) : (
+                  <ChevronRight size={11} className="text-slate-400" />
+                )}
               </button>
               {isOpen && (
                 <div className="ml-5 border-l border-slate-100">
@@ -138,7 +184,9 @@ function FieldsPane({ visible }: { visible: boolean }) {
                       className="flex items-center gap-2 px-3 py-1.5 hover:bg-blue-50 cursor-pointer group transition-colors"
                     >
                       <FieldTypeIcon type={f.type} />
-                      <span className="text-[11.5px] text-slate-600 group-hover:text-blue-700 truncate">{f.name}</span>
+                      <span className="text-[11.5px] text-slate-600 group-hover:text-blue-700 truncate">
+                        {f.name}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -153,7 +201,11 @@ function FieldsPane({ visible }: { visible: boolean }) {
 
 /* ─── KPI Card ─────────────────────────────────────── */
 function KpiCard({
-  label, value, sub, trend, format = "number",
+  label,
+  value,
+  sub,
+  trend,
+  format = "number",
 }: {
   label: string;
   value: number | null | undefined;
@@ -161,17 +213,24 @@ function KpiCard({
   trend?: "up" | "down" | "neutral";
   format?: "number" | "currency" | "percent";
 }) {
-  const display = value == null ? "—" : format === "currency"
-    ? `$${value >= 1_000_000 ? (value / 1_000_000).toFixed(1) + "M" : value >= 1_000 ? (value / 1_000).toFixed(1) + "K" : value.toLocaleString()}`
-    : format === "percent" ? `${value.toFixed(1)}%`
-    : value.toLocaleString();
+  const display =
+    value == null
+      ? "—"
+      : format === "currency"
+        ? `$${value >= 1_000_000 ? (value / 1_000_000).toFixed(1) + "M" : value >= 1_000 ? (value / 1_000).toFixed(1) + "K" : value.toLocaleString()}`
+        : format === "percent"
+          ? `${value.toFixed(1)}%`
+          : value.toLocaleString();
 
   const TrendIcon = trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : Minus;
-  const trendColor = trend === "up" ? "text-emerald-600" : trend === "down" ? "text-red-500" : "text-slate-400";
+  const trendColor =
+    trend === "up" ? "text-emerald-600" : trend === "down" ? "text-red-500" : "text-slate-400";
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-col gap-1 hover:shadow-md transition-shadow">
-      <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider truncate">{label}</span>
+      <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider truncate">
+        {label}
+      </span>
       <div className="flex items-end gap-2">
         <span className="text-2xl font-bold text-slate-900 tabular-nums">{display}</span>
         {trend && <TrendIcon size={14} className={`mb-0.5 shrink-0 ${trendColor}`} />}
@@ -183,7 +242,13 @@ function KpiCard({
 
 /* ─── Visual Card ──────────────────────────────────── */
 function VisualCard({
-  title, subtitle, children, selected, editMode, onSelect, onDelete,
+  title,
+  subtitle,
+  children,
+  selected,
+  editMode,
+  onSelect,
+  onDelete,
 }: {
   title: string;
   subtitle?: string;
@@ -197,9 +262,7 @@ function VisualCard({
     <div
       onClick={onSelect}
       className={`bg-white rounded-xl border shadow-sm flex flex-col overflow-hidden transition-all ${
-        selected
-          ? "border-blue-500 shadow-blue-100 shadow-md"
-          : "border-slate-200 hover:shadow-md"
+        selected ? "border-blue-500 shadow-blue-100 shadow-md" : "border-slate-200 hover:shadow-md"
       } ${editMode ? "cursor-pointer" : ""}`}
     >
       <div className="flex items-center justify-between px-4 pt-3 pb-1 shrink-0">
@@ -210,7 +273,10 @@ function VisualCard({
         {editMode && onDelete && (
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
             className="h-5 w-5 flex items-center justify-center rounded text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0 ml-2"
           >
             <X size={11} />
@@ -271,22 +337,50 @@ function RightPane({
     <aside className="w-64 shrink-0 flex flex-col overflow-hidden border-l border-slate-200 bg-white">
       {/* Tab strip */}
       <div className="flex border-b border-slate-100 shrink-0">
-        <TabBtn label="Filters" icon={<Filter size={12} />} active={activeTab === "filters"} onClick={() => setTab("filters")} />
+        <TabBtn
+          label="Filters"
+          icon={<Filter size={12} />}
+          active={activeTab === "filters"}
+          onClick={() => setTab("filters")}
+        />
         {editMode && activeDashboard && (
-          <TabBtn label="Visualizations" icon={<BarChart3 size={12} />} active={activeTab === "viz"} onClick={() => setTab("viz")} />
+          <TabBtn
+            label="Visualizations"
+            icon={<BarChart3 size={12} />}
+            active={activeTab === "viz"}
+            onClick={() => setTab("viz")}
+          />
         )}
       </div>
 
       <div className="flex-1 overflow-y-auto custom-scrollbar">
         {activeTab === "filters" && (
           <div className="p-3 space-y-3">
-            <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Report filters</p>
-            <FilterField label="Period" value={slicers.period} options={["all","this_month","last_month","this_quarter","ytd"]} />
-            <FilterField label="Status" value={slicers.status} options={["all","open","closed","pending"]} />
-            <FilterField label="Department" value={slicers.department} options={["all","Finance","HR","Engineering","Sales"]} />
+            <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+              Report filters
+            </p>
+            <FilterField
+              label="Period"
+              value={slicers.period}
+              options={["all", "this_month", "last_month", "this_quarter", "ytd"]}
+            />
+            <FilterField
+              label="Status"
+              value={slicers.status}
+              options={["all", "open", "closed", "pending"]}
+            />
+            <FilterField
+              label="Department"
+              value={slicers.department}
+              options={["all", "Finance", "HR", "Engineering", "Sales"]}
+            />
             <div className="pt-2 border-t border-slate-100">
-              <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Visual filters</p>
-              <p className="text-[11px] text-slate-400">Select a visual on the canvas to apply visual-level filters.</p>
+              <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                Visual filters
+              </p>
+              <p className="text-[11px] text-slate-400">
+                Select a visual on the canvas to apply visual-level filters.
+              </p>
             </div>
           </div>
         )}
@@ -316,29 +410,57 @@ function RightPane({
   );
 }
 
-function TabBtn({ label, icon, active, onClick }: { label: string; icon: React.ReactNode; active: boolean; onClick: () => void }) {
+function TabBtn({
+  label,
+  icon,
+  active,
+  onClick,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  active: boolean;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-medium border-b-2 transition-colors ${
-        active ? "border-blue-600 text-blue-700 bg-blue-50/50" : "border-transparent text-slate-500 hover:text-slate-700"
+        active
+          ? "border-blue-600 text-blue-700 bg-blue-50/50"
+          : "border-transparent text-slate-500 hover:text-slate-700"
       }`}
     >
-      {icon}{label}
+      {icon}
+      {label}
     </button>
   );
 }
 
-function FilterField({ label, value, options }: { label: string; value: string; options: string[] }) {
+function FilterField({
+  label,
+  value,
+  options,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+}) {
   return (
     <div>
       <p className="text-[11px] font-medium text-slate-600 mb-1">{label}</p>
       <div className="flex flex-wrap gap-1">
         {options.map((o) => (
-          <span key={o} className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${
-            value === o ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-500 border-slate-200"
-          }`}>{o === "all" ? "All" : o}</span>
+          <span
+            key={o}
+            className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${
+              value === o
+                ? "bg-blue-600 text-white border-blue-600"
+                : "bg-white text-slate-500 border-slate-200"
+            }`}
+          >
+            {o === "all" ? "All" : o}
+          </span>
         ))}
       </div>
     </div>
@@ -347,13 +469,25 @@ function FilterField({ label, value, options }: { label: string; value: string; 
 
 /* ─── Toolbar ──────────────────────────────────────── */
 function Toolbar({
-  editMode, live, showFields, showRightPane,
-  onSetEditMode, onToggleLive, onRefresh,
-  onToggleFields, onToggleRightPane,
+  editMode,
+  live,
+  showFields,
+  showRightPane,
+  onSetEditMode,
+  onToggleLive,
+  onRefresh,
+  onToggleFields,
+  onToggleRightPane,
 }: {
-  editMode: boolean; live: boolean; showFields: boolean; showRightPane: boolean;
-  onSetEditMode: (v: boolean) => void; onToggleLive: () => void; onRefresh: () => void;
-  onToggleFields: () => void; onToggleRightPane: () => void;
+  editMode: boolean;
+  live: boolean;
+  showFields: boolean;
+  showRightPane: boolean;
+  onSetEditMode: (v: boolean) => void;
+  onToggleLive: () => void;
+  onRefresh: () => void;
+  onToggleFields: () => void;
+  onToggleRightPane: () => void;
 }) {
   return (
     <div className="shrink-0 h-11 bg-white border-b border-slate-200 flex items-center px-4 gap-2">
@@ -406,7 +540,9 @@ function Toolbar({
         type="button"
         onClick={onToggleLive}
         className={`h-7 px-2.5 flex items-center gap-1.5 rounded-md text-[11px] font-medium transition-colors ${
-          live ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "text-slate-500 hover:bg-slate-100"
+          live
+            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+            : "text-slate-500 hover:bg-slate-100"
         }`}
       >
         <Radio size={12} />
@@ -414,7 +550,9 @@ function Toolbar({
           <span className="flex items-center gap-1">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live
           </span>
-        ) : "Live"}
+        ) : (
+          "Live"
+        )}
       </button>
 
       <div className="flex-1" />
@@ -424,7 +562,9 @@ function Toolbar({
         type="button"
         onClick={onToggleFields}
         className={`h-7 px-2.5 flex items-center gap-1.5 rounded-md text-[11px] font-medium transition-colors ${
-          showFields ? "bg-blue-50 text-blue-700 border border-blue-200" : "text-slate-500 hover:bg-slate-100 border border-transparent"
+          showFields
+            ? "bg-blue-50 text-blue-700 border border-blue-200"
+            : "text-slate-500 hover:bg-slate-100 border border-transparent"
         }`}
       >
         <Database size={12} /> Data
@@ -433,7 +573,9 @@ function Toolbar({
         type="button"
         onClick={onToggleRightPane}
         className={`h-7 px-2.5 flex items-center gap-1.5 rounded-md text-[11px] font-medium transition-colors ${
-          showRightPane ? "bg-blue-50 text-blue-700 border border-blue-200" : "text-slate-500 hover:bg-slate-100 border border-transparent"
+          showRightPane
+            ? "bg-blue-50 text-blue-700 border border-blue-200"
+            : "text-slate-500 hover:bg-slate-100 border border-transparent"
         }`}
       >
         <SlidersHorizontal size={12} /> Filters
@@ -457,7 +599,11 @@ export function BiWorkspace() {
   const [crossFilterKey, setCrossFilterKey] = useState<string | null>(null);
   const [drillDown, setDrillDown] = useState<BiDrillDownResult | null>(null);
   const [drillTitle, setDrillTitle] = useState("");
-  const [slicers, setSlicers] = useState<SlicerState>({ period: "all", status: "all", department: "all" });
+  const [slicers, setSlicers] = useState<SlicerState>({
+    period: "all",
+    status: "all",
+    department: "all",
+  });
   const [reports, setReports] = useState<BiScheduledReport[]>([]);
   const [reportsOpen, setReportsOpen] = useState(false);
   const [dashModalOpen, setDashModalOpen] = useState(false);
@@ -496,9 +642,16 @@ export function BiWorkspace() {
   }, [activeDashboard]);
 
   const loadKpis = useCallback(() => {
-    biApi.getKpis(filterParams)
-      .then((data) => { setKpis(data); setLoadError(null); })
-      .catch((err) => { console.error(err); setLoadError("Could not load analytics data. Check API connection."); });
+    biApi
+      .getKpis(filterParams)
+      .then((data) => {
+        setKpis(data);
+        setLoadError(null);
+      })
+      .catch((err) => {
+        console.error(err);
+        setLoadError("Could not load analytics data. Check API connection.");
+      });
   }, [filterParams]);
 
   const loadDashboards = useCallback(() => {
@@ -509,7 +662,11 @@ export function BiWorkspace() {
     biApi.getReports().then(setReports).catch(console.error);
   }, []);
 
-  useEffect(() => { loadKpis(); loadDashboards(); loadReports(); }, [loadKpis, loadDashboards, loadReports]);
+  useEffect(() => {
+    loadKpis();
+    loadDashboards();
+    loadReports();
+  }, [loadKpis, loadDashboards, loadReports]);
 
   useEffect(() => {
     if (!live) return;
@@ -518,7 +675,9 @@ export function BiWorkspace() {
       (data) => setKpis(data as BiKpis),
       (err) => console.warn("SSE metrics stream:", err.message),
       filterParams,
-    ).then((fn) => { unsub = fn; });
+    ).then((fn) => {
+      unsub = fn;
+    });
     return () => unsub?.();
   }, [live, filterParams]);
 
@@ -530,8 +689,11 @@ export function BiWorkspace() {
   }, [selectedWidgetId, activeDashboard]);
 
   function resetWidgetDraft(type: WidgetType = "bar") {
-    setWidgetTitle(""); setWidgetType(type); setWidgetSource("ar_aging");
-    setWidgetQueryAttrs({}); setWidgetFilters([]);
+    setWidgetTitle("");
+    setWidgetType(type);
+    setWidgetSource("ar_aging");
+    setWidgetQueryAttrs({});
+    setWidgetFilters([]);
     setWidgetStyle(DEFAULT_STYLE[type] || {});
   }
 
@@ -566,26 +728,35 @@ export function BiWorkspace() {
         try {
           const data = await biApi.getWidgetData(w.id, filterParams);
           if (!cancelled) setWidgetDataMap((prev) => ({ ...prev, [w.id]: data }));
-        } catch { /* widget data optional */ }
+        } catch {
+          /* widget data optional */
+        }
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [activeDashboard, filterParams]);
 
   async function handleCrossFilter(source: BiDataSource, key: string, name: string) {
     setCrossFilterKey(key);
     try {
       const result = await biApi.drillDown(source, key, name);
-      setDrillDown(result); setDrillTitle(name);
-    } catch { /* drill optional */ }
+      setDrillDown(result);
+      setDrillTitle(name);
+    } catch {
+      /* drill optional */
+    }
   }
 
   async function createDashboard() {
     if (!newDashName.trim()) return;
     const created = await biApi.createDashboard(newDashName.trim());
-    setNewDashName(""); setDashModalOpen(false);
+    setNewDashName("");
+    setDashModalOpen(false);
     await loadDashboards();
-    setActivePageId(created.id); setEditMode(true);
+    setActivePageId(created.id);
+    setEditMode(true);
   }
 
   async function deletePage(id: string) {
@@ -595,7 +766,10 @@ export function BiWorkspace() {
     setDashboards((prev) => prev.filter((d) => d.id !== id));
     if (activePageId === id) {
       setActivePageId(EXECUTIVE_PAGE_ID);
-      setSelectedWidgetId(null); resetWidgetDraft(); setDrillDown(null); setCrossFilterKey(null);
+      setSelectedWidgetId(null);
+      resetWidgetDraft();
+      setDrillDown(null);
+      setCrossFilterKey(null);
     }
   }
 
@@ -614,13 +788,19 @@ export function BiWorkspace() {
     setDashboards((prev) => prev.map((d) => (d.id === updated.id ? updated : d)));
     const data = await biApi.getWidgetData(selectedWidgetId, filterParams);
     setWidgetDataMap((prev) => ({ ...prev, [selectedWidgetId]: data }));
-    setSelectedWidgetId(null); resetWidgetDraft();
+    setSelectedWidgetId(null);
+    resetWidgetDraft();
   }
 
-  function cancelWidgetEdit() { setSelectedWidgetId(null); resetWidgetDraft(); }
+  function cancelWidgetEdit() {
+    setSelectedWidgetId(null);
+    resetWidgetDraft();
+  }
 
   function handleTypeChange(type: WidgetType) {
-    setWidgetType(type); setWidgetQueryAttrs({}); setWidgetStyle(DEFAULT_STYLE[type] || {});
+    setWidgetType(type);
+    setWidgetQueryAttrs({});
+    setWidgetStyle(DEFAULT_STYLE[type] || {});
   }
 
   function handleSourceChange(source: BiDataSource) {
@@ -649,46 +829,76 @@ export function BiWorkspace() {
   const handleLayoutChange = useCallback(
     (layout: GridLayoutConfig) => {
       if (!activeDashboard || !editMode) return;
-      setDashboards((prev) => prev.map((d) => (d.id === activeDashboard.id ? { ...d, layout } : d)));
+      setDashboards((prev) =>
+        prev.map((d) => (d.id === activeDashboard.id ? { ...d, layout } : d)),
+      );
       if (layoutSaveTimer.current) clearTimeout(layoutSaveTimer.current);
       layoutSaveTimer.current = setTimeout(async () => {
-        try { await biApi.updateDashboard(activeDashboard.id, { layout }); } catch { /* ignore */ }
+        try {
+          await biApi.updateDashboard(activeDashboard.id, { layout });
+        } catch {
+          /* ignore */
+        }
       }, LAYOUT_SAVE_DEBOUNCE_MS);
     },
     [activeDashboard, editMode],
   );
 
-  useEffect(() => () => { if (layoutSaveTimer.current) clearTimeout(layoutSaveTimer.current); }, []);
+  useEffect(
+    () => () => {
+      if (layoutSaveTimer.current) clearTimeout(layoutSaveTimer.current);
+    },
+    [],
+  );
 
   async function createReport() {
-    const recipients = reportRecipients.split(",").map((e) => e.trim()).filter(Boolean);
+    const recipients = reportRecipients
+      .split(",")
+      .map((e) => e.trim())
+      .filter(Boolean);
     if (!reportName.trim() || !recipients.length) return;
-    await biApi.createReport({ name: reportName.trim(), cronExpr: reportCron, format: reportFormat, recipients, dashboardId: activeDashboard?.id });
-    setReportModalOpen(false); setReportName(""); setReportRecipients("");
+    await biApi.createReport({
+      name: reportName.trim(),
+      cronExpr: reportCron,
+      format: reportFormat,
+      recipients,
+      dashboardId: activeDashboard?.id,
+    });
+    setReportModalOpen(false);
+    setReportName("");
+    setReportRecipients("");
     loadReports();
   }
 
   const totalArOutstanding = kpis ? computeTotalArOutstanding(kpis.arAging) : 0;
-  const collectionHealthPct = totalArOutstanding > 0 ? (kpis!.arAging.current / totalArOutstanding) * 100 : 0;
+  const collectionHealthPct =
+    totalArOutstanding > 0 ? (kpis!.arAging.current / totalArOutstanding) * 100 : 0;
 
-  const agingData = kpis ? [
-    { name: "Current", value: kpis.arAging.current, key: "Current" },
-    { name: "31–60 days", value: kpis.arAging.d31_60, key: "31-60" },
-    { name: "61–90 days", value: kpis.arAging.d61_90, key: "61-90" },
-    { name: "90+ days", value: kpis.arAging.over90, key: "90+" },
-  ] : [];
+  const agingData = kpis
+    ? [
+        { name: "Current", value: kpis.arAging.current, key: "Current" },
+        { name: "31–60 days", value: kpis.arAging.d31_60, key: "31-60" },
+        { name: "61–90 days", value: kpis.arAging.d61_90, key: "61-90" },
+        { name: "90+ days", value: kpis.arAging.over90, key: "90+" },
+      ]
+    : [];
 
-  const inventoryData = kpis?.inventorySnapshot?.slice(0, 8).map((s: any) => ({
-    name: s.sku, value: s.quantity, key: s.sku,
-  })) || [];
+  const inventoryData =
+    kpis?.inventorySnapshot?.slice(0, 8).map((s) => ({
+      name: s.sku,
+      value: s.quantity,
+      key: s.sku,
+    })) || [];
 
   /* ─── Layout: -m-6 escapes the parent p-6 padding so BI fills edge-to-edge ─── */
   return (
     <div className="-m-6 flex flex-col overflow-hidden" style={{ height: "calc(100vh - 56px)" }}>
-
       {/* TOP TOOLBAR — fixed, never scrolls */}
       <Toolbar
-        editMode={editMode} live={live} showFields={showFields} showRightPane={showRightPane}
+        editMode={editMode}
+        live={live}
+        showFields={showFields}
+        showRightPane={showRightPane}
         onSetEditMode={setEditMode}
         onToggleLive={() => setLive((v) => !v)}
         onRefresh={loadKpis}
@@ -711,7 +921,6 @@ export function BiWorkspace() {
 
       {/* MAIN BODY — left panel + canvas + right panel */}
       <div className="flex-1 flex overflow-hidden">
-
         {/* LEFT: DATA FIELDS PANE */}
         <FieldsPane visible={showFields} />
 
@@ -740,7 +949,9 @@ export function BiWorkspace() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h1 className="text-[16px] font-semibold text-slate-900">Executive Overview</h1>
-                    <p className="text-[12px] text-slate-500 mt-0.5">Live cross-module analytics · Updated just now</p>
+                    <p className="text-[12px] text-slate-500 mt-0.5">
+                      Live cross-module analytics · Updated just now
+                    </p>
                   </div>
                   <div className="flex items-center gap-2 text-[11px] text-emerald-600 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full font-medium">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -750,33 +961,70 @@ export function BiWorkspace() {
 
                 {/* KPI row */}
                 <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-                  <KpiCard label="AR Outstanding" value={totalArOutstanding} format="currency" trend="down" sub="Total unpaid receivables" />
-                  <KpiCard label="Active Employees" value={kpis.totals.activeEmployees} trend="up" sub="Live from HR module" />
-                  <KpiCard label="Open Purchase Orders" value={kpis.totals.openPurchaseOrders} trend="neutral" sub="Pending fulfilment" />
-                  <KpiCard label="Active Projects" value={kpis.totals.activeProjects} trend="up" sub="Across all departments" />
+                  <KpiCard
+                    label="AR Outstanding"
+                    value={totalArOutstanding}
+                    format="currency"
+                    trend="down"
+                    sub="Total unpaid receivables"
+                  />
+                  <KpiCard
+                    label="Active Employees"
+                    value={kpis.totals.activeEmployees}
+                    trend="up"
+                    sub="Live from HR module"
+                  />
+                  <KpiCard
+                    label="Open Purchase Orders"
+                    value={kpis.totals.openPurchaseOrders}
+                    trend="neutral"
+                    sub="Pending fulfilment"
+                  />
+                  <KpiCard
+                    label="Active Projects"
+                    value={kpis.totals.activeProjects}
+                    trend="up"
+                    sub="Across all departments"
+                  />
                 </div>
 
                 {/* Chart row */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <VisualCard title="AR Aging Breakdown" subtitle="Click segment to drill down">
                     <div style={{ height: 260 }}>
-                      <BiWidgetChart type="pie" series={agingData} activeKey={crossFilterKey}
-                        onSegmentClick={(key, name) => handleCrossFilter("ar_aging", key, name)} />
+                      <BiWidgetChart
+                        type="pie"
+                        series={agingData}
+                        activeKey={crossFilterKey}
+                        onSegmentClick={(key, name) => handleCrossFilter("ar_aging", key, name)}
+                      />
                     </div>
                   </VisualCard>
 
                   <VisualCard title="Inventory by SKU" subtitle="Top 8 by quantity on hand">
                     <div style={{ height: 260 }}>
-                      <BiWidgetChart type="bar" series={inventoryData} activeKey={crossFilterKey}
-                        onSegmentClick={(key, name) => handleCrossFilter("inventory", key, name)} />
+                      <BiWidgetChart
+                        type="bar"
+                        series={inventoryData}
+                        activeKey={crossFilterKey}
+                        onSegmentClick={(key, name) => handleCrossFilter("inventory", key, name)}
+                      />
                     </div>
                   </VisualCard>
 
                   <VisualCard title="Collection Health" subtitle="Current bucket as % of total AR">
                     <div style={{ height: 220 }}>
-                      <BiWidgetChart type="gauge"
-                        series={[{ name: "Collection health", value: Math.round(collectionHealthPct), key: "health" }]}
-                        config={{ max: 100, format: "percent", title: "Current AR %" }} />
+                      <BiWidgetChart
+                        type="gauge"
+                        series={[
+                          {
+                            name: "Collection health",
+                            value: Math.round(collectionHealthPct),
+                            key: "health",
+                          },
+                        ]}
+                        config={{ max: 100, format: "percent", title: "Current AR %" }}
+                      />
                     </div>
                   </VisualCard>
 
@@ -799,7 +1047,11 @@ export function BiWorkspace() {
 
             {/* CUSTOM DASHBOARD PAGES */}
             {!isExecutive && activeDashboard && activeDashboard.widgets.length > 0 && (
-              <GridLayoutWrapper layout={currentLayout} editMode={editMode} onLayoutChange={handleLayoutChange}>
+              <GridLayoutWrapper
+                layout={currentLayout}
+                editMode={editMode}
+                onLayoutChange={handleLayoutChange}
+              >
                 {activeDashboard.widgets.map((w) => {
                   const data = widgetDataMap[w.id];
                   const source = (w.config?.dataSource || "ar_aging") as BiDataSource;
@@ -837,7 +1089,8 @@ export function BiWorkspace() {
                 <div className="text-center">
                   <p className="text-[14px] font-semibold text-slate-700">This page is empty</p>
                   <p className="text-[12px] text-slate-400 mt-1">
-                    Switch to <strong>Edit</strong> mode and use the Visualizations pane to add charts.
+                    Switch to <strong>Edit</strong> mode and use the Visualizations pane to add
+                    charts.
                   </p>
                 </div>
                 <button
@@ -862,7 +1115,10 @@ export function BiWorkspace() {
           <DrillThroughPane
             title={drillTitle}
             data={drillDown}
-            onClose={() => { setDrillDown(null); setCrossFilterKey(null); }}
+            onClose={() => {
+              setDrillDown(null);
+              setCrossFilterKey(null);
+            }}
           />
         </div>
 
@@ -896,7 +1152,11 @@ export function BiWorkspace() {
       <PageTabs
         pages={pages}
         activeId={activePageId}
-        onSelect={(id) => { setActivePageId(id); setDrillDown(null); setCrossFilterKey(null); }}
+        onSelect={(id) => {
+          setActivePageId(id);
+          setDrillDown(null);
+          setCrossFilterKey(null);
+        }}
         onAdd={() => setDashModalOpen(true)}
         onDelete={deletePage}
       />
@@ -907,29 +1167,41 @@ export function BiWorkspace() {
         reports={reports}
         runStatus={reportRunStatus}
         onClose={() => setReportsOpen(false)}
-        onCreate={() => { setReportsOpen(false); setReportModalOpen(true); }}
+        onCreate={() => {
+          setReportsOpen(false);
+          setReportModalOpen(true);
+        }}
         onRun={async (id) => {
           setReportRunStatus((prev) => ({ ...prev, [id]: "running" }));
           try {
             await biApi.runReport(id);
             setReportRunStatus((prev) => ({ ...prev, [id]: "done" }));
             loadReports();
-          } catch { setReportRunStatus((prev) => ({ ...prev, [id]: "failed" })); }
+          } catch {
+            setReportRunStatus((prev) => ({ ...prev, [id]: "failed" }));
+          }
         }}
         onDownload={async (id, name, format) => {
           const blob = await biApi.downloadReport(id);
           const ext = format === "EXCEL" ? "csv" : "pdf";
           const url = URL.createObjectURL(blob);
           const a = document.createElement("a");
-          a.href = url; a.download = `${name}.${ext}`; a.click();
+          a.href = url;
+          a.download = `${name}.${ext}`;
+          a.click();
           URL.revokeObjectURL(url);
         }}
-        onDelete={async (id) => { await biApi.deleteReport(id); loadReports(); }}
+        onDelete={async (id) => {
+          await biApi.deleteReport(id);
+          loadReports();
+        }}
       />
 
       {/* NEW PAGE MODAL */}
       <Modal open={dashModalOpen} onClose={() => setDashModalOpen(false)} title="New report page">
-        <p className="text-[13px] text-slate-500 mb-3">Create a new canvas page for your visuals.</p>
+        <p className="text-[13px] text-slate-500 mb-3">
+          Create a new canvas page for your visuals.
+        </p>
         <input
           className={inputClasses}
           placeholder="Page name"
@@ -938,28 +1210,54 @@ export function BiWorkspace() {
           onKeyDown={(e) => e.key === "Enter" && createDashboard()}
         />
         <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" onClick={() => setDashModalOpen(false)}>Cancel</Button>
+          <Button variant="outline" onClick={() => setDashModalOpen(false)}>
+            Cancel
+          </Button>
           <Button onClick={createDashboard}>Create page</Button>
         </div>
       </Modal>
 
       {/* NEW SUBSCRIPTION MODAL */}
-      <Modal open={reportModalOpen} onClose={() => setReportModalOpen(false)} title="New subscription">
+      <Modal
+        open={reportModalOpen}
+        onClose={() => setReportModalOpen(false)}
+        title="New subscription"
+      >
         <div className="space-y-3">
-          <input className={inputClasses} placeholder="Subscription name" value={reportName} onChange={(e) => setReportName(e.target.value)} />
-          <select className={inputClasses} value={reportCron} onChange={(e) => setReportCron(e.target.value)}>
+          <input
+            className={inputClasses}
+            placeholder="Subscription name"
+            value={reportName}
+            onChange={(e) => setReportName(e.target.value)}
+          />
+          <select
+            className={inputClasses}
+            value={reportCron}
+            onChange={(e) => setReportCron(e.target.value)}
+          >
             <option value="daily">Daily at 8 AM</option>
             <option value="weekly">Weekly (Monday 8 AM)</option>
             <option value="monthly">Monthly (1st, 8 AM)</option>
           </select>
-          <select className={inputClasses} value={reportFormat} onChange={(e) => setReportFormat(e.target.value as "PDF" | "EXCEL")}>
+          <select
+            className={inputClasses}
+            value={reportFormat}
+            onChange={(e) => setReportFormat(e.target.value as "PDF" | "EXCEL")}
+          >
             <option value="PDF">PDF</option>
             <option value="EXCEL">Excel (CSV)</option>
           </select>
-          <input className={inputClasses} placeholder="Recipient emails (comma-separated)" value={reportRecipients} onChange={(e) => setReportRecipients(e.target.value)} />
+          <input
+            className={inputClasses}
+            placeholder="Recipient emails (comma-separated)"
+            value={reportRecipients}
+            onChange={(e) => setReportRecipients(e.target.value)}
+          />
         </div>
         <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" onClick={() => setReportModalOpen(false)}>Cancel</Button>
+          <Button variant="outline" onClick={() => setReportModalOpen(false)}>
+            Cancel
+          </Button>
           <Button onClick={createReport}>Create subscription</Button>
         </div>
       </Modal>

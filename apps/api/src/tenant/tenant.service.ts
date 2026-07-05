@@ -1,4 +1,11 @@
-import { Injectable, OnModuleInit, InternalServerErrorException, ConflictException, NotFoundException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  InternalServerErrorException,
+  ConflictException,
+  NotFoundException,
+  Logger,
+} from '@nestjs/common';
 import KcAdminClient from '@keycloak/keycloak-admin-client';
 import { prisma } from '@amdox/db';
 import { CreateTenantDto } from './dto/create-tenant.dto';
@@ -17,7 +24,7 @@ export class TenantService implements OnModuleInit {
   async onModuleInit() {
     this.kcAdminClient = new KcAdminClient({
       baseUrl: process.env.KEYCLOAK_BASE_URL || 'http://localhost:8180',
-      realmName: 'master', 
+      realmName: 'master',
     });
 
     try {
@@ -28,14 +35,17 @@ export class TenantService implements OnModuleInit {
         clientId: 'admin-cli',
       });
 
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Keycloak connection timed out after 3s')), 3000)
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Keycloak connection timed out after 3s')), 3000),
       );
 
       await Promise.race([authPromise, timeoutPromise]);
       AmdoxLogger.tenant('Keycloak Admin Client authenticated');
     } catch (error) {
-      AmdoxLogger.warn('Keycloak Admin Client auth failed — continuing without KC', (error as Error).message);
+      AmdoxLogger.warn(
+        'Keycloak Admin Client auth failed — continuing without KC',
+        (error as Error).message,
+      );
     }
   }
 
@@ -94,7 +104,10 @@ export class TenantService implements OnModuleInit {
       }
 
       // Assign TenantAdmin realm role to the provisioned admin user
-      const kcAdminRole = await this.kcAdminClient.roles.findOneByName({ realm: slug, name: 'TenantAdmin' });
+      const kcAdminRole = await this.kcAdminClient.roles.findOneByName({
+        realm: slug,
+        name: 'TenantAdmin',
+      });
       if (kcAdminRole?.id) {
         await this.kcAdminClient.users.addRealmRoleMappings({
           realm: slug,
@@ -102,7 +115,6 @@ export class TenantService implements OnModuleInit {
           roles: [{ id: kcAdminRole.id, name: kcAdminRole.name! }],
         });
       }
-
     } catch (error) {
       AmdoxLogger.critical('Keycloak provisioning failed', (error as Error).message);
       throw new InternalServerErrorException('Failed to provision Identity Provider for Tenant');
@@ -131,27 +143,30 @@ export class TenantService implements OnModuleInit {
               { name: 'TenantAdmin', systemRole: 'TENANT_ADMIN' },
               { name: 'Manager', systemRole: 'MANAGER' },
               { name: 'Viewer', systemRole: 'VIEWER' },
-              { name: 'Employee', systemRole: 'EMPLOYEE' }
-            ]
+              { name: 'Employee', systemRole: 'EMPLOYEE' },
+            ],
           },
           leaveTypes: {
             create: [
               { name: 'Annual Leave', accrualRate: 1.16 },
-              { name: 'Sick Leave', accrualRate: 0.5 }
-            ]
-          }
+              { name: 'Sick Leave', accrualRate: 0.5 },
+            ],
+          },
         },
         include: {
           users: true,
           roles: true,
-        }
+        },
       });
 
       // Assign the TENANT_ADMIN role to the newly created user
-      const adminRole = newTenant.roles.find(r => r.systemRole === 'TENANT_ADMIN');
+      const adminRole = newTenant.roles.find((r) => r.systemRole === 'TENANT_ADMIN');
       const adminUser = newTenant.users[0];
 
-      AmdoxLogger.tenant(`Tenant provisioned: ${newTenant.name}`, `slug=${slug}  id=${newTenant.id}`);
+      AmdoxLogger.tenant(
+        `Tenant provisioned: ${newTenant.name}`,
+        `slug=${slug}  id=${newTenant.id}`,
+      );
       if (adminUser) {
         AmdoxLogger.tenant(`Admin user created: ${adminUser.email}`, `name=${adminUser.fullName}`);
       }
@@ -162,12 +177,11 @@ export class TenantService implements OnModuleInit {
             tenantId: newTenant.id,
             userId: adminUser.id,
             roleId: adminRole.id,
-          }
+          },
         });
       }
 
       return newTenant;
-
     } catch (error) {
       AmdoxLogger.critical('DB provisioning failed for tenant', (error as Error).message);
       throw new InternalServerErrorException('Failed to provision database for Tenant');
@@ -176,7 +190,7 @@ export class TenantService implements OnModuleInit {
 
   async provisionEmployeeUser(tenantId: string, email: string, fullName: string) {
     const tenant = await this.getTenant(tenantId);
-    
+
     // Generate a temporary password
     const tempPassword = 'Amdox' + Math.floor(1000 + Math.random() * 9000) + '!';
 
@@ -212,7 +226,7 @@ export class TenantService implements OnModuleInit {
     try {
       // Find the Employee role ID for this tenant
       const employeeRole = await prisma.role.findFirst({
-        where: { tenantId: tenant.id, systemRole: 'EMPLOYEE' }
+        where: { tenantId: tenant.id, systemRole: 'EMPLOYEE' },
       });
 
       const newUser = await prisma.user.create({
@@ -221,7 +235,7 @@ export class TenantService implements OnModuleInit {
           email,
           fullName,
           ssoSubject: kcUserId,
-        }
+        },
       });
       AmdoxLogger.tenant(`DB user created: ${email}`, `userId=${newUser.id}`);
 
@@ -231,7 +245,7 @@ export class TenantService implements OnModuleInit {
             tenantId: tenant.id,
             userId: newUser.id,
             roleId: employeeRole.id,
-          }
+          },
         });
         AmdoxLogger.tenant(`Role assigned: ${employeeRole.name}`, `userId=${newUser.id}`);
       }
@@ -242,7 +256,7 @@ export class TenantService implements OnModuleInit {
         AmdoxLogger.warn('DB user creation failed — rolling back KC user', `kcUserId=${kcUserId}`);
         try {
           await this.kcAdminClient.users.del({ realm: tenant.slug, id: kcUserId });
-        } catch (kcErr) {
+        } catch (_kcErr) {
           AmdoxLogger.critical('KC user rollback failed!', `kcUserId=${kcUserId}`);
         }
       }
@@ -254,11 +268,8 @@ export class TenantService implements OnModuleInit {
   async getTenant(idOrSlug: string) {
     const tenant = await prisma.tenant.findFirst({
       where: {
-        OR: [
-          { id: idOrSlug },
-          { slug: idOrSlug }
-        ]
-      }
+        OR: [{ id: idOrSlug }, { slug: idOrSlug }],
+      },
     });
     if (!tenant) {
       throw new NotFoundException(`Tenant not found for id/slug: ${idOrSlug}`);
@@ -288,7 +299,7 @@ export class TenantService implements OnModuleInit {
       if (!exists) {
         throw new NotFoundException(`Keycloak Realm '${realm}' does not exist.`);
       }
-    } catch (err) {
+    } catch (_err) {
       throw new NotFoundException(`Keycloak Realm '${realm}' does not exist or is unreachable.`);
     }
   }
@@ -334,7 +345,7 @@ export class TenantService implements OnModuleInit {
           clientLoginTimeout: (realm as any).clientLoginTimeout ?? 60,
           actionTokenGeneratedByUserLifespan: realm.actionTokenGeneratedByUserLifespan ?? 300,
           actionTokenGeneratedByAdminLifespan: realm.actionTokenGeneratedByAdminLifespan ?? 43200,
-        }
+        },
       };
     } catch (error) {
       AmdoxLogger.error(`Failed to fetch KC config for ${tenant.slug}`, (error as Error).message);
@@ -367,9 +378,14 @@ export class TenantService implements OnModuleInit {
     const tenant = await this.getTenant(tenantId);
     await this.verifyRealmExists(tenant.slug);
     try {
-      return await this.kcAdminClient.authenticationManagement.getRequiredActions({ realm: tenant.slug } as any);
+      return await this.kcAdminClient.authenticationManagement.getRequiredActions({
+        realm: tenant.slug,
+      } as any);
     } catch (error) {
-      AmdoxLogger.error(`Failed to fetch required actions for ${tenant.slug}`, (error as Error).message);
+      AmdoxLogger.error(
+        `Failed to fetch required actions for ${tenant.slug}`,
+        (error as Error).message,
+      );
       return [];
     }
   }
@@ -380,11 +396,14 @@ export class TenantService implements OnModuleInit {
     try {
       await this.kcAdminClient.authenticationManagement.updateRequiredAction(
         { realm: tenant.slug, alias },
-        data
+        data,
       );
       return { success: true };
     } catch (error) {
-      AmdoxLogger.error(`Failed to update required action ${alias} for ${tenant.slug}`, (error as Error).message);
+      AmdoxLogger.error(
+        `Failed to update required action ${alias} for ${tenant.slug}`,
+        (error as Error).message,
+      );
       return { error: 'Failed to update required action' };
     }
   }
@@ -395,7 +414,10 @@ export class TenantService implements OnModuleInit {
     try {
       return await this.kcAdminClient.identityProviders.find({ realm: tenant.slug });
     } catch (error) {
-      AmdoxLogger.error(`Failed to fetch identity providers for ${tenant.slug}`, (error as Error).message);
+      AmdoxLogger.error(
+        `Failed to fetch identity providers for ${tenant.slug}`,
+        (error as Error).message,
+      );
       return [];
     }
   }
@@ -407,7 +429,10 @@ export class TenantService implements OnModuleInit {
       await this.kcAdminClient.identityProviders.create({ realm: tenant.slug }, provider);
       return { success: true };
     } catch (error) {
-      AmdoxLogger.error(`Failed to create identity provider for ${tenant.slug}`, (error as Error).message);
+      AmdoxLogger.error(
+        `Failed to create identity provider for ${tenant.slug}`,
+        (error as Error).message,
+      );
       return { error: 'Failed to create identity provider' };
     }
   }
@@ -419,7 +444,10 @@ export class TenantService implements OnModuleInit {
       await this.kcAdminClient.identityProviders.del({ realm: tenant.slug, alias });
       return { success: true };
     } catch (error) {
-      AmdoxLogger.error(`Failed to delete identity provider ${alias} for ${tenant.slug}`, (error as Error).message);
+      AmdoxLogger.error(
+        `Failed to delete identity provider ${alias} for ${tenant.slug}`,
+        (error as Error).message,
+      );
       return { error: 'Failed to delete identity provider' };
     }
   }
@@ -467,8 +495,12 @@ export class TenantService implements OnModuleInit {
       include: { user: true },
     });
 
-    const kcAdminRole = await this.kcAdminClient.roles.findOneByName({ realm: tenant.slug, name: 'TenantAdmin' });
-    if (!kcAdminRole?.id) return { success: false, error: 'TenantAdmin realm role not found after creation' };
+    const kcAdminRole = await this.kcAdminClient.roles.findOneByName({
+      realm: tenant.slug,
+      name: 'TenantAdmin',
+    });
+    if (!kcAdminRole?.id)
+      return { success: false, error: 'TenantAdmin realm role not found after creation' };
 
     for (const ur of adminUsers) {
       if (!ur.user.ssoSubject) continue;
@@ -484,8 +516,6 @@ export class TenantService implements OnModuleInit {
     }
 
     AmdoxLogger.success(`KC realm roles provisioned for tenant: ${tenant.slug}`);
-    return { success: true, tenant: tenant.slug, admins: adminUsers.map(u => u.user.email) };
+    return { success: true, tenant: tenant.slug, admins: adminUsers.map((u) => u.user.email) };
   }
-
 }
- 

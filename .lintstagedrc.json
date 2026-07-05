@@ -1,0 +1,11 @@
+{
+  "apps/web/**/*.{ts,tsx}": [
+    "prettier --write",
+    "eslint --config apps/web/eslint.config.mjs --fix --max-warnings=9999"
+  ],
+  "apps/api/**/*.ts": [
+    "prettier --write",
+    "eslint --config apps/api/eslint.config.mjs --fix --max-warnings=9999"
+  ],
+  "**/*.{js,mjs,cjs,json,md}": ["prettier --write"]
+}

@@ -83,31 +83,44 @@ function AllocateModal({
         </div>
         <div className="p-5 space-y-4">
           <p className="text-[12px] text-slate-500">
-            Allocation triggers{" "}
-            <span className="font-mono text-blue-700">resources.assigned</span>{" "}
+            Allocation triggers <span className="font-mono text-blue-700">resources.assigned</span>{" "}
             event. Payroll will distribute labor cost to this project automatically.
           </p>
 
           <div>
             <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Employee</label>
-            <select className={inputClass} value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
+            <select
+              className={inputClass}
+              value={employeeId}
+              onChange={(e) => setEmployeeId(e.target.value)}
+            >
               {employees.map((emp) => (
-                <option key={emp.id} value={emp.id}>{emp.fullName}</option>
+                <option key={emp.id} value={emp.id}>
+                  {emp.fullName}
+                </option>
               ))}
             </select>
           </div>
 
           <div>
             <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Project</label>
-            <select className={inputClass} value={projectId} onChange={(e) => setProjectId(e.target.value)}>
+            <select
+              className={inputClass}
+              value={projectId}
+              onChange={(e) => setProjectId(e.target.value)}
+            >
               {projects.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
               ))}
             </select>
           </div>
 
           <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Allocated hours</label>
+            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+              Allocated hours
+            </label>
             <input
               type="number"
               min={1}
@@ -119,12 +132,26 @@ function AllocateModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Start date</label>
-              <input type="date" className={inputClass} value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+                Start date
+              </label>
+              <input
+                type="date"
+                className={inputClass}
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
             </div>
             <div>
-              <label className="text-[12px] font-medium text-slate-600 block mb-1.5">End date (optional)</label>
-              <input type="date" className={inputClass} value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+              <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+                End date (optional)
+              </label>
+              <input
+                type="date"
+                className={inputClass}
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
             </div>
           </div>
 
@@ -169,14 +196,17 @@ export default function ProjectsResourcesPage() {
   useEffect(() => {
     load();
     hrApi.getEmployees().then(setEmployees);
-    pmApi.getProjects().then((ps: Project[]) =>
-      setProjects(ps.filter((p) => p.status !== "COMPLETED" && p.status !== "CANCELLED"))
-    );
+    pmApi
+      .getProjects()
+      .then((ps: Project[]) =>
+        setProjects(ps.filter((p) => p.status !== "COMPLETED" && p.status !== "CANCELLED")),
+      );
   }, [load]);
 
   if (loading) return <p className="text-sm text-slate-400">Loading resources…</p>;
 
-  const thClass = "text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500";
+  const thClass =
+    "text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500";
   const tdClass = "px-4 py-2.5 text-sm text-slate-700";
 
   return (
@@ -186,7 +216,9 @@ export default function ProjectsResourcesPage() {
           <button
             onClick={() => setTab("allocations")}
             className={`flex items-center gap-1.5 text-[13px] font-medium px-3 py-1.5 rounded-md transition-colors ${
-              tab === "allocations" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+              tab === "allocations"
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-500 hover:text-slate-700"
             }`}
           >
             <Users size={13} /> Allocations
@@ -194,7 +226,9 @@ export default function ProjectsResourcesPage() {
           <button
             onClick={() => setTab("heatmap")}
             className={`flex items-center gap-1.5 text-[13px] font-medium px-3 py-1.5 rounded-md transition-colors ${
-              tab === "heatmap" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+              tab === "heatmap"
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-500 hover:text-slate-700"
             }`}
           >
             <BarChart2 size={13} /> Utilisation heatmap
@@ -225,7 +259,8 @@ export default function ProjectsResourcesPage() {
               {allocations.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-4 py-8 text-slate-400 text-center text-sm">
-                    No allocations yet. Click "Allocate resource" to assign an employee to a project.
+                    No allocations yet. Click &quot;Allocate resource&quot; to assign an employee to
+                    a project.
                   </td>
                 </tr>
               ) : (
@@ -278,7 +313,9 @@ export default function ProjectsResourcesPage() {
                             style={{ width: `${Math.min(p.utilisationPct, 100)}%` }}
                           />
                         </div>
-                        <span className={`text-[12px] font-mono font-semibold w-10 text-right ${p.isOverAllocated ? "text-red-600" : "text-emerald-700"}`}>
+                        <span
+                          className={`text-[12px] font-mono font-semibold w-10 text-right ${p.isOverAllocated ? "text-red-600" : "text-emerald-700"}`}
+                        >
                           {p.utilisationPct}%
                         </span>
                       </div>

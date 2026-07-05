@@ -835,6 +835,7 @@ model Vendor {
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   name      String
   email     String?
+  phone     String?
   webhookUrl String?
   portalAccessKeyHash String?
   portalKeyIssuedAt   DateTime?

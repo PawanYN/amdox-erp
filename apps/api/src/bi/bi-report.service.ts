@@ -2,7 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaClient } from '@amdox/db';
 import * as fs from 'fs';
 import * as path from 'path';
-import PDFDocument = require('pdfkit');
+import PDFDocument from 'pdfkit';
 import { BiService } from './bi.service';
 import { EmailChannel } from '../notification/channels/email.channel';
 
@@ -148,9 +148,7 @@ export class BiReportService {
       `AR 90+,${kpis.arAging.over90}`,
       '',
       'SKU,Product,Quantity',
-      ...kpis.inventorySnapshot.map(
-        (s) => `${s.sku},"${s.name}",${s.quantity}`,
-      ),
+      ...kpis.inventorySnapshot.map((s) => `${s.sku},"${s.name}",${s.quantity}`),
     ];
     return lines.join('\n');
   }

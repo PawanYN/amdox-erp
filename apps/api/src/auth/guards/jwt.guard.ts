@@ -9,7 +9,7 @@ export class JwtAuthGuard extends AuthGuard('keycloak') {
     return super.canActivate(context);
   }
 
-  handleRequest(err: any, user: any, info: any) {
+  handleRequest(err: any, user: any, _info: any) {
     if (err || !user) {
       throw err || new UnauthorizedException('Invalid or expired token');
     }

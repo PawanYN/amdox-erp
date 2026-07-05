@@ -22,11 +22,7 @@ export class NotificationEventListener {
   }
 
   @OnEvent('po.created')
-  async onPoCreated(payload: {
-    tenantId: string;
-    poId: string;
-    poNumber?: string;
-  }) {
+  async onPoCreated(payload: { tenantId: string; poId: string; poNumber?: string }) {
     await this.notifications.notify({
       tenantId: payload.tenantId,
       eventType: 'po.created',
@@ -56,11 +52,7 @@ export class NotificationEventListener {
   }
 
   @OnEvent('reorder.triggered')
-  async onReorder(payload: {
-    tenantId: string;
-    productSku: string;
-    purchaseOrderId: string;
-  }) {
+  async onReorder(payload: { tenantId: string; productSku: string; purchaseOrderId: string }) {
     await this.notifications.notify({
       tenantId: payload.tenantId,
       eventType: 'reorder.triggered',
@@ -121,11 +113,7 @@ export class NotificationEventListener {
   }
 
   @OnEvent('payroll.completed')
-  async onPayrollCompleted(payload: {
-    tenantId: string;
-    payrollRunId: string;
-    label: string;
-  }) {
+  async onPayrollCompleted(payload: { tenantId: string; payrollRunId: string; label: string }) {
     await this.notifications.notify({
       tenantId: payload.tenantId,
       eventType: 'payroll.completed',
@@ -151,7 +139,7 @@ export class NotificationEventListener {
   }
 
   @OnEvent('budget.overrun')
-  async onBudgetOverrunWebhook(payload: {
+  async onBudgetOverrunWebhook(_payload: {
     tenantId: string;
     projectId: string;
     actual: number;
@@ -162,11 +150,7 @@ export class NotificationEventListener {
   }
 
   @OnEvent('employee.created')
-  async onEmployeeCreated(payload: {
-    tenantId: string;
-    employeeId: string;
-    userId?: string;
-  }) {
+  async onEmployeeCreated(payload: { tenantId: string; employeeId: string; userId?: string }) {
     await this.notifications.notify({
       tenantId: payload.tenantId,
       eventType: 'employee.created',

@@ -1,15 +1,335 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { AlertTriangle, Check, TrendingUp, ChevronDown, ChevronRight, Loader2, BarChart2 } from "lucide-react";
+import {
+  AlertTriangle,
+  Check,
+  TrendingUp,
+  ChevronDown,
+  ChevronRight,
+  Loader2,
+  BarChart2,
+  Plus,
+  Warehouse as WarehouseIcon,
+  ArrowLeftRight,
+  Settings2,
+} from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { scmApi } from "@/lib/api/scm-api";
 import { forecastApi } from "@/lib/api/forecast-api";
+import { Button } from "@/components/ui/button";
+import { Modal, inputClasses } from "@/components/ui/modal";
+
+type Warehouse = { id: string; name: string; location?: string };
+
+function WarehouseModal({
+  open,
+  onClose,
+  onSaved,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [name, setName] = useState("");
+  const [location, setLocation] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setName("");
+      setLocation("");
+    }
+  }, [open]);
+
+  const handleSave = async () => {
+    if (!name.trim()) return;
+    setSaving(true);
+    try {
+      await scmApi.createWarehouse({ name: name.trim(), location: location.trim() || undefined });
+      onSaved();
+      onClose();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to create warehouse.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} title="New Warehouse">
+      <div className="space-y-4">
+        <div>
+          <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Name *</label>
+          <input
+            className={inputClasses}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. Mumbai Central"
+          />
+        </div>
+        <div>
+          <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Location</label>
+          <input
+            className={inputClasses}
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            placeholder="e.g. Mumbai, MH"
+          />
+        </div>
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? "Saving…" : "Create"}
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function StockMovementModal({
+  open,
+  onClose,
+  onSaved,
+  products,
+  warehouses,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSaved: () => void;
+  products: { id: string; sku: string; name: string }[];
+  warehouses: Warehouse[];
+}) {
+  const [productId, setProductId] = useState("");
+  const [warehouseId, setWarehouseId] = useState("");
+  const [type, setType] = useState<"RECEIPT" | "ISSUE" | "TRANSFER" | "ADJUSTMENT">("RECEIPT");
+  const [quantity, setQuantity] = useState("");
+  const [reference, setReference] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setProductId("");
+      setWarehouseId("");
+      setType("RECEIPT");
+      setQuantity("");
+      setReference("");
+    }
+  }, [open]);
+
+  const handleSave = async () => {
+    if (!productId || !warehouseId || !quantity) return;
+    setSaving(true);
+    try {
+      await scmApi.recordStockMovement({
+        productId,
+        warehouseId,
+        type,
+        quantity: Number(quantity),
+        reference: reference.trim() || undefined,
+      });
+      onSaved();
+      onClose();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to record movement.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} title="Record Stock Movement">
+      <div className="space-y-4">
+        <div>
+          <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Product *</label>
+          <select
+            className={inputClasses}
+            value={productId}
+            onChange={(e) => setProductId(e.target.value)}
+          >
+            <option value="">Select product</option>
+            {products.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name} ({p.sku})
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Warehouse *</label>
+          <select
+            className={inputClasses}
+            value={warehouseId}
+            onChange={(e) => setWarehouseId(e.target.value)}
+          >
+            <option value="">Select warehouse</option>
+            {warehouses.map((w) => (
+              <option key={w.id} value={w.id}>
+                {w.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+            Movement Type *
+          </label>
+          <select
+            className={inputClasses}
+            value={type}
+            onChange={(e) => setType(e.target.value as typeof type)}
+          >
+            <option value="RECEIPT">Receipt</option>
+            <option value="ISSUE">Issue</option>
+            <option value="TRANSFER">Transfer</option>
+            <option value="ADJUSTMENT">Adjustment</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Quantity *</label>
+          <input
+            className={inputClasses}
+            type="number"
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.value)}
+            placeholder="0"
+          />
+        </div>
+        <div>
+          <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Reference</label>
+          <input
+            className={inputClasses}
+            value={reference}
+            onChange={(e) => setReference(e.target.value)}
+            placeholder="e.g. manual adjustment note"
+          />
+        </div>
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? "Saving…" : "Record"}
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function ReorderRuleModal({
+  open,
+  onClose,
+  onSaved,
+  products,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSaved: () => void;
+  products: { id: string; sku: string; name: string }[];
+}) {
+  const [productId, setProductId] = useState("");
+  const [thresholdQty, setThresholdQty] = useState("");
+  const [reorderQty, setReorderQty] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setProductId("");
+      setThresholdQty("");
+      setReorderQty("");
+    }
+  }, [open]);
+
+  const handleSave = async () => {
+    if (!productId || !thresholdQty || !reorderQty) return;
+    setSaving(true);
+    try {
+      await scmApi.upsertReorderRule({
+        productId,
+        thresholdQty: Number(thresholdQty),
+        reorderQty: Number(reorderQty),
+        isActive: true,
+      });
+      onSaved();
+      onClose();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to save reorder rule.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} title="Reorder Rule">
+      <div className="space-y-4">
+        <div>
+          <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Product *</label>
+          <select
+            className={inputClasses}
+            value={productId}
+            onChange={(e) => setProductId(e.target.value)}
+          >
+            <option value="">Select product</option>
+            {products.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name} ({p.sku})
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+            Reorder Threshold Qty *
+          </label>
+          <input
+            className={inputClasses}
+            type="number"
+            value={thresholdQty}
+            onChange={(e) => setThresholdQty(e.target.value)}
+            placeholder="e.g. 10"
+          />
+        </div>
+        <div>
+          <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+            Reorder Qty *
+          </label>
+          <input
+            className={inputClasses}
+            type="number"
+            value={reorderQty}
+            onChange={(e) => setReorderQty(e.target.value)}
+            placeholder="e.g. 50"
+          />
+        </div>
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? "Saving…" : "Save Rule"}
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
 
 function StockBadge({ current, reorder }: { current: number; reorder: number }) {
   const pct = (current / (reorder || 1)) * 100;
-  if (pct <= 20) return <span className="flex items-center gap-1 text-[11px] text-[#B4533B] font-medium"><AlertTriangle size={11} /> Critical</span>;
-  if (pct <= 60) return <span className="flex items-center gap-1 text-[11px] text-[#D9A85C] font-medium">⚠ Low</span>;
+  if (pct <= 20)
+    return (
+      <span className="flex items-center gap-1 text-[11px] text-[#B4533B] font-medium">
+        <AlertTriangle size={11} /> Critical
+      </span>
+    );
+  if (pct <= 60)
+    return (
+      <span className="flex items-center gap-1 text-[11px] text-[#D9A85C] font-medium">⚠ Low</span>
+    );
   return <span className="text-[11px] text-[#2F6B4F] font-medium">✓ OK</span>;
 }
 
@@ -51,10 +371,14 @@ function ForecastPanel({ productId, productName }: { productId: string; productN
         setTrainedAt(fm?.trainedAt ?? null);
         setLoaded(true);
       }
-    } catch { /* no predictions yet */ }
+    } catch {
+      /* no predictions yet */
+    }
   }, [productId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const train = async () => {
     setTraining(true);
@@ -64,10 +388,12 @@ function ForecastPanel({ productId, productName }: { productId: string; productN
       setMape(result.mape ?? null);
       setModelType(result.model?.type ?? null);
       setTrainedAt(result.model?.trainedAt ?? new Date().toISOString());
-      setPredictions((result.predictions ?? []).map((p: any) => ({
-        forecastDate: p.date,
-        predictedQty: p.quantity,
-      })));
+      setPredictions(
+        (result.predictions ?? []).map((p: { date: string; quantity: number }) => ({
+          forecastDate: p.date,
+          predictedQty: p.quantity,
+        })),
+      );
       setLoaded(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Training failed");
@@ -102,7 +428,12 @@ function ForecastPanel({ productId, productName }: { productId: string; productN
           )}
           {trainedAt && (
             <span className="text-[10px] text-[#8A8678]">
-              trained {new Date(trainedAt).toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "2-digit" })}
+              trained{" "}
+              {new Date(trainedAt).toLocaleDateString("en-IN", {
+                month: "short",
+                day: "numeric",
+                year: "2-digit",
+              })}
             </span>
           )}
         </div>
@@ -155,7 +486,12 @@ function ForecastPanel({ productId, productName }: { productId: string; productN
                 allowDecimals={false}
               />
               <Tooltip
-                contentStyle={{ fontSize: 11, border: "1px solid #E4E2DC", borderRadius: 6, padding: "4px 8px" }}
+                contentStyle={{
+                  fontSize: 11,
+                  border: "1px solid #E4E2DC",
+                  borderRadius: 6,
+                  padding: "4px 8px",
+                }}
                 formatter={(v) => [`${v} units`, "Forecast"]}
                 cursor={{ fill: "#1E3A5F10" }}
               />
@@ -165,14 +501,20 @@ function ForecastPanel({ productId, productName }: { productId: string; productN
         </div>
       ) : !loaded ? (
         <p className="text-[11px] text-[#8A8678]">
-          Click "Train forecast" to run the Prophet ML model on SCM stock movement history.
+          Click &quot;Train forecast&quot; to run the Prophet ML model on SCM stock movement
+          history.
         </p>
       ) : null}
     </div>
   );
 }
 
-function InventoryRow({ item, onRaisePr, raised, raising }: {
+function InventoryRow({
+  item,
+  onRaisePr,
+  raised,
+  raising,
+}: {
   item: InventoryItem;
   onRaisePr: (item: InventoryItem) => void;
   raised: Record<string, string>;
@@ -185,19 +527,28 @@ function InventoryRow({ item, onRaisePr, raised, raising }: {
       <tr className={`border-b border-[#F0EEE7] hover:bg-[#FAFAF9]`}>
         <td className="px-3 py-2">
           <div className="flex items-center gap-1">
-            <button onClick={() => setExpanded((v) => !v)} className="text-[#8A8678] hover:text-[#1E3A5F] flex-shrink-0">
+            <button
+              onClick={() => setExpanded((v) => !v)}
+              className="text-[#8A8678] hover:text-[#1E3A5F] flex-shrink-0"
+            >
               {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
             </button>
             <div>
               <p className="font-medium text-[#14171F]">{item.name}</p>
-              <p className="text-[10px] text-[#8A8678] font-mono">{item.sku} · {item.category ?? "General"}</p>
+              <p className="text-[10px] text-[#8A8678] font-mono">
+                {item.sku} · {item.category ?? "General"}
+              </p>
             </div>
           </div>
         </td>
-        <td className="px-3 py-2 text-right font-mono font-medium text-[#14171F]">{item.currentStock} {item.unit}</td>
+        <td className="px-3 py-2 text-right font-mono font-medium text-[#14171F]">
+          {item.currentStock} {item.unit}
+        </td>
         <td className="px-3 py-2 text-right font-mono text-[#8A8678]">{item.reorderPoint}</td>
         <td className="px-3 py-2 text-right font-mono text-[#4A4740]">₹{item.unitCost}</td>
-        <td className="px-3 py-2 text-center"><StockBadge current={item.currentStock} reorder={item.reorderPoint} /></td>
+        <td className="px-3 py-2 text-center">
+          <StockBadge current={item.currentStock} reorder={item.reorderPoint} />
+        </td>
       </tr>
       {expanded && (
         <tr className="border-b border-[#F0EEE7]">
@@ -214,13 +565,19 @@ export default function InventoryPage() {
   const [raised, setRaised] = useState<Record<string, string>>({});
   const [raising, setRaising] = useState<string | null>(null);
   const [items, setItems] = useState<InventoryItem[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [warehouseModalOpen, setWarehouseModalOpen] = useState(false);
+  const [movementModalOpen, setMovementModalOpen] = useState(false);
+  const [reorderModalOpen, setReorderModalOpen] = useState(false);
 
   const loadInventory = useCallback(async () => {
-    const [products, rules] = await Promise.all([
+    const [products, rules, wh] = await Promise.all([
       scmApi.getProducts(),
       scmApi.getReorderRules(),
+      scmApi.getWarehouses(),
     ]);
+    setWarehouses(wh);
 
     const ruleByProduct = new Map(
       rules.map((rule: { productId: string; thresholdQty: number }) => [
@@ -266,6 +623,33 @@ export default function InventoryPage() {
 
   return (
     <div className="space-y-5">
+      <div className="flex items-center justify-end gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          icon={<WarehouseIcon size={13} />}
+          onClick={() => setWarehouseModalOpen(true)}
+        >
+          New Warehouse
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          icon={<ArrowLeftRight size={13} />}
+          onClick={() => setMovementModalOpen(true)}
+        >
+          Record Movement
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          icon={<Settings2 size={13} />}
+          onClick={() => setReorderModalOpen(true)}
+        >
+          Reorder Rule
+        </Button>
+      </div>
+
       {error && (
         <div className="rounded-lg border border-[#B4533B]/30 bg-[#B4533B]/5 px-4 py-3 text-[12px] text-[#B4533B]">
           {error}
@@ -285,18 +669,28 @@ export default function InventoryPage() {
           </div>
           <div className="space-y-2">
             {belowReorder.map((item) => (
-              <div key={item.sku} className="flex items-center justify-between bg-white rounded-md border border-[#E4E2DC] px-3 py-2">
+              <div
+                key={item.sku}
+                className="flex items-center justify-between bg-white rounded-md border border-[#E4E2DC] px-3 py-2"
+              >
                 <div>
                   <p className="text-[13px] font-medium text-[#14171F]">{item.name}</p>
                   <p className="text-[11px] text-[#8A8678]">{item.sku}</p>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="text-right">
-                    <p className="text-[12px] font-mono text-[#B4533B] font-medium">{item.currentStock} {item.unit}</p>
+                    <p className="text-[12px] font-mono text-[#B4533B] font-medium">
+                      {item.currentStock} {item.unit}
+                    </p>
                     <p className="text-[10px] text-[#8A8678]">reorder at {item.reorderPoint}</p>
                   </div>
                   <div className="w-20 h-1.5 bg-[#F0EEE7] rounded-full overflow-hidden">
-                    <div className="h-full bg-[#B4533B] rounded-full" style={{ width: `${Math.min(100, (item.currentStock / item.reorderPoint) * 100)}%` }} />
+                    <div
+                      className="h-full bg-[#B4533B] rounded-full"
+                      style={{
+                        width: `${Math.min(100, (item.currentStock / item.reorderPoint) * 100)}%`,
+                      }}
+                    />
                   </div>
                   {raised[item.sku] ? (
                     <span className="text-[11px] text-[#2F6B4F] font-medium flex items-center gap-1">
@@ -350,6 +744,43 @@ export default function InventoryPage() {
           </table>
         </div>
       </div>
+
+      {warehouses.length > 0 && (
+        <div>
+          <p className="text-[12px] text-[#8A8678] font-medium mb-2">Warehouses</p>
+          <div className="flex flex-wrap gap-2">
+            {warehouses.map((w) => (
+              <div
+                key={w.id}
+                className="flex items-center gap-2 rounded-md border border-[#E4E2DC] bg-white px-3 py-1.5"
+              >
+                <WarehouseIcon size={12} className="text-[#8A8678]" />
+                <span className="text-[12px] font-medium text-[#14171F]">{w.name}</span>
+                {w.location && <span className="text-[11px] text-[#8A8678]">· {w.location}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <WarehouseModal
+        open={warehouseModalOpen}
+        onClose={() => setWarehouseModalOpen(false)}
+        onSaved={loadInventory}
+      />
+      <StockMovementModal
+        open={movementModalOpen}
+        onClose={() => setMovementModalOpen(false)}
+        onSaved={loadInventory}
+        products={items}
+        warehouses={warehouses}
+      />
+      <ReorderRuleModal
+        open={reorderModalOpen}
+        onClose={() => setReorderModalOpen(false)}
+        onSaved={loadInventory}
+        products={items}
+      />
     </div>
   );
 }

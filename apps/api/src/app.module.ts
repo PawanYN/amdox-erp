@@ -1,4 +1,4 @@
-import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { HealthModule } from './health/health.module';
 import { FinanceModule } from './finance/finance.module';
 import { HrModule } from './hr/hr.module';
@@ -27,9 +27,10 @@ import { LoggerModule } from 'nestjs-pino';
       pinoHttp: {
         // HTTP request logs are handled by AmdoxHttpLoggingInterceptor — suppress Pino's default
         autoLogging: false,
-        transport: process.env.NODE_ENV !== 'production'
-          ? { target: 'pino-pretty', options: { singleLine: true, colorize: false } }
-          : undefined,
+        transport:
+          process.env.NODE_ENV !== 'production'
+            ? { target: 'pino-pretty', options: { singleLine: true, colorize: false } }
+            : undefined,
       },
     }),
     RedisModule,
@@ -41,9 +42,9 @@ import { LoggerModule } from 'nestjs-pino';
     }),
     EventEmitterModule.forRoot(),
     ScheduleModule.forRoot(),
-    HealthModule, 
-    FinanceModule, 
-    HrModule, 
+    HealthModule,
+    FinanceModule,
+    HrModule,
     ScmModule,
     PmModule,
     TenantModule,
@@ -63,6 +64,6 @@ import { LoggerModule } from 'nestjs-pino';
       provide: APP_INTERCEPTOR,
       useClass: TenantContextInterceptor,
     },
-  ]
+  ],
 })
 export class AppModule {}

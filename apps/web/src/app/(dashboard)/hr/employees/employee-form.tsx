@@ -14,6 +14,8 @@ const STEPS = [
 
 const ROLES = ["TenantAdmin", "Manager", "Viewer"];
 
+type DepartmentOption = { id: string; name: string };
+
 export function EmployeeForm({
   open,
   onClose,
@@ -27,7 +29,7 @@ export function EmployeeForm({
   open: boolean;
   onClose: () => void;
   managers: Employee[];
-  departments: any[];
+  departments: DepartmentOption[];
   editEmployee?: Employee | null;
   onCreate: (employee: NewEmployeeInput) => void;
   onUpdate?: (id: string, employee: NewEmployeeInput) => void;
@@ -179,10 +181,13 @@ export function EmployeeForm({
   };
 
   const initials = getInitials();
-  const nameDisplay = `${data.firstName || ""} ${data.lastName || ""}`.trim() || "Add Employee Details";
+  const nameDisplay =
+    `${data.firstName || ""} ${data.lastName || ""}`.trim() || "Add Employee Details";
   const emailDisplay = data.email || "No email provided";
-  const deptName = departments.find(d => String(d.id) === String(data.departmentId))?.name || "Not assigned";
-  const managerName = managers.find(m => String(m.id) === String(data.managerId))?.name || "Not assigned";
+  const deptName =
+    departments.find((d) => String(d.id) === String(data.departmentId))?.name || "Not assigned";
+  const managerName =
+    managers.find((m) => String(m.id) === String(data.managerId))?.name || "Not assigned";
 
   const formInputClasses = `${inputClasses} h-[50px] px-4 bg-white hover:border-gray-300 focus:ring-4 focus:ring-brand-purple/10`;
 
@@ -203,7 +208,6 @@ export function EmployeeForm({
     >
       <div className="flex flex-col bg-white max-h-[92vh] w-full">
         <div className="relative bg-gradient-to-r from-violet-600 via-brand-purple to-purple-600 py-3.5 px-6 md:px-8 flex items-center justify-between shadow-sm z-20 w-full">
-          
           <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-white/10 blur-2xl pointer-events-none" />
 
           <div className="relative z-10 flex flex-col justify-center">
@@ -229,10 +233,8 @@ export function EmployeeForm({
           </button>
         </div>
 
-        
         <div className="py-2.5 px-6 md:px-8 bg-gray-50/50 border-b border-gray-200/60 relative z-10 w-full">
           <div className="relative flex items-start justify-between w-full max-w-3xl mx-auto px-4">
-            
             <div className="absolute top-[24px] left-[16.7%] right-[16.7%] h-0.5 bg-gray-200/80 -translate-y-1/2 rounded-full" />
             <div
               className="absolute top-[24px] left-[16.7%] h-0.5 bg-purple-600 -translate-y-1/2 rounded-full transition-all duration-500 ease-in-out"
@@ -248,29 +250,27 @@ export function EmployeeForm({
                   {/* Circle Wrapper - fixed height centering aligned with connector line */}
                   <div className="h-12 flex items-center justify-center">
                     <div
-                      className={`rounded-full flex items-center justify-center border-2 text-xs font-bold shadow-sm transition-all duration-300 ${isDone
+                      className={`rounded-full flex items-center justify-center border-2 text-xs font-bold shadow-sm transition-all duration-300 ${
+                        isDone
                           ? "h-10 w-10 bg-emerald-500 border-emerald-500 text-white"
                           : isActive
                             ? "h-12 w-12 bg-brand-purple border-brand-purple text-white ring-4 ring-purple-100/50 scale-[1.02]"
                             : "h-10 w-10 bg-white border-gray-200 text-gray-500 hover:border-gray-300"
-                        }`}
+                      }`}
                     >
-                      {isDone ? (
-                        <span className="text-white text-sm">✓</span>
-                      ) : (
-                        <span>{s.id}</span>
-                      )}
+                      {isDone ? <span className="text-white text-sm">✓</span> : <span>{s.id}</span>}
                     </div>
                   </div>
 
                   {/* Reduced gap between stepper number and label */}
                   <span
-                    className={`mt-1 text-[10px] font-bold uppercase tracking-wider transition-colors duration-300 ${isActive
+                    className={`mt-1 text-[10px] font-bold uppercase tracking-wider transition-colors duration-300 ${
+                      isActive
                         ? "text-brand-purple font-extrabold underline decoration-purple-200 underline-offset-4"
                         : isDone
                           ? "text-emerald-600"
                           : "text-gray-600"
-                      }`}
+                    }`}
                   >
                     {s.label}
                   </span>
@@ -286,25 +286,30 @@ export function EmployeeForm({
           <div className="flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-gray-100/60 h-full">
             {/* Left side: Form steps (65% dynamic width) */}
             <div className="flex-1 p-5 space-y-4 lg:max-w-[65%] overflow-y-auto max-h-[55vh] md:max-h-[60vh] custom-scrollbar pr-2">
-
               {step === 1 && (
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.05)] p-5 space-y-4 animate-fade-in transition-all">
                   <div>
-                    <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">Personal Information</h3>
-                    <p className="text-[11px] text-gray-500 mt-0.5">Provide contact information and verify identification parameters.</p>
+                    <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
+                      Personal Information
+                    </h3>
+                    <p className="text-[11px] text-gray-500 mt-0.5">
+                      Provide contact information and verify identification parameters.
+                    </p>
                   </div>
 
                   <div className="space-y-3.5">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                       <div className="relative pb-4">
-                        <label className="text-xs font-semibold text-gray-700">First name <span className="text-rose-500">*</span></label>
+                        <label className="text-xs font-semibold text-gray-700">
+                          First name <span className="text-rose-500">*</span>
+                        </label>
                         <input
                           className={`${formInputClasses} mt-1`}
                           placeholder="e.g. Ananya"
                           value={data.firstName}
                           onChange={(e) => {
                             setData({ ...data, firstName: e.target.value });
-                            if (errors.firstName) setErrors(prev => ({ ...prev, firstName: "" }));
+                            if (errors.firstName) setErrors((prev) => ({ ...prev, firstName: "" }));
                           }}
                         />
                         {errors.firstName && (
@@ -314,14 +319,16 @@ export function EmployeeForm({
                         )}
                       </div>
                       <div className="relative pb-4">
-                        <label className="text-xs font-semibold text-gray-700">Last name <span className="text-rose-500">*</span></label>
+                        <label className="text-xs font-semibold text-gray-700">
+                          Last name <span className="text-rose-500">*</span>
+                        </label>
                         <input
                           className={`${formInputClasses} mt-1`}
                           placeholder="e.g. Rao"
                           value={data.lastName}
                           onChange={(e) => {
                             setData({ ...data, lastName: e.target.value });
-                            if (errors.lastName) setErrors(prev => ({ ...prev, lastName: "" }));
+                            if (errors.lastName) setErrors((prev) => ({ ...prev, lastName: "" }));
                           }}
                         />
                         {errors.lastName && (
@@ -334,7 +341,9 @@ export function EmployeeForm({
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                       <div className="relative pb-4">
-                        <label className="text-xs font-semibold text-gray-700">Email Address <span className="text-rose-500">*</span></label>
+                        <label className="text-xs font-semibold text-gray-700">
+                          Email Address <span className="text-rose-500">*</span>
+                        </label>
                         <input
                           type="email"
                           className={`${formInputClasses} mt-1`}
@@ -342,7 +351,7 @@ export function EmployeeForm({
                           value={data.email}
                           onChange={(e) => {
                             setData({ ...data, email: e.target.value });
-                            if (errors.email) setErrors(prev => ({ ...prev, email: "" }));
+                            if (errors.email) setErrors((prev) => ({ ...prev, email: "" }));
                           }}
                         />
                         {errors.email ? (
@@ -382,8 +391,12 @@ export function EmployeeForm({
               {step === 2 && (
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.05)] p-5 space-y-4 animate-fade-in transition-all">
                   <div>
-                    <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">Job Details</h3>
-                    <p className="text-[11px] text-gray-500 mt-0.5">Specify tracking codes, department assignments, and management hierarchy.</p>
+                    <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
+                      Job Details
+                    </h3>
+                    <p className="text-[11px] text-gray-500 mt-0.5">
+                      Specify tracking codes, department assignments, and management hierarchy.
+                    </p>
                   </div>
 
                   <div className="space-y-3.5">
@@ -398,14 +411,16 @@ export function EmployeeForm({
                         />
                       </div>
                       <div className="relative pb-4">
-                        <label className="text-xs font-semibold text-gray-700">Hire Date <span className="text-rose-500">*</span></label>
+                        <label className="text-xs font-semibold text-gray-700">
+                          Hire Date <span className="text-rose-500">*</span>
+                        </label>
                         <input
                           type="date"
                           className={`${formInputClasses} mt-1 text-gray-700`}
                           value={data.hireDate}
                           onChange={(e) => {
                             setData({ ...data, hireDate: e.target.value });
-                            if (errors.hireDate) setErrors(prev => ({ ...prev, hireDate: "" }));
+                            if (errors.hireDate) setErrors((prev) => ({ ...prev, hireDate: "" }));
                           }}
                         />
                         {errors.hireDate && (
@@ -418,18 +433,27 @@ export function EmployeeForm({
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                       <div className="relative pb-4">
-                        <label className="text-xs font-semibold text-gray-700">Department <span className="text-rose-500">*</span></label>
+                        <label className="text-xs font-semibold text-gray-700">
+                          Department <span className="text-rose-500">*</span>
+                        </label>
                         <select
                           className={`${formInputClasses} mt-1 ${data.departmentId ? "text-ink font-medium" : "text-muted font-normal"}`}
                           value={data.departmentId}
                           onChange={(e) => {
                             setData({ ...data, departmentId: e.target.value });
-                            if (errors.departmentId) setErrors(prev => ({ ...prev, departmentId: "" }));
+                            if (errors.departmentId)
+                              setErrors((prev) => ({ ...prev, departmentId: "" }));
                           }}
                         >
-                          <option value="" className="text-gray-400 bg-white">Select Department</option>
+                          <option value="" className="text-gray-400 bg-white">
+                            Select Department
+                          </option>
                           {departments.map((d) => (
-                            <option key={d.id} value={d.id} className="text-gray-900 bg-white py-2 font-medium">
+                            <option
+                              key={d.id}
+                              value={d.id}
+                              className="text-gray-900 bg-white py-2 font-medium"
+                            >
                               {d.name}
                             </option>
                           ))}
@@ -448,9 +472,15 @@ export function EmployeeForm({
                           value={data.managerId}
                           onChange={(e) => setData({ ...data, managerId: e.target.value })}
                         >
-                          <option value="" className="text-gray-400 bg-white">Select Manager</option>
+                          <option value="" className="text-gray-400 bg-white">
+                            Select Manager
+                          </option>
                           {managers.map((m) => (
-                            <option key={m.id} value={m.id} className="text-gray-900 bg-white py-2 font-medium">
+                            <option
+                              key={m.id}
+                              value={m.id}
+                              className="text-gray-900 bg-white py-2 font-medium"
+                            >
                               {m.name} — {m.designation || "Lead"}
                             </option>
                           ))}
@@ -459,17 +489,27 @@ export function EmployeeForm({
                     </div>
 
                     <div className="relative pb-4">
-                      <label className="text-xs font-semibold text-gray-700">Employment Type <span className="text-rose-500">*</span></label>
+                      <label className="text-xs font-semibold text-gray-700">
+                        Employment Type <span className="text-rose-500">*</span>
+                      </label>
                       <div className="flex flex-wrap gap-2.5 mt-1.5 animate-fade-in">
-                        {(["Full-time", "Part-time", "Contract", "Intern"] as Employee["contractType"][]).map((type) => (
+                        {(
+                          [
+                            "Full-time",
+                            "Part-time",
+                            "Contract",
+                            "Intern",
+                          ] as Employee["contractType"][]
+                        ).map((type) => (
                           <button
                             key={type}
                             type="button"
                             onClick={() => setData({ ...data, employmentType: type })}
-                            className={`px-5 py-2 rounded-full text-xs font-bold transition-all duration-200 cursor-pointer ${data.employmentType === type
+                            className={`px-5 py-2 rounded-full text-xs font-bold transition-all duration-200 cursor-pointer ${
+                              data.employmentType === type
                                 ? "bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-md shadow-purple-100 hover:brightness-105"
                                 : "bg-white border border-line text-muted hover:border-gray-300 hover:bg-canvas hover:text-ink"
-                              }`}
+                            }`}
                           >
                             {type}
                           </button>
@@ -483,17 +523,25 @@ export function EmployeeForm({
               {step === 3 && (
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.05)] p-5 space-y-4 animate-fade-in transition-all">
                   <div>
-                    <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">ERP Access Control</h3>
-                    <p className="text-[11px] text-gray-500 mt-0.5">Configure login capability settings and assign organizational security roles.</p>
+                    <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
+                      ERP Access Control
+                    </h3>
+                    <p className="text-[11px] text-gray-500 mt-0.5">
+                      Configure login capability settings and assign organizational security roles.
+                    </p>
                   </div>
 
                   <div className="space-y-3.5">
                     <div className="rounded-xl border border-gray-100 bg-gray-50/40 p-4 mt-1">
                       <div className="flex items-start justify-between gap-4">
                         <div className="space-y-0.5">
-                          <p className="text-sm font-bold text-gray-900">Provide ERP Portal Login Access</p>
+                          <p className="text-sm font-bold text-gray-900">
+                            Provide ERP Portal Login Access
+                          </p>
                           <p className="text-xs text-gray-500 max-w-md leading-relaxed">
-                            Enable login credentials for this worker. Subordinate staff permissions and logs can be reviewed manually by their manager if this remains disabled.
+                            Enable login credentials for this worker. Subordinate staff permissions
+                            and logs can be reviewed manually by their manager if this remains
+                            disabled.
                           </p>
                         </div>
 
@@ -505,37 +553,48 @@ export function EmployeeForm({
                             setData({ ...data, needsAccess: !data.needsAccess, role: "" });
                             setErrors({});
                           }}
-                          className={`shrink-0 h-6 w-11 rounded-full transition-colors relative block cursor-pointer border border-transparent focus:outline-none focus:ring-4 focus:ring-brand-purple/20 ${data.needsAccess ? "bg-brand-purple" : "bg-gray-200"
-                            }`}
+                          className={`shrink-0 h-6 w-11 rounded-full transition-colors relative block cursor-pointer border border-transparent focus:outline-none focus:ring-4 focus:ring-brand-purple/20 ${
+                            data.needsAccess ? "bg-brand-purple" : "bg-gray-200"
+                          }`}
                         >
                           <span
-                            className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${data.needsAccess ? "translate-x-5" : "translate-x-0"
-                              }`}
+                            className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                              data.needsAccess ? "translate-x-5" : "translate-x-0"
+                            }`}
                           />
                         </button>
                       </div>
 
                       {/* Animated slide down role selector */}
                       <div
-                        className={`transition-all duration-300 ease-in-out overflow-hidden ${data.needsAccess
+                        className={`transition-all duration-300 ease-in-out overflow-hidden ${
+                          data.needsAccess
                             ? "max-h-48 opacity-100 mt-4 pt-4 border-t border-gray-200/30 translate-y-0"
                             : "max-h-0 opacity-0 pointer-events-none translate-y-2"
-                          }`}
+                        }`}
                       >
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="relative pb-4">
-                            <label className="text-xs font-semibold text-gray-700">Assign Role <span className="text-rose-500">*</span></label>
+                            <label className="text-xs font-semibold text-gray-700">
+                              Assign Role <span className="text-rose-500">*</span>
+                            </label>
                             <select
                               className={`${formInputClasses} mt-1 ${data.role ? "text-ink font-medium" : "text-muted font-normal"}`}
                               value={data.role}
                               onChange={(e) => {
                                 setData({ ...data, role: e.target.value });
-                                if (errors.role) setErrors(prev => ({ ...prev, role: "" }));
+                                if (errors.role) setErrors((prev) => ({ ...prev, role: "" }));
                               }}
                             >
-                              <option value="" className="text-gray-400 bg-white">Select System Role</option>
+                              <option value="" className="text-gray-400 bg-white">
+                                Select System Role
+                              </option>
                               {ROLES.map((r) => (
-                                <option key={r} value={r} className="text-gray-900 bg-white py-2 font-medium">
+                                <option
+                                  key={r}
+                                  value={r}
+                                  className="text-gray-900 bg-white py-2 font-medium"
+                                >
                                   {r}
                                 </option>
                               ))}
@@ -548,7 +607,9 @@ export function EmployeeForm({
                           </div>
 
                           <div>
-                            <label className="text-xs font-semibold text-gray-700">System Notification</label>
+                            <label className="text-xs font-semibold text-gray-700">
+                              System Notification
+                            </label>
                             <div className="flex items-center h-[50px] text-xs font-bold text-emerald-600 gap-1.5 mt-1 bg-emerald-50/50 border border-emerald-100 rounded-xl px-4">
                               <span>✓</span> System invite instructions will dispatch via email
                             </div>
@@ -559,9 +620,12 @@ export function EmployeeForm({
 
                     {!data.needsAccess && (
                       <div className="rounded-xl border border-dashed border-gray-200 p-4 text-xs text-gray-500 flex items-start gap-2 bg-gray-50/30">
-                        <span className="text-brand-purple font-bold text-sm leading-none mt-0.5">ℹ</span>
+                        <span className="text-brand-purple font-bold text-sm leading-none mt-0.5">
+                          ℹ
+                        </span>
                         <span>
-                          No ERP credentials will be generated. The employee dashboard tracking and manual attendance reporting will default to manager-controlled actions.
+                          No ERP credentials will be generated. The employee dashboard tracking and
+                          manual attendance reporting will default to manager-controlled actions.
                         </span>
                       </div>
                     )}
@@ -574,7 +638,9 @@ export function EmployeeForm({
             <div className="lg:w-[35%] bg-gradient-to-b from-gray-50/40 to-white p-6 md:p-7 flex flex-col justify-between overflow-y-auto max-h-[55vh] md:max-h-[60vh] custom-scrollbar">
               <div className="space-y-4">
                 <div>
-                  <h4 className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Live Profile Preview</h4>
+                  <h4 className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">
+                    Live Profile Preview
+                  </h4>
                   <p className="text-[10px] text-gray-500 mt-0.5">Summary updates instantly.</p>
                 </div>
 
@@ -586,8 +652,12 @@ export function EmployeeForm({
                     {initials}
                   </div>
 
-                  <h4 className="text-sm font-bold text-gray-900 truncate max-w-full leading-tight font-sans text-center">{nameDisplay}</h4>
-                  <p className="text-xs text-gray-500 truncate max-w-full mt-1.5 font-normal text-center">{emailDisplay}</p>
+                  <h4 className="text-sm font-bold text-gray-900 truncate max-w-full leading-tight font-sans text-center">
+                    {nameDisplay}
+                  </h4>
+                  <p className="text-xs text-gray-500 truncate max-w-full mt-1.5 font-normal text-center">
+                    {emailDisplay}
+                  </p>
 
                   <div className="mt-3">
                     {data.needsAccess ? (
@@ -605,21 +675,35 @@ export function EmployeeForm({
                 {/* Details layout matrix */}
                 <div className="space-y-2.5 bg-white p-4 rounded-2xl border border-gray-200/50 shadow-sm animate-fade-in">
                   <div className="flex justify-between items-center text-xs pb-2.5 border-b border-gray-100/50">
-                    <span className="text-gray-400 font-extrabold uppercase tracking-wider text-[9px]">Department</span>
-                    <span className="text-gray-950 font-bold max-w-[140px] truncate text-right">{deptName}</span>
+                    <span className="text-gray-400 font-extrabold uppercase tracking-wider text-[9px]">
+                      Department
+                    </span>
+                    <span className="text-gray-950 font-bold max-w-[140px] truncate text-right">
+                      {deptName}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center text-xs pb-2.5 border-b border-gray-100/50">
-                    <span className="text-gray-400 font-extrabold uppercase tracking-wider text-[9px]">Line Manager</span>
-                    <span className="text-gray-950 font-bold max-w-[140px] truncate text-right">{managerName}</span>
+                    <span className="text-gray-400 font-extrabold uppercase tracking-wider text-[9px]">
+                      Line Manager
+                    </span>
+                    <span className="text-gray-950 font-bold max-w-[140px] truncate text-right">
+                      {managerName}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center text-xs pb-2.5 border-b border-gray-100/50">
-                    <span className="text-gray-400 font-extrabold uppercase tracking-wider text-[9px]">Employment Unit</span>
-                    <span className="text-gray-950 font-bold text-right">{data.employmentType}</span>
+                    <span className="text-gray-400 font-extrabold uppercase tracking-wider text-[9px]">
+                      Employment Unit
+                    </span>
+                    <span className="text-gray-950 font-bold text-right">
+                      {data.employmentType}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-gray-400 font-extrabold uppercase tracking-wider text-[9px]">ERP System Role</span>
+                    <span className="text-gray-400 font-extrabold uppercase tracking-wider text-[9px]">
+                      ERP System Role
+                    </span>
                     <span className="text-brand-purple font-extrabold text-right truncate max-w-[130px]">
-                      {data.needsAccess ? (data.role || "Pending Role *") : "No Login Permitted"}
+                      {data.needsAccess ? data.role || "Pending Role *" : "No Login Permitted"}
                     </span>
                   </div>
                 </div>
@@ -629,7 +713,13 @@ export function EmployeeForm({
         </div>
 
         <div className="flex items-center justify-between py-4 px-6 md:px-8 border-t border-line bg-white relative z-10 w-full">
-          <Button type="button" variant="outline" onClick={handleBack} disabled={step === 1} className="text-xs">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleBack}
+            disabled={step === 1}
+            className="text-xs"
+          >
             ← Back
           </Button>
 
@@ -642,7 +732,13 @@ export function EmployeeForm({
               Continue →
             </Button>
           ) : (
-            <Button type="button" variant="primary" onClick={handleSubmit} disabled={loading} className="text-xs">
+            <Button
+              type="button"
+              variant="primary"
+              onClick={handleSubmit}
+              disabled={loading}
+              className="text-xs"
+            >
               {loading ? "Saving…" : isEdit ? "✓ Update Employee" : "✓ Save Employee"}
             </Button>
           )}

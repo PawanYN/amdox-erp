@@ -7,10 +7,10 @@ import { pmApi } from "@/lib/api/pm-api";
 const STATUSES = ["TODO", "IN_PROGRESS", "BLOCKED", "DONE"] as const;
 
 const BAR_COLOR: Record<string, string> = {
-  TODO:        "bg-slate-400",
+  TODO: "bg-slate-400",
   IN_PROGRESS: "bg-blue-600",
-  BLOCKED:     "bg-red-500",
-  DONE:        "bg-emerald-500",
+  BLOCKED: "bg-red-500",
+  DONE: "bg-emerald-500",
 };
 
 function parseDate(d: string | Date | null | undefined): Date | null {
@@ -19,10 +19,22 @@ function parseDate(d: string | Date | null | undefined): Date | null {
   return Number.isNaN(dt.getTime()) ? null : dt;
 }
 
+type ProjectOption = { id: string; name: string };
+
+type TaskItem = {
+  id: string;
+  title: string;
+  status: string;
+  startDate?: string;
+  dueDate?: string;
+  project?: { name: string };
+  dependsOn?: { prerequisiteTask?: { title: string } }[];
+};
+
 export default function ProjectsTasksPage() {
-  const [projects, setProjects] = useState<any[]>([]);
+  const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [projectId, setProjectId] = useState("");
-  const [tasks, setTasks] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadTasks = (pid?: string) => {
@@ -45,7 +57,9 @@ export default function ProjectsTasksPage() {
   }, [projectId]);
 
   const range = useMemo(() => {
-    const dates = tasks.flatMap((t) => [parseDate(t.startDate), parseDate(t.dueDate)]).filter(Boolean) as Date[];
+    const dates = tasks
+      .flatMap((t) => [parseDate(t.startDate), parseDate(t.dueDate)])
+      .filter(Boolean) as Date[];
     if (dates.length === 0) {
       const start = new Date();
       start.setDate(start.getDate() - 1);
@@ -93,12 +107,17 @@ export default function ProjectsTasksPage() {
           >
             <option value="">All projects</option>
             {projects.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
             ))}
           </select>
         </label>
         {projectId && (
-          <Link href={`/projects/${projectId}`} className="text-[12px] text-blue-600 hover:text-blue-700 hover:underline">
+          <Link
+            href={`/projects/${projectId}`}
+            className="text-[12px] text-blue-600 hover:text-blue-700 hover:underline"
+          >
             Open project detail →
           </Link>
         )}
@@ -131,7 +150,7 @@ export default function ProjectsTasksPage() {
                 const start = toIndex(t.startDate);
                 const end = toIndex(t.dueDate || t.startDate);
                 const len = Math.max(1, end - start + 1);
-                const deps = t.dependsOn?.map((d: any) => d.prerequisiteTask?.title).filter(Boolean);
+                const deps = t.dependsOn?.map((d) => d.prerequisiteTask?.title).filter(Boolean);
                 return (
                   <div
                     key={t.id}
@@ -149,7 +168,9 @@ export default function ProjectsTasksPage() {
                         className="mt-1 text-[10px] border border-slate-200 rounded px-1 py-0.5 bg-white focus:outline-none"
                       >
                         {STATUSES.map((s) => (
-                          <option key={s} value={s}>{s}</option>
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
                         ))}
                       </select>
                     </div>

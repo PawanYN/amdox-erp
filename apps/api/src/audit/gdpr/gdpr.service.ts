@@ -1,23 +1,11 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
-import {
-  PrismaClient,
-  DataSubjectRequestType,
-  DataSubjectRequestStatus,
-} from '@amdox/db';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { PrismaClient, DataSubjectRequestType } from '@amdox/db';
 
 @Injectable()
 export class GdprService {
   private prisma = new PrismaClient();
 
-  async createRequest(
-    tenantId: string,
-    subjectEmail: string,
-    type: DataSubjectRequestType,
-  ) {
+  async createRequest(tenantId: string, subjectEmail: string, type: DataSubjectRequestType) {
     return this.prisma.dataSubjectRequest.create({
       data: { tenantId, subjectEmail, type, status: 'OPEN' },
     });

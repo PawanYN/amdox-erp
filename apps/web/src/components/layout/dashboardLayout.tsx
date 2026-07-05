@@ -23,16 +23,45 @@ import {
 } from "lucide-react";
 
 const ROLES: Record<string, { label: string; sections: string[]; dept: string }> = {
-  tenantadmin: { label: "Tenant Admin",       sections: ["/home", "/bi", "/forecast", "finance", "hr", "scm", "projects", "/notifications", "/settings"], dept: "Administration" },
-  executive:   { label: "Executive",          sections: ["/home", "/bi", "/forecast", "finance", "hr", "scm", "projects", "/settings"], dept: "Executive Office" },
-  finance:     { label: "Finance Team",       sections: ["/home", "finance", "/settings"],                                  dept: "Finance" },
-  hr:          { label: "HR & Payroll",       sections: ["/home", "hr", "/settings"],                                       dept: "Human Resources" },
-  scm:         { label: "Supply Chain Mgr",   sections: ["/home", "scm", "/forecast", "/settings"],                         dept: "Supply Chain" },
-  pm:          { label: "Project Manager",    sections: ["/home", "projects", "/settings"],                                  dept: "Project Management" },
-  it:          { label: "IT Administrator",   sections: ["/home", "/settings"],                                              dept: "IT Administration" },
+  tenantadmin: {
+    label: "Tenant Admin",
+    sections: [
+      "/home",
+      "/bi",
+      "/forecast",
+      "finance",
+      "hr",
+      "scm",
+      "projects",
+      "/notifications",
+      "/settings",
+    ],
+    dept: "Administration",
+  },
+  executive: {
+    label: "Executive",
+    sections: ["/home", "/bi", "/forecast", "finance", "hr", "scm", "projects", "/settings"],
+    dept: "Executive Office",
+  },
+  finance: { label: "Finance Team", sections: ["/home", "finance", "/settings"], dept: "Finance" },
+  hr: { label: "HR & Payroll", sections: ["/home", "hr", "/settings"], dept: "Human Resources" },
+  scm: {
+    label: "Supply Chain Mgr",
+    sections: ["/home", "scm", "/forecast", "/settings"],
+    dept: "Supply Chain",
+  },
+  pm: {
+    label: "Project Manager",
+    sections: ["/home", "projects", "/settings"],
+    dept: "Project Management",
+  },
+  it: { label: "IT Administrator", sections: ["/home", "/settings"], dept: "IT Administration" },
 };
 
-interface NavChild  { id: string; label: string; }
+interface NavChild {
+  id: string;
+  label: string;
+}
 interface NavSection {
   id: string;
   icon: React.ComponentType<{ size?: number; className?: string }>;
@@ -42,51 +71,60 @@ interface NavSection {
 }
 
 const NAV: NavSection[] = [
-  { id: "/home",          icon: LayoutDashboard, label: "Dashboard",       leaf: true },
-  { id: "/bi",            icon: BarChart2,        label: "BI Reports",      leaf: true },
-  { id: "/forecast",      icon: TrendingUp,       label: "AI Forecast",     leaf: true },
+  { id: "/home", icon: LayoutDashboard, label: "Dashboard", leaf: true },
+  { id: "/bi", icon: BarChart2, label: "BI Reports", leaf: true },
+  { id: "/forecast", icon: TrendingUp, label: "AI Forecast", leaf: true },
   {
-    id: "finance", icon: Wallet, label: "Finance",
+    id: "finance",
+    icon: Wallet,
+    label: "Finance",
     children: [
-      { id: "/finance/accounts",        label: "Chart of Accounts" },
+      { id: "/finance/accounts", label: "Chart of Accounts" },
       { id: "/finance/journal-entries", label: "Journal Entries" },
-      { id: "/finance/invoices",        label: "AP Invoices" },
-      { id: "/finance/ar-invoices",     label: "AR Invoices" },
-      { id: "/finance/aging-report",    label: "Aging Report" },
-      { id: "/finance/fiscal-periods",  label: "Fiscal Periods" },
+      { id: "/finance/invoices", label: "AP Invoices" },
+      { id: "/finance/ar-invoices", label: "AR Invoices" },
+      { id: "/finance/aging-report", label: "Aging Report" },
+      { id: "/finance/fiscal-periods", label: "Fiscal Periods" },
     ],
   },
   {
-    id: "hr", icon: Users, label: "Human Resources",
+    id: "hr",
+    icon: Users,
+    label: "Human Resources",
     children: [
-      { id: "/hr/employees",      label: "Employees" },
-      { id: "/hr/departments",    label: "Departments" },
+      { id: "/hr/employees", label: "Employees" },
+      { id: "/hr/departments", label: "Departments" },
       { id: "/hr/leave-requests", label: "Leave Requests" },
-      { id: "/hr/attendance",     label: "Attendance" },
-      { id: "/hr/payroll",        label: "Payroll" },
+      { id: "/hr/attendance", label: "Attendance" },
+      { id: "/hr/payroll", label: "Payroll" },
     ],
   },
   {
-    id: "scm", icon: Package, label: "Supply Chain",
+    id: "scm",
+    icon: Package,
+    label: "Supply Chain",
     children: [
-      { id: "/scm/vendors",         label: "Vendors" },
+      { id: "/scm/vendors", label: "Vendors" },
+      { id: "/scm/products", label: "Products" },
       { id: "/scm/purchase-orders", label: "Purchase Orders" },
-      { id: "/scm/goods-receipt",   label: "Goods Receipt" },
-      { id: "/scm/invoices",        label: "AP Invoices" },
-      { id: "/scm/inventory",       label: "Inventory" },
+      { id: "/scm/goods-receipt", label: "Goods Receipt" },
+      { id: "/scm/invoices", label: "AP Invoices" },
+      { id: "/scm/inventory", label: "Inventory" },
     ],
   },
   {
-    id: "projects", icon: FolderKanban, label: "Projects",
+    id: "projects",
+    icon: FolderKanban,
+    label: "Projects",
     children: [
-      { id: "/projects/overview",   label: "Overview" },
-      { id: "/projects/tasks",      label: "Tasks & Milestones" },
-      { id: "/projects/resources",  label: "Resource Allocation" },
-      { id: "/projects/budget",     label: "Budget Tracking" },
+      { id: "/projects/overview", label: "Overview" },
+      { id: "/projects/tasks", label: "Tasks & Milestones" },
+      { id: "/projects/resources", label: "Resource Allocation" },
+      { id: "/projects/budget", label: "Budget Tracking" },
     ],
   },
-  { id: "/notifications", icon: Bell,     label: "Notifications", leaf: true },
-  { id: "/settings",      icon: Settings, label: "Settings",      leaf: true },
+  { id: "/notifications", icon: Bell, label: "Notifications", leaf: true },
+  { id: "/settings", icon: Settings, label: "Settings", leaf: true },
 ];
 
 /* ─────────────────────────────────────────────
@@ -108,11 +146,9 @@ function TopBar({
   const username = user?.preferred_username || "User";
   const initials = username.substring(0, 2).toUpperCase();
 
-  const allItems = NAV.flatMap((n) =>
-    n.children || [{ id: n.id, label: n.label }],
-  );
+  const allItems = NAV.flatMap((n) => n.children || [{ id: n.id, label: n.label }]);
   const current = allItems.find((i) => i.id === activePage) || { label: "Dashboard" };
-  const parent  = NAV.find((n) => n.children?.some((c) => c.id === activePage));
+  const parent = NAV.find((n) => n.children?.some((c) => c.id === activePage));
 
   return (
     <header className="h-14 bg-white border-b border-slate-200 flex items-center px-4 gap-3 shrink-0 z-20">
@@ -156,10 +192,18 @@ function TopBar({
           value={role}
           onChange={(e) => setRole(e.target.value)}
           className="h-8 text-[12px] text-slate-600 border border-slate-200 rounded-md px-2 pr-6 bg-white outline-none cursor-pointer hover:border-slate-300 transition-colors appearance-none"
-          style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%2364748B' d='M4.5 6.5l3.5 3.5 3.5-3.5'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 6px center", backgroundSize: "14px" }}
+          style={{
+            backgroundImage:
+              "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%2364748B' d='M4.5 6.5l3.5 3.5 3.5-3.5'/%3E%3C/svg%3E\")",
+            backgroundRepeat: "no-repeat",
+            backgroundPosition: "right 6px center",
+            backgroundSize: "14px",
+          }}
         >
           {Object.entries(ROLES).map(([key, r]) => (
-            <option key={key} value={key}>{r.label}</option>
+            <option key={key} value={key}>
+              {r.label}
+            </option>
           ))}
         </select>
 
@@ -203,18 +247,19 @@ function Sidebar({
 }) {
   const router = useRouter();
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    finance: true, hr: true, scm: true, projects: true,
+    finance: true,
+    hr: true,
+    scm: true,
+    projects: true,
   });
   const visibleSections = ROLES[role].sections;
 
-  const toggle = (id: string) =>
-    setOpenSections((s) => ({ ...s, [id]: !s[id] }));
+  const toggle = (id: string) => setOpenSections((s) => ({ ...s, [id]: !s[id] }));
 
-  const items = NAV.filter(
-    (item) =>
-      item.leaf
-        ? visibleSections.some((s) => item.id === s || item.id.startsWith(s))
-        : visibleSections.includes(item.id),
+  const items = NAV.filter((item) =>
+    item.leaf
+      ? visibleSections.some((s) => item.id === s || item.id.startsWith(s))
+      : visibleSections.includes(item.id),
   ).filter((item) => item.id !== "/settings" || visibleSections.includes("/settings"));
 
   return (
@@ -274,17 +319,15 @@ function Sidebar({
                 }`}
               >
                 <span className="flex items-center gap-2.5">
-                  <Icon
-                    size={16}
-                    className={hasActiveChild ? "text-blue-600" : "text-slate-400"}
-                  />
+                  <Icon size={16} className={hasActiveChild ? "text-blue-600" : "text-slate-400"} />
                   {!collapsed && item.label}
                 </span>
-                {!collapsed && (
-                  isOpen
-                    ? <ChevronDown size={13} className="text-slate-400" />
-                    : <ChevronRight size={13} className="text-slate-400" />
-                )}
+                {!collapsed &&
+                  (isOpen ? (
+                    <ChevronDown size={13} className="text-slate-400" />
+                  ) : (
+                    <ChevronRight size={13} className="text-slate-400" />
+                  ))}
               </button>
 
               {isOpen && item.children && (
@@ -339,9 +382,9 @@ function Sidebar({
    Root layout
    ───────────────────────────────────────────── */
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const [role, setRole]         = useState("tenantadmin");
+  const [role, setRole] = useState("tenantadmin");
   const [collapsed, setCollapsed] = useState(false);
-  const pathname                = usePathname();
+  const pathname = usePathname();
 
   return (
     <div className="h-screen flex flex-col bg-slate-50">
@@ -359,9 +402,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           setCollapsed={setCollapsed}
         />
         <main className="flex-1 overflow-y-auto custom-scrollbar">
-          <div className="p-6 max-w-screen-2xl mx-auto">
-            {children}
-          </div>
+          <div className="p-6 max-w-screen-2xl mx-auto">{children}</div>
         </main>
       </div>
     </div>

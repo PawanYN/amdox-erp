@@ -15,7 +15,24 @@ import { OrgChart } from "./org-chart";
 
 type ViewMode = "list" | "org-chart";
 
-function mapEmployee(emp: any): Employee {
+type DepartmentOption = { id: string; name: string };
+
+type RawEmployee = {
+  id: string;
+  fullName: string;
+  email: string;
+  phone?: string;
+  department?: { id?: string; name?: string };
+  departmentId?: string;
+  designation?: string;
+  contractType?: string;
+  hireDate?: string;
+  managerId?: string | null;
+  status?: string;
+  dateOfBirth?: string;
+};
+
+function mapEmployee(emp: RawEmployee): Employee {
   return {
     id: emp.id,
     name: emp.fullName,
@@ -28,45 +45,60 @@ function mapEmployee(emp: any): Employee {
     startDate: emp.hireDate ? new Date(emp.hireDate).toISOString().split("T")[0] : "",
     reportsToId: emp.managerId || null,
     status: (emp.status || "ACTIVE") === "ACTIVE" ? "Active" : "Inactive",
-    dateOfBirth: emp.dateOfBirth ? new Date(emp.dateOfBirth).toISOString().split("T")[0] : undefined,
+    dateOfBirth: emp.dateOfBirth
+      ? new Date(emp.dateOfBirth).toISOString().split("T")[0]
+      : undefined,
   };
 }
 
 export default function EmployeesPage() {
   const { token, initialized } = useKeycloak();
-  const [employees, setEmployees]     = useState<Employee[]>([]);
-  const [departments, setDepartments] = useState<any[]>([]);
-  const [view, setView]               = useState<ViewMode>("list");
-  const [formOpen, setFormOpen]       = useState(false);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [departments, setDepartments] = useState<DepartmentOption[]>([]);
+  const [view, setView] = useState<ViewMode>("list");
+  const [formOpen, setFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
-  const [loading, setLoading]         = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const fetchEmployees = async () => {
     if (!token) return;
-    try { setEmployees((await hrApi.getEmployees()).map(mapEmployee)); }
-    catch (err) { console.error(err); }
+    try {
+      setEmployees((await hrApi.getEmployees()).map(mapEmployee));
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const fetchDepartments = async () => {
     if (!token) return;
-    try { setDepartments(await hrApi.getDepartments()); }
-    catch (err) { console.error(err); }
+    try {
+      setDepartments(await hrApi.getDepartments());
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   useEffect(() => {
-    if (initialized && token) { fetchEmployees(); fetchDepartments(); }
+    if (initialized && token) {
+      fetchEmployees();
+      fetchDepartments();
+    }
   }, [initialized, token]);
 
   async function handleDelete(emp: Employee) {
     if (!confirm(`Delete employee "${emp.name}"? This cannot be undone.`)) return;
-    try { await hrApi.deleteEmployee(emp.id); await fetchEmployees(); }
-    catch (err: any) { alert(err.message || "Failed to delete employee."); }
+    try {
+      await hrApi.deleteEmployee(emp.id);
+      await fetchEmployees();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete employee.");
+    }
   }
 
   const visibleEmployees = employees.filter((e) => e.id !== "EMP-100");
-  const activeCount   = visibleEmployees.filter((e) => e.status === "Active").length;
+  const activeCount = visibleEmployees.filter((e) => e.status === "Active").length;
   const inactiveCount = visibleEmployees.filter((e) => e.status !== "Active").length;
-  const deptCount     = new Set(visibleEmployees.map((e) => e.department)).size;
+  const deptCount = new Set(visibleEmployees.map((e) => e.department)).size;
 
   const columns: ColumnDef<Employee>[] = [
     {
@@ -74,7 +106,12 @@ export default function EmployeesPage() {
       cell: (emp) => (
         <div className="flex items-center gap-3">
           <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-[11px] font-bold shrink-0">
-            {emp.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
+            {emp.name
+              .split(" ")
+              .map((n) => n[0])
+              .join("")
+              .slice(0, 2)
+              .toUpperCase()}
           </div>
           <div className="min-w-0">
             <p className="text-[13px] font-semibold text-slate-900 truncate">{emp.name}</p>
@@ -86,7 +123,9 @@ export default function EmployeesPage() {
     {
       header: "Department",
       cell: (emp) => (
-        <span className="text-[12px] font-medium text-slate-600 bg-slate-100 rounded px-2 py-0.5">{emp.department}</span>
+        <span className="text-[12px] font-medium text-slate-600 bg-slate-100 rounded px-2 py-0.5">
+          {emp.department}
+        </span>
       ),
     },
     {
@@ -109,7 +148,10 @@ export default function EmployeesPage() {
       cell: (emp) => (
         <div className="flex gap-1.5 justify-end">
           <button
-            onClick={() => { setEditingEmployee(emp); setFormOpen(true); }}
+            onClick={() => {
+              setEditingEmployee(emp);
+              setFormOpen(true);
+            }}
             className="h-7 w-7 flex items-center justify-center rounded-md bg-slate-50 border border-slate-200 text-slate-500 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-colors"
           >
             <Pencil size={13} />
@@ -130,16 +172,22 @@ export default function EmployeesPage() {
     try {
       const parts = data.name.trim().split(" ");
       await hrApi.createEmployee({
-        firstName: parts[0] || "", lastName: parts.slice(1).join(" ") || "",
-        email: data.email, phone: data.phone,
+        firstName: parts[0] || "",
+        lastName: parts.slice(1).join(" ") || "",
+        email: data.email,
+        phone: data.phone,
         dateOfBirth: data.dateOfBirth || "1990-01-01",
         hireDate: data.startDate || new Date().toISOString().split("T")[0],
         employmentType: data.contractType.toLowerCase().replace("-", "_"),
-        departmentId: data.department, managerId: data.reportsToId || null,
+        departmentId: data.department,
+        managerId: data.reportsToId || null,
       });
       await fetchEmployees();
-    } catch (err: any) { alert(err.message || "Failed to save."); }
-    finally { setLoading(false); }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to save.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleUpdate(id: string, data: NewEmployeeInput) {
@@ -147,15 +195,22 @@ export default function EmployeesPage() {
     try {
       const parts = data.name.trim().split(" ");
       await hrApi.updateEmployee(id, {
-        firstName: parts[0] || "", lastName: parts.slice(1).join(" ") || "",
-        email: data.email, phone: data.phone, dateOfBirth: data.dateOfBirth,
+        firstName: parts[0] || "",
+        lastName: parts.slice(1).join(" ") || "",
+        email: data.email,
+        phone: data.phone,
+        dateOfBirth: data.dateOfBirth,
         hireDate: data.startDate,
         employmentType: data.contractType.toLowerCase().replace("-", "_"),
-        departmentId: data.department, managerId: data.reportsToId || null,
+        departmentId: data.department,
+        managerId: data.reportsToId || null,
       });
       await fetchEmployees();
-    } catch (err: any) { alert(err.message || "Failed to update."); }
-    finally { setLoading(false); }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to update.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -167,19 +222,51 @@ export default function EmployeesPage() {
             <Users size={18} className="text-slate-400" />
             Employees
           </h1>
-          <p className="page-subtitle mt-1">Personal info, contracts, departments and reporting hierarchy</p>
+          <p className="page-subtitle mt-1">
+            Personal info, contracts, departments and reporting hierarchy
+          </p>
         </div>
-        <Button icon={<Plus size={14} />} onClick={() => { setEditingEmployee(null); setFormOpen(true); }}>
+        <Button
+          icon={<Plus size={14} />}
+          onClick={() => {
+            setEditingEmployee(null);
+            setFormOpen(true);
+          }}
+        >
           New Employee
         </Button>
       </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard label="Total"       value={visibleEmployees.length} icon={<Users size={16} />}      gradient="from-blue-500 to-blue-600"      delay="0s" />
-        <StatCard label="Active"      value={activeCount}             icon={<UserCheck size={16} />}  gradient="from-emerald-500 to-emerald-600" delay="0.05s" />
-        <StatCard label="Inactive"    value={inactiveCount}           icon={<UserMinus size={16} />}  gradient="from-slate-400 to-slate-500"    delay="0.1s" />
-        <StatCard label="Departments" value={deptCount}               icon={<Building2 size={16} />}  gradient="from-violet-500 to-violet-600"  delay="0.15s" />
+        <StatCard
+          label="Total"
+          value={visibleEmployees.length}
+          icon={<Users size={16} />}
+          gradient="from-blue-500 to-blue-600"
+          delay="0s"
+        />
+        <StatCard
+          label="Active"
+          value={activeCount}
+          icon={<UserCheck size={16} />}
+          gradient="from-emerald-500 to-emerald-600"
+          delay="0.05s"
+        />
+        <StatCard
+          label="Inactive"
+          value={inactiveCount}
+          icon={<UserMinus size={16} />}
+          gradient="from-slate-400 to-slate-500"
+          delay="0.1s"
+        />
+        <StatCard
+          label="Departments"
+          value={deptCount}
+          icon={<Building2 size={16} />}
+          gradient="from-violet-500 to-violet-600"
+          delay="0.15s"
+        />
       </div>
 
       {/* View toggle */}
@@ -215,7 +302,10 @@ export default function EmployeesPage() {
 
       <EmployeeForm
         open={formOpen}
-        onClose={() => { setFormOpen(false); setEditingEmployee(null); }}
+        onClose={() => {
+          setFormOpen(false);
+          setEditingEmployee(null);
+        }}
         managers={employees}
         departments={departments}
         editEmployee={editingEmployee}
