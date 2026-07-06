@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaClient, NotificationChannel, NotificationDeliveryStatus } from '@amdox/db';
 import { WebhookChannel } from './channels/webhook.channel';
+import { EmailChannel } from './channels/email.channel';
 
 export interface NotifyInput {
   tenantId: string;
@@ -16,6 +17,11 @@ export interface NotifyInput {
  * Delivery channels:
  *  1. IN_APP — creates a Notification record readable by /notifications
  *  2. WEBHOOK — when tenant.settings.webhookUrl is configured: HMAC-signed HTTP POST
+ *  3. EMAIL — when the target user has an email on file: handed to EmailChannel.
+ *     EmailChannel is a real dispatch path, not a no-op — it just has no AWS SES
+ *     credentials wired in yet (BE-07), so it logs the message instead of hitting
+ *     the wire. The moment SES credentials are added there, every code path here
+ *     starts actually delivering with zero changes needed in this file.
  *
  * Each channel is skipped if the target user has an explicit NotificationPreference
  * row disabling it for that eventType. No preference row means the channel defaults
@@ -31,7 +37,10 @@ export class NotificationService {
   private readonly logger = new Logger('NotificationEngine');
   private prisma = new PrismaClient();
 
-  constructor(private readonly webhookChannel: WebhookChannel) {}
+  constructor(
+    private readonly webhookChannel: WebhookChannel,
+    private readonly emailChannel: EmailChannel,
+  ) {}
 
   private async isChannelEnabled(
     userId: string | undefined,
@@ -90,6 +99,9 @@ export class NotificationService {
     // 4. Dispatch webhook if tenant has one configured and user hasn't opted out
     await this.dispatchWebhookIfConfigured(notification.id, input);
 
+    // 5. Dispatch email if the target user has an address on file and hasn't opted out
+    await this.dispatchEmailIfEnabled(notification.id, input);
+
     return notification;
   }
 
@@ -137,6 +149,46 @@ export class NotificationService {
       });
     } catch (err: any) {
       this.logger.error(`Webhook dispatch error: ${err?.message}`);
+    }
+  }
+
+  private async dispatchEmailIfEnabled(notificationId: string, input: NotifyInput) {
+    if (!input.userId) return;
+    try {
+      const emailEnabled = await this.isChannelEnabled(
+        input.userId,
+        input.eventType,
+        NotificationChannel.EMAIL,
+      );
+      if (!emailEnabled) return;
+
+      const user = await this.prisma.user.findUnique({
+        where: { id: input.userId },
+        select: { email: true },
+      });
+      if (!user?.email) return;
+
+      const result = await this.emailChannel.send({
+        to: user.email,
+        subject: input.title,
+        body: input.body ?? input.title,
+      });
+
+      await this.prisma.notificationDelivery.create({
+        data: {
+          tenantId: input.tenantId,
+          notificationId,
+          channel: NotificationChannel.EMAIL,
+          status: result.delivered
+            ? NotificationDeliveryStatus.SENT
+            : NotificationDeliveryStatus.FAILED,
+          attempts: 1,
+          sentAt: result.delivered ? new Date() : undefined,
+          lastError: result.delivered ? undefined : 'Email dispatch failed',
+        },
+      });
+    } catch (err: any) {
+      this.logger.error(`Email dispatch error: ${err?.message}`);
     }
   }
 
