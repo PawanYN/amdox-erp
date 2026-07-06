@@ -458,7 +458,7 @@ _Update this document when a task moves from Partial → Done. Cross-reference_ 
 • Prisma schema: all core entities with indexes ✅, soft-delete ✅ (`deletedAt`), created_at/updated_at ✅ — consistent pattern across all models
 • Row-level security strategy: tenantId filter injected at query layer ✅ (`packages/db/src/client.ts` — `$extends` auto-injects `tenantId`)
 • Database migrations pipeline ✅ (`prisma/migrations/` — 15+ migrations) + seeder scripts ✅ (`prisma/seed.ts`)
-• Prisma Studio setup for internal dev inspection ❌ (no dedicated script; only default `npx prisma studio`)
+• Prisma Studio setup for internal dev inspection ✅ — documented in `README.md` § "Database Management & Tools" → "Visual Database Browser (Prisma Studio)" with the exact command (`npx pnpm --filter @amdox/db exec prisma studio`) and access URL (`localhost:5555`); no root-level `pnpm studio` script alias, but the capability is set up and documented for the dev team
 
 #### Day 6 – API Gateway & Base Endpoints
 
