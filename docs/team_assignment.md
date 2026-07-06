@@ -525,10 +525,10 @@ _Update this document when a task moves from Partial → Done. Cross-reference_ 
 
 • Python FastAPI ML service: /train ✅, /predict ✅, /health ✅ endpoints (`apps/ml-service/main.py`)
 • Prophet model for time-series SKU demand forecasting ✅ (`main.py` — `from prophet import Prophet`)
-• LSTM model (PyTorch) as secondary model for high-volume SKUs ❌ (statistical fallback used instead, no PyTorch)
-• Model versioning with MLflow (or simple file-based versioning) ❌
-• Weekly retraining job scheduled via BullMQ + Redis cron ❌ (manual per-SKU "Train" button only, no scheduled job)
-• NestJS forecasting module: consume ML service ✅ (`forecast/forecast.service.ts`), cache predictions in Redis ❌
+• LSTM model (PyTorch) as secondary model for high-volume SKUs ✅ — `main.py` trains a small `nn.LSTM` per SKU when history ≥60 points and total volume ≥500 units, else stays on Prophet; also fixed a bug this required: `ForecastModel` had no `productId` (one shared "active model" row per _tenant_), so every SKU's model type/MAPE collapsed into whichever was trained last — added `productId` (migration `20260706140000_forecast_model_product_scope`), verified live with two real products (`FORECAST-HIVOL` → LSTM, `FORECAST-LOVOL` → Prophet, correctly independent)
+• Model versioning with MLflow (or simple file-based versioning) ✅ — file-based per PDF's explicit alternative: `main.py` writes `model_registry/{sku}/v{n}/{metadata.json, model.pt}` on every train, versions increment per SKU, `GET /models/{sku}/versions` lists history; persisted via a named Docker volume (`ml-model-registry`) so versions survive container restarts (verified)
+• Weekly retraining job scheduled via BullMQ + Redis cron ✅ — `forecast-retrain.processor.ts`: `ForecastRetrainScheduler` registers a repeatable BullMQ job (cron `0 0 * * 0`, idempotent stable `jobId` so restarts don't duplicate it), `ForecastRetrainProcessor` loops every tenant and retrains all products with stock-movement history; verified live by manually enqueuing a job and confirming it reached BullMQ's `completed` set and bumped real `ForecastModel.trainedAt` rows
+• NestJS forecasting module: consume ML service ✅ (`forecast/forecast.service.ts`), cache predictions in Redis ✅ — `getPredictions()` caches per tenant+product (6h TTL via existing `RedisService`), invalidated on retrain; verified live (key exists with correct TTL after a read, gone immediately after retrain)
 
 #### Day 17 – Business Intelligence Dashboard
 

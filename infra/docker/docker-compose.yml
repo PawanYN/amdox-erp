@@ -124,6 +124,8 @@ services:
     restart: unless-stopped
     ports:
       - "8091:8091"
+    volumes:
+      - ml-model-registry:/app/model_registry
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8091/health"]
       interval: 30s
@@ -167,6 +169,8 @@ volumes:
   redis_data:
     driver: local
   elasticsearch_data:
+    driver: local
+  ml-model-registry:
     driver: local
 
 # ─────────────────────────────────────
