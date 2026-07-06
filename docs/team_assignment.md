@@ -470,7 +470,7 @@ _Update this document when a task moves from Partial → Done. Cross-reference_ 
 • NestJS app bootstrap: global exception filters ❌ (none registered), validation pipe (class-validator) ✅ (`main.ts` — `ValidationPipe({ whitelist: true })`), interceptors ✅ (`HttpLoggingInterceptor` + `TenantContextInterceptor` in `app.module.ts`)
 • Health check endpoints: /health/live ✅, /health/ready ✅, /health/db ✅ (`health/health.controller.ts`)
 • OpenAPI swagger UI served at /api-docs ✅ (`main.ts` — `SwaggerModule.setup('api-docs', ...)`)
-• Postman collection auto-generated from OpenAPI spec ⚠️ Partial — `openapi-spec.json` auto-generates ✅ on every boot; a real conversion script exists (`apps/api/package.json` → `pnpm postman` → `openapi-to-postmanv2`) but is currently broken — `openapi-to-postmanv2` isn't installed as a dependency (confirmed by running it: `command not found`); separately, `docs/Amdox-ERP-HR-Postman-Collection.json` is a static, manually-scoped HR-only collection, not the auto-converted output
+• Postman collection auto-generated from OpenAPI spec ✅ — `openapi-spec.json` auto-generates on every boot; `pnpm postman` → `openapi2postmanv2` (fixed session 9: the script called the npm package name `openapi-to-postmanv2`, but the actual CLI binary the package ships is `openapi2postmanv2` — always failed regardless of whether the package was installed); verified end-to-end: generates a real 149-request, 18-folder collection from the live spec; `docs/Amdox-ERP-HR-Postman-Collection.json` remains a separate static, manually-scoped HR-only collection
 
 #### Day 7 – Week 1 Review & Demo
 
