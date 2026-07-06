@@ -71,11 +71,7 @@ export class BiController {
   @Post('dashboards')
   @ApiOperation({ summary: 'Create a dashboard shell' })
   createDashboard(@Req() req: any, @Body('name') name: string) {
-    return this.biService.createDashboard(
-      this.tenantId(req),
-      name,
-      req.user?.sub,
-    );
+    return this.biService.createDashboard(this.tenantId(req), name, req.user?.sub);
   }
 
   @Roles('SuperAdmin', 'TenantAdmin', 'Manager')
@@ -100,22 +96,13 @@ export class BiController {
   @Post('dashboards/widgets')
   @ApiOperation({ summary: 'Add widget to dashboard' })
   addWidget(@Req() req: any, @Body() dto: AddWidgetDto) {
-    return this.biService.addWidget(
-      this.tenantId(req),
-      dto.dashboardId,
-      dto.type,
-      dto.config,
-    );
+    return this.biService.addWidget(this.tenantId(req), dto.dashboardId, dto.type, dto.config);
   }
 
   @Roles('SuperAdmin', 'TenantAdmin', 'Manager')
   @Patch('widgets/:id')
   @ApiOperation({ summary: 'Update widget type or config' })
-  updateWidget(
-    @Req() req: any,
-    @Param('id') id: string,
-    @Body() body: UpdateWidgetDto,
-  ) {
+  updateWidget(@Req() req: any, @Param('id') id: string, @Body() body: UpdateWidgetDto) {
     return this.biService.updateWidget(this.tenantId(req), id, body);
   }
 
@@ -129,20 +116,12 @@ export class BiController {
   @Roles('SuperAdmin', 'TenantAdmin', 'Manager', 'Viewer')
   @Get('widgets/:id/data')
   @ApiOperation({ summary: 'Resolve widget chart data from JSON config' })
-  async getWidgetData(
-    @Req() req: any,
-    @Param('id') id: string,
-    @Query() query: BiFilterQueryDto,
-  ) {
+  async getWidgetData(@Req() req: any, @Param('id') id: string, @Query() query: BiFilterQueryDto) {
     const widget = await this.biService.getWidget(this.tenantId(req), id);
     const config = widget.config as { dataSource?: BiDataSource; title?: string };
     const dataSource = (config.dataSource || 'ar_aging') as BiDataSource;
     const filters = this.parseFilters(query);
-    const data = await this.biDataService.getWidgetData(
-      this.tenantId(req),
-      dataSource,
-      filters,
-    );
+    const data = await this.biDataService.getWidgetData(this.tenantId(req), dataSource, filters);
     return { widget, ...data };
   }
 
@@ -154,11 +133,7 @@ export class BiController {
     @Param('source') source: BiDataSource,
     @Query() query: BiFilterQueryDto,
   ) {
-    return this.biDataService.getWidgetData(
-      this.tenantId(req),
-      source,
-      this.parseFilters(query),
-    );
+    return this.biDataService.getWidgetData(this.tenantId(req), source, this.parseFilters(query));
   }
 
   @Roles('SuperAdmin', 'TenantAdmin', 'Manager', 'Viewer')
@@ -177,10 +152,7 @@ export class BiController {
   @Get('kpis')
   @ApiOperation({ summary: 'Executive KPI aggregates for dashboards' })
   getKpis(@Req() req: any, @Query() query: BiFilterQueryDto) {
-    return this.biService.getExecutiveKpis(
-      this.tenantId(req),
-      this.parseFilters(query),
-    );
+    return this.biService.getExecutiveKpis(this.tenantId(req), this.parseFilters(query));
   }
 
   @Roles('SuperAdmin', 'TenantAdmin', 'Manager', 'Viewer')
@@ -228,20 +200,16 @@ export class BiController {
   @Roles('SuperAdmin', 'TenantAdmin', 'Manager', 'Viewer')
   @Get('reports/:id/download')
   @ApiOperation({ summary: 'Download last generated report file' })
-  async downloadReport(
-    @Req() req: any,
-    @Param('id') id: string,
-    @Res() res: Response,
-  ) {
+  async downloadReport(@Req() req: any, @Param('id') id: string, @Res() res: Response) {
     const file = await this.biReportService.getReportFile(this.tenantId(req), id);
     const contentType =
       file.format === 'EXCEL'
-        ? 'text/csv'
+        ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         : 'application/pdf';
     res.setHeader('Content-Type', contentType);
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename="${file.name}.${file.format === 'EXCEL' ? 'csv' : 'pdf'}"`,
+      `attachment; filename="${file.name}.${file.format === 'EXCEL' ? 'xlsx' : 'pdf'}"`,
     );
     fs.createReadStream(file.path).pipe(res);
   }

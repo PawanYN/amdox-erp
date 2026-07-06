@@ -3,6 +3,7 @@ import { PrismaClient } from '@amdox/db';
 import * as fs from 'fs';
 import * as path from 'path';
 import PDFDocument from 'pdfkit';
+import ExcelJS from 'exceljs';
 import { BiService } from './bi.service';
 import { EmailChannel } from '../notification/channels/email.channel';
 
@@ -74,12 +75,12 @@ export class BiReportService {
     const tenantDir = path.join(this.storageRoot, tenantId);
     fs.mkdirSync(tenantDir, { recursive: true });
 
-    const ext = report.format === 'EXCEL' ? 'csv' : 'pdf';
+    const ext = report.format === 'EXCEL' ? 'xlsx' : 'pdf';
     const filePath = path.join(tenantDir, `${report.id}.${ext}`);
 
     if (report.format === 'EXCEL') {
-      const csv = this.buildCsv(kpis);
-      fs.writeFileSync(filePath, csv, 'utf8');
+      const excel = await this.buildExcel(kpis);
+      fs.writeFileSync(filePath, excel);
     } else {
       const pdf = await this.buildPdf(report.name, kpis);
       fs.writeFileSync(filePath, pdf);
@@ -135,22 +136,41 @@ export class BiReportService {
     }
   }
 
-  private buildCsv(kpis: Awaited<ReturnType<BiService['getExecutiveKpis']>>) {
-    const lines = [
-      'Metric,Value',
-      `Open POs,${kpis.totals.openPurchaseOrders}`,
-      `Active Employees,${kpis.totals.activeEmployees}`,
-      `Active Projects,${kpis.totals.activeProjects}`,
-      `Invoices,${kpis.totals.invoices}`,
-      `AR Current,${kpis.arAging.current}`,
-      `AR 31-60,${kpis.arAging.d31_60}`,
-      `AR 61-90,${kpis.arAging.d61_90}`,
-      `AR 90+,${kpis.arAging.over90}`,
-      '',
-      'SKU,Product,Quantity',
-      ...kpis.inventorySnapshot.map((s) => `${s.sku},"${s.name}",${s.quantity}`),
+  private async buildExcel(
+    kpis: Awaited<ReturnType<BiService['getExecutiveKpis']>>,
+  ): Promise<Buffer> {
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Amdox ERP';
+    workbook.created = new Date();
+
+    const summary = workbook.addWorksheet('Summary');
+    summary.columns = [
+      { header: 'Metric', key: 'metric', width: 24 },
+      { header: 'Value', key: 'value', width: 18 },
     ];
-    return lines.join('\n');
+    summary.addRows([
+      { metric: 'Open POs', value: kpis.totals.openPurchaseOrders },
+      { metric: 'Active Employees', value: kpis.totals.activeEmployees },
+      { metric: 'Active Projects', value: kpis.totals.activeProjects },
+      { metric: 'Invoices', value: kpis.totals.invoices },
+      { metric: 'AR Current', value: kpis.arAging.current },
+      { metric: 'AR 31-60', value: kpis.arAging.d31_60 },
+      { metric: 'AR 61-90', value: kpis.arAging.d61_90 },
+      { metric: 'AR 90+', value: kpis.arAging.over90 },
+    ]);
+    summary.getRow(1).font = { bold: true };
+
+    const inventory = workbook.addWorksheet('Inventory Snapshot');
+    inventory.columns = [
+      { header: 'SKU', key: 'sku', width: 16 },
+      { header: 'Product', key: 'name', width: 32 },
+      { header: 'Quantity', key: 'quantity', width: 14 },
+    ];
+    inventory.addRows(kpis.inventorySnapshot);
+    inventory.getRow(1).font = { bold: true };
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    return Buffer.from(buffer);
   }
 
   private buildPdf(
