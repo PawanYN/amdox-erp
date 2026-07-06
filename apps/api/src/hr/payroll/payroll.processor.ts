@@ -17,7 +17,7 @@
  */
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
-import { PrismaClient, EmploymentStatus } from '@amdox/db';
+import { prisma, EmploymentStatus } from '@amdox/db';
 import { Logger } from '@nestjs/common';
 import { AmdoxLogger } from '../../common/logger/amdox-logger';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -26,8 +26,6 @@ import { PayslipGenerator } from './payslip-generator';
 @Processor('payroll')
 export class PayrollProcessor extends WorkerHost {
   private readonly logger = new Logger(PayrollProcessor.name);
-  private prisma = new PrismaClient();
-
   constructor(
     private readonly payslipGenerator: PayslipGenerator,
     private readonly eventEmitter: EventEmitter2,
@@ -41,7 +39,7 @@ export class PayrollProcessor extends WorkerHost {
 
     try {
       // 1. Fetch dynamic tax slabs for this tenant
-      const taxSlabs = await this.prisma.taxSlab.findMany({
+      const taxSlabs = await prisma.taxSlab.findMany({
         where: { tenantId },
         orderBy: { minSalary: 'asc' },
       });
@@ -62,7 +60,7 @@ export class PayrollProcessor extends WorkerHost {
 
       while (true) {
         // Fetch chunk of employees
-        const employees = await this.prisma.employee.findMany({
+        const employees = await prisma.employee.findMany({
           where: { tenantId, status: EmploymentStatus.ACTIVE },
           include: {
             contracts: {
@@ -80,7 +78,7 @@ export class PayrollProcessor extends WorkerHost {
         if (employees.length === 0) break;
 
         const employeeIds = employees.map((e) => e.id);
-        const attendanceRecords = await this.prisma.attendanceRecord.findMany({
+        const attendanceRecords = await prisma.attendanceRecord.findMany({
           where: {
             tenantId,
             employeeId: { in: employeeIds },
@@ -140,7 +138,7 @@ export class PayrollProcessor extends WorkerHost {
 
         // Batch insert the chunk
         if (payslipInserts.length > 0) {
-          await this.prisma.payslip.createMany({
+          await prisma.payslip.createMany({
             data: payslipInserts,
           });
         }
@@ -153,7 +151,7 @@ export class PayrollProcessor extends WorkerHost {
       }
 
       // Mark run complete
-      await this.prisma.payrollRun.updateMany({
+      await prisma.payrollRun.updateMany({
         where: { id: payrollRunId, tenantId },
         data: {
           totalNetPay: totalNetPaySum.toFixed(4),
@@ -180,7 +178,7 @@ export class PayrollProcessor extends WorkerHost {
         `Payroll run FAILED: ${label}`,
         `runId=${payrollRunId}  err=${error.message}`,
       );
-      await this.prisma.payrollRun.updateMany({
+      await prisma.payrollRun.updateMany({
         where: { id: payrollRunId, tenantId },
         data: {
           status: 'FAILED',

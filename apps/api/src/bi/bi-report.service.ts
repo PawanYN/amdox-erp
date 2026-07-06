@@ -1,5 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { PrismaClient } from '@amdox/db';
+import { prisma } from '@amdox/db';
 import * as fs from 'fs';
 import * as path from 'path';
 import PDFDocument from 'pdfkit';
@@ -10,7 +10,6 @@ import { EmailChannel } from '../notification/channels/email.channel';
 @Injectable()
 export class BiReportService {
   private readonly logger = new Logger(BiReportService.name);
-  private prisma = new PrismaClient();
   private readonly storageRoot = path.join(process.cwd(), 'storage', 'reports');
 
   constructor(
@@ -21,7 +20,7 @@ export class BiReportService {
   }
 
   listReports(tenantId: string) {
-    return this.prisma.scheduledReport.findMany({
+    return prisma.scheduledReport.findMany({
       where: { tenantId },
       orderBy: { createdAt: 'desc' },
       include: { dashboard: { select: { id: true, name: true } } },
@@ -41,7 +40,7 @@ export class BiReportService {
     if (data.dashboardId) {
       await this.biService.getDashboard(tenantId, data.dashboardId);
     }
-    return this.prisma.scheduledReport.create({
+    return prisma.scheduledReport.create({
       data: {
         tenantId,
         name: data.name,
@@ -55,7 +54,7 @@ export class BiReportService {
   }
 
   async deleteReport(tenantId: string, id: string) {
-    const report = await this.prisma.scheduledReport.findFirst({
+    const report = await prisma.scheduledReport.findFirst({
       where: { id, tenantId },
     });
     if (!report) throw new NotFoundException('Scheduled report not found');
@@ -63,11 +62,11 @@ export class BiReportService {
       fs.unlinkSync(report.lastReportPath);
     }
     // tenant-scope-ok: `report` was just found via a tenantId-scoped findFirst above.
-    return this.prisma.scheduledReport.delete({ where: { id } });
+    return prisma.scheduledReport.delete({ where: { id } });
   }
 
   async runReport(tenantId: string, reportId: string) {
-    const report = await this.prisma.scheduledReport.findFirst({
+    const report = await prisma.scheduledReport.findFirst({
       where: { id: reportId, tenantId, isActive: true },
     });
     if (!report) throw new NotFoundException('Scheduled report not found');
@@ -88,7 +87,7 @@ export class BiReportService {
     }
 
     // tenant-scope-ok: `report` was just found via a tenantId-scoped findFirst above.
-    await this.prisma.scheduledReport.update({
+    await prisma.scheduledReport.update({
       where: { id: report.id },
       data: { lastRunAt: new Date(), lastReportPath: filePath },
     });
@@ -107,7 +106,7 @@ export class BiReportService {
   }
 
   async getReportFile(tenantId: string, reportId: string) {
-    const report = await this.prisma.scheduledReport.findFirst({
+    const report = await prisma.scheduledReport.findFirst({
       where: { id: reportId, tenantId },
     });
     if (!report?.lastReportPath || !fs.existsSync(report.lastReportPath)) {

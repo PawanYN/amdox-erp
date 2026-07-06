@@ -31,7 +31,7 @@
  */
 
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
-import { PrismaClient } from '@amdox/db';
+import { prisma } from '@amdox/db';
 import { CreatePurchaseOrderDto } from '../dto/create-purchase-order.dto';
 import { ReceiveGoodsDto } from '../dto/receive-goods.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -42,7 +42,6 @@ import { AmdoxLogger } from '../../common/logger/amdox-logger';
 
 @Injectable()
 export class PurchaseService {
-  private prisma = new PrismaClient();
   private readonly logger = new Logger(PurchaseService.name);
 
   constructor(
@@ -58,7 +57,7 @@ export class PurchaseService {
 
     let projectId = dto.projectId;
     if (dto.requisitionId) {
-      const requisition = await this.prisma.purchaseRequisition.findFirst({
+      const requisition = await prisma.purchaseRequisition.findFirst({
         where: { id: dto.requisitionId, tenantId },
       });
       if (requisition?.projectId) {
@@ -66,7 +65,7 @@ export class PurchaseService {
       }
     }
 
-    return this.prisma.purchaseOrder.create({
+    return prisma.purchaseOrder.create({
       data: {
         tenantId,
         poNumber,
@@ -90,7 +89,7 @@ export class PurchaseService {
   }
 
   async getPurchaseOrders(tenantId: string) {
-    return this.prisma.purchaseOrder.findMany({
+    return prisma.purchaseOrder.findMany({
       where: { tenantId },
       include: {
         vendor: true,
@@ -103,7 +102,7 @@ export class PurchaseService {
   }
 
   async getPurchaseOrder(tenantId: string, id: string) {
-    const po = await this.prisma.purchaseOrder.findFirst({
+    const po = await prisma.purchaseOrder.findFirst({
       where: { id, tenantId },
       include: { vendor: true, lines: { include: { product: true } }, goodsReceipts: true },
     });
@@ -115,7 +114,7 @@ export class PurchaseService {
     const po = await this.getPurchaseOrder(tenantId, id);
     // tenant-scope-ok: getPurchaseOrder() above already throws NotFoundException
     // unless `id` belongs to `tenantId`.
-    const updatedPo = await this.prisma.purchaseOrder.update({
+    const updatedPo = await prisma.purchaseOrder.update({
       where: { id },
       data: { status: 'APPROVED' },
     });
@@ -150,7 +149,7 @@ export class PurchaseService {
 
   // --- Goods Receipt ---
   async receiveGoods(tenantId: string, id: string, dto: ReceiveGoodsDto, actingUserId?: string) {
-    const result = await this.prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       const po = await tx.purchaseOrder.findFirst({
         where: { id, tenantId },
         include: { lines: true },

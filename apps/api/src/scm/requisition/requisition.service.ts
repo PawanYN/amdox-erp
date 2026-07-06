@@ -1,5 +1,5 @@
 import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
-import { PrismaClient } from '@amdox/db';
+import { prisma } from '@amdox/db';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 export interface MaterialRequestedPayload {
@@ -16,17 +16,22 @@ export interface MaterialRequestedPayload {
 
 @Injectable()
 export class RequisitionService {
-  private prisma = new PrismaClient();
   private readonly logger = new Logger(RequisitionService.name);
 
   constructor(private eventEmitter: EventEmitter2) {}
 
   async listRequisitions(tenantId: string) {
-    return this.prisma.purchaseRequisition.findMany({
+    return prisma.purchaseRequisition.findMany({
       where: { tenantId },
       include: {
         project: { select: { id: true, name: true } },
-        lines: { include: { product: { select: { id: true, sku: true, name: true, unitCost: true, defaultVendorId: true } } } },
+        lines: {
+          include: {
+            product: {
+              select: { id: true, sku: true, name: true, unitCost: true, defaultVendorId: true },
+            },
+          },
+        },
         purchaseOrders: { select: { id: true, poNumber: true, status: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -34,7 +39,7 @@ export class RequisitionService {
   }
 
   async createFromMaterialRequest(payload: MaterialRequestedPayload) {
-    const products = await this.prisma.product.findMany({
+    const products = await prisma.product.findMany({
       where: {
         tenantId: payload.tenantId,
         id: { in: payload.lines.map((l) => l.productId) },
@@ -44,12 +49,10 @@ export class RequisitionService {
     });
 
     if (products.length !== payload.lines.length) {
-      throw new BadRequestException(
-        'One or more products are invalid or inactive.',
-      );
+      throw new BadRequestException('One or more products are invalid or inactive.');
     }
 
-    const requisition = await this.prisma.purchaseRequisition.create({
+    const requisition = await prisma.purchaseRequisition.create({
       data: {
         tenantId: payload.tenantId,
         projectId: payload.projectId,
@@ -70,9 +73,7 @@ export class RequisitionService {
       },
     });
 
-    this.logger.log(
-      `Created requisition ${requisition.id} for project ${payload.projectId}`,
-    );
+    this.logger.log(`Created requisition ${requisition.id} for project ${payload.projectId}`);
 
     this.eventEmitter.emit('requisition.created', {
       tenantId: payload.tenantId,
@@ -84,7 +85,7 @@ export class RequisitionService {
   }
 
   async createFromLowStock(tenantId: string, productId: string) {
-    const product = await this.prisma.product.findFirst({
+    const product = await prisma.product.findFirst({
       where: { id: productId, tenantId, isActive: true, deletedAt: null },
       include: {
         stockLevels: true,
@@ -97,14 +98,9 @@ export class RequisitionService {
     }
 
     const rule = product.reorderRules[0];
-    const totalStock = product.stockLevels.reduce(
-      (sum, level) => sum + Number(level.quantity),
-      0,
-    );
+    const totalStock = product.stockLevels.reduce((sum, level) => sum + Number(level.quantity), 0);
     const thresholdQty = rule ? Number(rule.thresholdQty) : 10;
-    const reorderQty = rule
-      ? Number(rule.reorderQty)
-      : Math.max(thresholdQty * 2 - totalStock, 1);
+    const reorderQty = rule ? Number(rule.reorderQty) : Math.max(thresholdQty * 2 - totalStock, 1);
 
     if (totalStock >= thresholdQty) {
       throw new BadRequestException(
@@ -112,7 +108,7 @@ export class RequisitionService {
       );
     }
 
-    const pendingRequisition = await this.prisma.purchaseRequisition.findFirst({
+    const pendingRequisition = await prisma.purchaseRequisition.findFirst({
       where: {
         tenantId,
         lines: { some: { productId } },
@@ -131,7 +127,7 @@ export class RequisitionService {
       return pendingRequisition;
     }
 
-    const requisition = await this.prisma.purchaseRequisition.create({
+    const requisition = await prisma.purchaseRequisition.create({
       data: {
         tenantId,
         reason: `Low stock auto-PR for ${product.sku} (${totalStock} < ${thresholdQty})`,
@@ -150,9 +146,7 @@ export class RequisitionService {
       },
     });
 
-    this.logger.log(
-      `Created low-stock requisition ${requisition.id} for product ${product.sku}`,
-    );
+    this.logger.log(`Created low-stock requisition ${requisition.id} for product ${product.sku}`);
 
     this.eventEmitter.emit('inventory.low_stock', {
       tenantId,

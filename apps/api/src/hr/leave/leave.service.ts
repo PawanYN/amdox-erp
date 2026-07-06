@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaClient, LeaveStatus } from '@amdox/db';
+import { prisma, LeaveStatus } from '@amdox/db';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CreateLeaveDto } from '../dto/create-leave.dto';
 import { ApproveLeaveDto } from '../dto/approve-leave.dto';
@@ -7,8 +7,6 @@ import { LeaveStateMachine } from './leave-state-machine';
 
 @Injectable()
 export class LeaveService {
-  private prisma = new PrismaClient();
-
   constructor(
     private readonly leaveStateMachine: LeaveStateMachine,
     private readonly eventEmitter: EventEmitter2,
@@ -30,7 +28,7 @@ export class LeaveService {
     };
 
     const dbLeaveTypeName = typeMapping[createLeaveDto.leaveType];
-    const leaveTypeRecord = await this.prisma.leaveType.findFirst({
+    const leaveTypeRecord = await prisma.leaveType.findFirst({
       where: { tenantId, name: dbLeaveTypeName },
     });
 
@@ -38,7 +36,7 @@ export class LeaveService {
       throw new BadRequestException(`Leave type '${dbLeaveTypeName}' not found for this tenant.`);
     }
 
-    return this.prisma.leaveRequest.create({
+    return prisma.leaveRequest.create({
       data: {
         tenantId,
         employeeId: createLeaveDto.employeeId,
@@ -51,7 +49,7 @@ export class LeaveService {
   }
 
   async getMyRequests(tenantId: string, employeeId: string) {
-    return this.prisma.leaveRequest.findMany({
+    return prisma.leaveRequest.findMany({
       where: { tenantId, employeeId },
       include: { leaveType: true },
       orderBy: { createdAt: 'desc' },
@@ -59,7 +57,7 @@ export class LeaveService {
   }
 
   async getAllRequests(tenantId: string) {
-    return this.prisma.leaveRequest.findMany({
+    return prisma.leaveRequest.findMany({
       where: { tenantId },
       include: { leaveType: true, employee: true },
       orderBy: { createdAt: 'desc' },
@@ -67,7 +65,7 @@ export class LeaveService {
   }
 
   async getMyBalances(tenantId: string, employeeId: string) {
-    return this.prisma.leaveBalance.findMany({
+    return prisma.leaveBalance.findMany({
       where: { tenantId, employeeId },
       include: { leaveType: true },
     });
@@ -82,7 +80,7 @@ export class LeaveService {
     // tenant-scope-ok: fetched by id alone, but immediately verified against
     // tenantId below before any use — the correct pattern for a model without
     // a compound [tenantId, id] unique constraint.
-    const leave = await this.prisma.leaveRequest.findUnique({
+    const leave = await prisma.leaveRequest.findUnique({
       where: { id: leaveId },
       include: { employee: true },
     });
@@ -102,7 +100,7 @@ export class LeaveService {
     );
 
     // tenant-scope-ok: `leave` was verified against `tenantId` above.
-    const updated = await this.prisma.leaveRequest.update({
+    const updated = await prisma.leaveRequest.update({
       where: { id: leaveId },
       data: {
         status: targetStatus,

@@ -2,12 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { Subject } from 'rxjs';
-import {
-  PrismaClient,
-  NotificationChannel,
-  NotificationDeliveryStatus,
-  Notification,
-} from '@amdox/db';
+import { prisma, NotificationChannel, NotificationDeliveryStatus, Notification } from '@amdox/db';
 
 export interface NotifyInput {
   tenantId: string;
@@ -61,7 +56,6 @@ export interface DispatchJobData {
 @Injectable()
 export class NotificationService {
   private readonly logger = new Logger('NotificationEngine');
-  private prisma = new PrismaClient();
   private readonly stream$ = new Subject<NotificationStreamEvent>();
 
   constructor(@InjectQueue('notification-dispatch') private readonly dispatchQueue: Queue) {}
@@ -77,7 +71,7 @@ export class NotificationService {
     channel: NotificationChannel,
   ): Promise<boolean> {
     if (!userId) return true;
-    const pref = await this.prisma.notificationPreference.findFirst({
+    const pref = await prisma.notificationPreference.findFirst({
       where: { userId, eventType, channel, tenantId },
       select: { isEnabled: true },
     });
@@ -99,7 +93,7 @@ export class NotificationService {
     }
 
     // 1. Persist in-app notification
-    const notification = await this.prisma.notification.create({
+    const notification = await prisma.notification.create({
       data: {
         tenantId: input.tenantId,
         userId: input.userId,
@@ -115,7 +109,7 @@ export class NotificationService {
     );
 
     // 3. Mark IN_APP delivery
-    await this.prisma.notificationDelivery.create({
+    await prisma.notificationDelivery.create({
       data: {
         tenantId: input.tenantId,
         notificationId: notification.id,
@@ -160,7 +154,7 @@ export class NotificationService {
 
       if (channel === NotificationChannel.WEBHOOK) {
         // tenant-scope-ok: Tenant model has no tenantId field (it IS the tenant).
-        const tenant = await this.prisma.tenant.findUnique({
+        const tenant = await prisma.tenant.findUnique({
           where: { id: input.tenantId },
           select: { settings: true },
         });
@@ -170,14 +164,14 @@ export class NotificationService {
 
       if (channel === NotificationChannel.EMAIL) {
         if (!input.userId) return;
-        const user = await this.prisma.user.findFirst({
+        const user = await prisma.user.findFirst({
           where: { id: input.userId, tenantId: input.tenantId },
           select: { email: true },
         });
         if (!user?.email) return;
       }
 
-      const delivery = await this.prisma.notificationDelivery.create({
+      const delivery = await prisma.notificationDelivery.create({
         data: {
           tenantId: input.tenantId,
           notificationId,
@@ -209,7 +203,7 @@ export class NotificationService {
   }
 
   async listForTenant(tenantId: string, limit = 50) {
-    return this.prisma.notification.findMany({
+    return prisma.notification.findMany({
       where: { tenantId },
       orderBy: { createdAt: 'desc' },
       take: limit,
@@ -218,14 +212,14 @@ export class NotificationService {
   }
 
   async markRead(tenantId: string, notificationId: string) {
-    return this.prisma.notification.updateMany({
+    return prisma.notification.updateMany({
       where: { id: notificationId, tenantId },
       data: { isRead: true },
     });
   }
 
   async listPreferences(tenantId: string, userId: string) {
-    return this.prisma.notificationPreference.findMany({ where: { userId, tenantId } });
+    return prisma.notificationPreference.findMany({ where: { userId, tenantId } });
   }
 
   async setPreference(
@@ -235,17 +229,17 @@ export class NotificationService {
     channel: NotificationChannel,
     isEnabled: boolean,
   ) {
-    const existing = await this.prisma.notificationPreference.findFirst({
+    const existing = await prisma.notificationPreference.findFirst({
       where: { userId, eventType, channel, tenantId },
     });
     if (existing) {
       // tenant-scope-ok: `existing` was just found via a tenantId-scoped findFirst above.
-      return this.prisma.notificationPreference.update({
+      return prisma.notificationPreference.update({
         where: { id: existing.id },
         data: { isEnabled },
       });
     }
-    return this.prisma.notificationPreference.create({
+    return prisma.notificationPreference.create({
       data: { tenantId, userId, eventType, channel, isEnabled },
     });
   }

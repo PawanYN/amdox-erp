@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaClient } from '@amdox/db';
+import { prisma } from '@amdox/db';
 import { HashChainService } from './hash-chain.service';
 
 export interface AuditLogInput {
@@ -15,12 +15,10 @@ export interface AuditLogInput {
 @Injectable()
 export class AuditService {
   private readonly logger = new Logger(AuditService.name);
-  private prisma = new PrismaClient();
-
   constructor(private readonly hashChain: HashChainService) {}
 
   async record(input: AuditLogInput) {
-    const last = await this.prisma.auditLog.findFirst({
+    const last = await prisma.auditLog.findFirst({
       where: { tenantId: input.tenantId },
       orderBy: { createdAt: 'desc' },
       select: { hash: true },
@@ -40,7 +38,7 @@ export class AuditService {
 
     const hash = this.hashChain.computeHash(hashPayload, last?.hash ?? null);
 
-    const log = await this.prisma.auditLog.create({
+    const log = await prisma.auditLog.create({
       data: {
         tenantId: input.tenantId,
         userId: input.userId ?? undefined,
@@ -61,7 +59,7 @@ export class AuditService {
   }
 
   async getLogs(tenantId: string, limit = 100) {
-    return this.prisma.auditLog.findMany({
+    return prisma.auditLog.findMany({
       where: { tenantId },
       orderBy: { createdAt: 'desc' },
       take: limit,
@@ -69,7 +67,7 @@ export class AuditService {
   }
 
   async verifyIntegrity(tenantId: string) {
-    const logs = await this.prisma.auditLog.findMany({
+    const logs = await prisma.auditLog.findMany({
       where: { tenantId },
       orderBy: { createdAt: 'asc' },
       select: { hash: true, previousHash: true },

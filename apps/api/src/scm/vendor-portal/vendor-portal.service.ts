@@ -5,13 +5,12 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { PrismaClient } from '@amdox/db';
+import { prisma } from '@amdox/db';
 import { createHash, randomBytes } from 'crypto';
 import { AcknowledgePoDto } from './dto/acknowledge-po.dto';
 
 @Injectable()
 export class VendorPortalService {
-  private prisma = new PrismaClient();
   private readonly logger = new Logger(VendorPortalService.name);
 
   hashAccessKey(accessKey: string): string {
@@ -23,7 +22,7 @@ export class VendorPortalService {
   }
 
   async issuePortalKey(tenantId: string, vendorId: string) {
-    const vendor = await this.prisma.vendor.findFirst({
+    const vendor = await prisma.vendor.findFirst({
       where: { id: vendorId, tenantId, deletedAt: null, isActive: true },
     });
     if (!vendor) throw new NotFoundException('Vendor not found');
@@ -33,7 +32,7 @@ export class VendorPortalService {
 
     const accessKey = this.generateAccessKey();
     // tenant-scope-ok: `vendor` was just found via a tenantId-scoped findFirst above.
-    await this.prisma.vendor.update({
+    await prisma.vendor.update({
       where: { id: vendorId },
       data: {
         portalAccessKeyHash: this.hashAccessKey(accessKey),
@@ -52,7 +51,7 @@ export class VendorPortalService {
   }
 
   async login(tenantSlug: string, email: string, accessKey: string) {
-    const tenant = await this.prisma.tenant.findFirst({
+    const tenant = await prisma.tenant.findFirst({
       where: { slug: tenantSlug, isActive: true, deletedAt: null },
     });
     if (!tenant) {
@@ -77,7 +76,7 @@ export class VendorPortalService {
 
   async resolveVendor(tenantId: string, accessKey: string) {
     const hash = this.hashAccessKey(accessKey);
-    return this.prisma.vendor.findFirst({
+    return prisma.vendor.findFirst({
       where: {
         tenantId,
         portalAccessKeyHash: hash,
@@ -88,7 +87,7 @@ export class VendorPortalService {
   }
 
   async getProfile(vendorId: string, tenantId: string) {
-    const vendor = await this.prisma.vendor.findFirst({
+    const vendor = await prisma.vendor.findFirst({
       where: { id: vendorId, tenantId, deletedAt: null },
       select: {
         id: true,
@@ -102,7 +101,7 @@ export class VendorPortalService {
   }
 
   async listPurchaseOrders(vendorId: string, tenantId: string) {
-    return this.prisma.purchaseOrder.findMany({
+    return prisma.purchaseOrder.findMany({
       where: {
         tenantId,
         vendorId,
@@ -117,7 +116,7 @@ export class VendorPortalService {
   }
 
   async getPurchaseOrder(vendorId: string, tenantId: string, poId: string) {
-    const po = await this.prisma.purchaseOrder.findFirst({
+    const po = await prisma.purchaseOrder.findFirst({
       where: {
         id: poId,
         tenantId,
@@ -149,7 +148,7 @@ export class VendorPortalService {
 
     // tenant-scope-ok: `po` was fetched above via getPurchaseOrder(), which is
     // scoped to both tenantId and vendorId.
-    return this.prisma.purchaseOrder.update({
+    return prisma.purchaseOrder.update({
       where: { id: poId },
       data: {
         vendorAcknowledgedAt: new Date(),

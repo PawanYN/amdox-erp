@@ -12,7 +12,7 @@
  *
  * HOW IT IS IMPLEMENTED:
  * - `recordMovement()` is the most critical function here. It uses a Prisma
- *   database transaction (`this.prisma.$transaction`) to guarantee data integrity.
+ *   database transaction (`prisma.$transaction`) to guarantee data integrity.
  *   Whenever a StockMovement (e.g., RECEIPT or ISSUE) is logged, it calculates
  *   a `qtyMultiplier` (+1 or -1) and instantly UPSERTS (Updates or Creates)
  *   the corresponding `StockLevel` record.
@@ -32,11 +32,17 @@
  */
 
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaClient, Prisma } from '@amdox/db';
+import { prisma } from '@amdox/db';
 import { CreateWarehouseDto } from '../dto/create-warehouse.dto';
 import { CreateStockMovementDto } from '../dto/stock-movement.dto';
 import { UpsertReorderRuleDto } from '../dto/reorder-rule.dto';
 import { AmdoxLogger } from '../../common/logger/amdox-logger';
+
+// The auto-scoping `prisma` export from @amdox/db is a $extends()-wrapped client,
+// whose $transaction callback receives a structurally different (but compatible)
+// type than the plain Prisma.TransactionClient -- derive it directly from prisma
+// itself so it's always in sync with whatever wrapping client.ts applies.
+type TxClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
 /** One FIFO layer partially or fully drained to satisfy an outbound movement. */
 export interface ConsumedLayer {
@@ -57,21 +63,19 @@ export interface FifoConsumptionResult {
 
 @Injectable()
 export class InventoryService {
-  private prisma = new PrismaClient();
-
   // --- Warehouse Management ---
   async createWarehouse(tenantId: string, dto: CreateWarehouseDto) {
-    return this.prisma.warehouse.create({
+    return prisma.warehouse.create({
       data: { ...dto, tenantId },
     });
   }
 
   async getWarehouses(tenantId: string) {
-    return this.prisma.warehouse.findMany({ where: { tenantId } });
+    return prisma.warehouse.findMany({ where: { tenantId } });
   }
 
   async getWarehouse(tenantId: string, id: string) {
-    const w = await this.prisma.warehouse.findFirst({
+    const w = await prisma.warehouse.findFirst({
       where: { id, tenantId },
       include: { stockLevels: { include: { product: true } } },
     });
@@ -81,7 +85,7 @@ export class InventoryService {
 
   // --- Stock Management ---
   async recordMovement(tenantId: string, dto: CreateStockMovementDto) {
-    return this.prisma.$transaction(async (tx) => {
+    return prisma.$transaction(async (tx) => {
       // dto.productId/warehouseId are caller-supplied — without this check, naming
       // another tenant's product or warehouse would read/write that tenant's
       // StockLevel row (its unique key is productId+warehouseId only, with no
@@ -196,7 +200,7 @@ export class InventoryService {
    * legitimately happen for stock that predates FIFO tracking (e.g. seed data).
    */
   private async consumeFifoCostLayers(
-    tx: Prisma.TransactionClient,
+    tx: TxClient,
     tenantId: string,
     productId: string,
     warehouseId: string,
@@ -249,13 +253,13 @@ export class InventoryService {
 
   // --- Reorder Rules ---
   async upsertReorderRule(tenantId: string, dto: UpsertReorderRuleDto) {
-    const existing = await this.prisma.reorderRule.findFirst({
+    const existing = await prisma.reorderRule.findFirst({
       where: { tenantId, productId: dto.productId },
     });
 
     if (existing) {
       // tenant-scope-ok: `existing` was just found via a tenantId-scoped findFirst above.
-      return this.prisma.reorderRule.update({
+      return prisma.reorderRule.update({
         where: { id: existing.id },
         data: {
           thresholdQty: dto.thresholdQty,
@@ -264,7 +268,7 @@ export class InventoryService {
         },
       });
     } else {
-      return this.prisma.reorderRule.create({
+      return prisma.reorderRule.create({
         data: {
           tenantId,
           productId: dto.productId,
@@ -277,7 +281,7 @@ export class InventoryService {
   }
 
   async getReorderRules(tenantId: string) {
-    return this.prisma.reorderRule.findMany({
+    return prisma.reorderRule.findMany({
       where: { tenantId },
       include: { product: true },
     });

@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaClient, ForecastModelType } from '@amdox/db';
+import { prisma, ForecastModelType } from '@amdox/db';
 import { RedisService } from '../common/redis/redis.service';
 
 const PREDICTIONS_CACHE_TTL_SECONDS = 6 * 60 * 60; // 6h — predictions only change on (re)train
@@ -7,7 +7,6 @@ const PREDICTIONS_CACHE_TTL_SECONDS = 6 * 60 * 60; // 6h — predictions only ch
 @Injectable()
 export class ForecastClientService {
   private readonly logger = new Logger(ForecastClientService.name);
-  private prisma = new PrismaClient();
   private readonly mlBaseUrl = process.env.ML_SERVICE_URL || 'http://localhost:8091';
 
   constructor(private readonly redis: RedisService) {}
@@ -53,14 +52,14 @@ export class ForecastClientService {
     // so each SKU's model type (Prophet vs LSTM) and MAPE are tracked independently.
     const dbModelType = modelType === 'lstm' ? ForecastModelType.LSTM : ForecastModelType.PROPHET;
 
-    const existing = await this.prisma.forecastModel.findFirst({
+    const existing = await prisma.forecastModel.findFirst({
       where: { tenantId, productId, isActive: true },
       orderBy: { trainedAt: 'desc' },
     });
 
     // tenant-scope-ok: `existing` was just found via a tenantId-scoped findFirst above.
     const model = existing
-      ? await this.prisma.forecastModel.update({
+      ? await prisma.forecastModel.update({
           where: { id: existing.id },
           data: {
             type: dbModelType,
@@ -70,7 +69,7 @@ export class ForecastClientService {
             isActive: true,
           },
         })
-      : await this.prisma.forecastModel.create({
+      : await prisma.forecastModel.create({
           data: {
             tenantId,
             productId,
@@ -82,11 +81,11 @@ export class ForecastClientService {
           },
         });
 
-    await this.prisma.forecastPrediction.deleteMany({
+    await prisma.forecastPrediction.deleteMany({
       where: { tenantId, productId, forecastModelId: model.id },
     });
 
-    await this.prisma.forecastPrediction.createMany({
+    await prisma.forecastPrediction.createMany({
       data: predictions.map((p) => ({
         tenantId,
         forecastModelId: model.id,
@@ -114,7 +113,7 @@ export class ForecastClientService {
       }
     }
 
-    const predictions = await this.prisma.forecastPrediction.findMany({
+    const predictions = await prisma.forecastPrediction.findMany({
       where: { tenantId, productId },
       orderBy: { forecastDate: 'asc' },
       include: { forecastModel: true },
@@ -134,7 +133,7 @@ export class ForecastClientService {
    * per SKU; this keeps them from silently going stale.
    */
   async retrainAllProducts(tenantId: string) {
-    const products = await this.prisma.product.findMany({
+    const products = await prisma.product.findMany({
       where: { tenantId, isActive: true },
       select: { id: true, sku: true },
     });
@@ -144,7 +143,7 @@ export class ForecastClientService {
 
     for (const product of products) {
       try {
-        const movements = await this.prisma.stockMovement.findMany({
+        const movements = await prisma.stockMovement.findMany({
           where: { tenantId, productId: product.id },
           orderBy: { createdAt: 'asc' },
           take: 365,

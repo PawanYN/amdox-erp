@@ -1,7 +1,7 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { Logger } from '@nestjs/common';
-import { PrismaClient, NotificationChannel, NotificationDeliveryStatus } from '@amdox/db';
+import { prisma, NotificationChannel, NotificationDeliveryStatus } from '@amdox/db';
 import { WebhookChannel } from './channels/webhook.channel';
 import { EmailChannel } from './channels/email.channel';
 import { DispatchJobData } from './notification.service';
@@ -16,8 +16,6 @@ import { DispatchJobData } from './notification.service';
 @Processor('notification-dispatch')
 export class NotificationDispatchProcessor extends WorkerHost {
   private readonly logger = new Logger(NotificationDispatchProcessor.name);
-  private prisma = new PrismaClient();
-
   constructor(
     private readonly webhookChannel: WebhookChannel,
     private readonly emailChannel: EmailChannel,
@@ -37,7 +35,7 @@ export class NotificationDispatchProcessor extends WorkerHost {
       if (delivered === 'not-applicable') {
         // Whatever made this eligible at enqueue time (webhookUrl, user email) is
         // gone now — nothing to retry, and it's not a delivery failure either.
-        await this.prisma.notificationDelivery.updateMany({
+        await prisma.notificationDelivery.updateMany({
           where: { id: deliveryId, tenantId },
           data: { status: NotificationDeliveryStatus.FAILED, attempts: job.attemptsMade + 1 },
         });
@@ -48,7 +46,7 @@ export class NotificationDispatchProcessor extends WorkerHost {
         throw new Error(`${channel} channel reported an unsuccessful dispatch`);
       }
 
-      await this.prisma.notificationDelivery.updateMany({
+      await prisma.notificationDelivery.updateMany({
         where: { id: deliveryId, tenantId },
         data: {
           status: NotificationDeliveryStatus.SENT,
@@ -61,7 +59,7 @@ export class NotificationDispatchProcessor extends WorkerHost {
       const maxAttempts = job.opts.attempts ?? 1;
       const isFinalAttempt = attemptsMade >= maxAttempts;
 
-      await this.prisma.notificationDelivery.updateMany({
+      await prisma.notificationDelivery.updateMany({
         where: { id: deliveryId, tenantId },
         data: {
           status: isFinalAttempt
@@ -86,7 +84,7 @@ export class NotificationDispatchProcessor extends WorkerHost {
     body: string | undefined,
     userId: string | undefined,
   ): Promise<boolean | 'not-applicable'> {
-    const tenant = await this.prisma.tenant.findUnique({
+    const tenant = await prisma.tenant.findUnique({
       where: { id: tenantId },
       select: { settings: true },
     });
@@ -112,7 +110,7 @@ export class NotificationDispatchProcessor extends WorkerHost {
     body: string | undefined,
   ): Promise<boolean | 'not-applicable'> {
     if (!userId) return 'not-applicable';
-    const user = await this.prisma.user.findFirst({
+    const user = await prisma.user.findFirst({
       where: { id: userId, tenantId },
       select: { email: true },
     });

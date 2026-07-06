@@ -1,6 +1,6 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { AmdoxLogger } from '../../common/logger/amdox-logger';
-import { PrismaClient } from '@amdox/db';
+import { prisma } from '@amdox/db';
 import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
 import { CreateJournalEntryDto } from '../dto/create-journal-entry.dto';
 import { CreateIntercompanyTransferDto } from '../dto/create-intercompany-transfer.dto';
@@ -16,8 +16,6 @@ import { CreateIntercompanyTransferDto } from '../dto/create-intercompany-transf
 @Injectable()
 export class GlService {
   private readonly logger = new Logger(GlService.name);
-  private prisma = new PrismaClient();
-
   constructor(private readonly eventEmitter: EventEmitter2) {}
 
   /**
@@ -26,7 +24,7 @@ export class GlService {
    * are posted against these accounts (e.g., Asset, Liability, Revenue).
    */
   async createAccount(tenantId: string, dto: any) {
-    return this.prisma.account.create({
+    return prisma.account.create({
       data: {
         tenantId,
         code: dto.code,
@@ -43,7 +41,7 @@ export class GlService {
    * WHY: Required for drop-downs in the UI when creating manual journal entries or mapping items.
    */
   async getAccounts(tenantId: string) {
-    return this.prisma.account.findMany({
+    return prisma.account.findMany({
       where: { tenantId, isActive: true },
       orderBy: { code: 'asc' },
     });
@@ -54,7 +52,7 @@ export class GlService {
    * WHY: Accounting cycles run in periods (usually months). A period must be open to post entries.
    */
   async openFiscalPeriod(tenantId: string, name: string, startDate: Date, endDate: Date) {
-    return this.prisma.fiscalPeriod.create({
+    return prisma.fiscalPeriod.create({
       data: {
         tenantId,
         name,
@@ -71,7 +69,7 @@ export class GlService {
    * finalized financial reports for a given month/quarter.
    */
   async closeFiscalPeriod(tenantId: string, periodId: string, actingUserId?: string) {
-    const period = await this.prisma.fiscalPeriod.update({
+    const period = await prisma.fiscalPeriod.update({
       where: { id: periodId, tenantId },
       data: { isLocked: true },
     });
@@ -87,7 +85,7 @@ export class GlService {
   async getOrCreateCurrentFiscalPeriod(tenantId: string) {
     const now = new Date();
     const periodName = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    let period = await this.prisma.fiscalPeriod.findUnique({
+    let period = await prisma.fiscalPeriod.findUnique({
       where: { tenantId_name: { tenantId, name: periodName } },
     });
     if (!period) {
@@ -102,7 +100,7 @@ export class GlService {
   }
 
   async listFiscalPeriods(tenantId: string) {
-    return this.prisma.fiscalPeriod.findMany({
+    return prisma.fiscalPeriod.findMany({
       where: { tenantId },
       orderBy: { startDate: 'desc' },
     });
@@ -114,7 +112,7 @@ export class GlService {
    * enforces the fundamental accounting equation (Debit = Credit) and fiscal period locks.
    */
   async createJournalEntry(tenantId: string, dto: CreateJournalEntryDto, actingUserId?: string) {
-    return this.prisma.$transaction(async (tx) => {
+    return prisma.$transaction(async (tx) => {
       // 1. Check Fiscal Period lock
       const period = await tx.fiscalPeriod.findFirst({
         where: { id: dto.fiscalPeriodId, tenantId },
@@ -179,7 +177,7 @@ export class GlService {
   }
 
   async getJournalEntries(tenantId: string, limit = 100) {
-    return this.prisma.journalEntry.findMany({
+    return prisma.journalEntry.findMany({
       where: { tenantId },
       include: {
         lines: { include: { account: true } },
@@ -200,7 +198,7 @@ export class GlService {
     AmdoxLogger.event('invoice.approved → GL posting', `invoiceId=${event.invoiceId}`);
 
     // 1. Fetch the invoice
-    const invoice = await this.prisma.invoice.findFirst({
+    const invoice = await prisma.invoice.findFirst({
       where: { id: event.invoiceId, tenantId: event.tenantId },
     });
     if (!invoice) return;
@@ -211,7 +209,7 @@ export class GlService {
     // 2. Fetch or create current Fiscal Period (e.g., '2026-07')
     const now = new Date();
     const periodName = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    let period = await this.prisma.fiscalPeriod.findUnique({
+    let period = await prisma.fiscalPeriod.findUnique({
       where: { tenantId_name: { tenantId: event.tenantId, name: periodName } },
     });
     if (!period) {
@@ -224,10 +222,10 @@ export class GlService {
     }
 
     // 3. Fetch standard Accounts (1300 = Inventory, 2000 = AP)
-    const invAccount = await this.prisma.account.findUnique({
+    const invAccount = await prisma.account.findUnique({
       where: { tenantId_code: { tenantId: event.tenantId, code: '1300' } },
     });
-    const apAccount = await this.prisma.account.findUnique({
+    const apAccount = await prisma.account.findUnique({
       where: { tenantId_code: { tenantId: event.tenantId, code: '2000' } },
     });
 
@@ -265,7 +263,7 @@ export class GlService {
   }
 
   async listIntercompanyTransfers(tenantId: string) {
-    return this.prisma.intercompanyTransfer.findMany({
+    return prisma.intercompanyTransfer.findMany({
       where: { tenantId },
       orderBy: { createdAt: 'desc' },
     });
@@ -284,8 +282,8 @@ export class GlService {
     }
 
     const [fromAccount, toAccount] = await Promise.all([
-      this.prisma.account.findFirst({ where: { id: dto.fromAccountId, tenantId, isActive: true } }),
-      this.prisma.account.findFirst({ where: { id: dto.toAccountId, tenantId, isActive: true } }),
+      prisma.account.findFirst({ where: { id: dto.fromAccountId, tenantId, isActive: true } }),
+      prisma.account.findFirst({ where: { id: dto.toAccountId, tenantId, isActive: true } }),
     ]);
     if (!fromAccount || !toAccount) {
       throw new BadRequestException('Both intercompany accounts must exist and be active.');
@@ -293,7 +291,7 @@ export class GlService {
 
     const period = await this.getOrCreateCurrentFiscalPeriod(tenantId);
 
-    const transfer = await this.prisma.intercompanyTransfer.create({
+    const transfer = await prisma.intercompanyTransfer.create({
       data: {
         tenantId,
         fromAccountId: dto.fromAccountId,
@@ -337,10 +335,10 @@ export class GlService {
     amount: number,
   ) {
     const period = await this.getOrCreateCurrentFiscalPeriod(tenantId);
-    const debitAccount = await this.prisma.account.findUnique({
+    const debitAccount = await prisma.account.findUnique({
       where: { tenantId_code: { tenantId, code: debitAccountCode } },
     });
-    const creditAccount = await this.prisma.account.findUnique({
+    const creditAccount = await prisma.account.findUnique({
       where: { tenantId_code: { tenantId, code: creditAccountCode } },
     });
 
@@ -372,7 +370,7 @@ export class GlService {
   async handleInvoiceIssued(event: { tenantId: string; invoiceId: string }) {
     AmdoxLogger.event('invoice.issued → GL posting', `invoiceId=${event.invoiceId}`);
 
-    const invoice = await this.prisma.invoice.findFirst({
+    const invoice = await prisma.invoice.findFirst({
       where: { id: event.invoiceId, tenantId: event.tenantId },
     });
     if (!invoice || invoice.type !== 'AR') return;
@@ -416,7 +414,7 @@ export class GlService {
       `run=${event.payrollRunId}  label=${event.label}`,
     );
 
-    const payrollRun = await this.prisma.payrollRun.findFirst({
+    const payrollRun = await prisma.payrollRun.findFirst({
       where: { id: event.payrollRunId, tenantId: event.tenantId },
     });
     if (!payrollRun || !payrollRun.totalNetPay) {
@@ -431,7 +429,7 @@ export class GlService {
     if (amount <= 0) return;
 
     // Prevent duplicate GL postings for the same payroll run
-    const duplicate = await this.prisma.journalEntry.findFirst({
+    const duplicate = await prisma.journalEntry.findFirst({
       where: { tenantId: event.tenantId, sourceModule: 'PAYROLL', sourceId: event.payrollRunId },
     });
     if (duplicate) {
@@ -445,7 +443,7 @@ export class GlService {
 
     // Upsert payroll-specific accounts if they don't exist yet
     const [salaryAccount, payrollPayableAccount] = await Promise.all([
-      this.prisma.account.upsert({
+      prisma.account.upsert({
         where: { tenantId_code: { tenantId: event.tenantId, code: '6000' } },
         update: {},
         create: {
@@ -456,7 +454,7 @@ export class GlService {
           isActive: true,
         },
       }),
-      this.prisma.account.upsert({
+      prisma.account.upsert({
         where: { tenantId_code: { tenantId: event.tenantId, code: '2100' } },
         update: {},
         create: {
@@ -506,7 +504,7 @@ export class GlService {
   }) {
     AmdoxLogger.event('payment.received → GL posting', `paymentId=${event.paymentId}`);
 
-    const payment = await this.prisma.payment.findFirst({
+    const payment = await prisma.payment.findFirst({
       where: { id: event.paymentId, tenantId: event.tenantId },
       include: { invoice: true },
     });
@@ -549,7 +547,7 @@ export class GlService {
   }) {
     AmdoxLogger.event('payment.made → GL posting', `paymentId=${event.paymentId}`);
 
-    const payment = await this.prisma.payment.findFirst({
+    const payment = await prisma.payment.findFirst({
       where: { id: event.paymentId, tenantId: event.tenantId },
       include: { invoice: true },
     });

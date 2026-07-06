@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaClient } from '@amdox/db';
+import { prisma } from '@amdox/db';
 import { SetBudgetDto } from '../dto/set-budget.dto';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 
@@ -14,13 +14,12 @@ interface CostReportedPayload {
 
 @Injectable()
 export class BudgetService {
-  private prisma = new PrismaClient();
   private readonly logger = new Logger(BudgetService.name);
 
   constructor(private eventEmitter: EventEmitter2) {}
 
   async setBudget(tenantId: string, dto: SetBudgetDto) {
-    const budget = await this.prisma.projectBudget.create({
+    const budget = await prisma.projectBudget.create({
       data: {
         tenantId,
         projectId: dto.projectId,
@@ -39,7 +38,7 @@ export class BudgetService {
   }
 
   async listBudgets(tenantId: string) {
-    const budgets = await this.prisma.projectBudget.findMany({
+    const budgets = await prisma.projectBudget.findMany({
       where: { tenantId },
       include: { project: { select: { id: true, name: true, status: true } } },
       orderBy: { updatedAt: 'desc' },
@@ -62,7 +61,7 @@ export class BudgetService {
   }
 
   async getBudgetLines(tenantId: string, budgetId: string) {
-    const lines = await this.prisma.projectBudgetLine.findMany({
+    const lines = await prisma.projectBudgetLine.findMany({
       where: { tenantId, projectBudgetId: budgetId },
       orderBy: { id: 'desc' },
     });
@@ -80,7 +79,7 @@ export class BudgetService {
     const { tenantId, projectId, amount, source, sourceId, description } = payload;
 
     if (source && sourceId) {
-      const existing = await this.prisma.projectBudgetLine.findFirst({
+      const existing = await prisma.projectBudgetLine.findFirst({
         where: { tenantId, sourceModule: source, sourceId },
       });
       if (existing) {
@@ -91,7 +90,7 @@ export class BudgetService {
 
     this.logger.log(`Received cost report for project ${projectId}: ${amount}`);
 
-    const budgets = await this.prisma.projectBudget.findMany({
+    const budgets = await prisma.projectBudget.findMany({
       where: { projectId, tenantId },
       orderBy: { createdAt: 'desc' },
       take: 1,
@@ -107,7 +106,7 @@ export class BudgetService {
     const threshold = Number(budget.overrunThresholdPct);
     const maxAllowed = planned + planned * (threshold / 100);
 
-    const newActual = await this.prisma.$transaction(async (tx) => {
+    const newActual = await prisma.$transaction(async (tx) => {
       await tx.projectBudgetLine.create({
         data: {
           tenantId,

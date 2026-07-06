@@ -2,14 +2,12 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { passportJwtSecret } from 'jwks-rsa';
-import { PrismaClient } from '@amdox/db';
+import { prisma } from '@amdox/db';
 import { RedisService } from '../../common/redis/redis.service';
 import { AmdoxLogger } from '../../common/logger/amdox-logger';
 
 @Injectable()
 export class KeycloakStrategy extends PassportStrategy(Strategy, 'keycloak') {
-  private prisma = new PrismaClient();
-
   constructor(private redisService: RedisService) {
     super({
       secretOrKeyProvider: (req, rawJwtToken, done) => {
@@ -71,7 +69,7 @@ export class KeycloakStrategy extends PassportStrategy(Strategy, 'keycloak') {
     // tenant-scope-ok: this IS the lookup that determines which tenant the caller
     // belongs to — ssoSubject is globally unique across all tenants (Keycloak's
     // subject ID), so it can't be pre-filtered by a tenantId we don't know yet.
-    const user = await this.prisma.user.findFirst({
+    const user = await prisma.user.findFirst({
       where: { ssoSubject: payload.sub },
       include: {
         tenant: true,

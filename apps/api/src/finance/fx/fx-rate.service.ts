@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaClient } from '@amdox/db';
+import { prisma } from '@amdox/db';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
 // ECB's free daily reference-rate feed. EUR is always the implicit base
@@ -22,8 +22,6 @@ interface EcbDailyRates {
 @Injectable()
 export class FxRateService {
   private readonly logger = new Logger(FxRateService.name);
-  private prisma = new PrismaClient();
-
   /**
    * WHAT: Fetches the ECB daily reference rates and stores one EUR -> X
    * ExchangeRate row per currency, per tenant.
@@ -41,7 +39,7 @@ export class FxRateService {
       return;
     }
 
-    const tenants = await this.prisma.tenant.findMany({ select: { id: true } });
+    const tenants = await prisma.tenant.findMany({ select: { id: true } });
     for (const tenant of tenants) {
       await this.storeRatesForTenant(tenant.id, ecb);
     }
@@ -83,7 +81,7 @@ export class FxRateService {
     for (const [code, rate] of Object.entries(ecb.rates)) {
       const quote = await this.getOrCreateCurrency(tenantId, code, false);
 
-      await this.prisma.exchangeRate.upsert({
+      await prisma.exchangeRate.upsert({
         where: {
           tenantId_fromCurrencyId_toCurrencyId_asOfDate: {
             tenantId,
@@ -109,10 +107,10 @@ export class FxRateService {
   }
 
   private async getOrCreateCurrency(tenantId: string, code: string, isBase: boolean) {
-    const existing = await this.prisma.currency.findUnique({
+    const existing = await prisma.currency.findUnique({
       where: { tenantId_code: { tenantId, code } },
     });
     if (existing) return existing;
-    return this.prisma.currency.create({ data: { tenantId, code, isBase } });
+    return prisma.currency.create({ data: { tenantId, code, isBase } });
   }
 }

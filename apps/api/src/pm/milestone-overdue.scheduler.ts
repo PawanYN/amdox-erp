@@ -1,13 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { PrismaClient } from '@amdox/db';
+import { prisma } from '@amdox/db';
 
 @Injectable()
 export class MilestoneOverdueScheduler {
   private readonly logger = new Logger(MilestoneOverdueScheduler.name);
-  private prisma = new PrismaClient();
-
   constructor(private readonly eventEmitter: EventEmitter2) {}
 
   /** Daily scan for milestones that became overdue in the last 24 hours. */
@@ -18,7 +16,7 @@ export class MilestoneOverdueScheduler {
 
     // tenant-scope-ok: system-wide daily cron scan across every tenant's milestones
     // by design — each milestone's own tenantId is threaded through the emitted event.
-    const milestones = await this.prisma.milestone.findMany({
+    const milestones = await prisma.milestone.findMany({
       where: {
         isAchieved: false,
         dueDate: { lt: now, gte: since },

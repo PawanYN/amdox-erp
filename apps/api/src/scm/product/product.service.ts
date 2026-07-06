@@ -24,19 +24,17 @@
  */
 
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaClient } from '@amdox/db';
+import { prisma } from '@amdox/db';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CreateProductDto } from '../dto/create-product.dto';
 import { UpdateProductDto } from '../dto/update-product.dto';
 
 @Injectable()
 export class ProductService {
-  private prisma = new PrismaClient();
-
   constructor(private readonly eventEmitter: EventEmitter2) {}
 
   async create(tenantId: string, createProductDto: CreateProductDto) {
-    const product = await this.prisma.product.create({
+    const product = await prisma.product.create({
       data: {
         tenantId,
         ...createProductDto,
@@ -47,14 +45,14 @@ export class ProductService {
   }
 
   async findAll(tenantId: string) {
-    return this.prisma.product.findMany({
+    return prisma.product.findMany({
       where: { tenantId, deletedAt: null },
       include: { defaultVendor: true, stockLevels: true },
     });
   }
 
   async findOne(tenantId: string, id: string) {
-    const product = await this.prisma.product.findFirst({
+    const product = await prisma.product.findFirst({
       where: { id, tenantId, deletedAt: null },
       include: { defaultVendor: true, stockLevels: { include: { warehouse: true } } },
     });
@@ -66,7 +64,7 @@ export class ProductService {
     await this.findOne(tenantId, id); // Ensure existence
 
     // tenant-scope-ok: findOne() above already threw NotFoundException unless `id` belongs to `tenantId`.
-    const product = await this.prisma.product.update({
+    const product = await prisma.product.update({
       where: { id },
       data: updateProductDto,
     });
@@ -78,7 +76,7 @@ export class ProductService {
     await this.findOne(tenantId, id);
 
     // tenant-scope-ok: findOne() above already threw NotFoundException unless `id` belongs to `tenantId`.
-    const product = await this.prisma.product.update({
+    const product = await prisma.product.update({
       where: { id },
       data: { deletedAt: new Date(), isActive: false },
     });

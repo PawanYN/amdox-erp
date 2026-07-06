@@ -1,16 +1,14 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { PrismaClient } from '@amdox/db';
+import { prisma } from '@amdox/db';
 import { AllocateResourceDto } from '../dto/allocate-resource.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class ResourceService {
-  private prisma = new PrismaClient();
-
   constructor(private eventEmitter: EventEmitter2) {}
 
   async listAllocations(tenantId: string) {
-    return this.prisma.resourceAllocation.findMany({
+    return prisma.resourceAllocation.findMany({
       where: { tenantId },
       include: {
         employee: { select: { id: true, fullName: true } },
@@ -22,7 +20,7 @@ export class ResourceService {
   }
 
   async allocateResource(tenantId: string, dto: AllocateResourceDto) {
-    const employee = await this.prisma.employee.findUnique({
+    const employee = await prisma.employee.findUnique({
       where: { id: dto.employeeId, tenantId },
     });
 
@@ -30,7 +28,7 @@ export class ResourceService {
       throw new BadRequestException('Employee not found');
     }
 
-    const allocation = await this.prisma.resourceAllocation.create({
+    const allocation = await prisma.resourceAllocation.create({
       data: {
         tenantId,
         projectId: dto.projectId,
@@ -54,7 +52,7 @@ export class ResourceService {
   }
 
   async getUtilisationHeatmap(tenantId: string, employeeId?: string) {
-    const allocations = await this.prisma.resourceAllocation.findMany({
+    const allocations = await prisma.resourceAllocation.findMany({
       where: {
         tenantId,
         ...(employeeId ? { employeeId } : {}),
@@ -62,10 +60,7 @@ export class ResourceService {
       include: { employee: true, project: true },
     });
 
-    const byEmployee = new Map<
-      string,
-      { name: string; hours: number; projects: Set<string> }
-    >();
+    const byEmployee = new Map<string, { name: string; hours: number; projects: Set<string> }>();
 
     for (const a of allocations) {
       const key = a.employeeId;

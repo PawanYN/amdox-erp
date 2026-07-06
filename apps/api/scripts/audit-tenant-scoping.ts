@@ -1,14 +1,29 @@
 /**
- * Scans every apps/api/src file that constructs its own `new PrismaClient()`
- * (i.e. bypasses the auto-scoping `prisma` export from @amdox/db) for Prisma
- * calls that look like they're missing a tenantId filter — the #1 way to
- * accidentally leak one tenant's data to another (cross-tenant IDOR).
+ * Two checks, both existing to prevent the same class of bug (one tenant's data
+ * leaking to another) from creeping back in:
  *
- * This is a static, best-effort scan, not a proof. To keep false positives
- * low it treats anything it can't fully verify (a spread `...x`, a variable
- * holding the where/data object, a `tx.model.op()` call inside a
- * `$transaction`) as "assume safe" rather than flagging it — so a clean run
- * does not guarantee correctness, but a flagged line is always worth a look.
+ * 1. `new PrismaClient()` ban. Every apps/api/src service used to construct its own
+ *    raw, unscoped PrismaClient instead of importing the auto-scoping `prisma` export
+ *    from @amdox/db (which reads the current request's tenantId from AsyncLocalStorage
+ *    and injects it into every query automatically). All 38 were migrated on
+ *    2026-07-07 — this check keeps it that way. The only legitimate raw
+ *    `new PrismaClient()` call is inside packages/db/src/client.ts itself (a
+ *    different package, not scanned here), which is what builds the safe export.
+ *
+ * 2. Missing-tenantId scan. Even with the safe export, defense-in-depth means every
+ *    individual query should still filter by tenantId explicitly rather than relying
+ *    solely on the ambient auto-injection — background jobs (BullMQ processors,
+ *    @Cron schedulers, @OnEvent listeners) run outside the HTTP request pipeline, so
+ *    the auto-injection's AsyncLocalStorage context is never set for them, and the
+ *    explicit filter is the *only* protection there. This scans for
+ *    findMany/findFirst/findUnique/update/updateMany/delete/deleteMany/count/upsert/
+ *    create/createMany calls whose where/data looks like it's missing tenantId.
+ *
+ * Both are static, best-effort scans, not proofs. To keep false positives low, the
+ * missing-tenantId scan treats anything it can't fully verify (a spread `...x`, a
+ * variable holding the where/data object, a `tx.model.op()` call inside a
+ * `$transaction`) as "assume safe" rather than flagging it — so a clean run does not
+ * guarantee correctness, but a flagged line is always worth a look.
  *
  * Usage:  pnpm audit:tenant-scoping        (from apps/api)
  * Exit code 0 = clean, 1 = findings (wired into CI so it blocks the build).
@@ -220,22 +235,42 @@ function auditFile(filePath: string): Finding[] {
   return findings;
 }
 
+function findRawPrismaClientUsage(files: string[]): Finding[] {
+  const findings: Finding[] = [];
+  for (const file of files) {
+    const text = fs.readFileSync(file, 'utf8');
+    const lines = text.split('\n');
+    lines.forEach((lineText, i) => {
+      if (/new\s+PrismaClient\s*\(/.test(lineText)) {
+        findings.push({
+          file: path.relative(process.cwd(), file),
+          line: i + 1,
+          snippet: lineText.trim(),
+          reason:
+            "new PrismaClient() bypasses tenant auto-scoping — import { prisma } from '@amdox/db' instead",
+        });
+      }
+    });
+  }
+  return findings;
+}
+
 function main() {
   const files = walk(SRC_ROOT);
-  const allFindings: Finding[] = [];
-  for (const file of files) {
-    allFindings.push(...auditFile(file));
-  }
+
+  const rawClientFindings = findRawPrismaClientUsage(files);
+  const scopingFindings = files.flatMap(auditFile);
+  const allFindings = [...rawClientFindings, ...scopingFindings];
 
   if (allFindings.length === 0) {
-    console.log('tenant-scoping audit: clean — no missing tenantId filters found.');
+    console.log(
+      'tenant-scoping audit: clean — no raw PrismaClient usage or missing tenantId filters found.',
+    );
     process.exit(0);
   }
 
   console.error(
-    `tenant-scoping audit: ${allFindings.length} potential missing-tenantId quer${
-      allFindings.length === 1 ? 'y' : 'ies'
-    } found:\n`,
+    `tenant-scoping audit: ${allFindings.length} issue${allFindings.length === 1 ? '' : 's'} found:\n`,
   );
   for (const f of allFindings) {
     console.error(`  ${f.file}:${f.line}  ${f.reason}`);

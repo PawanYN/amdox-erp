@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { PrismaClient, InvoiceStatus } from '@amdox/db';
+import { prisma, InvoiceStatus } from '@amdox/db';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CreateInvoiceDto, InvoiceType } from '../dto/create-invoice.dto';
 import { RecordPaymentDto } from '../dto/record-payment.dto';
@@ -44,8 +44,6 @@ export interface PaymentRunResult {
 @Injectable()
 export class ApService {
   private readonly logger = new Logger(ApService.name);
-  private prisma = new PrismaClient();
-
   constructor(
     private readonly invoiceMatchingService: InvoiceMatchingService,
     private readonly ocrService: OcrService,
@@ -56,7 +54,7 @@ export class ApService {
    * Retrieves all AP invoices for a tenant.
    */
   async getInvoices(tenantId: string) {
-    return this.prisma.invoice.findMany({
+    return prisma.invoice.findMany({
       where: { tenantId, type: 'AP' },
       include: { lines: true },
       orderBy: { createdAt: 'desc' },
@@ -94,7 +92,7 @@ export class ApService {
     // Wrap in a transaction to safely handle the Outbox pattern
     let approvalEvent: InvoiceApprovedEvent | null = null;
 
-    const result = await this.prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       const initialStatus: InvoiceStatus = 'PENDING_MATCH';
       let projectId: string | undefined;
 
@@ -203,7 +201,7 @@ export class ApService {
     purchaseOrderId: string,
     goodsReceiptId: string,
   ) {
-    const existing = await this.prisma.invoice.findFirst({
+    const existing = await prisma.invoice.findFirst({
       where: { tenantId, type: 'AP', purchaseOrderId },
     });
     if (existing) {
@@ -213,7 +211,7 @@ export class ApService {
       return existing;
     }
 
-    const po = await this.prisma.purchaseOrder.findFirst({
+    const po = await prisma.purchaseOrder.findFirst({
       where: { id: purchaseOrderId, tenantId },
       include: { lines: true },
     });
@@ -250,7 +248,7 @@ export class ApService {
   async manuallyApproveInvoice(tenantId: string, invoiceId: string, actingUserId?: string) {
     let approvalEvent: InvoiceApprovedEvent | null = null;
 
-    const approvedInvoice = await this.prisma.$transaction(async (tx) => {
+    const approvedInvoice = await prisma.$transaction(async (tx) => {
       const invoice = await tx.invoice.findFirst({
         where: { id: invoiceId, tenantId, type: 'AP' },
       });
@@ -304,7 +302,7 @@ export class ApService {
   ) {
     let paymentEvent: PaymentMadeEvent | null = null;
 
-    const result = await this.prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       const invoice = await tx.invoice.findFirst({
         where: { id: dto.invoiceId, tenantId, type: 'AP' },
         include: { payments: true },
@@ -391,7 +389,7 @@ export class ApService {
    * doesn't block the rest of the run.
    */
   async runPaymentBatch(tenantId: string, dto: RunPaymentBatchDto, actingUserId?: string) {
-    const paymentRun = await this.prisma.paymentRun.create({
+    const paymentRun = await prisma.paymentRun.create({
       data: {
         tenantId,
         runDate: new Date(),
@@ -404,7 +402,7 @@ export class ApService {
     // Fetch every candidate invoice in one round-trip instead of one findFirst
     // per invoiceId in the loop below (N+1) — the per-invoice write logic still
     // runs individually since each payment is its own financial transaction.
-    const invoices = await this.prisma.invoice.findMany({
+    const invoices = await prisma.invoice.findMany({
       where: { id: { in: dto.invoiceIds }, tenantId, type: 'AP' },
       include: { payments: true },
     });

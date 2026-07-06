@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaClient } from '@amdox/db';
+import { prisma } from '@amdox/db';
 
 export type BiDataSource =
   | 'ar_aging'
@@ -23,8 +23,6 @@ export interface WidgetDataPoint {
 
 @Injectable()
 export class BiDataService {
-  private prisma = new PrismaClient();
-
   async getWidgetData(tenantId: string, dataSource: BiDataSource, filters: BiFilters = {}) {
     switch (dataSource) {
       case 'ar_aging':
@@ -85,7 +83,7 @@ export class BiDataService {
         ? { in: ['PAID', 'CANCELLED'] as ('PAID' | 'CANCELLED')[] }
         : { notIn: ['PAID', 'CANCELLED'] as ('PAID' | 'CANCELLED')[] };
 
-    const invoices = await this.prisma.invoice.findMany({
+    const invoices = await prisma.invoice.findMany({
       where: { tenantId, type: 'AR', status: statusFilter },
       select: { totalAmount: true, dueDate: true },
     });
@@ -93,8 +91,7 @@ export class BiDataService {
     const now = Date.now();
     for (const inv of invoices) {
       const days = Math.floor((now - inv.dueDate.getTime()) / 86400000);
-      const bucket =
-        days <= 30 ? 'Current' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '90+';
+      const bucket = days <= 30 ? 'Current' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '90+';
 
       if (filters.period === 'current' && bucket !== 'Current') continue;
       if (filters.period === 'overdue' && bucket === 'Current') continue;
@@ -111,7 +108,7 @@ export class BiDataService {
   }
 
   private async getInventoryChart(tenantId: string) {
-    const levels = await this.prisma.stockLevel.findMany({
+    const levels = await prisma.stockLevel.findMany({
       where: { tenantId },
       include: { product: true },
       take: 12,
@@ -133,7 +130,7 @@ export class BiDataService {
           ? { in: ['RECEIVED', 'CANCELLED', 'CLOSED'] as ('RECEIVED' | 'CANCELLED' | 'CLOSED')[] }
           : undefined;
 
-    const pos = await this.prisma.purchaseOrder.groupBy({
+    const pos = await prisma.purchaseOrder.groupBy({
       by: ['status'],
       where: { tenantId, ...(statusFilter ? { status: statusFilter } : {}) },
       _count: { _all: true },
@@ -148,7 +145,7 @@ export class BiDataService {
 
   private async getEmployeesByDepartmentChart(tenantId: string, filters: BiFilters = {}) {
     const deptFilter = this.resolveDepartmentFilter(filters.department);
-    const employees = await this.prisma.employee.findMany({
+    const employees = await prisma.employee.findMany({
       where: {
         tenantId,
         deletedAt: null,
@@ -181,7 +178,7 @@ export class BiDataService {
           ? { in: ['COMPLETED', 'CANCELLED'] as ('COMPLETED' | 'CANCELLED')[] }
           : undefined;
 
-    const groups = await this.prisma.project.groupBy({
+    const groups = await prisma.project.groupBy({
       by: ['status'],
       where: {
         tenantId,
@@ -200,7 +197,7 @@ export class BiDataService {
   }
 
   private async getResourceHeatmap(tenantId: string) {
-    const allocations = await this.prisma.resourceAllocation.findMany({
+    const allocations = await prisma.resourceAllocation.findMany({
       where: { tenantId },
       include: { employee: true, project: true },
       take: 100,
@@ -219,7 +216,7 @@ export class BiDataService {
   }
 
   private async drillDownArAging(tenantId: string, bucket: string) {
-    const invoices = await this.prisma.invoice.findMany({
+    const invoices = await prisma.invoice.findMany({
       where: { tenantId, type: 'AR', status: { notIn: ['PAID', 'CANCELLED'] } },
       include: { customer: true },
       orderBy: { dueDate: 'asc' },
@@ -228,8 +225,7 @@ export class BiDataService {
     const rows = invoices
       .filter((inv) => {
         const days = Math.floor((now - inv.dueDate.getTime()) / 86400000);
-        const b =
-          days <= 30 ? 'Current' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '90+';
+        const b = days <= 30 ? 'Current' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '90+';
         return b === bucket;
       })
       .map((inv) => ({
@@ -246,7 +242,7 @@ export class BiDataService {
   }
 
   private async drillDownInventory(tenantId: string, sku: string) {
-    const levels = await this.prisma.stockLevel.findMany({
+    const levels = await prisma.stockLevel.findMany({
       where: { tenantId, product: { sku } },
       include: { product: true, warehouse: true },
     });
@@ -264,7 +260,7 @@ export class BiDataService {
   }
 
   private async drillDownPurchaseOrders(tenantId: string, status: string) {
-    const pos = await this.prisma.purchaseOrder.findMany({
+    const pos = await prisma.purchaseOrder.findMany({
       where: { tenantId, status: status as any },
       include: { vendor: true },
       orderBy: { orderedAt: 'desc' },
@@ -284,7 +280,7 @@ export class BiDataService {
   }
 
   private async drillDownEmployees(tenantId: string, departmentName: string) {
-    const employees = await this.prisma.employee.findMany({
+    const employees = await prisma.employee.findMany({
       where:
         departmentName === 'Unassigned'
           ? {
@@ -315,7 +311,7 @@ export class BiDataService {
   }
 
   private async drillDownProjects(tenantId: string, status: string) {
-    const projects = await this.prisma.project.findMany({
+    const projects = await prisma.project.findMany({
       where: { tenantId, deletedAt: null, status: status as any },
       orderBy: { updatedAt: 'desc' },
       take: 50,
@@ -334,7 +330,7 @@ export class BiDataService {
   }
 
   private async drillDownResources(tenantId: string, projectName: string) {
-    const allocations = await this.prisma.resourceAllocation.findMany({
+    const allocations = await prisma.resourceAllocation.findMany({
       where: {
         tenantId,
         project: { name: { equals: projectName, mode: 'insensitive' } },

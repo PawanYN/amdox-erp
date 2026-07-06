@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaClient } from '@amdox/db';
+import { prisma } from '@amdox/db';
 
 const VALID_WIDGET_TYPES = new Set([
   'bar',
@@ -31,10 +31,8 @@ export type BiFilters = {
 
 @Injectable()
 export class BiService {
-  private prisma = new PrismaClient();
-
   async listDashboards(tenantId: string) {
-    return this.prisma.dashboard.findMany({
+    return prisma.dashboard.findMany({
       where: { tenantId, deletedAt: null },
       include: { widgets: true },
       orderBy: { updatedAt: 'desc' },
@@ -42,7 +40,7 @@ export class BiService {
   }
 
   async getDashboard(tenantId: string, id: string) {
-    const dashboard = await this.prisma.dashboard.findFirst({
+    const dashboard = await prisma.dashboard.findFirst({
       where: { id, tenantId, deletedAt: null },
       include: { widgets: true },
     });
@@ -51,7 +49,7 @@ export class BiService {
   }
 
   async createDashboard(tenantId: string, name: string, ownerId?: string) {
-    return this.prisma.dashboard.create({
+    return prisma.dashboard.create({
       data: { tenantId, name, ownerId, layout: {} },
     });
   }
@@ -60,7 +58,7 @@ export class BiService {
     await this.getDashboard(tenantId, id);
     // tenant-scope-ok: getDashboard() above already throws NotFoundException
     // unless `id` belongs to `tenantId`.
-    return this.prisma.dashboard.update({
+    return prisma.dashboard.update({
       where: { id },
       data: {
         ...(data.name !== undefined ? { name: data.name } : {}),
@@ -73,7 +71,7 @@ export class BiService {
     await this.getDashboard(tenantId, id);
     // tenant-scope-ok: getDashboard() above already throws NotFoundException
     // unless `id` belongs to `tenantId`.
-    return this.prisma.dashboard.update({
+    return prisma.dashboard.update({
       where: { id },
       data: { deletedAt: new Date() },
     });
@@ -82,13 +80,13 @@ export class BiService {
   async addWidget(tenantId: string, dashboardId: string, type: string, config: object) {
     this.validateWidget(type, config);
     await this.getDashboard(tenantId, dashboardId);
-    return this.prisma.widget.create({
+    return prisma.widget.create({
       data: { tenantId, dashboardId, type, config },
     });
   }
 
   async updateWidget(tenantId: string, id: string, data: { type?: string; config?: object }) {
-    const widget = await this.prisma.widget.findFirst({
+    const widget = await prisma.widget.findFirst({
       where: { id, tenantId },
     });
     if (!widget) throw new NotFoundException('Widget not found');
@@ -96,7 +94,7 @@ export class BiService {
     const nextConfig = data.config ?? (widget.config as object);
     this.validateWidget(nextType, nextConfig);
     // tenant-scope-ok: `widget` was just found via a tenantId-scoped findFirst above.
-    return this.prisma.widget.update({
+    return prisma.widget.update({
       where: { id },
       data: {
         ...(data.type !== undefined ? { type: data.type } : {}),
@@ -119,16 +117,16 @@ export class BiService {
   }
 
   async deleteWidget(tenantId: string, id: string) {
-    const widget = await this.prisma.widget.findFirst({
+    const widget = await prisma.widget.findFirst({
       where: { id, tenantId },
     });
     if (!widget) throw new NotFoundException('Widget not found');
     // tenant-scope-ok: `widget` was just found via a tenantId-scoped findFirst above.
-    return this.prisma.widget.delete({ where: { id } });
+    return prisma.widget.delete({ where: { id } });
   }
 
   async getWidget(tenantId: string, id: string) {
-    const widget = await this.prisma.widget.findFirst({
+    const widget = await prisma.widget.findFirst({
       where: { id, tenantId },
     });
     if (!widget) throw new NotFoundException('Widget not found');
@@ -163,18 +161,18 @@ export class BiService {
       arInvoices,
       departments,
     ] = await Promise.all([
-      this.prisma.invoice.count({ where: { tenantId } }),
-      this.prisma.purchaseOrder.count({
+      prisma.invoice.count({ where: { tenantId } }),
+      prisma.purchaseOrder.count({
         where: { tenantId, status: { in: ['SUBMITTED', 'APPROVED'] } },
       }),
-      this.prisma.employee.count({ where: employeeWhere }),
-      this.prisma.reorderRule.count({ where: { tenantId, isActive: true } }),
-      this.prisma.project.count({ where: { tenantId, deletedAt: null } }),
-      this.prisma.invoice.findMany({
+      prisma.employee.count({ where: employeeWhere }),
+      prisma.reorderRule.count({ where: { tenantId, isActive: true } }),
+      prisma.project.count({ where: { tenantId, deletedAt: null } }),
+      prisma.invoice.findMany({
         where: { tenantId, type: 'AR', status: arStatusFilter },
         select: { totalAmount: true, dueDate: true },
       }),
-      this.prisma.department.findMany({
+      prisma.department.findMany({
         where: { tenantId, deletedAt: null },
         select: { name: true },
         orderBy: { name: 'asc' },
@@ -197,7 +195,7 @@ export class BiService {
       else aging.over90 += amt;
     }
 
-    const stockLevels = await this.prisma.stockLevel.findMany({
+    const stockLevels = await prisma.stockLevel.findMany({
       where: { tenantId },
       include: { product: true },
       take: 20,

@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Param, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
-import { PrismaClient } from '@amdox/db';
+import { prisma } from '@amdox/db';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { ForecastClientService } from './forecast.service';
@@ -11,8 +11,6 @@ import { ForecastClientService } from './forecast.service';
 @UseGuards(AuthGuard('keycloak'), RolesGuard)
 @Controller('forecast')
 export class ForecastController {
-  private prisma = new PrismaClient();
-
   constructor(private readonly forecastService: ForecastClientService) {}
 
   private tenantId(req: any): string {
@@ -24,12 +22,12 @@ export class ForecastController {
   @ApiOperation({ summary: 'Train Prophet model and store SKU-level predictions' })
   async train(@Req() req: any, @Param('productId') productId: string) {
     const tenantId = this.tenantId(req);
-    const product = await this.prisma.product.findFirst({
+    const product = await prisma.product.findFirst({
       where: { id: productId, tenantId },
     });
     if (!product) return { error: 'Product not found' };
 
-    const movements = await this.prisma.stockMovement.findMany({
+    const movements = await prisma.stockMovement.findMany({
       where: { tenantId, productId },
       orderBy: { createdAt: 'asc' },
       take: 365,
@@ -45,12 +43,7 @@ export class ForecastController {
       history.push({ date: today, quantity: 10 });
     }
 
-    return this.forecastService.trainAndPredict(
-      tenantId,
-      productId,
-      product.sku,
-      history,
-    );
+    return this.forecastService.trainAndPredict(tenantId, productId, product.sku, history);
   }
 
   @Roles('SuperAdmin', 'TenantAdmin', 'Manager', 'Viewer')
@@ -65,7 +58,7 @@ export class ForecastController {
   @ApiOperation({ summary: 'List all products with their latest forecast model info' })
   async getAllForecastStatus(@Req() req: any) {
     const tenantId = this.tenantId(req);
-    const products = await this.prisma.product.findMany({
+    const products = await prisma.product.findMany({
       where: { tenantId },
       select: { id: true, sku: true, name: true },
       orderBy: { name: 'asc' },
@@ -73,7 +66,7 @@ export class ForecastController {
 
     const results = await Promise.all(
       products.map(async (product) => {
-        const predictions = await this.prisma.forecastPrediction.findMany({
+        const predictions = await prisma.forecastPrediction.findMany({
           where: { tenantId, productId: product.id },
           include: { forecastModel: true },
           orderBy: { forecastDate: 'asc' },

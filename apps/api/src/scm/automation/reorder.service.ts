@@ -2,36 +2,35 @@
  * ============================================================================
  * SERVICE: reorder.service.ts
  * ============================================================================
- * 
+ *
  * WHAT THIS FILE DOES:
- * This service powers the "Reorder Automation" feature. It scans through 
+ * This service powers the "Reorder Automation" feature. It scans through
  * the inventory and automatically drafts Purchase Orders when stock gets too low.
- * 
+ *
  * HOW IT IS IMPLEMENTED:
  * - `runReorderChecks()`: This function fetches all active `ReorderRules`.
- * - For each rule, it mathematically sums up the `StockLevel.quantity` across 
+ * - For each rule, it mathematically sums up the `StockLevel.quantity` across
  *   ALL physical warehouses to get a `totalStock` integer.
  * - If `totalStock < thresholdQty`, it checks if the product has a `defaultVendorId`.
- * - Next, it queries the database to ensure we don't already have an active DRAFT 
+ * - Next, it queries the database to ensure we don't already have an active DRAFT
  *   or SUBMITTED PO out for this exact product (preventing duplicate auto-orders).
- * - If no active PO exists, it dynamically creates a new DRAFT Purchase Order 
+ * - If no active PO exists, it dynamically creates a new DRAFT Purchase Order
  *   for the `reorderQty` amount, assigned to the default vendor.
- * 
+ *
  * RELEVANT CONTEXT FOR NEW DEVS:
- * In a fully production-ready system, this `runReorderChecks()` function 
- * would typically be attached to a Cron Job (via `@nestjs/schedule`) to run 
- * every night at midnight. Currently, it is exposed as a REST endpoint 
- * (`/scm/automation/run-reorder`) so that it can be triggered on demand by 
+ * In a fully production-ready system, this `runReorderChecks()` function
+ * would typically be attached to a Cron Job (via `@nestjs/schedule`) to run
+ * every night at midnight. Currently, it is exposed as a REST endpoint
+ * (`/scm/automation/run-reorder`) so that it can be triggered on demand by
  * an external scheduler or button click.
  * ============================================================================
  */
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaClient } from '@amdox/db';
+import { prisma } from '@amdox/db';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class ReorderAutomationService {
-  private prisma = new PrismaClient();
   private readonly logger = new Logger(ReorderAutomationService.name);
 
   constructor(private readonly eventEmitter: EventEmitter2) {}
@@ -40,7 +39,7 @@ export class ReorderAutomationService {
     this.logger.log(`Running reorder automation for tenant: ${tenantId}`);
 
     // Find all active reorder rules
-    const rules = await this.prisma.reorderRule.findMany({
+    const rules = await prisma.reorderRule.findMany({
       where: { tenantId, isActive: true },
       include: { product: { include: { stockLevels: true } } },
     });
@@ -49,7 +48,10 @@ export class ReorderAutomationService {
 
     for (const rule of rules) {
       // Calculate total stock across all warehouses
-      const totalStock = rule.product.stockLevels.reduce((sum, level) => sum + Number(level.quantity), 0);
+      const totalStock = rule.product.stockLevels.reduce(
+        (sum, level) => sum + Number(level.quantity),
+        0,
+      );
 
       if (totalStock < Number(rule.thresholdQty)) {
         // Needs reorder
@@ -59,7 +61,7 @@ export class ReorderAutomationService {
         }
 
         // Check if an active DRAFT or SUBMITTED PO already exists for this product to avoid duplicates
-        const existingPo = await this.prisma.purchaseOrder.findFirst({
+        const existingPo = await prisma.purchaseOrder.findFirst({
           where: {
             tenantId,
             vendorId: rule.product.defaultVendorId,
@@ -70,7 +72,7 @@ export class ReorderAutomationService {
 
         if (!existingPo) {
           const poNumber = `AUTO-PO-${Date.now()}`;
-          const created = await this.prisma.purchaseOrder.create({
+          const created = await prisma.purchaseOrder.create({
             data: {
               tenantId,
               poNumber,
@@ -93,7 +95,7 @@ export class ReorderAutomationService {
             productSku: rule.product.sku,
             purchaseOrderId: created.id,
           });
-          
+
           this.logger.log(`Created auto PO ${poNumber} for product ${rule.product.sku}`);
           draftOrdersCreated++;
         }

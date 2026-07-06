@@ -23,16 +23,14 @@
  */
 
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaClient } from '@amdox/db';
+import { prisma } from '@amdox/db';
 import { CreateVendorDto } from '../dto/create-vendor.dto';
 import { UpdateVendorDto } from '../dto/update-vendor.dto';
 
 @Injectable()
 export class VendorService {
-  private prisma = new PrismaClient();
-
   async create(tenantId: string, createVendorDto: CreateVendorDto) {
-    return this.prisma.vendor.create({
+    return prisma.vendor.create({
       data: {
         ...createVendorDto,
         tenantId,
@@ -41,13 +39,13 @@ export class VendorService {
   }
 
   async findAll(tenantId: string) {
-    return this.prisma.vendor.findMany({
+    return prisma.vendor.findMany({
       where: { tenantId, deletedAt: null },
     });
   }
 
   async findOne(tenantId: string, id: string) {
-    const vendor = await this.prisma.vendor.findFirst({
+    const vendor = await prisma.vendor.findFirst({
       where: { id, tenantId, deletedAt: null },
     });
     if (!vendor) throw new NotFoundException('Vendor not found');
@@ -58,7 +56,7 @@ export class VendorService {
     await this.findOne(tenantId, id); // Ensure existence
 
     // tenant-scope-ok: findOne() above already threw NotFoundException unless `id` belongs to `tenantId`.
-    return this.prisma.vendor.update({
+    return prisma.vendor.update({
       where: { id },
       data: updateVendorDto,
     });
@@ -69,7 +67,7 @@ export class VendorService {
 
     // Soft delete
     // tenant-scope-ok: findOne() above already threw NotFoundException unless `id` belongs to `tenantId`.
-    return this.prisma.vendor.update({
+    return prisma.vendor.update({
       where: { id },
       data: { deletedAt: new Date(), isActive: false },
     });

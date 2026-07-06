@@ -1,5 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { PrismaClient } from '@amdox/db';
+import { prisma } from '@amdox/db';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CreateInvoiceDto, InvoiceType } from '../dto/create-invoice.dto';
 import { RecordPaymentDto } from '../dto/record-payment.dto';
@@ -14,8 +14,6 @@ import { RecordPaymentDto } from '../dto/record-payment.dto';
 @Injectable()
 export class ArService {
   private readonly logger = new Logger(ArService.name);
-  private prisma = new PrismaClient();
-
   constructor(private readonly eventEmitter: EventEmitter2) {}
 
   /**
@@ -28,7 +26,7 @@ export class ArService {
       throw new Error('AR Service only handles AR invoices.');
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    return prisma.$transaction(async (tx) => {
       const invoice = await tx.invoice.create({
         data: {
           tenantId,
@@ -78,7 +76,7 @@ export class ArService {
    * and triggers the GL event to debit Cash and credit Accounts Receivable.
    */
   async recordPayment(tenantId: string, dto: RecordPaymentDto) {
-    return this.prisma.$transaction(async (tx) => {
+    return prisma.$transaction(async (tx) => {
       const invoice = await tx.invoice.findFirst({
         where: { id: dto.invoiceId, tenantId, type: 'AR' },
         include: { payments: true, salesOrder: true },
@@ -167,7 +165,7 @@ export class ArService {
   async getAgingReport(tenantId: string) {
     const now = new Date();
 
-    const invoices = await this.prisma.invoice.findMany({
+    const invoices = await prisma.invoice.findMany({
       where: {
         tenantId,
         type: 'AR',
@@ -198,7 +196,7 @@ export class ArService {
   }
 
   async listInvoices(tenantId: string) {
-    return this.prisma.invoice.findMany({
+    return prisma.invoice.findMany({
       where: { tenantId, type: 'AR' },
       include: { customer: true, lines: true },
       orderBy: { createdAt: 'desc' },
@@ -206,14 +204,14 @@ export class ArService {
   }
 
   async listCustomers(tenantId: string) {
-    return this.prisma.customer.findMany({
+    return prisma.customer.findMany({
       where: { tenantId, isActive: true, deletedAt: null },
       orderBy: { name: 'asc' },
     });
   }
 
   async createCustomer(tenantId: string, name: string, email?: string) {
-    return this.prisma.customer.create({
+    return prisma.customer.create({
       data: { tenantId, name, email: email || null },
     });
   }

@@ -1,7 +1,7 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
-import { PrismaClient } from '@amdox/db';
+import { prisma } from '@amdox/db';
 
 /**
  * BullMQ Processor for the Finance Outbox.
@@ -13,8 +13,6 @@ import { PrismaClient } from '@amdox/db';
 @Processor('finance-outbox')
 export class OutboxProcessor extends WorkerHost {
   private readonly logger = new Logger(OutboxProcessor.name);
-  private prisma = new PrismaClient();
-
   async process(job: Job<any, any, string>): Promise<any> {
     this.logger.log(`Processing outbox job ${job.id} for event ${job.data.eventType}`);
 
@@ -31,7 +29,7 @@ export class OutboxProcessor extends WorkerHost {
     // tenant-scope-ok: system-wide background worker processing any tenant's queued
     // outbox events by design (outboxEventId is our own internal job payload, not
     // attacker-facing HTTP input) — tenantId isn't known until this fetch returns it.
-    const event = await this.prisma.outboxEvent.findUnique({
+    const event = await prisma.outboxEvent.findUnique({
       where: { id: outboxEventId },
     });
 
@@ -51,7 +49,7 @@ export class OutboxProcessor extends WorkerHost {
 
       // tenant-scope-ok: same event record just fetched (and status-verified) above.
       // Mark as processed
-      await this.prisma.outboxEvent.update({
+      await prisma.outboxEvent.update({
         where: { id: outboxEventId },
         data: {
           status: 'PROCESSED',
@@ -66,7 +64,7 @@ export class OutboxProcessor extends WorkerHost {
 
       // tenant-scope-ok: same event record fetched (and status-verified) above.
       // Mark as failed and increment attempts
-      await this.prisma.outboxEvent.update({
+      await prisma.outboxEvent.update({
         where: { id: outboxEventId },
         data: {
           status: 'FAILED',

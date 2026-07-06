@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaClient } from '@amdox/db';
+import { prisma } from '@amdox/db';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CreateEmployeeDto } from '../dto/create-employee.dto';
 import { UpdateEmployeeDto } from '../dto/update-employee.dto';
@@ -7,8 +7,6 @@ import { TenantService } from '../../tenant/tenant.service';
 
 @Injectable()
 export class EmployeeService {
-  private prisma = new PrismaClient();
-
   constructor(
     private readonly tenantService: TenantService,
     private readonly eventEmitter: EventEmitter2,
@@ -16,7 +14,7 @@ export class EmployeeService {
 
   async create(tenantId: string, createEmployeeDto: CreateEmployeeDto, actingUserId?: string) {
     // Prisma requires strict Date objects, so we safely convert the string from the DTO
-    const employee = await this.prisma.employee.create({
+    const employee = await prisma.employee.create({
       data: {
         fullName: createEmployeeDto.firstName + ' ' + createEmployeeDto.lastName,
         email: createEmployeeDto.email,
@@ -30,12 +28,12 @@ export class EmployeeService {
       `\x1b[32m[PRISMA EMPLOYEE CREATED] Inserted Employee ID: ${employee.id} (${employee.fullName})\x1b[0m`,
     );
 
-    const defaultLeaveTypes = await this.prisma.leaveType.findMany({
+    const defaultLeaveTypes = await prisma.leaveType.findMany({
       where: { tenantId },
     });
 
     if (defaultLeaveTypes.length > 0) {
-      const result = await this.prisma.leaveBalance.createMany({
+      const result = await prisma.leaveBalance.createMany({
         data: defaultLeaveTypes.map((lt) => ({
           tenantId,
           employeeId: employee.id,
@@ -57,7 +55,7 @@ export class EmployeeService {
 
       // tenant-scope-ok: employee.id is the record we just created above in this
       // same function call, scoped to `tenantId` — not attacker-supplied.
-      const updatedEmployee = await this.prisma.employee.update({
+      const updatedEmployee = await prisma.employee.update({
         where: { id: employee.id },
         data: { userId },
       });
@@ -74,11 +72,11 @@ export class EmployeeService {
       // Rollback: delete the leave balances and employee if provisioning fails.
       // tenant-scope-ok: employee.id is the record created earlier in this same
       // function call, scoped to `tenantId` — not attacker-supplied.
-      await this.prisma.leaveBalance.deleteMany({
+      await prisma.leaveBalance.deleteMany({
         where: { employeeId: employee.id },
       });
       // tenant-scope-ok: same freshly-created record as above.
-      await this.prisma.employee.delete({
+      await prisma.employee.delete({
         where: { id: employee.id },
       });
       throw err;
@@ -86,24 +84,24 @@ export class EmployeeService {
   }
 
   async findAll(tenantId: string) {
-    return this.prisma.employee.findMany({
+    return prisma.employee.findMany({
       where: { tenantId, deletedAt: null },
       include: { department: true, manager: true },
     });
   }
 
   async findMe(tenantId: string, userId: string) {
-    let employee = await this.prisma.employee.findFirst({
+    let employee = await prisma.employee.findFirst({
       where: { tenantId, userId, deletedAt: null },
       include: { department: true, manager: true },
     });
 
     if (!employee) {
-      const user = await this.prisma.user.findFirst({
+      const user = await prisma.user.findFirst({
         where: { id: userId, tenantId },
       });
       if (user?.email) {
-        employee = await this.prisma.employee.findFirst({
+        employee = await prisma.employee.findFirst({
           where: {
             tenantId,
             deletedAt: null,
@@ -114,7 +112,7 @@ export class EmployeeService {
         if (employee && !employee.userId) {
           // tenant-scope-ok: `employee` was just fetched a few lines above via a
           // tenant-scoped findFirst — its id is already verified to belong to tenantId.
-          employee = await this.prisma.employee.update({
+          employee = await prisma.employee.update({
             where: { id: employee.id },
             data: { userId },
             include: { department: true, manager: true },
@@ -128,7 +126,7 @@ export class EmployeeService {
   }
 
   async findOne(tenantId: string, id: string) {
-    const employee = await this.prisma.employee.findFirst({
+    const employee = await prisma.employee.findFirst({
       where: { id, tenantId },
       include: { department: true, manager: true, directReports: true },
     });
@@ -154,7 +152,7 @@ export class EmployeeService {
 
     // tenant-scope-ok: findOne() above already throws NotFoundException unless `id`
     // belongs to `tenantId`, so this update-by-id is verified safe.
-    const updated = await this.prisma.employee.update({
+    const updated = await prisma.employee.update({
       where: { id },
       data,
     });
@@ -166,7 +164,7 @@ export class EmployeeService {
     await this.findOne(tenantId, id);
     // tenant-scope-ok: findOne() above already throws NotFoundException unless `id`
     // belongs to `tenantId`, so this update-by-id is verified safe.
-    const result = await this.prisma.employee.update({
+    const result = await prisma.employee.update({
       where: { id },
       data: {
         deletedAt: new Date(),

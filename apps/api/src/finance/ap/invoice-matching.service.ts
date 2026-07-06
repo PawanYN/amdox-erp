@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaClient } from '@amdox/db';
+import { prisma } from '@amdox/db';
 
 /**
  * Service to handle the 3-Way Matching of an Invoice against a Purchase Order and Goods Receipt.
- * 
+ *
  * WHAT: This service validates that an AP invoice matches the original PO and the actual GR.
  * WHY: This is a core financial control (3-Way Match) to prevent paying for goods that were not
  * ordered, not received, or overcharged. It satisfies F-03 AP Automation requirements.
@@ -11,36 +11,34 @@ import { PrismaClient } from '@amdox/db';
 @Injectable()
 export class InvoiceMatchingService {
   private readonly logger = new Logger(InvoiceMatchingService.name);
-  private prisma = new PrismaClient();
-
   /**
    * WHAT: Performs a 3-way match: PO vs GR vs Invoice.
    * WHY: Determines if an invoice can be auto-approved based on configurable tolerances (< 30s requirement).
-   * 
+   *
    * Steps:
    * 1. Does the PO exist and match the Invoice vendor?
    * 2. Does the GR exist and match the PO?
    * 3. Does the Invoice amount/quantity match the GR quantity * PO unit price (within tolerance)?
    */
   async performThreeWayMatch(
-    tenantId: string, 
-    invoiceId: string, 
-    purchaseOrderId: string, 
-    goodsReceiptId: string
+    tenantId: string,
+    invoiceId: string,
+    purchaseOrderId: string,
+    goodsReceiptId: string,
   ): Promise<boolean> {
     this.logger.log(`Starting 3-way match for Invoice ${invoiceId}`);
 
-    const invoice = await this.prisma.invoice.findFirst({
+    const invoice = await prisma.invoice.findFirst({
       where: { id: invoiceId, tenantId },
-      include: { lines: true }
+      include: { lines: true },
     });
 
-    const po = await this.prisma.purchaseOrder.findFirst({
+    const po = await prisma.purchaseOrder.findFirst({
       where: { id: purchaseOrderId, tenantId },
-      include: { lines: true }
+      include: { lines: true },
     });
 
-    const gr = await this.prisma.goodsReceipt.findFirst({
+    const gr = await prisma.goodsReceipt.findFirst({
       where: { id: goodsReceiptId, tenantId },
     });
 
@@ -60,7 +58,7 @@ export class InvoiceMatchingService {
     }
 
     // In a real system, we'd check line-by-line quantities and amounts against a tolerance %.
-    // For this implementation, we simulate checking that the total amount is within a 2% tolerance 
+    // For this implementation, we simulate checking that the total amount is within a 2% tolerance
     // of the PO total, assuming GR received full quantity.
     const invoiceTotal = invoice.totalAmount.toNumber();
     const poTotal = po.totalAmount?.toNumber() || 0;

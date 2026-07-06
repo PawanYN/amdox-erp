@@ -1,11 +1,9 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
-import { PrismaClient } from '@amdox/db';
+import { prisma } from '@amdox/db';
 import { ClockInDto } from '../dto/clock-in.dto';
 
 @Injectable()
 export class AttendanceService {
-  private prisma = new PrismaClient();
-
   async clockIn(tenantId: string, clockInDto: ClockInDto) {
     const now = new Date();
     // Normalize to precisely midnight of today
@@ -13,7 +11,7 @@ export class AttendanceService {
     const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
 
     // Prevent double clock-ins on the exact same day using range on clockIn
-    const existing = await this.prisma.attendanceRecord.findFirst({
+    const existing = await prisma.attendanceRecord.findFirst({
       where: {
         tenantId,
         employeeId: clockInDto.employeeId,
@@ -28,7 +26,7 @@ export class AttendanceService {
       throw new BadRequestException('Employee has already clocked in for today.');
     }
 
-    return this.prisma.attendanceRecord.create({
+    return prisma.attendanceRecord.create({
       data: {
         tenantId,
         employeeId: clockInDto.employeeId,
@@ -42,7 +40,7 @@ export class AttendanceService {
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
 
-    const attendance = await this.prisma.attendanceRecord.findFirst({
+    const attendance = await prisma.attendanceRecord.findFirst({
       where: {
         tenantId,
         employeeId,
@@ -68,7 +66,7 @@ export class AttendanceService {
     const overtimeHours = hoursWorked > 8 ? hoursWorked - 8 : 0;
 
     // tenant-scope-ok: `attendance` was just found via a tenantId-scoped findFirst above.
-    return this.prisma.attendanceRecord.update({
+    return prisma.attendanceRecord.update({
       where: { id: attendance.id },
       data: {
         clockOut: now,
@@ -82,7 +80,7 @@ export class AttendanceService {
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
 
-    const record = await this.prisma.attendanceRecord.findFirst({
+    const record = await prisma.attendanceRecord.findFirst({
       where: {
         tenantId,
         employeeId,
@@ -93,14 +91,14 @@ export class AttendanceService {
   }
 
   async getMyRecords(tenantId: string, employeeId: string) {
-    return this.prisma.attendanceRecord.findMany({
+    return prisma.attendanceRecord.findMany({
       where: { tenantId, employeeId },
       orderBy: { clockIn: 'desc' },
     });
   }
 
   async getAllRecords(tenantId: string) {
-    return this.prisma.attendanceRecord.findMany({
+    return prisma.attendanceRecord.findMany({
       where: { tenantId },
       include: { employee: true },
       orderBy: { clockIn: 'desc' },

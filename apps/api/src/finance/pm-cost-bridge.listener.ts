@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
-import { PrismaClient } from '@amdox/db';
+import { prisma } from '@amdox/db';
 import { AmdoxLogger } from '../common/logger/amdox-logger';
 
 interface InvoiceApprovedPayload {
@@ -19,8 +19,6 @@ interface InvoiceApprovedPayload {
 @Injectable()
 export class PmCostBridgeListener {
   private readonly logger = new Logger(PmCostBridgeListener.name);
-  private prisma = new PrismaClient();
-
   constructor(private readonly eventEmitter: EventEmitter2) {}
 
   @OnEvent('invoice.approved')
@@ -30,7 +28,7 @@ export class PmCostBridgeListener {
     let invoiceNumber = payload.invoiceNumber;
 
     if (!projectId || amount <= 0) {
-      const invoice = await this.prisma.invoice.findFirst({
+      const invoice = await prisma.invoice.findFirst({
         where: { id: payload.invoiceId, tenantId: payload.tenantId, type: 'AP' },
         include: {
           purchaseOrder: { select: { projectId: true, poNumber: true } },
@@ -39,8 +37,7 @@ export class PmCostBridgeListener {
 
       if (!invoice) return;
 
-      projectId =
-        invoice.projectId ?? invoice.purchaseOrder?.projectId ?? null;
+      projectId = invoice.projectId ?? invoice.purchaseOrder?.projectId ?? null;
       amount = Number(invoice.totalAmount);
       invoiceNumber = invoice.invoiceNumber;
     }

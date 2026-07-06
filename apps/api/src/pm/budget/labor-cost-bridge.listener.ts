@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
-import { PrismaClient } from '@amdox/db';
+import { prisma } from '@amdox/db';
 import { AmdoxLogger } from '../../common/logger/amdox-logger';
 
 interface PayrollCompletedPayload {
@@ -18,8 +18,6 @@ interface PayrollCompletedPayload {
 @Injectable()
 export class LaborCostBridgeListener {
   private readonly logger = new Logger(LaborCostBridgeListener.name);
-  private prisma = new PrismaClient();
-
   constructor(private readonly eventEmitter: EventEmitter2) {}
 
   @OnEvent('payroll.completed')
@@ -27,20 +25,23 @@ export class LaborCostBridgeListener {
     const periodStart = new Date(payload.start);
     const periodEnd = new Date(payload.end);
 
-    const payslips = await this.prisma.payslip.findMany({
+    const payslips = await prisma.payslip.findMany({
       where: { tenantId: payload.tenantId, payrollRunId: payload.payrollRunId },
       include: { employee: { select: { fullName: true } } },
     });
 
     if (payslips.length === 0) {
-      AmdoxLogger.warn('No payslips found for payroll run — labor cost skipped', `runId=${payload.payrollRunId}`);
+      AmdoxLogger.warn(
+        'No payslips found for payroll run — labor cost skipped',
+        `runId=${payload.payrollRunId}`,
+      );
       return;
     }
 
     let emitted = 0;
 
     for (const payslip of payslips) {
-      const allocations = await this.prisma.resourceAllocation.findMany({
+      const allocations = await prisma.resourceAllocation.findMany({
         where: {
           tenantId: payload.tenantId,
           employeeId: payslip.employeeId,
@@ -51,10 +52,7 @@ export class LaborCostBridgeListener {
 
       if (allocations.length === 0) continue;
 
-      const totalHours = allocations.reduce(
-        (sum, a) => sum + Number(a.allocatedHours),
-        0,
-      );
+      const totalHours = allocations.reduce((sum, a) => sum + Number(a.allocatedHours), 0);
       if (totalHours <= 0) continue;
 
       const netPay = Number(payslip.netPay);

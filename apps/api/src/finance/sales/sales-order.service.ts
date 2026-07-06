@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { PrismaClient } from '@amdox/db';
+import { prisma } from '@amdox/db';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CreateSalesOrderDto } from '../dto/create-sales-order.dto';
 import { InvoiceType } from '../dto/create-invoice.dto';
@@ -7,12 +7,10 @@ import { InvoiceType } from '../dto/create-invoice.dto';
 @Injectable()
 export class SalesOrderService {
   private readonly logger = new Logger(SalesOrderService.name);
-  private prisma = new PrismaClient();
-
   constructor(private readonly eventEmitter: EventEmitter2) {}
 
   async createSalesOrder(tenantId: string, dto: CreateSalesOrderDto) {
-    const customer = await this.prisma.customer.findFirst({
+    const customer = await prisma.customer.findFirst({
       where: { id: dto.customerId, tenantId, isActive: true, deletedAt: null },
     });
     if (!customer) throw new NotFoundException('Customer not found');
@@ -26,7 +24,7 @@ export class SalesOrderService {
     }));
     const totalAmount = lines.reduce((sum, line) => sum + line.lineTotal, 0);
 
-    const order = await this.prisma.$transaction(async (tx) => {
+    const order = await prisma.$transaction(async (tx) => {
       const created = await tx.salesOrder.create({
         data: {
           tenantId,
@@ -56,7 +54,7 @@ export class SalesOrderService {
   }
 
   async listSalesOrders(tenantId: string) {
-    return this.prisma.salesOrder.findMany({
+    return prisma.salesOrder.findMany({
       where: { tenantId },
       include: { customer: true, lines: true, invoices: true },
       orderBy: { createdAt: 'desc' },
@@ -64,7 +62,7 @@ export class SalesOrderService {
   }
 
   async getSalesOrder(tenantId: string, id: string) {
-    const order = await this.prisma.salesOrder.findFirst({
+    const order = await prisma.salesOrder.findFirst({
       where: { id, tenantId },
       include: { customer: true, lines: true, invoices: { include: { payments: true } } },
     });
@@ -73,7 +71,7 @@ export class SalesOrderService {
   }
 
   async createInvoiceFromOrder(tenantId: string, salesOrderId: string) {
-    return this.prisma.$transaction(async (tx) => {
+    return prisma.$transaction(async (tx) => {
       const order = await tx.salesOrder.findFirst({
         where: { id: salesOrderId, tenantId },
         include: { lines: true, customer: true },

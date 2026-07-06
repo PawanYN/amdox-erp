@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job, Queue } from 'bullmq';
-import { PrismaClient } from '@amdox/db';
+import { prisma } from '@amdox/db';
 import { AmdoxLogger } from '../common/logger/amdox-logger';
 import { ForecastClientService } from './forecast.service';
 
@@ -38,14 +38,12 @@ export class ForecastRetrainScheduler implements OnModuleInit {
 @Processor('forecast-retrain')
 export class ForecastRetrainProcessor extends WorkerHost {
   private readonly logger = new Logger(ForecastRetrainProcessor.name);
-  private prisma = new PrismaClient();
-
   constructor(private readonly forecastService: ForecastClientService) {
     super();
   }
 
   async process(_job: Job): Promise<void> {
-    const tenants = await this.prisma.tenant.findMany({ select: { id: true, slug: true } });
+    const tenants = await prisma.tenant.findMany({ select: { id: true, slug: true } });
 
     for (const tenant of tenants) {
       try {
