@@ -7,10 +7,10 @@ import { CreateIntercompanyTransferDto } from '../dto/create-intercompany-transf
 
 /**
  * Service to handle General Ledger (GL) operations.
- * 
+ *
  * WHAT: Manages manual and automated journal entries, enforcing double-entry accounting rules
  * and respecting fiscal period locks.
- * WHY: The GL is the central source of truth for all financial transactions. It must 
+ * WHY: The GL is the central source of truth for all financial transactions. It must
  * guarantee that Debits = Credits and that no entries are posted to closed periods.
  */
 @Injectable()
@@ -33,8 +33,8 @@ export class GlService {
         name: dto.name,
         type: dto.type,
         isActive: dto.isActive !== undefined ? dto.isActive : true,
-        parentId: dto.parentAccountId
-      }
+        parentId: dto.parentAccountId,
+      },
     });
   }
 
@@ -45,7 +45,7 @@ export class GlService {
   async getAccounts(tenantId: string) {
     return this.prisma.account.findMany({
       where: { tenantId, isActive: true },
-      orderBy: { code: 'asc' }
+      orderBy: { code: 'asc' },
     });
   }
 
@@ -60,8 +60,8 @@ export class GlService {
         name,
         startDate: new Date(startDate),
         endDate: new Date(endDate),
-        isLocked: false
-      }
+        isLocked: false,
+      },
     });
   }
 
@@ -73,9 +73,14 @@ export class GlService {
   async closeFiscalPeriod(tenantId: string, periodId: string, actingUserId?: string) {
     const period = await this.prisma.fiscalPeriod.update({
       where: { id: periodId, tenantId },
-      data: { isLocked: true }
+      data: { isLocked: true },
     });
-    this.eventEmitter.emit('fiscal.period.closed', { tenantId, periodId, periodName: period.name, userId: actingUserId });
+    this.eventEmitter.emit('fiscal.period.closed', {
+      tenantId,
+      periodId,
+      periodName: period.name,
+      userId: actingUserId,
+    });
     return period;
   }
 
@@ -111,9 +116,14 @@ export class GlService {
   async createJournalEntry(tenantId: string, dto: CreateJournalEntryDto, actingUserId?: string) {
     return this.prisma.$transaction(async (tx) => {
       // 1. Check Fiscal Period lock
-      const period = await tx.fiscalPeriod.findFirst({ where: { id: dto.fiscalPeriodId, tenantId } });
+      const period = await tx.fiscalPeriod.findFirst({
+        where: { id: dto.fiscalPeriodId, tenantId },
+      });
       if (!period) throw new BadRequestException('Fiscal period not found.');
-      if (period.isLocked) throw new BadRequestException(`Fiscal period ${period.name} is locked. Cannot post entries.`);
+      if (period.isLocked)
+        throw new BadRequestException(
+          `Fiscal period ${period.name} is locked. Cannot post entries.`,
+        );
 
       // 2. Validate Double-Entry (Sum of Debits == Sum of Credits)
       let totalDebit = 0;
@@ -126,7 +136,9 @@ export class GlService {
 
       // Using a small epsilon for floating point comparison, though normally we'd use a Decimal library like decimal.js
       if (Math.abs(totalDebit - totalCredit) > 0.0001) {
-        throw new BadRequestException(`Unbalanced journal entry: Debits (${totalDebit}) do not equal Credits (${totalCredit}).`);
+        throw new BadRequestException(
+          `Unbalanced journal entry: Debits (${totalDebit}) do not equal Credits (${totalCredit}).`,
+        );
       }
 
       // 3. Create Entry
@@ -141,18 +153,21 @@ export class GlService {
           status: 'POSTED', // Auto-posting for simplicity
           postedAt: new Date(),
           lines: {
-            create: dto.lines.map(line => ({
+            create: dto.lines.map((line) => ({
               tenantId,
               accountId: line.accountId,
               debit: line.debit,
-              credit: line.credit
-            }))
-          }
+              credit: line.credit,
+            })),
+          },
         },
-        include: { lines: true }
+        include: { lines: true },
       });
 
-      AmdoxLogger.finance(`Journal entry posted  ref=${entry.reference}`, `total=${totalDebit}  id=${entry.id}`);
+      AmdoxLogger.finance(
+        `Journal entry posted  ref=${entry.reference}`,
+        `total=${totalDebit}  id=${entry.id}`,
+      );
       this.eventEmitter.emit('journal.entry.posted', {
         tenantId,
         journalEntryId: entry.id,
@@ -181,9 +196,9 @@ export class GlService {
    * manual data entry from the accounting team.
    */
   @OnEvent('invoice.approved')
-  async handleInvoiceApproved(event: { tenantId: string, invoiceId: string }) {
+  async handleInvoiceApproved(event: { tenantId: string; invoiceId: string }) {
     AmdoxLogger.event('invoice.approved → GL posting', `invoiceId=${event.invoiceId}`);
-    
+
     // 1. Fetch the invoice
     const invoice = await this.prisma.invoice.findUnique({
       where: { id: event.invoiceId },
@@ -197,23 +212,30 @@ export class GlService {
     const now = new Date();
     const periodName = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     let period = await this.prisma.fiscalPeriod.findUnique({
-      where: { tenantId_name: { tenantId: event.tenantId, name: periodName } }
+      where: { tenantId_name: { tenantId: event.tenantId, name: periodName } },
     });
     if (!period) {
       period = await this.openFiscalPeriod(
         event.tenantId,
         periodName,
         new Date(now.getFullYear(), now.getMonth(), 1),
-        new Date(now.getFullYear(), now.getMonth() + 1, 0)
+        new Date(now.getFullYear(), now.getMonth() + 1, 0),
       );
     }
 
     // 3. Fetch standard Accounts (1300 = Inventory, 2000 = AP)
-    const invAccount = await this.prisma.account.findUnique({ where: { tenantId_code: { tenantId: event.tenantId, code: '1300' } }});
-    const apAccount = await this.prisma.account.findUnique({ where: { tenantId_code: { tenantId: event.tenantId, code: '2000' } }});
+    const invAccount = await this.prisma.account.findUnique({
+      where: { tenantId_code: { tenantId: event.tenantId, code: '1300' } },
+    });
+    const apAccount = await this.prisma.account.findUnique({
+      where: { tenantId_code: { tenantId: event.tenantId, code: '2000' } },
+    });
 
     if (!invAccount || !apAccount) {
-      AmdoxLogger.critical('GL accounts 1300/2000 missing — AP invoice cannot be posted', `tenant=${event.tenantId}`);
+      AmdoxLogger.critical(
+        'GL accounts 1300/2000 missing — AP invoice cannot be posted',
+        `tenant=${event.tenantId}`,
+      );
       return;
     }
 
@@ -227,12 +249,18 @@ export class GlService {
         sourceId: invoice.id,
         lines: [
           { accountId: invAccount.id, debit: amount, credit: 0 },
-          { accountId: apAccount.id, debit: 0, credit: amount }
-        ]
+          { accountId: apAccount.id, debit: 0, credit: amount },
+        ],
       });
-      AmdoxLogger.finance(`AP invoice posted to GL  Dr1300/Cr2000`, `inv=${invoice.invoiceNumber}  amount=${amount}`);
+      AmdoxLogger.finance(
+        `AP invoice posted to GL  Dr1300/Cr2000`,
+        `inv=${invoice.invoiceNumber}  amount=${amount}`,
+      );
     } catch (err) {
-      AmdoxLogger.error(`GL posting failed for AP invoice ${invoice.invoiceNumber}`, (err as Error).message);
+      AmdoxLogger.error(
+        `GL posting failed for AP invoice ${invoice.invoiceNumber}`,
+        (err as Error).message,
+      );
     }
   }
 
@@ -243,7 +271,11 @@ export class GlService {
     });
   }
 
-  async createIntercompanyTransfer(tenantId: string, dto: CreateIntercompanyTransferDto, actingUserId?: string) {
+  async createIntercompanyTransfer(
+    tenantId: string,
+    dto: CreateIntercompanyTransferDto,
+    actingUserId?: string,
+  ) {
     if (dto.fromAccountId === dto.toAccountId) {
       throw new BadRequestException('Source and destination accounts must differ.');
     }
@@ -274,7 +306,8 @@ export class GlService {
     await this.createJournalEntry(tenantId, {
       fiscalPeriodId: period.id,
       reference: `IC-${transfer.id.slice(0, 8)}`,
-      description: dto.description || `Intercompany transfer ${fromAccount.code} → ${toAccount.code}`,
+      description:
+        dto.description || `Intercompany transfer ${fromAccount.code} → ${toAccount.code}`,
       sourceModule: 'IC',
       sourceId: transfer.id,
       lines: [
@@ -312,7 +345,9 @@ export class GlService {
     });
 
     if (!debitAccount || !creditAccount) {
-      this.logger.error(`GL accounts ${debitAccountCode}/${creditAccountCode} not found for tenant ${tenantId}`);
+      this.logger.error(
+        `GL accounts ${debitAccountCode}/${creditAccountCode} not found for tenant ${tenantId}`,
+      );
       return;
     }
 
@@ -334,7 +369,7 @@ export class GlService {
    * WHY: Automatically updates the ledger (Debit AR, Credit Revenue) based on AR operations.
    */
   @OnEvent('invoice.issued')
-  async handleInvoiceIssued(event: { tenantId: string, invoiceId: string }) {
+  async handleInvoiceIssued(event: { tenantId: string; invoiceId: string }) {
     AmdoxLogger.event('invoice.issued → GL posting', `invoiceId=${event.invoiceId}`);
 
     const invoice = await this.prisma.invoice.findUnique({ where: { id: event.invoiceId } });
@@ -354,9 +389,15 @@ export class GlService {
         '4000',
         amount,
       );
-      AmdoxLogger.finance(`AR invoice posted to GL  Dr1200/Cr4000`, `inv=${invoice.invoiceNumber}  amount=${amount}`);
+      AmdoxLogger.finance(
+        `AR invoice posted to GL  Dr1200/Cr4000`,
+        `inv=${invoice.invoiceNumber}  amount=${amount}`,
+      );
     } catch (err) {
-      AmdoxLogger.error(`GL posting failed for AR invoice ${invoice.invoiceNumber}`, (err as Error).message);
+      AmdoxLogger.error(
+        `GL posting failed for AR invoice ${invoice.invoiceNumber}`,
+        (err as Error).message,
+      );
     }
   }
 
@@ -367,18 +408,20 @@ export class GlService {
    * INT-05: HR → Finance (payroll) integration.
    */
   @OnEvent('payroll.completed')
-  async handlePayrollCompleted(event: {
-    tenantId: string;
-    payrollRunId: string;
-    label: string;
-  }) {
-    AmdoxLogger.event('payroll.completed → GL entry', `run=${event.payrollRunId}  label=${event.label}`);
+  async handlePayrollCompleted(event: { tenantId: string; payrollRunId: string; label: string }) {
+    AmdoxLogger.event(
+      'payroll.completed → GL entry',
+      `run=${event.payrollRunId}  label=${event.label}`,
+    );
 
     const payrollRun = await this.prisma.payrollRun.findUnique({
       where: { id: event.payrollRunId },
     });
     if (!payrollRun || !payrollRun.totalNetPay) {
-      AmdoxLogger.warn('Payroll run not found or missing totalNetPay — GL post skipped', `runId=${event.payrollRunId}`);
+      AmdoxLogger.warn(
+        'Payroll run not found or missing totalNetPay — GL post skipped',
+        `runId=${event.payrollRunId}`,
+      );
       return;
     }
 
@@ -390,7 +433,9 @@ export class GlService {
       where: { tenantId: event.tenantId, sourceModule: 'PAYROLL', sourceId: event.payrollRunId },
     });
     if (duplicate) {
-      this.logger.debug(`GL entry for payroll run ${event.payrollRunId} already exists — skipping.`);
+      this.logger.debug(
+        `GL entry for payroll run ${event.payrollRunId} already exists — skipping.`,
+      );
       return;
     }
 
@@ -401,12 +446,24 @@ export class GlService {
       this.prisma.account.upsert({
         where: { tenantId_code: { tenantId: event.tenantId, code: '6000' } },
         update: {},
-        create: { tenantId: event.tenantId, code: '6000', name: 'Salary Expense', type: 'EXPENSE', isActive: true },
+        create: {
+          tenantId: event.tenantId,
+          code: '6000',
+          name: 'Salary Expense',
+          type: 'EXPENSE',
+          isActive: true,
+        },
       }),
       this.prisma.account.upsert({
         where: { tenantId_code: { tenantId: event.tenantId, code: '2100' } },
         update: {},
-        create: { tenantId: event.tenantId, code: '2100', name: 'Payroll Payable', type: 'LIABILITY', isActive: true },
+        create: {
+          tenantId: event.tenantId,
+          code: '2100',
+          name: 'Payroll Payable',
+          type: 'LIABILITY',
+          isActive: true,
+        },
       }),
     ]);
 
@@ -422,9 +479,15 @@ export class GlService {
           { accountId: payrollPayableAccount.id, debit: 0, credit: amount },
         ],
       });
-      AmdoxLogger.finance(`Payroll GL entry posted  Dr6000/Cr2100`, `runId=${event.payrollRunId}  amount=${amount}`);
+      AmdoxLogger.finance(
+        `Payroll GL entry posted  Dr6000/Cr2100`,
+        `runId=${event.payrollRunId}  amount=${amount}`,
+      );
     } catch (err) {
-      AmdoxLogger.critical(`Payroll GL post FAILED`, `runId=${event.payrollRunId}  err=${(err as Error).message}`);
+      AmdoxLogger.critical(
+        `Payroll GL post FAILED`,
+        `runId=${event.payrollRunId}  err=${(err as Error).message}`,
+      );
     }
   }
 
@@ -461,7 +524,53 @@ export class GlService {
         '1200',
         amount,
       );
-      AmdoxLogger.finance(`Payment posted to GL  Dr1000/Cr1200`, `paymentId=${payment.id}  amount=${amount}`);
+      AmdoxLogger.finance(
+        `Payment posted to GL  Dr1000/Cr1200`,
+        `paymentId=${payment.id}  amount=${amount}`,
+      );
+    } catch (err) {
+      AmdoxLogger.error(`GL posting failed for payment ${payment.id}`, (err as Error).message);
+    }
+  }
+
+  /**
+   * WHAT: Domain Event Listener that posts cash movements when a vendor payment is made.
+   * WHY: Automatically updates the ledger (Debit AP Payable, Credit Cash) — the disbursement
+   * counterpart to the `invoice.approved` Dr Inventory/Cr AP posting.
+   */
+  @OnEvent('payment.made')
+  async handlePaymentMade(event: {
+    tenantId: string;
+    paymentId: string;
+    invoiceId: string;
+    amount?: number;
+  }) {
+    AmdoxLogger.event('payment.made → GL posting', `paymentId=${event.paymentId}`);
+
+    const payment = await this.prisma.payment.findUnique({
+      where: { id: event.paymentId },
+      include: { invoice: true },
+    });
+    if (!payment) return;
+
+    const amount = event.amount ?? Number(payment.amount);
+    if (amount <= 0) return;
+
+    try {
+      await this.postArGlEntry(
+        event.tenantId,
+        `PAY-${payment.id.slice(0, 8)}`,
+        `Payment made for invoice ${payment.invoice.invoiceNumber}`,
+        'AP',
+        payment.id,
+        '2000',
+        '1000',
+        amount,
+      );
+      AmdoxLogger.finance(
+        `Payment posted to GL  Dr2000/Cr1000`,
+        `paymentId=${payment.id}  amount=${amount}`,
+      );
     } catch (err) {
       AmdoxLogger.error(`GL posting failed for payment ${payment.id}`, (err as Error).message);
     }

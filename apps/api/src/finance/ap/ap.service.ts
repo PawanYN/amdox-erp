@@ -1,7 +1,9 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaClient, InvoiceStatus } from '@amdox/db';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CreateInvoiceDto, InvoiceType } from '../dto/create-invoice.dto';
+import { RecordPaymentDto } from '../dto/record-payment.dto';
+import { RunPaymentBatchDto } from '../dto/run-payment-batch.dto';
 import { InvoiceMatchingService } from './invoice-matching.service';
 import { OcrService } from './ocr.service';
 
@@ -12,6 +14,23 @@ interface InvoiceApprovedEvent {
   totalAmount?: number;
   invoiceNumber?: string;
   userId?: string;
+}
+
+interface PaymentMadeEvent {
+  tenantId: string;
+  paymentId: string;
+  invoiceId: string;
+  amount: number;
+  bankReference?: string;
+  userId?: string;
+}
+
+export interface PaymentRunResult {
+  invoiceId: string;
+  status: 'PAID' | 'FAILED';
+  amount?: number;
+  paymentId?: string;
+  error?: string;
 }
 
 /**
@@ -267,5 +286,159 @@ export class ApService {
     }
 
     return approvedInvoice;
+  }
+
+  /**
+   * WHAT: Records a disbursement against an outstanding AP invoice.
+   * WHY: Approval alone never moved money — this is the step that actually pays a
+   * vendor, reduces the payable balance, and triggers the GL event to debit
+   * Accounts Payable and credit Cash.
+   */
+  async recordPayment(
+    tenantId: string,
+    dto: RecordPaymentDto,
+    actingUserId?: string,
+    paymentRunId?: string,
+  ) {
+    let paymentEvent: PaymentMadeEvent | null = null;
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const invoice = await tx.invoice.findFirst({
+        where: { id: dto.invoiceId, tenantId, type: 'AP' },
+        include: { payments: true },
+      });
+      if (!invoice) throw new NotFoundException('AP Invoice not found.');
+      if (invoice.status !== 'APPROVED' && invoice.status !== 'PARTIALLY_PAID') {
+        throw new BadRequestException(
+          `Invoice must be APPROVED before payment (current status: ${invoice.status}).`,
+        );
+      }
+
+      const payment = await tx.payment.create({
+        data: {
+          tenantId,
+          invoiceId: dto.invoiceId,
+          paymentRunId,
+          amount: dto.amount,
+          bankReference: dto.bankReference,
+          status: 'COMPLETED',
+          paidAt: new Date(),
+        },
+      });
+
+      const priorPaid = invoice.payments.reduce((sum, p) => sum + p.amount.toNumber(), 0);
+      const totalPaid = priorPaid + dto.amount;
+      const invoiceTotal = invoice.totalAmount.toNumber();
+
+      let newStatus: InvoiceStatus = invoice.status;
+      if (totalPaid >= invoiceTotal) {
+        newStatus = 'PAID';
+      } else if (totalPaid > 0) {
+        newStatus = 'PARTIALLY_PAID';
+      }
+
+      await tx.invoice.update({ where: { id: invoice.id }, data: { status: newStatus } });
+
+      paymentEvent = {
+        tenantId,
+        paymentId: payment.id,
+        invoiceId: invoice.id,
+        amount: dto.amount,
+        bankReference: dto.bankReference,
+        userId: actingUserId,
+      };
+
+      await tx.outboxEvent.create({
+        data: {
+          tenantId,
+          eventType: 'payment.made',
+          payload: {
+            paymentId: payment.id,
+            invoiceId: invoice.id,
+            amount: payment.amount,
+            bankReference: dto.bankReference,
+          },
+          status: 'PENDING',
+        },
+      });
+
+      return {
+        payment,
+        reconciliation: {
+          invoiceTotal,
+          totalPaid,
+          balanceDue: Math.max(invoiceTotal - totalPaid, 0),
+          status: newStatus,
+        },
+      };
+    });
+
+    if (paymentEvent) {
+      this.eventEmitter.emit('payment.made', paymentEvent);
+    }
+
+    return result;
+  }
+
+  /**
+   * WHAT: Batch-pays a set of approved AP invoices in full (the actual "payment run").
+   * WHY: `approve()` only ever authorized an invoice for payment — nothing previously
+   * moved it to PAID or disbursed cash. This settles each selected invoice's remaining
+   * balance in one call, continuing past individual failures so one bad invoice ID
+   * doesn't block the rest of the run.
+   */
+  async runPaymentBatch(tenantId: string, dto: RunPaymentBatchDto, actingUserId?: string) {
+    const paymentRun = await this.prisma.paymentRun.create({
+      data: {
+        tenantId,
+        runDate: new Date(),
+        description: dto.description,
+      },
+    });
+
+    const results: PaymentRunResult[] = [];
+
+    for (const invoiceId of dto.invoiceIds) {
+      try {
+        const invoice = await this.prisma.invoice.findFirst({
+          where: { id: invoiceId, tenantId, type: 'AP' },
+          include: { payments: true },
+        });
+        if (!invoice) throw new NotFoundException('AP Invoice not found.');
+        if (invoice.status !== 'APPROVED' && invoice.status !== 'PARTIALLY_PAID') {
+          throw new BadRequestException(
+            `Invoice ${invoice.invoiceNumber} is not APPROVED (status: ${invoice.status}).`,
+          );
+        }
+
+        const priorPaid = invoice.payments.reduce((sum, p) => sum + p.amount.toNumber(), 0);
+        const balanceDue = invoice.totalAmount.toNumber() - priorPaid;
+        if (balanceDue <= 0) {
+          throw new BadRequestException(
+            `Invoice ${invoice.invoiceNumber} has no outstanding balance.`,
+          );
+        }
+
+        const paid = await this.recordPayment(
+          tenantId,
+          { invoiceId, amount: balanceDue, bankReference: dto.bankReference },
+          actingUserId,
+          paymentRun.id,
+        );
+
+        results.push({ invoiceId, status: 'PAID', amount: balanceDue, paymentId: paid.payment.id });
+      } catch (error) {
+        results.push({ invoiceId, status: 'FAILED', error: (error as Error).message });
+      }
+    }
+
+    return {
+      paymentRunId: paymentRun.id,
+      processed: results.length,
+      paidCount: results.filter((r) => r.status === 'PAID').length,
+      failedCount: results.filter((r) => r.status === 'FAILED').length,
+      totalPaid: results.reduce((sum, r) => sum + (r.amount ?? 0), 0),
+      results,
+    };
   }
 }
