@@ -14,8 +14,15 @@ export interface NotifyInput {
  * Central notification dispatch service.
  *
  * Delivery channels:
- *  1. IN_APP — always: creates a Notification record readable by /notifications
+ *  1. IN_APP — creates a Notification record readable by /notifications
  *  2. WEBHOOK — when tenant.settings.webhookUrl is configured: HMAC-signed HTTP POST
+ *
+ * Each channel is skipped if the target user has an explicit NotificationPreference
+ * row disabling it for that eventType. No preference row means the channel defaults
+ * to enabled (opt-out model, matching NotificationPreference.isEnabled's schema
+ * default). Preferences only apply when a specific userId is known — tenant-wide
+ * broadcast events with no target user always go through, since there's no
+ * individual to opt out.
  *
  * INT-07: All → Notifications integration.
  */
@@ -26,7 +33,32 @@ export class NotificationService {
 
   constructor(private readonly webhookChannel: WebhookChannel) {}
 
+  private async isChannelEnabled(
+    userId: string | undefined,
+    eventType: string,
+    channel: NotificationChannel,
+  ): Promise<boolean> {
+    if (!userId) return true;
+    const pref = await this.prisma.notificationPreference.findFirst({
+      where: { userId, eventType, channel },
+      select: { isEnabled: true },
+    });
+    return pref?.isEnabled ?? true;
+  }
+
   async notify(input: NotifyInput) {
+    const inAppEnabled = await this.isChannelEnabled(
+      input.userId,
+      input.eventType,
+      NotificationChannel.IN_APP,
+    );
+    if (!inAppEnabled) {
+      this.logger.log(
+        `[NOTIFICATION] ${input.eventType} suppressed for user=${input.userId} — IN_APP disabled by NotificationPreference`,
+      );
+      return null;
+    }
+
     // 1. Persist in-app notification
     const notification = await this.prisma.notification.create({
       data: {
@@ -55,7 +87,7 @@ export class NotificationService {
       },
     });
 
-    // 4. Dispatch webhook if tenant has one configured
+    // 4. Dispatch webhook if tenant has one configured and user hasn't opted out
     await this.dispatchWebhookIfConfigured(notification.id, input);
 
     return notification;
@@ -63,6 +95,13 @@ export class NotificationService {
 
   private async dispatchWebhookIfConfigured(notificationId: string, input: NotifyInput) {
     try {
+      const webhookEnabled = await this.isChannelEnabled(
+        input.userId,
+        input.eventType,
+        NotificationChannel.WEBHOOK,
+      );
+      if (!webhookEnabled) return;
+
       const tenant = await this.prisma.tenant.findUnique({
         where: { id: input.tenantId },
         select: { settings: true },
@@ -114,6 +153,31 @@ export class NotificationService {
     return this.prisma.notification.updateMany({
       where: { id: notificationId, tenantId },
       data: { isRead: true },
+    });
+  }
+
+  async listPreferences(userId: string) {
+    return this.prisma.notificationPreference.findMany({ where: { userId } });
+  }
+
+  async setPreference(
+    tenantId: string,
+    userId: string,
+    eventType: string,
+    channel: NotificationChannel,
+    isEnabled: boolean,
+  ) {
+    const existing = await this.prisma.notificationPreference.findFirst({
+      where: { userId, eventType, channel },
+    });
+    if (existing) {
+      return this.prisma.notificationPreference.update({
+        where: { id: existing.id },
+        data: { isEnabled },
+      });
+    }
+    return this.prisma.notificationPreference.create({
+      data: { tenantId, userId, eventType, channel, isEnabled },
     });
   }
 }
