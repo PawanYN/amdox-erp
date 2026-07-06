@@ -11,9 +11,10 @@ import { RedisModule } from './common/redis/redis.module';
 import { BullModule } from '@nestjs/bullmq';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
-import { APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
 import { TenantContextInterceptor } from './common/interceptors/tenant-context.interceptor';
 import { HttpLoggingInterceptor } from './common/interceptors/http-logging.interceptor';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { AuthModule } from './auth/auth.module';
 import { NotificationModule } from './notification/notification.module';
 import { BiModule } from './bi/bi.module';
@@ -63,6 +64,10 @@ import { LoggerModule } from 'nestjs-pino';
     {
       provide: APP_INTERCEPTOR,
       useClass: TenantContextInterceptor,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: AllExceptionsFilter,
     },
   ],
 })
