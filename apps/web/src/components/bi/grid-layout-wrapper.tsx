@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import type { Layout, ResponsiveLayouts } from "react-grid-layout";
+import type { Layout, LayoutItem, ResponsiveLayouts } from "react-grid-layout";
 
 /** v2 moved WidthProvider + legacy Responsive to the /legacy entrypoint */
 const ResponsiveGridLayout = dynamic(
@@ -13,12 +13,14 @@ const ResponsiveGridLayout = dynamic(
   { ssr: false },
 );
 
-export type GridLayoutItem = Layout;
+// v2 renamed the types: `Layout` is now the *array* (readonly LayoutItem[]), and a
+// single grid item is `LayoutItem` — the opposite of v1, where `Layout` meant one item.
+export type GridLayoutItem = LayoutItem;
 
 export type GridLayoutConfig = {
-  lg?: GridLayoutItem[];
-  md?: GridLayoutItem[];
-  sm?: GridLayoutItem[];
+  lg?: readonly GridLayoutItem[];
+  md?: readonly GridLayoutItem[];
+  sm?: readonly GridLayoutItem[];
 };
 
 type GridLayoutWrapperProps = {
@@ -50,7 +52,7 @@ export function GridLayoutWrapper({
   );
 
   const handleLayoutChange = useCallback(
-    (_current: Layout[], allLayouts: ResponsiveLayouts) => {
+    (_current: Layout, allLayouts: ResponsiveLayouts) => {
       onLayoutChange({
         lg: allLayouts.lg || [],
         md: allLayouts.md || [],

@@ -13,6 +13,9 @@ out/
 dist/
 *.tsbuildinfo
 
+# Turborepo cache
+.turbo/
+
 # Python virtual environment and cache (for ml-service)
 .venv/
 venv/

@@ -1,0 +1,140 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: ['**']
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '9.1.4'
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run lint
+
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @amdox/db run build
+      - run: pnpm --filter api exec tsc --noEmit
+      - run: pnpm --filter web exec tsc --noEmit
+
+  tenant-scoping-audit:
+    name: Tenant-scoping audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Block missing tenantId filters / raw PrismaClient usage
+        run: pnpm --filter api run audit:tenant-scoping
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
+
+  secret-scan:
+    name: Secret scan (trufflehog)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: TruffleHog
+        uses: trufflesecurity/trufflehog@main
+        with:
+          extra_args: --only-verified
+
+  dependency-scan:
+    name: Dependency scan (Snyk)
+    runs-on: ubuntu-latest
+    # Requires a SNYK_TOKEN repo secret (Settings -> Secrets and variables -> Actions).
+    # Skips cleanly instead of failing the pipeline when it isn't configured yet.
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for SNYK_TOKEN
+        id: check-token
+        run: |
+          if [ -n "${{ secrets.SNYK_TOKEN }}" ]; then
+            echo "has_token=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_token=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::SNYK_TOKEN secret not set — skipping Snyk dependency scan. Add it under Settings > Secrets and variables > Actions to enable."
+          fi
+      - name: Run Snyk
+        if: steps.check-token.outputs.has_token == 'true'
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --all-projects --severity-threshold=high
+
+  container-scan:
+    name: Container scan (Trivy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trivy filesystem scan (deps + misconfig across the whole repo)
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: CRITICAL,HIGH
+          exit-code: '1'
+      - name: Build ml-service image
+        run: docker build -t amdox-ml-service:ci -f apps/ml-service/Dockerfile apps/ml-service
+      - name: Trivy image scan (ml-service)
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: amdox-ml-service:ci
+          severity: CRITICAL,HIGH
+          exit-code: '1'
+      # apps/api and apps/web have no production Dockerfile yet (dev-only via
+      # `pnpm dev`) -- nothing to image-scan for them until that's built out
+      # separately (a deployment/PLAT-01 concern, not this scan step).
