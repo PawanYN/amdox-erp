@@ -1,9 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaClient } from '@amdox/db';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CreateSalesOrderDto } from '../dto/create-sales-order.dto';
@@ -118,6 +113,7 @@ export class SalesOrderService {
         include: { lines: true },
       });
 
+      // tenant-scope-ok: `order` was just found via a tenantId-scoped findFirst above.
       await tx.salesOrder.update({
         where: { id: order.id },
         data: { status: 'INVOICED' },

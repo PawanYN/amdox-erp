@@ -200,8 +200,8 @@ export class GlService {
     AmdoxLogger.event('invoice.approved → GL posting', `invoiceId=${event.invoiceId}`);
 
     // 1. Fetch the invoice
-    const invoice = await this.prisma.invoice.findUnique({
-      where: { id: event.invoiceId },
+    const invoice = await this.prisma.invoice.findFirst({
+      where: { id: event.invoiceId, tenantId: event.tenantId },
     });
     if (!invoice) return;
 
@@ -372,7 +372,9 @@ export class GlService {
   async handleInvoiceIssued(event: { tenantId: string; invoiceId: string }) {
     AmdoxLogger.event('invoice.issued → GL posting', `invoiceId=${event.invoiceId}`);
 
-    const invoice = await this.prisma.invoice.findUnique({ where: { id: event.invoiceId } });
+    const invoice = await this.prisma.invoice.findFirst({
+      where: { id: event.invoiceId, tenantId: event.tenantId },
+    });
     if (!invoice || invoice.type !== 'AR') return;
 
     const amount = Number(invoice.totalAmount);
@@ -414,8 +416,8 @@ export class GlService {
       `run=${event.payrollRunId}  label=${event.label}`,
     );
 
-    const payrollRun = await this.prisma.payrollRun.findUnique({
-      where: { id: event.payrollRunId },
+    const payrollRun = await this.prisma.payrollRun.findFirst({
+      where: { id: event.payrollRunId, tenantId: event.tenantId },
     });
     if (!payrollRun || !payrollRun.totalNetPay) {
       AmdoxLogger.warn(
@@ -504,8 +506,8 @@ export class GlService {
   }) {
     AmdoxLogger.event('payment.received → GL posting', `paymentId=${event.paymentId}`);
 
-    const payment = await this.prisma.payment.findUnique({
-      where: { id: event.paymentId },
+    const payment = await this.prisma.payment.findFirst({
+      where: { id: event.paymentId, tenantId: event.tenantId },
       include: { invoice: true },
     });
     if (!payment) return;
@@ -547,8 +549,8 @@ export class GlService {
   }) {
     AmdoxLogger.event('payment.made → GL posting', `paymentId=${event.paymentId}`);
 
-    const payment = await this.prisma.payment.findUnique({
-      where: { id: event.paymentId },
+    const payment = await this.prisma.payment.findFirst({
+      where: { id: event.paymentId, tenantId: event.tenantId },
       include: { invoice: true },
     });
     if (!payment) return;

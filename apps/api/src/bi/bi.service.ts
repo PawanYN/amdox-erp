@@ -2,13 +2,25 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { PrismaClient } from '@amdox/db';
 
 const VALID_WIDGET_TYPES = new Set([
-  'bar', 'line', 'pie', 'heatmap', 'funnel',
-  'gauge', 'card', 'waterfall', 'scatter', 'treemap',
+  'bar',
+  'line',
+  'pie',
+  'heatmap',
+  'funnel',
+  'gauge',
+  'card',
+  'waterfall',
+  'scatter',
+  'treemap',
 ]);
 
 const VALID_DATA_SOURCES = new Set<string>([
-  'ar_aging', 'inventory', 'purchase_orders',
-  'employees_by_department', 'project_funnel', 'resource_heatmap',
+  'ar_aging',
+  'inventory',
+  'purchase_orders',
+  'employees_by_department',
+  'project_funnel',
+  'resource_heatmap',
 ]);
 
 export type BiFilters = {
@@ -44,12 +56,10 @@ export class BiService {
     });
   }
 
-  async updateDashboard(
-    tenantId: string,
-    id: string,
-    data: { name?: string; layout?: object },
-  ) {
+  async updateDashboard(tenantId: string, id: string, data: { name?: string; layout?: object }) {
     await this.getDashboard(tenantId, id);
+    // tenant-scope-ok: getDashboard() above already throws NotFoundException
+    // unless `id` belongs to `tenantId`.
     return this.prisma.dashboard.update({
       where: { id },
       data: {
@@ -61,18 +71,15 @@ export class BiService {
 
   async deleteDashboard(tenantId: string, id: string) {
     await this.getDashboard(tenantId, id);
+    // tenant-scope-ok: getDashboard() above already throws NotFoundException
+    // unless `id` belongs to `tenantId`.
     return this.prisma.dashboard.update({
       where: { id },
       data: { deletedAt: new Date() },
     });
   }
 
-  async addWidget(
-    tenantId: string,
-    dashboardId: string,
-    type: string,
-    config: object,
-  ) {
+  async addWidget(tenantId: string, dashboardId: string, type: string, config: object) {
     this.validateWidget(type, config);
     await this.getDashboard(tenantId, dashboardId);
     return this.prisma.widget.create({
@@ -80,11 +87,7 @@ export class BiService {
     });
   }
 
-  async updateWidget(
-    tenantId: string,
-    id: string,
-    data: { type?: string; config?: object },
-  ) {
+  async updateWidget(tenantId: string, id: string, data: { type?: string; config?: object }) {
     const widget = await this.prisma.widget.findFirst({
       where: { id, tenantId },
     });
@@ -92,6 +95,7 @@ export class BiService {
     const nextType = data.type ?? widget.type;
     const nextConfig = data.config ?? (widget.config as object);
     this.validateWidget(nextType, nextConfig);
+    // tenant-scope-ok: `widget` was just found via a tenantId-scoped findFirst above.
     return this.prisma.widget.update({
       where: { id },
       data: {
@@ -119,6 +123,7 @@ export class BiService {
       where: { id, tenantId },
     });
     if (!widget) throw new NotFoundException('Widget not found');
+    // tenant-scope-ok: `widget` was just found via a tenantId-scoped findFirst above.
     return this.prisma.widget.delete({ where: { id } });
   }
 
@@ -179,11 +184,8 @@ export class BiService {
     const now = Date.now();
     const aging = { current: 0, d31_60: 0, d61_90: 0, over90: 0 };
     for (const inv of arInvoices) {
-      const days = Math.floor(
-        (now - new Date(inv.dueDate).getTime()) / (86400000),
-      );
-      const bucket =
-        days <= 30 ? 'Current' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '90+';
+      const days = Math.floor((now - new Date(inv.dueDate).getTime()) / 86400000);
+      const bucket = days <= 30 ? 'Current' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '90+';
 
       if (filters.period === 'current' && bucket !== 'Current') continue;
       if (filters.period === 'overdue' && bucket === 'Current') continue;

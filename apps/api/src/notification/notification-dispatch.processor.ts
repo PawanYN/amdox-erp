@@ -32,13 +32,13 @@ export class NotificationDispatchProcessor extends WorkerHost {
       const delivered =
         channel === NotificationChannel.WEBHOOK
           ? await this.dispatchWebhook(tenantId, eventType, title, body, userId)
-          : await this.dispatchEmail(userId, title, body);
+          : await this.dispatchEmail(tenantId, userId, title, body);
 
       if (delivered === 'not-applicable') {
         // Whatever made this eligible at enqueue time (webhookUrl, user email) is
         // gone now — nothing to retry, and it's not a delivery failure either.
-        await this.prisma.notificationDelivery.update({
-          where: { id: deliveryId },
+        await this.prisma.notificationDelivery.updateMany({
+          where: { id: deliveryId, tenantId },
           data: { status: NotificationDeliveryStatus.FAILED, attempts: job.attemptsMade + 1 },
         });
         return;
@@ -48,8 +48,8 @@ export class NotificationDispatchProcessor extends WorkerHost {
         throw new Error(`${channel} channel reported an unsuccessful dispatch`);
       }
 
-      await this.prisma.notificationDelivery.update({
-        where: { id: deliveryId },
+      await this.prisma.notificationDelivery.updateMany({
+        where: { id: deliveryId, tenantId },
         data: {
           status: NotificationDeliveryStatus.SENT,
           attempts: job.attemptsMade + 1,
@@ -61,8 +61,8 @@ export class NotificationDispatchProcessor extends WorkerHost {
       const maxAttempts = job.opts.attempts ?? 1;
       const isFinalAttempt = attemptsMade >= maxAttempts;
 
-      await this.prisma.notificationDelivery.update({
-        where: { id: deliveryId },
+      await this.prisma.notificationDelivery.updateMany({
+        where: { id: deliveryId, tenantId },
         data: {
           status: isFinalAttempt
             ? NotificationDeliveryStatus.FAILED
@@ -106,13 +106,14 @@ export class NotificationDispatchProcessor extends WorkerHost {
   }
 
   private async dispatchEmail(
+    tenantId: string,
     userId: string | undefined,
     title: string,
     body: string | undefined,
   ): Promise<boolean | 'not-applicable'> {
     if (!userId) return 'not-applicable';
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId, tenantId },
       select: { email: true },
     });
     if (!user?.email) return 'not-applicable';

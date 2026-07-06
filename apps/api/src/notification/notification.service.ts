@@ -71,13 +71,14 @@ export class NotificationService {
   }
 
   private async isChannelEnabled(
+    tenantId: string,
     userId: string | undefined,
     eventType: string,
     channel: NotificationChannel,
   ): Promise<boolean> {
     if (!userId) return true;
     const pref = await this.prisma.notificationPreference.findFirst({
-      where: { userId, eventType, channel },
+      where: { userId, eventType, channel, tenantId },
       select: { isEnabled: true },
     });
     return pref?.isEnabled ?? true;
@@ -85,6 +86,7 @@ export class NotificationService {
 
   async notify(input: NotifyInput) {
     const inAppEnabled = await this.isChannelEnabled(
+      input.tenantId,
       input.userId,
       input.eventType,
       NotificationChannel.IN_APP,
@@ -148,10 +150,16 @@ export class NotificationService {
     channel: Extract<NotificationChannel, 'WEBHOOK' | 'EMAIL'>,
   ) {
     try {
-      const enabled = await this.isChannelEnabled(input.userId, input.eventType, channel);
+      const enabled = await this.isChannelEnabled(
+        input.tenantId,
+        input.userId,
+        input.eventType,
+        channel,
+      );
       if (!enabled) return;
 
       if (channel === NotificationChannel.WEBHOOK) {
+        // tenant-scope-ok: Tenant model has no tenantId field (it IS the tenant).
         const tenant = await this.prisma.tenant.findUnique({
           where: { id: input.tenantId },
           select: { settings: true },
@@ -162,8 +170,8 @@ export class NotificationService {
 
       if (channel === NotificationChannel.EMAIL) {
         if (!input.userId) return;
-        const user = await this.prisma.user.findUnique({
-          where: { id: input.userId },
+        const user = await this.prisma.user.findFirst({
+          where: { id: input.userId, tenantId: input.tenantId },
           select: { email: true },
         });
         if (!user?.email) return;
@@ -216,8 +224,8 @@ export class NotificationService {
     });
   }
 
-  async listPreferences(userId: string) {
-    return this.prisma.notificationPreference.findMany({ where: { userId } });
+  async listPreferences(tenantId: string, userId: string) {
+    return this.prisma.notificationPreference.findMany({ where: { userId, tenantId } });
   }
 
   async setPreference(
@@ -228,9 +236,10 @@ export class NotificationService {
     isEnabled: boolean,
   ) {
     const existing = await this.prisma.notificationPreference.findFirst({
-      where: { userId, eventType, channel },
+      where: { userId, eventType, channel, tenantId },
     });
     if (existing) {
+      // tenant-scope-ok: `existing` was just found via a tenantId-scoped findFirst above.
       return this.prisma.notificationPreference.update({
         where: { id: existing.id },
         data: { isEnabled },

@@ -41,7 +41,8 @@ export class NotificationController {
   @Get('preferences')
   @ApiOperation({ summary: "List the current user's per-channel notification preferences" })
   listPreferences(@Req() req: any) {
-    return this.notificationService.listPreferences(req.user.id ?? req.user.sub);
+    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] || 'default-tenant-id';
+    return this.notificationService.listPreferences(tenantId, req.user.id ?? req.user.sub);
   }
 
   @Patch('preferences')

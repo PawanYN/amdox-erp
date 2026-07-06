@@ -82,6 +82,17 @@ export class InventoryService {
   // --- Stock Management ---
   async recordMovement(tenantId: string, dto: CreateStockMovementDto) {
     return this.prisma.$transaction(async (tx) => {
+      // dto.productId/warehouseId are caller-supplied — without this check, naming
+      // another tenant's product or warehouse would read/write that tenant's
+      // StockLevel row (its unique key is productId+warehouseId only, with no
+      // tenantId component, so the findUnique below can't catch this itself).
+      const [product, warehouse] = await Promise.all([
+        tx.product.findFirst({ where: { id: dto.productId, tenantId } }),
+        tx.warehouse.findFirst({ where: { id: dto.warehouseId, tenantId } }),
+      ]);
+      if (!product) throw new NotFoundException('Product not found');
+      if (!warehouse) throw new NotFoundException('Warehouse not found');
+
       // 1. Create the stock movement
       const movement = await tx.stockMovement.create({
         data: {
@@ -101,6 +112,8 @@ export class InventoryService {
       const qtyMultiplier = isOutbound ? -1 : 1;
       const adjustmentAmount = Number(dto.quantity) * qtyMultiplier;
 
+      // tenant-scope-ok: StockLevel's unique key is productId+warehouseId with no
+      // tenantId component, but both were just verified above to belong to `tenantId`.
       const existingLevel = await tx.stockLevel.findUnique({
         where: {
           productId_warehouseId: {
@@ -112,6 +125,7 @@ export class InventoryService {
 
       let updatedLevel;
       if (existingLevel) {
+        // tenant-scope-ok: existingLevel was just found via the tenant-safe lookup above.
         updatedLevel = await tx.stockLevel.update({
           where: { id: existingLevel.id },
           data: { quantity: Number(existingLevel.quantity) + adjustmentAmount },
@@ -209,6 +223,7 @@ export class InventoryService {
       const layerRemaining = Number(layer.remainingQty);
       const takeFromLayer = Math.min(layerRemaining, remainingToConsume);
 
+      // tenant-scope-ok: `layer` came from availableLayers above, fetched scoped to `tenantId`.
       await tx.inventoryCostLayer.update({
         where: { id: layer.id },
         data: { remainingQty: layerRemaining - takeFromLayer },
@@ -239,6 +254,7 @@ export class InventoryService {
     });
 
     if (existing) {
+      // tenant-scope-ok: `existing` was just found via a tenantId-scoped findFirst above.
       return this.prisma.reorderRule.update({
         where: { id: existing.id },
         data: {

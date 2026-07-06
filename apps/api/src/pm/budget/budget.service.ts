@@ -77,24 +77,19 @@ export class BudgetService {
 
   @OnEvent('cost.reported')
   async handleCostReported(payload: CostReportedPayload) {
-    const { tenantId, projectId, amount, source, sourceId, description } =
-      payload;
+    const { tenantId, projectId, amount, source, sourceId, description } = payload;
 
     if (source && sourceId) {
       const existing = await this.prisma.projectBudgetLine.findFirst({
         where: { tenantId, sourceModule: source, sourceId },
       });
       if (existing) {
-        this.logger.debug(
-          `Skipping duplicate cost.reported ${source}:${sourceId}`,
-        );
+        this.logger.debug(`Skipping duplicate cost.reported ${source}:${sourceId}`);
         return;
       }
     }
 
-    this.logger.log(
-      `Received cost report for project ${projectId}: ${amount}`,
-    );
+    this.logger.log(`Received cost report for project ${projectId}: ${amount}`);
 
     const budgets = await this.prisma.projectBudget.findMany({
       where: { projectId, tenantId },
@@ -117,14 +112,14 @@ export class BudgetService {
         data: {
           tenantId,
           projectBudgetId: budget.id,
-          description:
-            description ?? `Cost from ${source ?? 'external'}`,
+          description: description ?? `Cost from ${source ?? 'external'}`,
           amount,
           sourceModule: source,
           sourceId,
         },
       });
 
+      // tenant-scope-ok: `budget` came from budgets[0], fetched scoped to `tenantId` above.
       const updated = await tx.projectBudget.update({
         where: { id: budget.id },
         data: { actualAmount: { increment: amount } },

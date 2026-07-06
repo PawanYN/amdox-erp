@@ -45,6 +45,7 @@ export class DepartmentService {
 
   async update(tenantId: string, id: string, updateDepartmentDto: UpdateDepartmentDto) {
     await this.findOne(tenantId, id); // Ensure it exists in this tenant
+    // tenant-scope-ok: findOne() above already threw NotFoundException unless `id` belongs to `tenantId`.
     const department = await this.prisma.department.update({
       where: { id },
       data: updateDepartmentDto,
@@ -55,6 +56,7 @@ export class DepartmentService {
 
   async remove(tenantId: string, id: string) {
     await this.findOne(tenantId, id); // Ensure it exists
+    // tenant-scope-ok: findOne() above already threw NotFoundException unless `id` belongs to `tenantId`.
     const department = await this.prisma.department.delete({
       where: { id },
     });

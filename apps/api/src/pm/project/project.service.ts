@@ -136,6 +136,7 @@ export class ProjectService {
     });
     if (!task) throw new NotFoundException('Task not found');
 
+    // tenant-scope-ok: `task` was just found via a tenantId-scoped findFirst above.
     return this.prisma.task.update({
       where: { id: taskId },
       data: { status },
@@ -189,6 +190,7 @@ export class ProjectService {
     });
     if (!project) throw new NotFoundException('Project not found');
 
+    // tenant-scope-ok: `project` was just found via a tenantId-scoped findFirst above.
     return this.prisma.project.update({
       where: { id: projectId },
       data: {
@@ -373,6 +375,7 @@ export class ProjectService {
     });
     if (!existing) throw new NotFoundException('Milestone not found');
 
+    // tenant-scope-ok: `existing` was just found via a tenantId-scoped findFirst above.
     const milestone = await this.prisma.milestone.update({
       where: { id: milestoneId },
       data: {
@@ -403,6 +406,7 @@ export class ProjectService {
       throw new BadRequestException('Milestone is already achieved.');
     }
 
+    // tenant-scope-ok: `existing` was just found via a tenantId-scoped findFirst above.
     const milestone = await this.prisma.milestone.update({
       where: { id: milestoneId },
       data: { isAchieved: true },

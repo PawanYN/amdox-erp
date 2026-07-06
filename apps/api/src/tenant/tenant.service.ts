@@ -7,6 +7,7 @@ import {
   NotFoundException,
   Logger,
 } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import KcAdminClient from '@keycloak/keycloak-admin-client';
 import { prisma } from '@amdox/db';
 import { CreateTenantDto } from './dto/create-tenant.dto';
@@ -96,7 +97,7 @@ export class TenantService implements OnModuleInit, OnModuleDestroy {
         clientId: 'amdox-erp-web',
         enabled: true,
         publicClient: true,
-        secret: 'amdox-secret-123', // In prod, generate a secure UUID
+        secret: randomUUID(), // unique per tenant — was a hardcoded shared literal committed to git
         standardFlowEnabled: true,
         directAccessGrantsEnabled: true,
         redirectUris: ['http://localhost:3000/*', 'http://localhost:3001/*'],

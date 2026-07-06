@@ -153,8 +153,8 @@ export class PayrollProcessor extends WorkerHost {
       }
 
       // Mark run complete
-      await this.prisma.payrollRun.update({
-        where: { id: payrollRunId },
+      await this.prisma.payrollRun.updateMany({
+        where: { id: payrollRunId, tenantId },
         data: {
           totalNetPay: totalNetPaySum.toFixed(4),
           status: 'COMPLETED',
@@ -180,8 +180,8 @@ export class PayrollProcessor extends WorkerHost {
         `Payroll run FAILED: ${label}`,
         `runId=${payrollRunId}  err=${error.message}`,
       );
-      await this.prisma.payrollRun.update({
-        where: { id: payrollRunId },
+      await this.prisma.payrollRun.updateMany({
+        where: { id: payrollRunId, tenantId },
         data: {
           status: 'FAILED',
           completedAt: new Date(),

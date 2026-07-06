@@ -58,6 +58,7 @@ export class ForecastClientService {
       orderBy: { trainedAt: 'desc' },
     });
 
+    // tenant-scope-ok: `existing` was just found via a tenantId-scoped findFirst above.
     const model = existing
       ? await this.prisma.forecastModel.update({
           where: { id: existing.id },

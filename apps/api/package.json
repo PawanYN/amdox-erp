@@ -10,6 +10,7 @@
     "start:prod": "node dist/main",
     "postman": "openapi2postmanv2 -s openapi-spec.json -o postman_collection.json -p",
     "verify:p2p": "ts-node scripts/verify-p2p-flow.ts",
+    "audit:tenant-scoping": "ts-node scripts/audit-tenant-scoping.ts",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\""
   },
   "dependencies": {

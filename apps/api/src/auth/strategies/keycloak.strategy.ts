@@ -68,6 +68,9 @@ export class KeycloakStrategy extends PassportStrategy(Strategy, 'keycloak') {
 
     // 2. Fetch the user ALONG WITH their assigned roles and tenant
     AmdoxLogger.debug('DB lookup for ssoSubject', payload.sub);
+    // tenant-scope-ok: this IS the lookup that determines which tenant the caller
+    // belongs to — ssoSubject is globally unique across all tenants (Keycloak's
+    // subject ID), so it can't be pre-filtered by a tenantId we don't know yet.
     const user = await this.prisma.user.findFirst({
       where: { ssoSubject: payload.sub },
       include: {
@@ -83,7 +86,7 @@ export class KeycloakStrategy extends PassportStrategy(Strategy, 'keycloak') {
       throw new UnauthorizedException('User not found in database');
     }
 
-    const roles = user.userRoles.map(ur => ur.role.name);
+    const roles = user.userRoles.map((ur) => ur.role.name);
     (user as any).roles = roles;
 
     AmdoxLogger.success(

@@ -16,6 +16,8 @@ export class MilestoneOverdueScheduler {
     const now = new Date();
     const since = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
+    // tenant-scope-ok: system-wide daily cron scan across every tenant's milestones
+    // by design — each milestone's own tenantId is threaded through the emitted event.
     const milestones = await this.prisma.milestone.findMany({
       where: {
         isAchieved: false,

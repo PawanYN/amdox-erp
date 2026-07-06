@@ -149,6 +149,7 @@ export class ApService {
             // MATCH SUCCESSFUL -> Auto-approve
             this.logger.log(`Invoice ${invoice.id} matched successfully! Auto-approving.`);
 
+            // tenant-scope-ok: `invoice` was created earlier in this same transaction, scoped to `tenantId`.
             const approvedInvoice = await tx.invoice.update({
               where: { id: invoice.id },
               data: {
@@ -255,6 +256,7 @@ export class ApService {
       });
       if (!invoice) throw new NotFoundException('Invoice not found');
 
+      // tenant-scope-ok: `invoice` was just found via a tenantId-scoped findFirst above.
       const updated = await tx.invoice.update({
         where: { id: invoice.id },
         data: { status: 'APPROVED', matchedAt: new Date() },
@@ -337,6 +339,7 @@ export class ApService {
         newStatus = 'PARTIALLY_PAID';
       }
 
+      // tenant-scope-ok: `invoice` was just found via a tenantId-scoped findFirst above.
       await tx.invoice.update({ where: { id: invoice.id }, data: { status: newStatus } });
 
       paymentEvent = {

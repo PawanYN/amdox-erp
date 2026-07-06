@@ -62,6 +62,7 @@ export class BiReportService {
     if (report.lastReportPath && fs.existsSync(report.lastReportPath)) {
       fs.unlinkSync(report.lastReportPath);
     }
+    // tenant-scope-ok: `report` was just found via a tenantId-scoped findFirst above.
     return this.prisma.scheduledReport.delete({ where: { id } });
   }
 
@@ -86,6 +87,7 @@ export class BiReportService {
       fs.writeFileSync(filePath, pdf);
     }
 
+    // tenant-scope-ok: `report` was just found via a tenantId-scoped findFirst above.
     await this.prisma.scheduledReport.update({
       where: { id: report.id },
       data: { lastRunAt: new Date(), lastReportPath: filePath },

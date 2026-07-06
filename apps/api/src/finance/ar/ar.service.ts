@@ -6,7 +6,7 @@ import { RecordPaymentDto } from '../dto/record-payment.dto';
 
 /**
  * Service to handle Accounts Receivable (AR) operations.
- * 
+ *
  * WHAT: Manages the lifecycle of customer invoices and the payments received against them.
  * WHY: This tracks money owed to the company (receivables) and ensures proper matching
  * of incoming cash to outstanding invoices, integrating with the GL via domain events.
@@ -41,22 +41,22 @@ export class ArService {
           totalAmount: dto.totalAmount,
           status: 'APPROVED', // AR invoices are typically approved upon creation (sent to customer)
           lines: {
-            create: dto.lines.map(line => ({
+            create: dto.lines.map((line) => ({
               tenantId,
               description: line.description,
               quantity: line.quantity,
               unitPrice: line.unitPrice,
-              lineTotal: line.lineTotal
-            }))
-          }
+              lineTotal: line.lineTotal,
+            })),
+          },
         },
-        include: { lines: true }
+        include: { lines: true },
       });
 
       // AR Invoices emit an event when issued to post to the GL (Debit AR, Credit Revenue)
       this.eventEmitter.emit('invoice.issued', {
         tenantId,
-        invoiceId: invoice.id
+        invoiceId: invoice.id,
       });
 
       await tx.outboxEvent.create({
@@ -64,8 +64,8 @@ export class ArService {
           tenantId,
           eventType: 'invoice.issued',
           payload: { invoiceId: invoice.id, totalAmount: invoice.totalAmount },
-          status: 'PENDING'
-        }
+          status: 'PENDING',
+        },
       });
 
       return invoice;
@@ -83,7 +83,7 @@ export class ArService {
         where: { id: dto.invoiceId, tenantId, type: 'AR' },
         include: { payments: true, salesOrder: true },
       });
-      
+
       if (!invoice) {
         throw new NotFoundException('AR Invoice not found.');
       }
@@ -95,14 +95,11 @@ export class ArService {
           amount: dto.amount,
           bankReference: dto.bankReference,
           status: 'COMPLETED',
-          paidAt: new Date()
-        }
+          paidAt: new Date(),
+        },
       });
 
-      const priorPaid = invoice.payments.reduce(
-        (sum, p) => sum + p.amount.toNumber(),
-        0,
-      );
+      const priorPaid = invoice.payments.reduce((sum, p) => sum + p.amount.toNumber(), 0);
       const totalPaid = priorPaid + dto.amount;
       const invoiceTotal = invoice.totalAmount.toNumber();
 
@@ -113,12 +110,15 @@ export class ArService {
         newStatus = 'PARTIALLY_PAID';
       }
 
+      // tenant-scope-ok: `invoice` was just found via a tenantId-scoped findFirst above.
       await tx.invoice.update({
         where: { id: invoice.id },
         data: { status: newStatus },
       });
 
       if (invoice.salesOrderId && newStatus === 'PAID') {
+        // tenant-scope-ok: invoice.salesOrder was included in the same tenantId-scoped
+        // fetch above — it belongs to the same tenant as the invoice.
         await tx.salesOrder.update({
           where: { id: invoice.salesOrderId },
           data: { status: 'FULFILLED' },
@@ -144,8 +144,8 @@ export class ArService {
             amount: payment.amount,
             bankReference: dto.bankReference,
           },
-          status: 'PENDING'
-        }
+          status: 'PENDING',
+        },
       });
 
       return {
@@ -166,26 +166,26 @@ export class ArService {
    */
   async getAgingReport(tenantId: string) {
     const now = new Date();
-    
+
     const invoices = await this.prisma.invoice.findMany({
       where: {
         tenantId,
         type: 'AR',
-        status: { in: ['APPROVED', 'OVERDUE'] }
-      }
+        status: { in: ['APPROVED', 'OVERDUE'] },
+      },
     });
 
     const report = {
       '0-30': 0,
       '31-60': 0,
       '61-90': 0,
-      '90+': 0
+      '90+': 0,
     };
 
     for (const inv of invoices) {
       const diffTime = Math.abs(now.getTime() - inv.dueDate.getTime());
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
+
       const amount = inv.totalAmount.toNumber();
 
       if (diffDays <= 30) report['0-30'] += amount;

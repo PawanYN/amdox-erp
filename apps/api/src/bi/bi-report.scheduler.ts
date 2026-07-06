@@ -12,6 +12,9 @@ export class BiReportScheduler {
 
   @Cron(CronExpression.EVERY_HOUR)
   async handleScheduledReports() {
+    // tenant-scope-ok: this is a system-wide cron scan across every tenant's active
+    // reports by design (like fx-rate.service.ts's daily FX fetch) — each report's
+    // own tenantId is threaded through to runReport() below for the actual work.
     const reports = await this.prisma.scheduledReport.findMany({
       where: { isActive: true },
     });

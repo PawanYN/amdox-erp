@@ -43,20 +43,20 @@ export class AttendanceService {
     const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
 
     const attendance = await this.prisma.attendanceRecord.findFirst({
-      where: { 
-        tenantId, 
-        employeeId, 
+      where: {
+        tenantId,
+        employeeId,
         clockIn: {
           gte: startOfDay,
           lt: endOfDay,
-        }
+        },
       },
     });
 
     if (!attendance) {
       throw new NotFoundException('No active clock-in record found for today.');
     }
-    
+
     // Enforcement of Business Rule #3: If they forget, it stays null, but they can't clock out twice!
     if (attendance.clockOut) {
       throw new BadRequestException('Employee has already clocked out for today.');
@@ -67,6 +67,7 @@ export class AttendanceService {
     const hoursWorked = diffMs / (1000 * 60 * 60);
     const overtimeHours = hoursWorked > 8 ? hoursWorked - 8 : 0;
 
+    // tenant-scope-ok: `attendance` was just found via a tenantId-scoped findFirst above.
     return this.prisma.attendanceRecord.update({
       where: { id: attendance.id },
       data: {

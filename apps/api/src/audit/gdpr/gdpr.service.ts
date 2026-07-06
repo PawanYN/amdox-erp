@@ -27,6 +27,7 @@ export class GdprService {
       throw new BadRequestException('Request already fulfilled');
     }
 
+    // tenant-scope-ok: `req` was just found via a tenantId-scoped findFirst above.
     return this.prisma.dataSubjectRequest.update({
       where: { id: requestId },
       data: { status: 'FULFILLED', fulfilledAt: new Date() },

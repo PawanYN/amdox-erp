@@ -26,12 +26,12 @@ export class LeaveService {
       annual: 'Annual Leave',
       sick: 'Sick Leave',
       maternity: 'Maternity Leave',
-      unpaid: 'Unpaid Leave'
+      unpaid: 'Unpaid Leave',
     };
 
     const dbLeaveTypeName = typeMapping[createLeaveDto.leaveType];
     const leaveTypeRecord = await this.prisma.leaveType.findFirst({
-      where: { tenantId, name: dbLeaveTypeName }
+      where: { tenantId, name: dbLeaveTypeName },
     });
 
     if (!leaveTypeRecord) {
@@ -73,7 +73,15 @@ export class LeaveService {
     });
   }
 
-  async approveOrReject(tenantId: string, leaveId: string, approveLeaveDto: ApproveLeaveDto, isTenantAdmin: boolean) {
+  async approveOrReject(
+    tenantId: string,
+    leaveId: string,
+    approveLeaveDto: ApproveLeaveDto,
+    isTenantAdmin: boolean,
+  ) {
+    // tenant-scope-ok: fetched by id alone, but immediately verified against
+    // tenantId below before any use — the correct pattern for a model without
+    // a compound [tenantId, id] unique constraint.
     const leave = await this.prisma.leaveRequest.findUnique({
       where: { id: leaveId },
       include: { employee: true },
@@ -87,12 +95,13 @@ export class LeaveService {
 
     // Delegate business rule enforcement to the State Machine
     this.leaveStateMachine.validateTransition(
-      leave, 
-      targetStatus, 
-      approveLeaveDto.managerEmployeeId, 
-      isTenantAdmin
+      leave,
+      targetStatus,
+      approveLeaveDto.managerEmployeeId,
+      isTenantAdmin,
     );
 
+    // tenant-scope-ok: `leave` was verified against `tenantId` above.
     const updated = await this.prisma.leaveRequest.update({
       where: { id: leaveId },
       data: {
@@ -108,4 +117,3 @@ export class LeaveService {
     return updated;
   }
 }
-

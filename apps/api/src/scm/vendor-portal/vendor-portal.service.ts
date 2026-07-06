@@ -32,6 +32,7 @@ export class VendorPortalService {
     }
 
     const accessKey = this.generateAccessKey();
+    // tenant-scope-ok: `vendor` was just found via a tenantId-scoped findFirst above.
     await this.prisma.vendor.update({
       where: { id: vendorId },
       data: {
@@ -146,6 +147,8 @@ export class VendorPortalService {
       throw new BadRequestException('Purchase order already acknowledged');
     }
 
+    // tenant-scope-ok: `po` was fetched above via getPurchaseOrder(), which is
+    // scoped to both tenantId and vendorId.
     return this.prisma.purchaseOrder.update({
       where: { id: poId },
       data: {
@@ -161,10 +164,7 @@ export class VendorPortalService {
     });
   }
 
-  async notifyVendorWebhook(
-    webhookUrl: string,
-    payload: Record<string, unknown>,
-  ): Promise<void> {
+  async notifyVendorWebhook(webhookUrl: string, payload: Record<string, unknown>): Promise<void> {
     try {
       const response = await fetch(webhookUrl, {
         method: 'POST',
