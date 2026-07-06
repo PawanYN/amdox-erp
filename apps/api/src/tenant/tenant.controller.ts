@@ -1,5 +1,6 @@
 import { Controller, Get, Put, Post, Delete, Body, Req, Param, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { Throttle } from '@nestjs/throttler';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { TenantService } from './tenant.service';
 import { CreateTenantDto } from './dto/create-tenant.dto';
@@ -10,7 +11,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 @ApiBearerAuth()
 @Controller('tenant')
 export class TenantController {
-  constructor(private readonly tenantService: TenantService) { }
+  constructor(private readonly tenantService: TenantService) {}
 
   @Get('exists/:slug')
   @ApiOperation({ summary: 'Check if a tenant with the given slug exists' })
@@ -18,6 +19,10 @@ export class TenantController {
     return this.tenantService.tenantExists(slug);
   }
 
+  // Unauthenticated by design (this is how a brand-new tenant signs up), so it's the
+  // single most rate-limit-sensitive route in the API — a tighter cap than the global
+  // default, since each call provisions a real Keycloak realm.
+  @Throttle({ short: { limit: 2, ttl: 10000 }, medium: { limit: 5, ttl: 60000 } })
   @Post()
   @ApiOperation({ summary: 'Create a new Tenant (Provisions Keycloak Realm + Prisma DB)' })
   async createTenant(@Body() createTenantDto: CreateTenantDto) {
@@ -40,8 +45,6 @@ export class TenantController {
     const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] || 'default-tenant-id';
     return this.tenantService.updateTenantConfig(tenantId, updateData);
   }
-
-
 
   @Get('keycloak-config')
   @UseGuards(AuthGuard('keycloak'), RolesGuard)
@@ -70,7 +73,11 @@ export class TenantController {
   @Put('required-actions/:alias')
   @UseGuards(AuthGuard('keycloak'), RolesGuard)
   @Roles('SuperAdmin', 'TenantAdmin')
-  async updateRequiredAction(@Req() req: any, @Param('alias') alias: string, @Body() updateData: any) {
+  async updateRequiredAction(
+    @Req() req: any,
+    @Param('alias') alias: string,
+    @Body() updateData: any,
+  ) {
     const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] || 'default-tenant-id';
     return this.tenantService.updateRequiredAction(tenantId, alias, updateData);
   }

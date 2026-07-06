@@ -8,10 +8,13 @@ import { TenantModule } from './tenant/tenant.module';
 import { AuditModule } from './audit/audit.module';
 import { AppController } from './app.controller';
 import { RedisModule } from './common/redis/redis.module';
+import { RedisService } from './common/redis/redis.service';
 import { BullModule } from '@nestjs/bullmq';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
-import { APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
+import { APP_INTERCEPTOR, APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { TenantContextInterceptor } from './common/interceptors/tenant-context.interceptor';
 import { HttpLoggingInterceptor } from './common/interceptors/http-logging.interceptor';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
@@ -43,6 +46,19 @@ import { LoggerModule } from 'nestjs-pino';
     }),
     EventEmitterModule.forRoot(),
     ScheduleModule.forRoot(),
+    // Redis-backed sliding-window rate limiting, applied globally via ThrottlerGuard below.
+    // Two named limits: a tight "short" burst window and a looser "medium" per-minute cap.
+    ThrottlerModule.forRootAsync({
+      imports: [RedisModule],
+      inject: [RedisService],
+      useFactory: (redis: RedisService) => ({
+        throttlers: [
+          { name: 'short', ttl: 1000, limit: 5 },
+          { name: 'medium', ttl: 60000, limit: 100 },
+        ],
+        storage: new ThrottlerStorageRedisService(redis),
+      }),
+    }),
     HealthModule,
     FinanceModule,
     HrModule,
@@ -57,6 +73,10 @@ import { LoggerModule } from 'nestjs-pino';
   ],
   controllers: [AppController],
   providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
     {
       provide: APP_INTERCEPTOR,
       useClass: HttpLoggingInterceptor,

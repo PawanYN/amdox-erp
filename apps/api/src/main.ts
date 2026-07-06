@@ -10,6 +10,7 @@ dotenv.config({ path: path.join(__dirname, '../../../../.env') });
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import helmet from 'helmet';
 import { getQueueToken } from '@nestjs/bullmq';
 import { createBullBoard } from '@bull-board/api';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
@@ -26,8 +27,67 @@ async function bootstrap() {
   // Use Pino as the core logger for NestJS
   app.useLogger(app.get(Logger));
 
-  // Enable CORS so the Next.js frontend can make requests
-  app.enableCors();
+  // Security headers: HSTS, X-Frame-Options, Referrer-Policy, Permissions-Policy, CSP.
+  // Swagger UI and Bull Board serve their own inline scripts/styles, so their exact
+  // routes get a relaxed policy below instead of weakening the default for everything.
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", 'data:'],
+          connectSrc: ["'self'"],
+          objectSrc: ["'none'"],
+          frameAncestors: ["'self'"],
+        },
+      },
+      crossOriginEmbedderPolicy: false,
+    }),
+  );
+
+  // Helmet 8 dropped its built-in Permissions-Policy middleware (the policy is too
+  // app-specific to have a sane default) — this is a pure API with no need for any of
+  // these browser features, so disable them all outright.
+  app.use((_req: Request, res: Response, next: NextFunction) => {
+    res.setHeader(
+      'Permissions-Policy',
+      'camera=(), microphone=(), geolocation=(), payment=(), usb=()',
+    );
+    next();
+  });
+
+  // Explicit CORS allowlist — no more open-to-any-origin default. FRONTEND_URL supports
+  // a comma-separated list so staging/prod can allow multiple known frontend origins.
+  const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  app.enableCors({
+    origin: allowedOrigins,
+    credentials: true,
+  });
+
+  // Swagger UI and Bull Board both render inline <script>/<style> tags of their own,
+  // which the strict default CSP above would block. Relax it only for these two paths
+  // (registered before their routers below, so it takes effect for their requests).
+  app.use(
+    ['/api-docs', '/admin/queues'],
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", 'data:'],
+          connectSrc: ["'self'"],
+          objectSrc: ["'none'"],
+        },
+      },
+      crossOriginEmbedderPolicy: false,
+    }),
+  );
 
   // Enforce strict validation rules across the entire API
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
