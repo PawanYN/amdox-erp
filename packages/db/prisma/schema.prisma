@@ -430,6 +430,7 @@ model JournalEntry {
 
   @@index([tenantId])
   @@index([fiscalPeriodId])
+  @@index([tenantId, createdAt])
 }
 
 model JournalLine {
@@ -593,6 +594,7 @@ model Invoice {
   @@index([vendorId])
   @@index([customerId])
   @@index([projectId])
+  @@index([tenantId, type, createdAt])
 }
 
 model InvoiceLine {
@@ -909,6 +911,7 @@ model PurchaseRequisition {
 
   @@index([tenantId])
   @@index([projectId])
+  @@index([tenantId, createdAt])
 }
 
 model PurchaseRequisitionLine {
@@ -956,6 +959,7 @@ model PurchaseOrder {
   @@index([tenantId])
   @@index([vendorId])
   @@index([projectId])
+  @@index([tenantId, createdAt])
 }
 
 model PurchaseOrderLine {
@@ -1008,6 +1012,7 @@ model InventoryCostLayer {
   @@index([tenantId])
   @@index([productId])
   @@index([warehouseId])
+  @@index([tenantId, productId, warehouseId])
 }
 
 model StockLevel {
@@ -1040,6 +1045,7 @@ model StockMovement {
 
   @@index([tenantId])
   @@index([productId])
+  @@index([tenantId, productId, createdAt])
 }
 
 model ReorderRule {
@@ -1296,6 +1302,7 @@ model Notification {
 
   @@index([tenantId])
   @@index([userId])
+  @@index([tenantId, createdAt])
 }
 
 model NotificationPreference {
@@ -1400,6 +1407,7 @@ model AuditLog {
 
   @@index([tenantId])
   @@index([entityType, entityId])
+  @@index([tenantId, createdAt])
 }
 
 model DataSubjectRequest {

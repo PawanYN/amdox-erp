@@ -398,12 +398,18 @@ export class ApService {
 
     const results: PaymentRunResult[] = [];
 
+    // Fetch every candidate invoice in one round-trip instead of one findFirst
+    // per invoiceId in the loop below (N+1) — the per-invoice write logic still
+    // runs individually since each payment is its own financial transaction.
+    const invoices = await this.prisma.invoice.findMany({
+      where: { id: { in: dto.invoiceIds }, tenantId, type: 'AP' },
+      include: { payments: true },
+    });
+    const invoiceById = new Map(invoices.map((inv) => [inv.id, inv]));
+
     for (const invoiceId of dto.invoiceIds) {
       try {
-        const invoice = await this.prisma.invoice.findFirst({
-          where: { id: invoiceId, tenantId, type: 'AP' },
-          include: { payments: true },
-        });
+        const invoice = invoiceById.get(invoiceId);
         if (!invoice) throw new NotFoundException('AP Invoice not found.');
         if (invoice.status !== 'APPROVED' && invoice.status !== 'PARTIALLY_PAID') {
           throw new BadRequestException(
