@@ -212,4 +212,81 @@ This is the Keycloak client secret (a password-like value an OAuth/OIDC client u
 
 - **2026-07-06** — Initial audit pass. Verified all 6 Day 20 claims against code, found the IDOR/tenant-isolation gap is more serious and structurally different than described, found CSRF/XSS claims overstated relative to actual architecture, confirmed Helmet/rate-limiting/CI gaps as-is, found one concrete hardcoded secret. Nothing fixed yet — awaiting decisions in §10.
 - **2026-07-06** — Fixed the tenant-context middleware bug (§2.2), and corrected the finding in the process: the broken file was never actually wired up (dead code, no `app.use()`/`.configure()` anywhere), and the real active mechanism (`TenantContextInterceptor`, global `APP_INTERCEPTOR`) was already correct — reads only `req.user.tenantId`, no header fallback, runs after guards so `req.user` is genuinely populated. Deleted the dead `tenant-context.middleware.ts` file so it can't mislead future readers or get accidentally wired in. `tsc --noEmit` clean, server boots and responds normally. Item 2 of §10 is now resolved; items 1, 3, 4, 5 still open.
-- **2026-07-06/07** — Decisions taken (§10) and every remaining item fixed in priority order: Helmet + CSP (§5), CORS allowlist (§3), Redis-backed rate limiting via `@nestjs/throttler` (§6), hardcoded Keycloak secret replaced with `crypto.randomUUID()` (§7), the full automated IDOR audit finding and fixing 2 real cross-tenant gaps out of 77 candidates across 26 files (§2.6), all 38 services migrated onto the safe `prisma` export with a permanent CI guard against regression (§2.7), and a full CI pipeline with TruffleHog/Snyk/Trivy wired in (§8) — including fixing an unrelated pre-existing `apps/web` typecheck failure (`react-grid-layout` v1/v2 type mismatch) that would otherwise have made the new pipeline fail on day one for a reason unconnected to this audit. Every fix verified live (not just `tsc`/lint) before committing: real cross-tenant attack attempts blocked, security headers present on real responses, rate limits triggering after N requests, a full monorepo build succeeding end-to-end. All 8 items in §9 are now closed.
+- **2026-07-06/07** — Decisions taken (§10) and every remaining item fixed in priority order: Helmet + CSP (§5), CORS allowlist (§3), Redis-backed rate limiting via `@nestjs/throttler` (§6), hardcoded Keycloak secret replaced with `crypto.randomUUID()` (§7), the full automated IDOR audit finding and fixing 2 real cross-tenant gaps out of 77 candidates across 26 files (§2.6), all 38 services migrated onto the safe `prisma` export with a permanent CI guard against regression (§2.7), and a full CI pipeline with TruffleHog/Snyk/Trivy wired in (§8) — including fixing an unrelated pre-existing `apps/web` typecheck failure (`react-grid-layout` v1/v2 type mismatch) that would otherwise have made the new pipeline fail on day one for a reason unconnected to this audit. Every fix verified live (not just `tsc`/lint) before committing: real cross-tenant attack attempts blocked, security headers present on real responses, rate limits triggering after N requests, a full monorepo build succeeding end-to-end. All 8 items in §9 are now closed. Full implementation log with commits, files, and exact verification commands: §12.
+
+---
+
+## 12. Implementation log — commits, files touched, exact verification
+
+Every commit below is on `feature/add-vendors-tab`. Each fix was verified against the _running_ system, not just `tsc`/lint — see the specific commands/results per item.
+
+### `77b27e6` — fix: remove dead, buggy tenant-context middleware
+
+- **Deleted:** `apps/api/src/common/middleware/tenant-context.middleware.ts`
+- **Verification:** confirmed via `grep` that nothing referenced the class anywhere (no `.configure()`, no `app.use()`); `tsc --noEmit` clean; server restarted and `/health/live` still returned 200.
+
+### `ae5ad60` — feat: Helmet + CSP, CORS allowlist, Redis-backed rate limiting
+
+- **Added:** `helmet` and `@nestjs/throttler` + `@nest-lab/throttler-storage-redis` dependencies
+- **Changed:** `apps/api/src/main.ts` (helmet + CSP + Permissions-Policy + CORS allowlist), `apps/api/src/app.module.ts` (`ThrottlerModule` + global `ThrottlerGuard`), `apps/api/src/tenant/tenant.controller.ts` (`@Throttle` override on `createTenant`), `.env.example` (`FRONTEND_URL`)
+- **Verification (live, against the running server):**
+
+  ```
+  curl -s -D - http://localhost:3001/health/live | grep -iE "content-security|strict-transport|x-frame|referrer-policy|permissions-policy"
+  → all 5 headers present with the expected values
+
+  curl -s -D - -H "Origin: https://evil.example.com" http://localhost:3001/health/live | grep -i access-control-allow-origin
+  → absent (blocked)
+  curl -s -D - -H "Origin: http://localhost:3000" http://localhost:3001/health/live | grep -i access-control-allow-origin
+  → Access-Control-Allow-Origin: http://localhost:3000 (allowed)
+
+  for i in 1 2 3 4; do curl -s -o /dev/null -w "%{http_code}\n" -X POST http://localhost:3001/tenant -d '{...}'; done
+  → 400, 400, 429, 429   (throttle engaged after 2 calls, matching the configured override)
+  ```
+
+### `8bb8299` — fix: replace hardcoded Keycloak secret; add automated tenant-scoping audit
+
+- **Changed:** `apps/api/src/tenant/tenant.service.ts` (`randomUUID()` instead of the literal `'amdox-secret-123'`)
+- **Added:** `apps/api/scripts/audit-tenant-scoping.ts` (the TS-AST scanner), `apps/api/package.json` (`audit:tenant-scoping` script)
+- **Fixed as part of the same commit** (found while running the new script): `purchase.service.ts` (`receiveGoods()` — added a warehouse-ownership check before the stock lookup), `inventory.service.ts` (`recordMovement()` — added product+warehouse ownership checks); ~30 files annotated with `// tenant-scope-ok: <reason>` for verified-safe patterns
+- **Verification (live):**
+  ```
+  # real cross-tenant attack attempt
+  curl -X POST /scm/inventory/movements -H "Authorization: Bearer <company-a token>" \
+    -d '{"productId": "<real>", "warehouseId": "<belongs to company-b>", ...}'
+  → before fix: would have written to company-b's StockLevel row
+  → after fix:  404 "Warehouse not found"
+  # confirmed via direct DB query: 0 rows in company-b's StockLevel referencing the test warehouse
+  ```
+
+### `44b3a49` — refactor: migrate all 38 services onto the safe auto-scoping prisma export
+
+- **Changed:** 38 files across `finance/`, `hr/`, `scm/`, `pm/`, `bi/`, `forecast/`, `audit/`, `auth/`, `notification/` — `import { PrismaClient } from '@amdox/db'` → `import { prisma } from '@amdox/db'`, removed the `private prisma = new PrismaClient()` field, `this.prisma.` → `prisma.` throughout. Every existing explicit `tenantId` filter kept unchanged.
+- **Fixed:** `inventory.service.ts` — `consumeFifoCostLayers()`'s `tx: Prisma.TransactionClient` parameter type no longer matched the `$extends()`-wrapped client's transaction type; changed to `type TxClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0]` derived directly from the client so it can't drift out of sync
+- **Extended:** `audit-tenant-scoping.ts` with a second permanent check — fails if `new PrismaClient()` reappears anywhere in `apps/api/src`
+- **Verification (live):**
+  ```
+  curl /health/ready → {"status":"ready","db":"connected","keycloak":"connected","redis":"connected", ...}
+  # full module smoke test (all 200s): GL accounts, AP invoices, AR sales orders, HR employees/
+  # departments/leave/payroll, SCM vendors/products/inventory, PM projects, BI dashboards,
+  # Forecast products, Audit logs, GDPR requests, Notifications
+  # write-path test: created, updated, and deleted a real Department through the migrated service — all succeeded
+  ```
+
+### `896c0c8` — feat: add CI pipeline with security scanning
+
+- **Added:** `.github/workflows/ci.yml` (7 jobs: lint, typecheck, tenant-scoping-audit, build, secret-scan, dependency-scan, container-scan)
+- **Fixed (unrelated pre-existing bug, found while dry-running the pipeline locally):** `apps/web/src/components/bi/grid-layout-wrapper.tsx` — `react-grid-layout` v2 renamed `Layout` to mean the _array_ type (`readonly LayoutItem[]`), not a single item as in v1; the code was still written for v1 semantics, and a stale `@types/react-grid-layout` v1 package was also still installed alongside v2's own bundled types. Removed the stale types package, fixed the type usage.
+- **Also:** added `.turbo/` to `.gitignore` (pre-existing gap, unrelated to this session's other work, noticed while verifying the build)
+- **Verification (every job's command run locally before committing the workflow):**
+  ```
+  pnpm run lint            → 2 successful, 2 total (0 errors, warnings only)
+  pnpm --filter api exec tsc --noEmit   → clean
+  pnpm --filter web exec tsc --noEmit   → clean (after the grid-layout-wrapper fix)
+  pnpm --filter api run audit:tenant-scoping   → clean
+  pnpm run build           → 3 successful, 3 total (db, api, web)
+  ```
+
+### `13f9501` — docs: close out security-hardening-audit.md
+
+- This document, updated to reflect every fix above.
