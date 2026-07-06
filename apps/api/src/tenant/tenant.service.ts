@@ -426,7 +426,7 @@ export class TenantService implements OnModuleInit {
     const tenant = await this.getTenant(tenantId);
     await this.verifyRealmExists(tenant.slug);
     try {
-      await this.kcAdminClient.identityProviders.create({ realm: tenant.slug }, provider);
+      await this.kcAdminClient.identityProviders.create({ realm: tenant.slug, ...provider });
       return { success: true };
     } catch (error) {
       AmdoxLogger.error(
