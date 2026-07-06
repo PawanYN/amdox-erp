@@ -1,6 +1,7 @@
 import {
   Injectable,
   OnModuleInit,
+  OnModuleDestroy,
   InternalServerErrorException,
   ConflictException,
   NotFoundException,
@@ -11,10 +12,17 @@ import { prisma } from '@amdox/db';
 import { CreateTenantDto } from './dto/create-tenant.dto';
 import { AmdoxLogger } from '../common/logger/amdox-logger';
 
+// Re-authenticate well inside Keycloak's default 5-minute access-token /
+// 30-minute refresh-token lifespans, so a long-lived process never has to
+// rely on the admin-client's own refresh-token-expiry path (which fails if
+// the process has been idle longer than the refresh token's lifetime).
+const KC_REAUTH_INTERVAL_MS = 4 * 60 * 1000;
+
 @Injectable()
-export class TenantService implements OnModuleInit {
+export class TenantService implements OnModuleInit, OnModuleDestroy {
   private kcAdminClient: KcAdminClient;
   private readonly logger = new Logger(TenantService.name);
+  private reauthInterval?: ReturnType<typeof setInterval>;
 
   async tenantExists(slug: string): Promise<{ exists: boolean }> {
     const tenant = await prisma.tenant.findUnique({ where: { slug } });
@@ -27,6 +35,20 @@ export class TenantService implements OnModuleInit {
       realmName: 'master',
     });
 
+    await this.authenticateKcAdminClient();
+
+    this.reauthInterval = setInterval(() => {
+      this.authenticateKcAdminClient().catch(() => {
+        // authenticateKcAdminClient() already logs the failure
+      });
+    }, KC_REAUTH_INTERVAL_MS);
+  }
+
+  onModuleDestroy() {
+    if (this.reauthInterval) clearInterval(this.reauthInterval);
+  }
+
+  private async authenticateKcAdminClient() {
     try {
       const authPromise = this.kcAdminClient.auth({
         username: process.env.KEYCLOAK_ADMIN_USERNAME || 'admin',
@@ -309,7 +331,7 @@ export class TenantService implements OnModuleInit {
     await this.verifyRealmExists(tenant.slug);
     try {
       const realm = await this.kcAdminClient.realms.findOne({ realm: tenant.slug });
-      if (!realm) return { error: 'Keycloak Realm not found for this tenant' };
+      if (!realm) throw new NotFoundException('Keycloak Realm not found for this tenant');
 
       return {
         login: {
@@ -348,8 +370,9 @@ export class TenantService implements OnModuleInit {
         },
       };
     } catch (error) {
+      if (error instanceof NotFoundException) throw error;
       AmdoxLogger.error(`Failed to fetch KC config for ${tenant.slug}`, (error as Error).message);
-      return { error: 'Failed to communicate with Identity Provider' };
+      throw new InternalServerErrorException('Failed to communicate with Identity Provider');
     }
   }
 
@@ -370,7 +393,7 @@ export class TenantService implements OnModuleInit {
       return { success: true };
     } catch (error) {
       AmdoxLogger.error(`Failed to update KC config for ${tenant.slug}`, (error as Error).message);
-      return { error: 'Failed to update Identity Provider configuration' };
+      throw new InternalServerErrorException('Failed to update Identity Provider configuration');
     }
   }
 
@@ -404,7 +427,7 @@ export class TenantService implements OnModuleInit {
         `Failed to update required action ${alias} for ${tenant.slug}`,
         (error as Error).message,
       );
-      return { error: 'Failed to update required action' };
+      throw new InternalServerErrorException('Failed to update required action');
     }
   }
 
@@ -433,7 +456,7 @@ export class TenantService implements OnModuleInit {
         `Failed to create identity provider for ${tenant.slug}`,
         (error as Error).message,
       );
-      return { error: 'Failed to create identity provider' };
+      throw new InternalServerErrorException('Failed to create identity provider');
     }
   }
 
@@ -448,7 +471,7 @@ export class TenantService implements OnModuleInit {
         `Failed to delete identity provider ${alias} for ${tenant.slug}`,
         (error as Error).message,
       );
-      return { error: 'Failed to delete identity provider' };
+      throw new InternalServerErrorException('Failed to delete identity provider');
     }
   }
 

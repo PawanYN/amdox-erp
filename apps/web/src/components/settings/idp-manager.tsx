@@ -856,6 +856,8 @@ export function IdpManager({ identityProviders, tenantSlug, onAdd, onDelete }: I
       await onAdd(body);
       setView("list");
       setSelectedProvider(null);
+    } catch {
+      // onAdd already surfaces the error message; keep the form open so the user can retry
     } finally {
       setLoading(false);
     }

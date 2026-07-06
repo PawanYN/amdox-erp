@@ -1208,7 +1208,12 @@ export default function SettingsPage() {
               identityProviders={identityProviders}
               tenantSlug={tenantConfig.slug || "my-realm"}
               onAdd={async (body) => {
-                await tenantApi.createIdentityProvider(body);
+                try {
+                  await tenantApi.createIdentityProvider(body);
+                } catch {
+                  setErrorMsg(`Failed to add identity provider '${body.alias as string}'.`);
+                  throw new Error("createIdentityProvider failed");
+                }
                 setSuccessMsg(`Identity provider '${body.alias as string}' added!`);
                 try {
                   setIdentityProviders(await tenantApi.getIdentityProviders());
