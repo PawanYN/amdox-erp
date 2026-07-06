@@ -70,18 +70,18 @@
 
 ### Area status
 
-| Area                          | Status         | Gap summary                                                                                                                                                                                             |
-| ----------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Auth & Multi-tenant           | ✅ Mostly done | Keycloak OIDC, tenant context, create-tenant; `/auth/me` endpoint; Keycloak realm role provisioning; role name unified; IdP UI (Google/Microsoft/GitHub/SAML/OIDC) per F-01                             |
-| Finance GL/AP                 | ✅ Done        | Journal entries ✅; fiscal periods ✅; aging report ✅; GL Account create modal ✅ (FE-06); AP OCR upload UI ✅ (FE-08)                                                                                 |
-| Finance AR / Order-to-Cash    | ✅ Mostly done | Sales Order module ✅ (BE-02); AR invoice + payment UI ✅ (FE-09)                                                                                                                                       |
-| HR & Payroll                  | ✅ Mostly done | Employee CRUD ✅; departments ✅; leave/attendance/payroll on live APIs ✅; payslip PDF ✅; period picker ✅                                                                                            |
-| SCM                           | ✅ Done        | PO + requisition flow works; vendor CRUD modal ✅; product catalog admin ✅; inventory admin forms ✅ (FE-01–FE-05, BE-01)                                                                              |
-| Project Management            | ✅ Strong      | Project edit/status UI ✅ (FE-13); wizard, material requests, budget bridges                                                                                                                            |
-| BI / Forecast / Notifications | ✅ Mostly done | BI workspace redesigned ✅ — fixed scroll, Data pane, Filters pane, clean toolbar; mark-read ✅; AI Forecast dashboard ✅ — Recharts panel + `/scm/forecast` global view (FE-14 ✅, INT-06 ✅, F-06 ✅) |
-| Settings                      | ✅ Mostly done | Horizontal tab bar; role-based tab access via `/auth/me`; AdminRequired guard; TenantAdmin provisioning; IdP manager fully rebuilt (F-01)                                                               |
-| UI Design System              | ✅ Done        | 40+ pages overhauled; blue/slate palette; Inter font; design tokens in `globals.css`; consistent across all modules                                                                                     |
-| Platform / Deploy             | ❌ Not started | No live demo URL, CI, or security hardening (PLAT-01–PLAT-04)                                                                                                                                           |
+| Area                          | Status         | Gap summary                                                                                                                                                                                                  |
+| ----------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Auth & Multi-tenant           | ✅ Mostly done | Keycloak OIDC, tenant context, create-tenant; `/auth/me` endpoint; Keycloak realm role provisioning; role name unified; IdP UI (Google/Microsoft/GitHub/SAML/OIDC) per F-01                                  |
+| Finance GL/AP                 | ✅ Done        | Journal entries ✅; fiscal periods ✅; aging report ✅; GL Account create modal ✅ (FE-06); AP OCR upload UI ✅ (FE-08)                                                                                      |
+| Finance AR / Order-to-Cash    | ✅ Mostly done | Sales Order module ✅ (BE-02); AR invoice + payment UI ✅ (FE-09)                                                                                                                                            |
+| HR & Payroll                  | ✅ Mostly done | Employee CRUD ✅; departments ✅; leave/attendance/payroll on live APIs ✅; payslip PDF ✅; period picker ✅                                                                                                 |
+| SCM                           | ✅ Done        | PO + requisition flow works; vendor CRUD modal ✅; product catalog admin ✅; inventory admin forms ✅ (FE-01–FE-05, BE-01)                                                                                   |
+| Project Management            | ✅ Done        | Project edit/status UI ✅ (FE-13); wizard, material requests, budget bridges; custom Gantt chart ✅ (`projects/tasks/page.tsx`); milestone overdue alerts ✅ (`projects/milestones/page.tsx`) — fulfils F-07 |
+| BI / Forecast / Notifications | ✅ Mostly done | BI workspace redesigned ✅ — fixed scroll, Data pane, Filters pane, clean toolbar; mark-read ✅; AI Forecast dashboard ✅ — Recharts panel + `/scm/forecast` global view (FE-14 ✅, INT-06 ✅, F-06 ✅)      |
+| Settings                      | ✅ Mostly done | Horizontal tab bar; role-based tab access via `/auth/me`; AdminRequired guard; TenantAdmin provisioning; IdP manager fully rebuilt (F-01)                                                                    |
+| UI Design System              | ✅ Done        | 40+ pages overhauled; blue/slate palette; Inter font; design tokens in `globals.css`; consistent across all modules                                                                                          |
+| Platform / Deploy             | ❌ Not started | No live demo URL, CI, or security hardening (PLAT-01–PLAT-04)                                                                                                                                                |
 
 ### Overall progress
 
@@ -306,18 +306,18 @@
 
 ## 11. PDF Requirement → Task Mapping
 
-| PDF  | Description                     | Remaining         | Status                                                                                                    |
-| ---- | ------------------------------- | ----------------- | --------------------------------------------------------------------------------------------------------- |
-| F-01 | Multi-Tenant Auth / SSO         | —                 | ✅ Done — Keycloak OIDC/SAML, `/auth/me`, realm roles, IdP UI (Google/Microsoft/GitHub/SAML/OIDC forms)   |
-| F-02 | GL — period close, intercompany | —                 | ✅ Done — BE-03 ✅, BE-04 ✅, journal UI ✅, GL account form ✅ (FE-06)                                   |
-| F-03 | AP/AR — OCR, payment runs       | —                 | ✅ Done — FE-09 ✅, aging report ✅, AP OCR upload UI ✅ (FE-08)                                          |
-| F-05 | SCM — vendor portal, notify     | BE-07             | ⚠️ Partial (BE-08 portal ✅, vendor/product/inventory admin UI ✅ FE-01–FE-05; email delivery still stub) |
-| F-06 | AI demand forecasting           | —                 | ✅ Done — BE-09 ✅, ml-service ✅, FE-14 ✅ (Recharts panel + `/scm/forecast` global dashboard)           |
-| F-07 | PM — Gantt, milestone alerts    | INT-02–INT-04     | ⚠️ Partial (FE-13 ✅)                                                                                     |
-| F-08 | BI — dashboard builder          | —                 | ✅ Done (BE-10 + bi-workspace)                                                                            |
-| F-09 | Audit & GDPR                    | GDPR export/erase | ⚠️ Partial (BE-06 ✅, audit API live)                                                                     |
-| F-10 | Notification engine             | BE-07 (FE-15 ✅)  | ⚠️ Partial (in-app ✅; email stub)                                                                        |
-| §9   | Submission deliverables         | PLAT-01, PLAT-02  | ❌ Open                                                                                                   |
+| PDF  | Description                     | Remaining         | Status                                                                                                                                                                                                |
+| ---- | ------------------------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F-01 | Multi-Tenant Auth / SSO         | —                 | ✅ Done — Keycloak OIDC/SAML, `/auth/me`, realm roles, IdP UI (Google/Microsoft/GitHub/SAML/OIDC forms)                                                                                               |
+| F-02 | GL — period close, intercompany | —                 | ✅ Done — BE-03 ✅, BE-04 ✅, journal UI ✅, GL account form ✅ (FE-06)                                                                                                                               |
+| F-03 | AP/AR — OCR, payment runs       | —                 | ✅ Done — FE-09 ✅, aging report ✅, AP OCR upload UI ✅ (FE-08)                                                                                                                                      |
+| F-05 | SCM — vendor portal, notify     | BE-07             | ⚠️ Partial (BE-08 portal ✅, vendor/product/inventory admin UI ✅ FE-01–FE-05; email delivery still stub)                                                                                             |
+| F-06 | AI demand forecasting           | —                 | ✅ Done — BE-09 ✅, ml-service ✅, FE-14 ✅ (Recharts panel + `/scm/forecast` global dashboard)                                                                                                       |
+| F-07 | PM — Gantt, milestone alerts    | —                 | ✅ Done — FE-13 ✅, custom Gantt in `projects/tasks/page.tsx` ✅, milestone overdue alerts in `projects/milestones/page.tsx` ✅ (previous "Partial" note was stale — INT-02–04 were already ✅ in §5) |
+| F-08 | BI — dashboard builder          | —                 | ✅ Done (BE-10 + bi-workspace)                                                                                                                                                                        |
+| F-09 | Audit & GDPR                    | GDPR export/erase | ⚠️ Partial (BE-06 ✅, audit API live)                                                                                                                                                                 |
+| F-10 | Notification engine             | BE-07 (FE-15 ✅)  | ⚠️ Partial (in-app ✅; email stub)                                                                                                                                                                    |
+| §9   | Submission deliverables         | PLAT-01, PLAT-02  | ❌ Open                                                                                                                                                                                               |
 
 ---
 
@@ -448,7 +448,7 @@ _Update this document when a task moves from Partial → Done. Cross-reference_ 
 
 #### Day 4 – Authentication & Multi-Tenancy
 
-• Keycloak realm setup: OIDC configuration ✅, SAML adapter ❌ (UI form only in IdP manager, no working backend SAML), realm-per-tenant strategy ✅ (`docs/adr/003-realm-per-tenant-isolation.md`, `createTenant()`)
+• Keycloak realm setup: OIDC configuration ✅, SAML adapter ✅ — `idp-manager.tsx` builds a real Keycloak SAML config (`providerId: "saml"`, entityId, metadata descriptor URL) → generic `POST /tenant/identity-providers` → `tenantService.createIdentityProvider()` → real `kcAdminClient.identityProviders.create()` call (backend is intentionally protocol-agnostic since Keycloak itself is the SAML broker); wired end-to-end but not live SSO-tested, realm-per-tenant strategy ✅ (`docs/adr/003-realm-per-tenant-isolation.md`, `createTenant()`)
 • NestJS auth module: passport-jwt ✅ (`auth/strategies/keycloak.strategy.ts`), RBAC guard ✅ (`auth/guards/roles.guard.ts`), tenant context middleware ✅ (`common/middleware/tenant-context.middleware.ts`)
 • User table + TenantUser join with roles (SuperAdmin ✅, TenantAdmin ✅, Manager ✅, Viewer ✅) — modelled as `User`/`UserRole`/`Role`, all 4 roles seeded in `prisma/seed.ts`
 • Refresh token rotation + blacklist (Redis SET) ✅ (`RefreshToken` model + `blacklist:${token}` key in `auth.controller.ts`)
@@ -535,9 +535,9 @@ _Update this document when a task moves from Partial → Done. Cross-reference_ 
 #### Day 18 – Project Management Module
 
 • Project CRUD: milestones ✅, tasks ✅, dependencies (DAG validation) ✅ (`pm/project/project.service.ts`)
-• Gantt chart rendering (react-gantt or custom D3 implementation) ❌ (task/milestone list UI only, no visual Gantt/timeline)
+• Gantt chart rendering (react-gantt or custom D3 implementation) ✅ — custom implementation in `projects/tasks/page.tsx`: date-range header, per-task horizontal bars positioned by start/end date (CSS grid + absolute position), status-colored legend, dependency labels ("after X")
 • Resource allocation: assign employees to tasks ✅, utilisation heatmap ✅ (`projects/resources/page.tsx`)
-• Budget tracking: planned vs actual with variance alerts ✅ (`plannedAmount`/`actualAmount` fields + budget page)
+• Budget tracking: planned vs actual with variance alerts ✅ (`plannedAmount`/`actualAmount` fields + budget page); milestone alerts ✅ — dedicated `projects/milestones/page.tsx` (overdue tracking, "Overdue — action required" banners, badge counts) + overview page overdue badges
 
 #### Day 19 – Notification & Event Engine
 
