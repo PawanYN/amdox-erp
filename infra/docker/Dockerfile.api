@@ -1,0 +1,59 @@
+# syntax=docker/dockerfile:1.7
+#
+# Multi-stage build for the NestJS API (apps/api) out of the pnpm/turbo
+# monorepo. Build context must be the repo root, e.g.:
+#   docker build -f infra/docker/Dockerfile.api -t amdox-api .
+
+FROM node:20-slim AS base
+# openssl must be present so Prisma's engine download can correctly detect
+# the OpenSSL version at generate-time (debian-openssl-3.0.x, matching the
+# distroless runtime below). Without it, Prisma can't detect anything, silently
+# defaults to openssl-1.1.x, and the generated engine binary fails to load at
+# container startup since the distroless runtime only has OpenSSL 3.x.
+RUN apt-get update && apt-get install -y --no-install-recommends openssl \
+  && rm -rf /var/lib/apt/lists/*
+RUN corepack enable && corepack prepare pnpm@9.1.4 --activate
+
+# ---- prune: reduce the monorepo down to what `api` actually needs ----
+FROM base AS pruner
+WORKDIR /app
+RUN npm install -g turbo@2.0.4
+COPY . .
+RUN turbo prune api --docker
+
+# ---- build: install, generate the Prisma client, compile @amdox/db then
+#      api, then drop devDependencies before anything gets copied to the
+#      runtime stage. Installs against the full pruned source (not just
+#      out/json) because @amdox/db's own `prepare` script (`pnpm build`,
+#      i.e. tsc) runs automatically as part of `pnpm install` and needs its
+#      real tsconfig/src present, not just its package.json. ----
+FROM base AS builder
+WORKDIR /app
+COPY --from=pruner /app/out/full/ .
+COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
+# turbo prune only pulls in files owned by the pruned workspaces; the root
+# tsconfig.json that packages/db and api both `extends` isn't one of them.
+COPY --from=pruner /app/tsconfig.json ./tsconfig.json
+RUN pnpm install --frozen-lockfile
+RUN pnpm turbo run db:generate --filter=@amdox/db
+RUN pnpm turbo run build --filter=api
+RUN pnpm prune --prod
+
+# ---- runtime: distroless, no shell/package manager ----
+FROM gcr.io/distroless/nodejs20-debian12 AS runner
+ENV NODE_ENV=production
+ENV PORT=3001
+
+# Absolute COPY destinations so /app/apps/api itself is created with nonroot
+# ownership by these COPY instructions (main.ts writes openapi-spec.json to
+# process.cwd() on boot, so the cwd directory itself must be writable — a
+# WORKDIR created ahead of these copies would be root-owned and reject that
+# write even though the files inside it are chowned correctly).
+COPY --from=builder --chown=nonroot:nonroot /app/node_modules /app/node_modules
+COPY --from=builder --chown=nonroot:nonroot /app/packages /app/packages
+COPY --from=builder --chown=nonroot:nonroot /app/apps/api /app/apps/api
+
+WORKDIR /app/apps/api
+USER nonroot
+EXPOSE 3001
+CMD ["dist/main.js"]

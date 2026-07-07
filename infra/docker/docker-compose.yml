@@ -161,7 +161,16 @@ services:
     volumes:
       - ml-model-registry:/app/model_registry
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8091/health"]
+      # The distroless runtime has no shell or curl; the health check has to
+      # be an exec'able binary, so this shells out to the image's own
+      # python3 to hit the endpoint instead.
+      test:
+        [
+          "CMD",
+          "/usr/bin/python3",
+          "-c",
+          "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8091/health').status==200 else 1)",
+        ]
       interval: 30s
       timeout: 5s
       retries: 3

@@ -6,7 +6,10 @@ const withBundleAnalyzer = withBundleAnalyzerInit({
 });
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Traces the minimal set of files/node_modules the server actually needs
+  // into .next/standalone, so the distroless production image doesn't have
+  // to carry the full workspace node_modules tree.
+  output: "standalone",
 };
 
 export default withBundleAnalyzer(nextConfig);

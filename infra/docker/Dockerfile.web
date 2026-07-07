@@ -1,0 +1,60 @@
+# syntax=docker/dockerfile:1.7
+#
+# Multi-stage build for the Next.js frontend (apps/web) out of the pnpm/turbo
+# monorepo. Build context must be the repo root, e.g.:
+#   docker build -f infra/docker/Dockerfile.web \
+#     --build-arg NEXT_PUBLIC_API_URL=https://api.example.com \
+#     --build-arg NEXT_PUBLIC_KEYCLOAK_URL=https://auth.example.com \
+#     --build-arg NEXT_PUBLIC_KEYCLOAK_CLIENT_ID=amdox-erp-web \
+#     -t amdox-web .
+#
+# NEXT_PUBLIC_* values are inlined into the client bundle at build time (Next
+# can't read them from the environment at runtime), so they're build args,
+# not just runtime env vars.
+
+FROM node:20-slim AS base
+RUN corepack enable && corepack prepare pnpm@9.1.4 --activate
+
+# ---- prune: reduce the monorepo down to what `web` actually needs ----
+FROM base AS pruner
+WORKDIR /app
+RUN npm install -g turbo@2.0.4
+COPY . .
+RUN turbo prune web --docker
+
+# ---- build ----
+FROM base AS builder
+WORKDIR /app
+COPY --from=pruner /app/out/full/ .
+COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
+COPY --from=pruner /app/tsconfig.json ./tsconfig.json
+RUN pnpm install --frozen-lockfile
+
+ARG NEXT_PUBLIC_API_URL=http://localhost:3001
+ARG NEXT_PUBLIC_KEYCLOAK_URL=http://localhost:8180
+ARG NEXT_PUBLIC_KEYCLOAK_CLIENT_ID=amdox-erp-web
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_KEYCLOAK_URL=$NEXT_PUBLIC_KEYCLOAK_URL
+ENV NEXT_PUBLIC_KEYCLOAK_CLIENT_ID=$NEXT_PUBLIC_KEYCLOAK_CLIENT_ID
+
+RUN pnpm turbo run build --filter=web
+
+# ---- runtime: distroless, no shell/package manager ----
+FROM gcr.io/distroless/nodejs20-debian12 AS runner
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+
+# `output: standalone` already traces the minimal node_modules the server
+# needs into .next/standalone/node_modules — no separate node_modules copy
+# or `pnpm prune` needed the way the API's Dockerfile does. Static assets and
+# public/ are deliberately excluded from standalone output and must be
+# layered back in by hand, per Next.js's own documented Docker pattern.
+COPY --from=builder --chown=nonroot:nonroot /app/apps/web/.next/standalone /app
+COPY --from=builder --chown=nonroot:nonroot /app/apps/web/.next/static /app/apps/web/.next/static
+COPY --from=builder --chown=nonroot:nonroot /app/apps/web/public /app/apps/web/public
+
+WORKDIR /app/apps/web
+USER nonroot
+EXPOSE 3000
+CMD ["server.js"]

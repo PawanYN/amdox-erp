@@ -655,7 +655,7 @@ _Update this document when a task moves from Partial → Done. Cross-reference_ 
 
 #### Day 22 – Containerisation
 
-• Multi-stage Dockerfiles for all services (Distroless final stage) ❌ (`infra/docker/Dockerfile.api`, `Dockerfile.web`, and `Dockerfile.ml` are all 0-byte empty files/dead duplicates; the real ML Dockerfile lives at `apps/ml-service/Dockerfile`, single-stage `python:3.11-slim`, not distroless)
+• Multi-stage Dockerfiles for all services (Distroless final stage) ✅ (session 14 — `infra/docker/Dockerfile.api`, `Dockerfile.web`, `apps/ml-service/Dockerfile`, all real `turbo prune`/standalone multi-stage builds onto `gcr.io/distroless/*`, verified live per service — see `docs/containerization-audit.md`. Found + fixed 4 real bugs in the process: a Prisma engine built for the wrong OpenSSL target, a nonroot write-permission trap on the API's cwd, a dangling venv-symlink python binary, and a `python:3.11-slim`/distroless glibc mismatch — the `slim` tag has silently moved to Debian 13 while distroless is pinned to Debian 12. Deleted the dead empty `infra/docker/Dockerfile.ml` duplicate; fixed `docker-compose.yml`'s ml-service healthcheck, which used `curl` — not present in the new distroless image)
 • docker-compose.prod.yml with health checks and resource limits ❌ (file exists but is empty)
 • Container image scanning with Trivy in CI pipeline ❌
 • .dockerignore optimisation for minimal build context ✅ (root `.dockerignore` — excludes `node_modules/`, `.next/`, `dist/`, `.turbo/`)
