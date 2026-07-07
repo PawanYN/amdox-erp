@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { prisma } from '@amdox/db';
+import { prisma, queryReplicaOrPrimary } from '@amdox/db';
 import { CacheService } from '../common/redis/cache.service';
 
 // Executive KPIs tolerate a short staleness window in exchange for not
@@ -149,91 +149,99 @@ export class BiService {
     );
   }
 
+  // Runs against the read replica (docs/postgres-read-replica-strategy.md)
+  // — this is 7+ aggregate queries across Invoice/PurchaseOrder/Employee/
+  // ReorderRule/Project/Department/StockLevel, exactly the kind of
+  // reporting read that shouldn't compete with transactional writes for
+  // primary DB connections/IO. Falls back to the primary automatically if
+  // the replica is unavailable (queryReplicaOrPrimary).
   private async computeExecutiveKpis(tenantId: string, filters: BiFilters = {}) {
-    const departmentFilter = this.resolveDepartmentFilter(filters.department);
+    return queryReplicaOrPrimary(async (db) => {
+      const departmentFilter = this.resolveDepartmentFilter(filters.department);
 
-    const employeeWhere: Record<string, unknown> = {
-      tenantId,
-      status: 'ACTIVE',
-      deletedAt: null,
-    };
-    if (departmentFilter) {
-      employeeWhere.department = {
-        name: { contains: departmentFilter, mode: 'insensitive' },
+      const employeeWhere: Record<string, unknown> = {
+        tenantId,
+        status: 'ACTIVE',
+        deletedAt: null,
       };
-    }
+      if (departmentFilter) {
+        employeeWhere.department = {
+          name: { contains: departmentFilter, mode: 'insensitive' },
+        };
+      }
 
-    const arStatusFilter =
-      filters.status === 'closed'
-        ? { in: ['PAID', 'CANCELLED'] as ('PAID' | 'CANCELLED')[] }
-        : { notIn: ['PAID', 'CANCELLED'] as ('PAID' | 'CANCELLED')[] };
+      const arStatusFilter =
+        filters.status === 'closed'
+          ? { in: ['PAID', 'CANCELLED'] as ('PAID' | 'CANCELLED')[] }
+          : { notIn: ['PAID', 'CANCELLED'] as ('PAID' | 'CANCELLED')[] };
 
-    const [
-      invoiceCount,
-      openPos,
-      employeeCount,
-      lowStockProducts,
-      projectCount,
-      arInvoices,
-      departments,
-    ] = await Promise.all([
-      prisma.invoice.count({ where: { tenantId } }),
-      prisma.purchaseOrder.count({
-        where: { tenantId, status: { in: ['SUBMITTED', 'APPROVED'] } },
-      }),
-      prisma.employee.count({ where: employeeWhere }),
-      prisma.reorderRule.count({ where: { tenantId, isActive: true } }),
-      prisma.project.count({ where: { tenantId, deletedAt: null } }),
-      prisma.invoice.findMany({
-        where: { tenantId, type: 'AR', status: arStatusFilter },
-        select: { totalAmount: true, dueDate: true },
-      }),
-      prisma.department.findMany({
-        where: { tenantId, deletedAt: null },
-        select: { name: true },
-        orderBy: { name: 'asc' },
-      }),
-    ]);
+      const [
+        invoiceCount,
+        openPos,
+        employeeCount,
+        lowStockProducts,
+        projectCount,
+        arInvoices,
+        departments,
+      ] = await Promise.all([
+        db.invoice.count({ where: { tenantId } }),
+        db.purchaseOrder.count({
+          where: { tenantId, status: { in: ['SUBMITTED', 'APPROVED'] } },
+        }),
+        db.employee.count({ where: employeeWhere }),
+        db.reorderRule.count({ where: { tenantId, isActive: true } }),
+        db.project.count({ where: { tenantId, deletedAt: null } }),
+        db.invoice.findMany({
+          where: { tenantId, type: 'AR', status: arStatusFilter },
+          select: { totalAmount: true, dueDate: true },
+        }),
+        db.department.findMany({
+          where: { tenantId, deletedAt: null },
+          select: { name: true },
+          orderBy: { name: 'asc' },
+        }),
+      ]);
 
-    const now = Date.now();
-    const aging = { current: 0, d31_60: 0, d61_90: 0, over90: 0 };
-    for (const inv of arInvoices) {
-      const days = Math.floor((now - new Date(inv.dueDate).getTime()) / 86400000);
-      const bucket = days <= 30 ? 'Current' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '90+';
+      const now = Date.now();
+      const aging = { current: 0, d31_60: 0, d61_90: 0, over90: 0 };
+      for (const inv of arInvoices) {
+        const days = Math.floor((now - new Date(inv.dueDate).getTime()) / 86400000);
+        const bucket = days <= 30 ? 'Current' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '90+';
 
-      if (filters.period === 'current' && bucket !== 'Current') continue;
-      if (filters.period === 'overdue' && bucket === 'Current') continue;
+        if (filters.period === 'current' && bucket !== 'Current') continue;
+        if (filters.period === 'overdue' && bucket === 'Current') continue;
 
-      const amt = Number(inv.totalAmount);
-      if (days <= 30) aging.current += amt;
-      else if (days <= 60) aging.d31_60 += amt;
-      else if (days <= 90) aging.d61_90 += amt;
-      else aging.over90 += amt;
-    }
+        const amt = Number(inv.totalAmount);
+        if (days <= 30) aging.current += amt;
+        else if (days <= 60) aging.d31_60 += amt;
+        else if (days <= 90) aging.d61_90 += amt;
+        else aging.over90 += amt;
+      }
 
-    const stockLevels = await prisma.stockLevel.findMany({
-      where: { tenantId },
-      include: { product: true },
-      take: 20,
+      const stockLevels = await db.stockLevel.findMany({
+        where: { tenantId },
+        include: { product: true },
+        take: 20,
+      });
+
+      return {
+        totals: {
+          invoices: invoiceCount,
+          openArInvoices: arInvoices.length,
+          openPurchaseOrders: openPos,
+          activeEmployees: employeeCount,
+          activeProjects: projectCount,
+          reorderRules: lowStockProducts,
+        },
+        arAging: aging,
+        inventorySnapshot: stockLevels.map((s) => ({
+          sku: s.product.sku,
+          name: s.product.name,
+          quantity: Number(s.quantity),
+        })),
+        departments: departments.map((d) => d.name),
+      };
     });
-
-    return {
-      totals: {
-        invoices: invoiceCount,
-        openArInvoices: arInvoices.length,
-        openPurchaseOrders: openPos,
-        activeEmployees: employeeCount,
-        activeProjects: projectCount,
-        reorderRules: lowStockProducts,
-      },
-      arAging: aging,
-      inventorySnapshot: stockLevels.map((s) => ({
-        sku: s.product.sku,
-        name: s.product.name,
-        quantity: Number(s.quantity),
-      })),
-      departments: departments.map((d) => d.name),
-    };
   }
 
   private resolveDepartmentFilter(value?: string): string | null {
