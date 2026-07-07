@@ -12,8 +12,9 @@ import { RedisService } from './common/redis/redis.service';
 import { BullModule } from '@nestjs/bullmq';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
+import { UserAwareThrottlerGuard } from './common/throttler/user-aware-throttler.guard';
 import { APP_INTERCEPTOR, APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { TenantContextInterceptor } from './common/interceptors/tenant-context.interceptor';
 import { HttpLoggingInterceptor } from './common/interceptors/http-logging.interceptor';
@@ -46,15 +47,31 @@ import { LoggerModule } from 'nestjs-pino';
     }),
     EventEmitterModule.forRoot(),
     ScheduleModule.forRoot(),
-    // Redis-backed sliding-window rate limiting, applied globally via ThrottlerGuard below.
-    // Two named limits: a tight "short" burst window and a looser "medium" per-minute cap.
+    // Redis-backed sliding-window rate limiting, applied globally via
+    // UserAwareThrottlerGuard below. Two named limits: a "short" burst
+    // window and a looser "medium" per-minute cap.
+    //
+    // Limits raised from the original 5 req/s + 100/min — found live under
+    // the Day 21 k6 load test that those were far too tight for genuine
+    // multi-XHR-per-page-load dashboard usage (a single BI page load alone
+    // can fire 5+ concurrent requests). Paired with UserAwareThrottlerGuard
+    // so the bucket is keyed per authenticated user, not per IP, so this
+    // still meaningfully caps a single abusive caller.
     ThrottlerModule.forRootAsync({
       imports: [RedisModule],
       inject: [RedisService],
       useFactory: (redis: RedisService) => ({
         throttlers: [
-          { name: 'short', ttl: 1000, limit: 5 },
-          { name: 'medium', ttl: 60000, limit: 100 },
+          {
+            name: 'short',
+            ttl: parseInt(process.env.THROTTLE_SHORT_TTL_MS || '1000', 10),
+            limit: parseInt(process.env.THROTTLE_SHORT_LIMIT || '20', 10),
+          },
+          {
+            name: 'medium',
+            ttl: parseInt(process.env.THROTTLE_MEDIUM_TTL_MS || '60000', 10),
+            limit: parseInt(process.env.THROTTLE_MEDIUM_LIMIT || '600', 10),
+          },
         ],
         storage: new ThrottlerStorageRedisService(redis),
       }),
@@ -75,7 +92,7 @@ import { LoggerModule } from 'nestjs-pino';
   providers: [
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard,
+      useClass: UserAwareThrottlerGuard,
     },
     {
       provide: APP_INTERCEPTOR,

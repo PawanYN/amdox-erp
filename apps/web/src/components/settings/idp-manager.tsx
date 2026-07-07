@@ -119,7 +119,7 @@ function CopyButton({ value }: { value: string }) {
       type="button"
       onClick={copy}
       title="Copy to clipboard"
-      className="ml-2 flex-shrink-0 p-1.5 rounded text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+      className="ml-2 flex-shrink-0 p-1.5 rounded text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
     >
       {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
     </button>
@@ -148,7 +148,7 @@ function SecretInput({
       <button
         type="button"
         onClick={() => setShow((s) => !s)}
-        className="px-2.5 py-2 border border-slate-300 rounded-r-md text-slate-400 hover:text-slate-600 bg-slate-50 transition-colors"
+        className="px-2.5 py-2 border border-slate-300 rounded-r-md text-slate-500 hover:text-slate-600 bg-slate-50 transition-colors"
       >
         {show ? <EyeOff size={14} /> : <Eye size={14} />}
       </button>
@@ -884,7 +884,7 @@ export function IdpManager({ identityProviders, tenantSlug, onAdd, onDelete }: I
       </button>
       {(view === "picker" || view === "form") && (
         <>
-          <ChevronRight size={12} className="text-slate-400" />
+          <ChevronRight size={12} className="text-slate-500" />
           <button
             type="button"
             onClick={() => setView("picker")}
@@ -900,7 +900,7 @@ export function IdpManager({ identityProviders, tenantSlug, onAdd, onDelete }: I
       )}
       {view === "form" && selectedProvider && (
         <>
-          <ChevronRight size={12} className="text-slate-400" />
+          <ChevronRight size={12} className="text-slate-500" />
           <span className="text-slate-700 font-medium">{selectedProvider.label}</span>
         </>
       )}
@@ -940,7 +940,7 @@ export function IdpManager({ identityProviders, tenantSlug, onAdd, onDelete }: I
               <KcIcon />
             </div>
             <p className="text-xs font-medium text-slate-700">No identity providers configured</p>
-            <p className="text-[11px] text-slate-400 mt-1">
+            <p className="text-[11px] text-slate-500 mt-1">
               Add Google, Microsoft, GitHub, SAML or OpenID Connect to enable SSO.
             </p>
             <button
@@ -960,14 +960,14 @@ export function IdpManager({ identityProviders, tenantSlug, onAdd, onDelete }: I
                   key={idp.alias}
                   className="flex items-center gap-3 p-4 border border-slate-200 rounded-lg bg-white"
                 >
-                  <div className="h-8 w-8 flex items-center justify-center text-slate-400 shrink-0">
+                  <div className="h-8 w-8 flex items-center justify-center text-slate-500 shrink-0">
                     {meta?.icon ?? <KcIcon />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[12.5px] font-semibold text-slate-800 truncate">
                       {idp.displayName || idp.alias}
                     </p>
-                    <p className="text-[10px] text-slate-400 mt-0.5">
+                    <p className="text-[10px] text-slate-500 mt-0.5">
                       {idp.providerId} · alias: {idp.alias}
                     </p>
                   </div>
@@ -980,7 +980,7 @@ export function IdpManager({ identityProviders, tenantSlug, onAdd, onDelete }: I
                     <button
                       type="button"
                       onClick={() => onDelete(idp.alias)}
-                      className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                      className="p-1.5 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
                       title="Remove provider"
                     >
                       <Trash2 size={13} />

@@ -52,7 +52,7 @@ function Field({
         {required && <span className="text-red-500"> *</span>}
       </span>
       <div className="mt-1.5">{children}</div>
-      {hint && <p className="mt-1 text-[11px] text-slate-400">{hint}</p>}
+      {hint && <p className="mt-1 text-[11px] text-slate-500">{hint}</p>}
     </label>
   );
 }
@@ -60,9 +60,9 @@ function Field({
 function EventBadge({ name, payload }: { name: string; payload: string }) {
   return (
     <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-[11px]">
-      <span className="text-slate-400">emits event → </span>
+      <span className="text-slate-500">emits event → </span>
       <span className="font-mono text-blue-700">{name}</span>
-      <span className="text-slate-400">
+      <span className="text-slate-500">
         {" "}
         {"{"} {payload} {"}"}
       </span>
@@ -199,9 +199,9 @@ function StepTasks({
               key={m.id}
               className="flex items-center gap-3 border border-slate-200 rounded-md px-3 py-2 bg-white"
             >
-              <span className="text-[11px] font-mono text-slate-400 w-12">{m.id}</span>
+              <span className="text-[11px] font-mono text-slate-500 w-12">{m.id}</span>
               <span className="flex-1 text-[13px] text-slate-900">{m.name}</span>
-              <span className="text-[11px] text-slate-400">{m.dueDate}</span>
+              <span className="text-[11px] text-slate-500">{m.dueDate}</span>
               <button
                 onClick={() => setMilestones(milestones.filter((_, idx) => idx !== i))}
                 className="text-slate-300 hover:text-red-500 transition-colors"
@@ -244,7 +244,7 @@ function StepTasks({
               key={t.id}
               className="flex items-center gap-3 border border-slate-200 rounded-md px-3 py-2 bg-white"
             >
-              <span className="text-[11px] font-mono text-slate-400 w-12">{t.id}</span>
+              <span className="text-[11px] font-mono text-slate-500 w-12">{t.id}</span>
               <span className="flex-1 text-[13px] text-slate-900">{t.name}</span>
               {t.milestoneId && (
                 <span className="text-[11px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
@@ -265,7 +265,7 @@ function StepTasks({
             </div>
           ))}
           {tasks.length === 0 && (
-            <p className="text-[12px] text-slate-400 italic py-3 text-center">
+            <p className="text-[12px] text-slate-500 italic py-3 text-center">
               No tasks yet — add work items below.
             </p>
           )}
@@ -349,7 +349,7 @@ function StepResources({
 
   if (employeesLoading) {
     return (
-      <div className="flex items-center justify-center gap-2 py-12 text-[13px] text-slate-400">
+      <div className="flex items-center justify-center gap-2 py-12 text-[13px] text-slate-500">
         <Loader2 size={16} className="animate-spin" /> Loading employees…
       </div>
     );
@@ -365,7 +365,7 @@ function StepResources({
 
   if (employees.length === 0) {
     return (
-      <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-6 text-center text-[13px] text-slate-400">
+      <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-6 text-center text-[13px] text-slate-500">
         No employees found. Add employees under HR → Employees first, then return here to assign
         them to tasks.
       </div>
@@ -383,7 +383,7 @@ function StepResources({
 
       <div className="space-y-2">
         {tasks.length === 0 && (
-          <p className="text-[12px] text-slate-400 italic py-3 text-center">
+          <p className="text-[12px] text-slate-500 italic py-3 text-center">
             Define tasks in the previous step first.
           </p>
         )}
@@ -411,7 +411,7 @@ function StepResources({
 
       <div>
         <p className="text-[13px] font-semibold text-slate-700 mb-2 flex items-center gap-1.5">
-          <Users size={14} className="text-slate-400" /> Utilisation after this assignment
+          <Users size={14} className="text-slate-500" /> Utilisation after this assignment
         </p>
         <div className="space-y-1.5">
           {employees.map((e) => {
@@ -427,7 +427,7 @@ function StepResources({
                   />
                 </div>
                 <span
-                  className={`text-[11px] font-mono w-10 text-right ${overloaded ? "text-red-600 font-semibold" : "text-slate-400"}`}
+                  className={`text-[11px] font-mono w-10 text-right ${overloaded ? "text-red-600 font-semibold" : "text-slate-500"}`}
                 >
                   {load}%
                 </span>
@@ -573,9 +573,9 @@ export default function ProjectCreationFlow() {
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
           <div>
             <h1 className="text-[15px] font-semibold text-slate-900 flex items-center gap-2">
-              <FolderKanban size={17} className="text-slate-400" /> New Project
+              <FolderKanban size={17} className="text-slate-500" /> New Project
             </h1>
-            <p className="text-[12px] text-slate-400">PM › Projects › New</p>
+            <p className="text-[12px] text-slate-500">PM › Projects › New</p>
           </div>
         </div>
 
@@ -590,13 +590,13 @@ export default function ProjectCreationFlow() {
                       ? "bg-blue-600 border-blue-600 text-white"
                       : i === step
                         ? "border-blue-600 text-blue-600 bg-white"
-                        : "border-slate-200 text-slate-400 bg-white"
+                        : "border-slate-200 text-slate-500 bg-white"
                   }`}
                 >
                   {i < step ? <Check size={14} /> : i + 1}
                 </div>
                 <span
-                  className={`mt-1 text-[10px] font-medium text-center w-20 ${i === step ? "text-blue-600" : "text-slate-400"}`}
+                  className={`mt-1 text-[10px] font-medium text-center w-20 ${i === step ? "text-blue-600" : "text-slate-500"}`}
                 >
                   {s}
                 </span>

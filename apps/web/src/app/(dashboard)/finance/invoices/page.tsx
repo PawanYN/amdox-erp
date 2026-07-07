@@ -167,7 +167,7 @@ export default function InvoicesPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <TrendingDown size={18} className="text-slate-400" />
+            <TrendingDown size={18} className="text-slate-500" />
             AP Invoices
           </h1>
           <p className="page-subtitle mt-1">
@@ -222,7 +222,7 @@ export default function InvoicesPage() {
               Invoice Document *
             </label>
             <label className="flex items-center gap-2 border border-dashed border-slate-300 rounded-md px-3 py-4 text-[13px] text-slate-500 cursor-pointer hover:border-blue-300 hover:bg-blue-50/40 transition-colors">
-              <FileText size={16} className="text-slate-400 shrink-0" />
+              <FileText size={16} className="text-slate-500 shrink-0" />
               <span className="truncate">{file ? file.name : "Choose PDF or image…"}</span>
               <input
                 type="file"

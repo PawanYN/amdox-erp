@@ -127,7 +127,7 @@ export default function AttendancePage() {
     <div className="space-y-6">
       <div>
         <h1 className="page-title flex items-center gap-2">
-          <ClockIcon size={18} className="text-slate-400" />
+          <ClockIcon size={18} className="text-slate-500" />
           Attendance
         </h1>
         <p className="page-subtitle mt-1">Clock-in/out records and overtime tracking</p>
@@ -135,13 +135,13 @@ export default function AttendancePage() {
 
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-white rounded-lg border border-slate-200 shadow-card p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-1.5">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-1.5">
             Total Records
           </p>
           <p className="text-2xl font-semibold text-slate-900">{records.length}</p>
         </div>
         <div className="bg-white rounded-lg border border-slate-200 shadow-card p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-1.5">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-1.5">
             Hours This Week
           </p>
           <p className="text-2xl font-semibold text-slate-900">{totalHoursThisWeek.toFixed(1)}</p>

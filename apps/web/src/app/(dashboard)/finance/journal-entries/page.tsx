@@ -151,7 +151,7 @@ export default function JournalEntriesPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <Wallet size={18} className="text-slate-400" />
+            <Wallet size={18} className="text-slate-500" />
             Journal Entries
           </h1>
           <p className="page-subtitle mt-1">
@@ -317,10 +317,10 @@ export default function JournalEntriesPage() {
       {/* Entries list */}
       <div className="space-y-3">
         {loading ? (
-          <p className="text-[13px] text-slate-400">Loading journal entries…</p>
+          <p className="text-[13px] text-slate-500">Loading journal entries…</p>
         ) : entries.length === 0 ? (
           <div className="bg-white rounded-lg border border-slate-200 shadow-card px-6 py-14 text-center">
-            <p className="text-[13px] text-slate-400">
+            <p className="text-[13px] text-slate-500">
               No journal entries yet. Create the first one above.
             </p>
           </div>
@@ -338,12 +338,12 @@ export default function JournalEntriesPage() {
                     <p className="text-[13px] font-semibold text-slate-800 font-mono">
                       {je.id.slice(0, 8).toUpperCase()}
                     </p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
+                    <p className="text-[11px] text-slate-500 mt-0.5">
                       {je.entryDate} · {je.description}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-mono text-slate-400">{je.currency}</span>
+                    <span className="text-[11px] font-mono text-slate-500">{je.currency}</span>
                     <span
                       className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${STATUS_STYLE[je.status]}`}
                     >
@@ -355,13 +355,13 @@ export default function JournalEntriesPage() {
                   <table className="w-full text-[12px]">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-100">
-                        <th className="text-left px-4 py-1.5 text-[10px] font-semibold text-slate-400 uppercase">
+                        <th className="text-left px-4 py-1.5 text-[10px] font-semibold text-slate-500 uppercase">
                           Account
                         </th>
-                        <th className="text-right px-4 py-1.5 text-[10px] font-semibold text-slate-400 uppercase">
+                        <th className="text-right px-4 py-1.5 text-[10px] font-semibold text-slate-500 uppercase">
                           Debit
                         </th>
-                        <th className="text-right px-4 py-1.5 text-[10px] font-semibold text-slate-400 uppercase">
+                        <th className="text-right px-4 py-1.5 text-[10px] font-semibold text-slate-500 uppercase">
                           Credit
                         </th>
                       </tr>

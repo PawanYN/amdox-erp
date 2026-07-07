@@ -21,10 +21,10 @@ export default function SCMLayout({ children }: { children: React.ReactNode }) {
     <div className="space-y-0">
       {/* Module header */}
       <div className="flex items-center gap-2 mb-0.5">
-        <Package size={17} className="text-slate-400" />
+        <Package size={17} className="text-slate-500" />
         <h1 className="text-[15px] font-semibold text-slate-900">Supply Chain</h1>
       </div>
-      <p className="text-[12px] text-slate-400 mb-5">
+      <p className="text-[12px] text-slate-500 mb-5">
         Procure-to-Pay: Inventory · Purchase Orders · Goods Receipt · AP Invoice (3-way match)
       </p>
 

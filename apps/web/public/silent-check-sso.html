@@ -1,0 +1,12 @@
+<!doctype html>
+<html>
+<body>
+<script>
+  // keycloak-js's silent SSO check loads this page inside a hidden iframe
+  // and reads the resulting URL from here — no top-level navigation happens,
+  // unlike the default check-sso flow (a full redirect to Keycloak and back
+  // on every page load, ~5s per Day 21's Lighthouse audit).
+  parent.postMessage(location.href, location.origin);
+</script>
+</body>
+</html>

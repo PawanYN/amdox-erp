@@ -69,13 +69,13 @@ function MaterialRequestDialog({
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
           <div>
             <h2 className="text-[15px] font-semibold text-slate-900">Request Materials</h2>
-            <p className="text-[12px] text-slate-400 mt-0.5">
+            <p className="text-[12px] text-slate-500 mt-0.5">
               For: <span className="font-medium text-slate-600">{projectName}</span>
             </p>
           </div>
           <button
             onClick={onClose}
-            className="h-7 w-7 flex items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+            className="h-7 w-7 flex items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-600 transition-colors"
           >
             <X size={15} />
           </button>
@@ -88,7 +88,7 @@ function MaterialRequestDialog({
           </p>
 
           {loading ? (
-            <p className="text-[13px] text-slate-400 flex items-center gap-2">
+            <p className="text-[13px] text-slate-500 flex items-center gap-2">
               <Loader2 size={14} className="animate-spin" /> Loading products…
             </p>
           ) : products.length === 0 ? (
@@ -190,7 +190,7 @@ export default function ProjectsOverviewPage() {
   }, []);
 
   if (loading)
-    return <p className="text-[13px] text-slate-400 py-8 text-center">Loading projects…</p>;
+    return <p className="text-[13px] text-slate-500 py-8 text-center">Loading projects…</p>;
   if (error) return <p className="text-[13px] text-red-500 py-8 text-center">{error}</p>;
 
   return (
@@ -199,7 +199,7 @@ export default function ProjectsOverviewPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <FolderKanban size={18} className="text-slate-400" />
+            <FolderKanban size={18} className="text-slate-500" />
             Project Overview
           </h1>
           <p className="page-subtitle mt-1">
@@ -218,7 +218,7 @@ export default function ProjectsOverviewPage() {
 
       {projects.length === 0 ? (
         <div className="bg-white rounded-lg border border-slate-200 shadow-card px-6 py-14 text-center">
-          <p className="text-[13px] text-slate-400">
+          <p className="text-[13px] text-slate-500">
             No projects yet. Create one from Projects → Tasks.
           </p>
         </div>
@@ -238,14 +238,14 @@ export default function ProjectsOverviewPage() {
                     {p.name}
                   </Link>
                   <div className="flex items-center gap-3 mt-1 flex-wrap">
-                    <span className="text-[12px] text-slate-400">{p.taskCount} tasks</span>
-                    <span className="text-[12px] text-slate-400">·</span>
-                    <span className="text-[12px] text-slate-400">
+                    <span className="text-[12px] text-slate-500">{p.taskCount} tasks</span>
+                    <span className="text-[12px] text-slate-500">·</span>
+                    <span className="text-[12px] text-slate-500">
                       {p.milestoneCount} milestones
                     </span>
                     {p.overdueMilestoneCount > 0 && (
                       <>
-                        <span className="text-[12px] text-slate-400">·</span>
+                        <span className="text-[12px] text-slate-500">·</span>
                         <span className="text-[12px] text-red-500 font-medium flex items-center gap-1">
                           <AlertTriangle size={11} /> {p.overdueMilestoneCount} overdue
                         </span>
@@ -287,7 +287,7 @@ export default function ProjectsOverviewPage() {
 
               {/* Budget progress */}
               <div className="mt-3">
-                <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1.5">
+                <div className="flex items-center justify-between text-[11px] text-slate-500 mb-1.5">
                   <span>
                     Budget:{" "}
                     <span className="font-mono text-slate-600">
@@ -309,7 +309,7 @@ export default function ProjectsOverviewPage() {
                     style={{ width: `${Math.min(p.budgetPct, 100)}%` }}
                   />
                 </div>
-                <p className="text-[11px] text-slate-400 text-right mt-1">
+                <p className="text-[11px] text-slate-500 text-right mt-1">
                   {p.budgetPct}% utilized
                 </p>
               </div>

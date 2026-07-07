@@ -1,5 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { prisma } from '@amdox/db';
+import { CacheService } from '../common/redis/cache.service';
+
+// Same tradeoff as BiService's KPI cache: chart widgets tolerate a short
+// staleness window in exchange for not recomputing on every dashboard
+// render/poll.
+const WIDGET_DATA_CACHE_TTL_SECONDS = 30;
 
 export type BiDataSource =
   | 'ar_aging'
@@ -23,7 +29,20 @@ export interface WidgetDataPoint {
 
 @Injectable()
 export class BiDataService {
+  constructor(private readonly cache: CacheService) {}
+
   async getWidgetData(tenantId: string, dataSource: BiDataSource, filters: BiFilters = {}) {
+    const cacheKey = `bi:widget-data:${tenantId}:${dataSource}:${filters.period ?? '-'}:${filters.department ?? '-'}:${filters.status ?? '-'}`;
+    return this.cache.wrap(cacheKey, WIDGET_DATA_CACHE_TTL_SECONDS, () =>
+      this.computeWidgetData(tenantId, dataSource, filters),
+    );
+  }
+
+  private async computeWidgetData(
+    tenantId: string,
+    dataSource: BiDataSource,
+    filters: BiFilters = {},
+  ) {
     switch (dataSource) {
       case 'ar_aging':
         return this.getArAgingChart(tenantId, filters);

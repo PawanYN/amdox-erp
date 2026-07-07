@@ -76,7 +76,7 @@ function AllocateModal({
           <h2 className="text-[15px] font-semibold text-slate-900">Allocate resource to project</h2>
           <button
             onClick={onClose}
-            className="h-7 w-7 flex items-center justify-center rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+            className="h-7 w-7 flex items-center justify-center rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
           >
             <X size={15} />
           </button>
@@ -203,7 +203,7 @@ export default function ProjectsResourcesPage() {
       );
   }, [load]);
 
-  if (loading) return <p className="text-sm text-slate-400">Loading resources…</p>;
+  if (loading) return <p className="text-sm text-slate-500">Loading resources…</p>;
 
   const thClass =
     "text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500";
@@ -258,7 +258,7 @@ export default function ProjectsResourcesPage() {
             <tbody className="divide-y divide-slate-100">
               {allocations.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-slate-400 text-center text-sm">
+                  <td colSpan={5} className="px-4 py-8 text-slate-500 text-center text-sm">
                     No allocations yet. Click &quot;Allocate resource&quot; to assign an employee to
                     a project.
                   </td>
@@ -268,9 +268,9 @@ export default function ProjectsResourcesPage() {
                   <tr key={a.id} className="hover:bg-slate-50/60 transition-colors">
                     <td className={`${tdClass} font-semibold text-slate-900`}>{a.employeeName}</td>
                     <td className={tdClass}>{a.project.name}</td>
-                    <td className={`${tdClass} text-slate-400`}>{a.task?.title ?? "—"}</td>
+                    <td className={`${tdClass} text-slate-500`}>{a.task?.title ?? "—"}</td>
                     <td className={`${tdClass} text-right font-mono`}>{a.allocatedHours}h</td>
-                    <td className={`${tdClass} text-[12px] text-slate-400`}>
+                    <td className={`${tdClass} text-[12px] text-slate-500`}>
                       {new Date(a.startDate).toLocaleDateString()}
                       {a.endDate ? ` → ${new Date(a.endDate).toLocaleDateString()}` : " →"}
                     </td>
@@ -296,7 +296,7 @@ export default function ProjectsResourcesPage() {
             <tbody className="divide-y divide-slate-100">
               {heatmap.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-slate-400 text-center">
+                  <td colSpan={4} className="px-4 py-8 text-slate-500 text-center">
                     No resource allocations yet.
                   </td>
                 </tr>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import dynamic from "next/dynamic";
 import {
   AlertTriangle,
   Check,
@@ -14,11 +15,15 @@ import {
   ArrowLeftRight,
   Settings2,
 } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { scmApi } from "@/lib/api/scm-api";
 import { forecastApi } from "@/lib/api/forecast-api";
 import { Button } from "@/components/ui/button";
 import { Modal, inputClasses } from "@/components/ui/modal";
+
+// recharts (+ its d3/redux-toolkit internals) is ~370KB parsed — deferred
+// out of this page's initial bundle the same way bi/widget-chart.tsx
+// already defers echarts-for-react.
+const StockForecastChart = dynamic(() => import("./stock-forecast-chart"), { ssr: false });
 
 type Warehouse = { id: string; name: string; location?: string };
 
@@ -469,35 +474,7 @@ function ForecastPanel({ productId, productName }: { productId: string; productN
           <p className="text-[10px] text-[#8A8678] mb-1.5">
             {horizon}-day demand forecast (units/day)
           </p>
-          <ResponsiveContainer width="100%" height={90}>
-            <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#F0EEE7" vertical={false} />
-              <XAxis
-                dataKey="date"
-                tick={{ fontSize: 9, fill: "#8A8678" }}
-                interval={Math.floor(chartData.length / 5)}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis
-                tick={{ fontSize: 9, fill: "#8A8678" }}
-                axisLine={false}
-                tickLine={false}
-                allowDecimals={false}
-              />
-              <Tooltip
-                contentStyle={{
-                  fontSize: 11,
-                  border: "1px solid #E4E2DC",
-                  borderRadius: 6,
-                  padding: "4px 8px",
-                }}
-                formatter={(v) => [`${v} units`, "Forecast"]}
-                cursor={{ fill: "#1E3A5F10" }}
-              />
-              <Bar dataKey="qty" fill="#1E3A5F" radius={[2, 2, 0, 0]} maxBarSize={16} />
-            </BarChart>
-          </ResponsiveContainer>
+          <StockForecastChart data={chartData} />
         </div>
       ) : !loaded ? (
         <p className="text-[11px] text-[#8A8678]">

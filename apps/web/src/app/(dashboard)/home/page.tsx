@@ -165,7 +165,7 @@ export default function DashboardHome() {
                 ["Access", isAdmin ? "Full Access" : "Employee Access"],
               ].map(([label, val]) => (
                 <div key={label}>
-                  <p className="text-[11px] text-slate-400 uppercase tracking-wider font-medium">
+                  <p className="text-[11px] text-slate-500 uppercase tracking-wider font-medium">
                     {label}
                   </p>
                   <p className="text-[13px] text-slate-800 font-medium mt-0.5">{val}</p>
@@ -186,7 +186,7 @@ export default function DashboardHome() {
               <div className="flex items-center gap-3 mb-4">
                 <div
                   className={`h-9 w-9 rounded-lg flex items-center justify-center ${
-                    clockedIn ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-400"
+                    clockedIn ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-500"
                   }`}
                 >
                   {clockedIn ? <Zap size={16} fill="white" /> : <Clock size={16} />}
@@ -197,7 +197,7 @@ export default function DashboardHome() {
                   >
                     {clockedIn ? "Clocked In" : "Not clocked in"}
                   </p>
-                  <p className={`text-[11px] ${clockedIn ? "text-emerald-600" : "text-slate-400"}`}>
+                  <p className={`text-[11px] ${clockedIn ? "text-emerald-600" : "text-slate-500"}`}>
                     {clockedIn && todaysClockIn
                       ? `Since ${todaysClockIn.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
                       : "Ready to start your day?"}
@@ -214,7 +214,7 @@ export default function DashboardHome() {
               ) : (
                 <button
                   onClick={handleClockIn}
-                  className="w-full flex items-center justify-center gap-2 py-2 bg-emerald-600 text-white text-[12px] font-semibold rounded-md hover:bg-emerald-700 transition-colors"
+                  className="w-full flex items-center justify-center gap-2 py-2 bg-emerald-700 text-white text-[12px] font-semibold rounded-md hover:bg-emerald-800 transition-colors"
                 >
                   <Clock size={13} /> Clock In
                 </button>
@@ -230,23 +230,23 @@ export default function DashboardHome() {
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-white rounded-lg border border-slate-200 shadow-card p-5">
                 <div className="flex items-center gap-1.5 mb-2">
-                  <Calendar size={13} className="text-slate-400" />
-                  <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                  <Calendar size={13} className="text-slate-500" />
+                  <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                     Annual Leave
                   </p>
                 </div>
                 <p className="text-3xl font-bold text-slate-900">{annualBalance}</p>
-                <p className="text-[12px] text-slate-400 mt-0.5">days remaining</p>
+                <p className="text-[12px] text-slate-500 mt-0.5">days remaining</p>
               </div>
               <div className="bg-white rounded-lg border border-slate-200 shadow-card p-5">
                 <div className="flex items-center gap-1.5 mb-2">
-                  <Clock size={13} className="text-slate-400" />
-                  <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                  <Clock size={13} className="text-slate-500" />
+                  <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                     Sick Leave
                   </p>
                 </div>
                 <p className="text-3xl font-bold text-slate-900">{sickBalance}</p>
-                <p className="text-[12px] text-slate-400 mt-0.5">days remaining</p>
+                <p className="text-[12px] text-slate-500 mt-0.5">days remaining</p>
               </div>
             </div>
 
@@ -328,7 +328,7 @@ export default function DashboardHome() {
               ) : (
                 <div className="space-y-2">
                   {requests.length === 0 ? (
-                    <p className="text-[13px] text-slate-400 italic">No leave requests found.</p>
+                    <p className="text-[13px] text-slate-500 italic">No leave requests found.</p>
                   ) : (
                     requests.slice(0, 5).map((req) => (
                       <div
@@ -339,7 +339,7 @@ export default function DashboardHome() {
                           <p className="text-[13px] font-semibold text-slate-800">
                             {req.leaveType?.name || "Leave"}
                           </p>
-                          <p className="text-[11px] text-slate-400 mt-0.5">
+                          <p className="text-[11px] text-slate-500 mt-0.5">
                             {new Date(req.startDate).toLocaleDateString()} –{" "}
                             {new Date(req.endDate).toLocaleDateString()}
                           </p>

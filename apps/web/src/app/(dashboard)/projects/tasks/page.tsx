@@ -124,12 +124,12 @@ export default function ProjectsTasksPage() {
       </div>
 
       {loading ? (
-        <p className="text-sm text-slate-400">Loading Gantt data…</p>
+        <p className="text-sm text-slate-500">Loading Gantt data…</p>
       ) : (
         <div className="border border-slate-200 rounded-lg bg-white overflow-x-auto shadow-card">
           <div style={{ minWidth: Math.max(700, range.days * 28) }}>
             {/* Header row */}
-            <div className="flex border-b border-slate-200 text-[10px] text-slate-400 py-2 px-3 bg-slate-50">
+            <div className="flex border-b border-slate-200 text-[10px] text-slate-500 py-2 px-3 bg-slate-50">
               <span className="w-52 shrink-0 font-semibold uppercase tracking-wider">Task</span>
               <div
                 className="flex-1 grid"
@@ -144,7 +144,7 @@ export default function ProjectsTasksPage() {
             </div>
 
             {tasks.length === 0 ? (
-              <p className="p-6 text-sm text-slate-400 text-center">No tasks defined yet.</p>
+              <p className="p-6 text-sm text-slate-500 text-center">No tasks defined yet.</p>
             ) : (
               tasks.map((t) => {
                 const start = toIndex(t.startDate);
@@ -158,7 +158,7 @@ export default function ProjectsTasksPage() {
                   >
                     <div className="w-52 shrink-0 pr-2">
                       <p className="text-[12px] font-medium text-slate-900 truncate">{t.title}</p>
-                      <p className="text-[10px] text-slate-400 truncate">
+                      <p className="text-[10px] text-slate-500 truncate">
                         {t.project?.name}
                         {deps?.length ? ` · after ${deps.join(", ")}` : ""}
                       </p>
@@ -193,7 +193,7 @@ export default function ProjectsTasksPage() {
             )}
           </div>
 
-          <div className="flex items-center gap-4 px-3 py-2 text-[11px] text-slate-400 border-t border-slate-100">
+          <div className="flex items-center gap-4 px-3 py-2 text-[11px] text-slate-500 border-t border-slate-100">
             {Object.entries(BAR_COLOR).map(([status, color]) => (
               <span key={status} className="flex items-center gap-1.5">
                 <span className={`h-2 w-2 rounded-sm ${color}`} />

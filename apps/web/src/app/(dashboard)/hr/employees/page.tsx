@@ -115,7 +115,7 @@ export default function EmployeesPage() {
           </div>
           <div className="min-w-0">
             <p className="text-[13px] font-semibold text-slate-900 truncate">{emp.name}</p>
-            <p className="text-[11px] text-slate-400 truncate">{emp.email}</p>
+            <p className="text-[11px] text-slate-500 truncate">{emp.email}</p>
           </div>
         </div>
       ),
@@ -219,7 +219,7 @@ export default function EmployeesPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <Users size={18} className="text-slate-400" />
+            <Users size={18} className="text-slate-500" />
             Employees
           </h1>
           <p className="page-subtitle mt-1">

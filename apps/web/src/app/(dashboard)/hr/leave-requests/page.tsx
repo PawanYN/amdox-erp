@@ -127,7 +127,7 @@ export default function LeaveRequestsPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <CalendarDays size={18} className="text-slate-400" />
+            <CalendarDays size={18} className="text-slate-500" />
             Leave Requests
           </h1>
           <p className="page-subtitle mt-1">Approval workflow for employee leave applications</p>
@@ -139,7 +139,7 @@ export default function LeaveRequestsPage() {
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="bg-white rounded-lg border border-slate-200 shadow-card p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-1.5">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-1.5">
             Total
           </p>
           <p className="text-2xl font-semibold text-slate-900">{requests.length}</p>

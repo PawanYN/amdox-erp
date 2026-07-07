@@ -355,7 +355,7 @@ export default function SettingsPage() {
       <div className="flex items-start justify-between pb-5 border-b border-slate-200">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <Settings2 size={18} className="text-slate-400" />
+            <Settings2 size={18} className="text-slate-500" />
             Settings
           </h1>
           <p className="page-subtitle mt-1">

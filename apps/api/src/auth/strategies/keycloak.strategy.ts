@@ -6,6 +6,32 @@ import { prisma } from '@amdox/db';
 import { RedisService } from '../../common/redis/redis.service';
 import { AmdoxLogger } from '../../common/logger/amdox-logger';
 
+// One JWKS client (with its own LRU cache + rate limiter) per issuer,
+// created once and reused across every request — a per-request client, as
+// this used to be, throws its cache away every time, so `cache: true` and
+// `rateLimit: true` never actually engage. Found live under the Day 21 k6
+// load test: at 2,000 concurrent VUs this re-hit Keycloak's
+// `/protocol/openid-connect/certs` endpoint on every single request,
+// overwhelmed the single Keycloak instance, and cascaded into ~90% request
+// failure across the API even though the API's own query paths were fast
+// (p95 39ms on the requests that did complete).
+const secretProvidersByIssuer = new Map<string, ReturnType<typeof passportJwtSecret>>();
+
+function getSecretProvider(jwksUri: string) {
+  let provider = secretProvidersByIssuer.get(jwksUri);
+  if (!provider) {
+    provider = passportJwtSecret({
+      cache: true,
+      cacheMaxAge: 10 * 60 * 1000, // 10 min — Keycloak's signing keys rotate on the order of days, not seconds
+      rateLimit: true,
+      jwksRequestsPerMinute: 5,
+      jwksUri,
+    });
+    secretProvidersByIssuer.set(jwksUri, provider);
+  }
+  return provider;
+}
+
 @Injectable()
 export class KeycloakStrategy extends PassportStrategy(Strategy, 'keycloak') {
   constructor(private redisService: RedisService) {
@@ -25,13 +51,7 @@ export class KeycloakStrategy extends PassportStrategy(Strategy, 'keycloak') {
           }
 
           const jwksUri = `${iss}/protocol/openid-connect/certs`;
-          AmdoxLogger.debug('Fetching JWKS keys', jwksUri);
-          const secretProvider = passportJwtSecret({
-            cache: true,
-            rateLimit: true,
-            jwksRequestsPerMinute: 5,
-            jwksUri,
-          });
+          const secretProvider = getSecretProvider(jwksUri);
           secretProvider(req, rawJwtToken, done);
         } catch (err) {
           AmdoxLogger.error('secretOrKeyProvider error', (err as Error).message);

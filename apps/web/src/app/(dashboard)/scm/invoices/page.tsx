@@ -65,7 +65,7 @@ export default function InvoicesPage() {
                 <p className="text-[13px] font-semibold text-slate-900 font-mono">
                   {inv.invoiceNumber || inv.id}
                 </p>
-                <p className="text-[11px] text-slate-400 mt-0.5">{inv.vendorId}</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">{inv.vendorId}</p>
               </div>
               <StatusPill status={inv.status} />
             </div>

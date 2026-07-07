@@ -112,7 +112,7 @@ export default function VendorsPage() {
           </div>
           <div>
             <p className="text-[13px] font-semibold text-slate-900">{v.name}</p>
-            <p className="text-[11px] text-slate-400">{v.email || "No email"}</p>
+            <p className="text-[11px] text-slate-500">{v.email || "No email"}</p>
           </div>
         </div>
       ),
@@ -168,7 +168,7 @@ export default function VendorsPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <Building2 size={18} className="text-slate-400" />
+            <Building2 size={18} className="text-slate-500" />
             Vendors
           </h1>
           <p className="page-subtitle mt-1">Manage vendor profiles, contacts and portal access</p>

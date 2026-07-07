@@ -163,7 +163,7 @@ function TopBar({
       </div>
 
       {/* Breadcrumb */}
-      <div className="hidden md:flex items-center gap-1.5 text-[13px] text-slate-400 ml-2 min-w-0">
+      <div className="hidden md:flex items-center gap-1.5 text-[13px] text-slate-500 ml-2 min-w-0">
         <span>Amdox ERP</span>
         {parent && (
           <>
@@ -180,15 +180,22 @@ function TopBar({
 
       {/* Right actions */}
       <div className="flex items-center gap-1">
-        <button className="h-8 w-8 flex items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors">
+        <button
+          aria-label="Search"
+          className="h-8 w-8 flex items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+        >
           <Search size={16} />
         </button>
-        <button className="h-8 w-8 flex items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors">
+        <button
+          aria-label="Notifications"
+          className="h-8 w-8 flex items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+        >
           <Bell size={16} />
         </button>
 
         {/* Role switcher */}
         <select
+          aria-label="Switch role"
           value={role}
           onChange={(e) => setRole(e.target.value)}
           className="h-8 text-[12px] text-slate-600 border border-slate-200 rounded-md px-2 pr-6 bg-white outline-none cursor-pointer hover:border-slate-300 transition-colors appearance-none"
@@ -222,7 +229,7 @@ function TopBar({
         <button
           onClick={() => confirm("Sign out of Amdox ERP?") && logout()}
           title="Sign out"
-          className="h-8 w-8 flex items-center justify-center rounded-md text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors ml-1"
+          className="h-8 w-8 flex items-center justify-center rounded-md text-slate-500 hover:bg-red-50 hover:text-red-500 transition-colors ml-1"
         >
           <LogOut size={15} />
         </button>
@@ -288,7 +295,7 @@ function Sidebar({
                     : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                 }`}
               >
-                <Icon size={16} className={isActive ? "text-blue-600" : "text-slate-400"} />
+                <Icon size={16} className={isActive ? "text-blue-600" : "text-slate-500"} />
                 {!collapsed && <span>{item.label}</span>}
               </button>
             );
@@ -319,14 +326,14 @@ function Sidebar({
                 }`}
               >
                 <span className="flex items-center gap-2.5">
-                  <Icon size={16} className={hasActiveChild ? "text-blue-600" : "text-slate-400"} />
+                  <Icon size={16} className={hasActiveChild ? "text-blue-600" : "text-slate-500"} />
                   {!collapsed && item.label}
                 </span>
                 {!collapsed &&
                   (isOpen ? (
-                    <ChevronDown size={13} className="text-slate-400" />
+                    <ChevronDown size={13} className="text-slate-500" />
                   ) : (
-                    <ChevronRight size={13} className="text-slate-400" />
+                    <ChevronRight size={13} className="text-slate-500" />
                   ))}
               </button>
 
@@ -359,7 +366,7 @@ function Sidebar({
       <div className="border-t border-slate-100 p-2">
         <button
           onClick={() => setCollapsed((c) => !c)}
-          className="w-full flex items-center justify-center py-1.5 rounded-md text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors"
+          className="w-full flex items-center justify-center py-1.5 rounded-md text-slate-500 hover:bg-slate-50 hover:text-slate-600 transition-colors"
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {collapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
@@ -369,7 +376,7 @@ function Sidebar({
       {/* Signed-in role */}
       {!collapsed && (
         <div className="px-3 pb-3 pt-0">
-          <p className="text-[11px] text-slate-400 truncate">
+          <p className="text-[11px] text-slate-500 truncate">
             {ROLES[role].label} · {ROLES[role].dept}
           </p>
         </div>

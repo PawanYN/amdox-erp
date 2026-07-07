@@ -47,7 +47,7 @@ export default function NotificationsPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <Bell size={18} className="text-slate-400" />
+            <Bell size={18} className="text-slate-500" />
             Notifications
             {unreadCount > 0 && (
               <span className="ml-1 h-5 min-w-5 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center px-1.5">
@@ -70,7 +70,7 @@ export default function NotificationsPage() {
           <div className="h-10 w-10 rounded-lg bg-slate-100 flex items-center justify-center mx-auto mb-3">
             <Bell size={18} className="text-slate-300" />
           </div>
-          <p className="text-[13px] text-slate-400">No notifications yet.</p>
+          <p className="text-[13px] text-slate-500">No notifications yet.</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -96,7 +96,7 @@ export default function NotificationsPage() {
                 <div className="flex items-start gap-3 min-w-0">
                   <div
                     className={`h-8 w-8 rounded-md flex items-center justify-center shrink-0 mt-0.5 ${
-                      n.isRead ? "bg-slate-100 text-slate-400" : "bg-blue-100 text-blue-600"
+                      n.isRead ? "bg-slate-100 text-slate-500" : "bg-blue-100 text-blue-600"
                     }`}
                   >
                     {n.isRead ? <CheckCheck size={14} /> : <Bell size={14} />}
@@ -112,11 +112,11 @@ export default function NotificationsPage() {
                     )}
                     <div className="flex items-center gap-2 mt-1.5">
                       <Clock size={11} className="text-slate-300" />
-                      <span className="text-[11px] text-slate-400 font-mono">
+                      <span className="text-[11px] text-slate-500 font-mono">
                         {new Date(n.createdAt).toLocaleString()}
                       </span>
                       <span className="text-[11px] text-slate-300">·</span>
-                      <span className="text-[11px] text-slate-400">{n.eventType}</span>
+                      <span className="text-[11px] text-slate-500">{n.eventType}</span>
                     </div>
                   </div>
                 </div>

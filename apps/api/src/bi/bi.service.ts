@@ -1,5 +1,12 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { prisma } from '@amdox/db';
+import { CacheService } from '../common/redis/cache.service';
+
+// Executive KPIs tolerate a short staleness window in exchange for not
+// re-running 7 aggregate queries (across Invoice/PurchaseOrder/Employee/
+// ReorderRule/Project/Department/StockLevel) on every dashboard load —
+// this is the Day 21 "Redis cache gaps" fix for the heaviest BI read.
+const KPI_CACHE_TTL_SECONDS = 30;
 
 const VALID_WIDGET_TYPES = new Set([
   'bar',
@@ -31,6 +38,8 @@ export type BiFilters = {
 
 @Injectable()
 export class BiService {
+  constructor(private readonly cache: CacheService) {}
+
   async listDashboards(tenantId: string) {
     return prisma.dashboard.findMany({
       where: { tenantId, deletedAt: null },
@@ -134,6 +143,13 @@ export class BiService {
   }
 
   async getExecutiveKpis(tenantId: string, filters: BiFilters = {}) {
+    const cacheKey = `bi:kpis:${tenantId}:${filters.period ?? '-'}:${filters.department ?? '-'}:${filters.status ?? '-'}`;
+    return this.cache.wrap(cacheKey, KPI_CACHE_TTL_SECONDS, () =>
+      this.computeExecutiveKpis(tenantId, filters),
+    );
+  }
+
+  private async computeExecutiveKpis(tenantId: string, filters: BiFilters = {}) {
     const departmentFilter = this.resolveDepartmentFilter(filters.department);
 
     const employeeWhere: Record<string, unknown> = {

@@ -141,14 +141,14 @@ export default function PayrollPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <Wallet size={18} className="text-slate-400" />
+            <Wallet size={18} className="text-slate-500" />
             Payroll
           </h1>
           <p className="page-subtitle mt-1">Gross-to-net calculation, batch runs and payslips</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 border border-slate-200 rounded-md px-3 py-1.5 bg-white">
-            <Calendar size={14} className="text-slate-400" />
+            <Calendar size={14} className="text-slate-500" />
             <input
               type="month"
               value={period}
@@ -176,7 +176,7 @@ export default function PayrollPage() {
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="bg-white rounded-lg border border-slate-200 shadow-card p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-1.5">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-1.5">
             Total Gross
           </p>
           <p className="text-2xl font-semibold text-slate-900">{formatINR(totalGross)}</p>
@@ -194,7 +194,7 @@ export default function PayrollPage() {
           <p className="text-2xl font-semibold text-red-600">{formatINR(totalDeductions)}</p>
         </div>
         <div className="bg-white rounded-lg border border-slate-200 shadow-card p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-1.5">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-1.5">
             Processed
           </p>
           <p className="text-2xl font-semibold text-slate-900">

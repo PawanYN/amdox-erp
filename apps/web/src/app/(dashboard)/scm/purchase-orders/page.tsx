@@ -121,7 +121,7 @@ export default function POPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <ShoppingCart size={18} className="text-slate-400" />
+            <ShoppingCart size={18} className="text-slate-500" />
             Purchase Orders
           </h1>
           <p className="page-subtitle mt-1">Workflow: Draft → Submitted → Approved → Received</p>
@@ -150,13 +150,13 @@ export default function POPage() {
                   <p className="text-[13px] font-semibold text-slate-900">
                     {req.project?.name ?? req.reason ?? "Inventory requisition"}
                   </p>
-                  <p className="text-[11px] text-slate-400 mt-0.5">
+                  <p className="text-[11px] text-slate-500 mt-0.5">
                     {req.lines?.length ?? 0} line(s){req.reason ? ` · ${req.reason}` : ""}
                   </p>
                   <ul className="mt-2 space-y-0.5">
                     {req.lines?.map((line) => (
                       <li key={line.id} className="text-[11px] text-slate-600">
-                        <ChevronRight size={10} className="inline text-slate-400 mr-0.5" />
+                        <ChevronRight size={10} className="inline text-slate-500 mr-0.5" />
                         {line.product?.name ?? line.productId} × {Number(line.quantity)}
                       </li>
                     ))}
@@ -179,7 +179,7 @@ export default function POPage() {
       <div className="space-y-2">
         {poList.length === 0 ? (
           <div className="bg-white rounded-lg border border-slate-200 shadow-card px-6 py-14 text-center">
-            <p className="text-[13px] text-slate-400">No purchase orders yet.</p>
+            <p className="text-[13px] text-slate-500">No purchase orders yet.</p>
           </div>
         ) : (
           poList.map((po) => (
@@ -202,7 +202,7 @@ export default function POPage() {
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-slate-400 mt-1">
+                  <p className="text-[11px] text-slate-500 mt-1">
                     {po.vendor?.name || po.vendorId} · {new Date(po.createdAt).toLocaleDateString()}
                   </p>
                 </div>

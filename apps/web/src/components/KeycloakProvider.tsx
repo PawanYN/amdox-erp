@@ -36,10 +36,7 @@ const REFRESH_MIN_VALIDITY_SEC = 70;
 
 function hasOAuthCallback(): boolean {
   if (typeof window === "undefined") return false;
-  return (
-    window.location.search.includes("code=") ||
-    window.location.hash.includes("code=")
-  );
+  return window.location.search.includes("code=") || window.location.hash.includes("code=");
 }
 
 function redirectToLogin() {
@@ -104,8 +101,17 @@ export function KeycloakProvider({
       setToken(undefined);
     };
 
-    kc
-      .init({ onLoad: "check-sso", checkLoginIframe: false })
+    kc.init({
+      onLoad: "check-sso",
+      checkLoginIframe: false,
+      // Without this, keycloak-js's check-sso does a full top-level
+      // redirect to Keycloak and back on every fresh page load — found
+      // live via the Day 21 Lighthouse audit costing ~5s per navigation
+      // (the "redirects" opportunity, present on every protected route).
+      // Pointing it at a static page lets the check run in a hidden
+      // iframe instead, with no visible navigation at all.
+      silentCheckSsoRedirectUri: `${window.location.origin}/silent-check-sso.html`,
+    })
       .then((auth) => {
         setAuthenticated(auth);
         if (auth) syncToken();

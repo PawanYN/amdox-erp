@@ -112,7 +112,7 @@ export default function FiscalPeriodsPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <Calendar size={18} className="text-slate-400" />
+            <Calendar size={18} className="text-slate-500" />
             Fiscal Periods
           </h1>
           <p className="page-subtitle mt-1">Open and close accounting periods</p>
@@ -123,7 +123,7 @@ export default function FiscalPeriodsPage() {
       </div>
 
       {loading ? (
-        <p className="text-sm text-slate-400 flex items-center gap-2">
+        <p className="text-sm text-slate-500 flex items-center gap-2">
           <Loader2 size={16} className="animate-spin" /> Loading…
         </p>
       ) : (

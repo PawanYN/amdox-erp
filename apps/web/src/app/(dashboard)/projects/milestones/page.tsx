@@ -85,7 +85,7 @@ export default function ProjectsMilestonesPage() {
     }
   };
 
-  if (loading) return <p className="text-sm text-slate-400">Loading projects…</p>;
+  if (loading) return <p className="text-sm text-slate-500">Loading projects…</p>;
 
   const overdueCount = milestones.filter((m) => m.isOverdue).length;
   const achievedCount = milestones.filter((m) => m.isAchieved).length;
@@ -104,7 +104,9 @@ export default function ProjectsMilestonesPage() {
             onChange={(e) => setProjectId(e.target.value)}
           >
             {projects.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
             ))}
           </select>
         </label>
@@ -151,15 +153,17 @@ export default function ProjectsMilestonesPage() {
       </div>
 
       {error && (
-        <p className="text-[12px] text-red-600 bg-red-50 border border-red-200 px-3 py-2 rounded-md">{error}</p>
+        <p className="text-[12px] text-red-600 bg-red-50 border border-red-200 px-3 py-2 rounded-md">
+          {error}
+        </p>
       )}
 
       {loadingMs ? (
-        <p className="text-sm text-slate-400 flex items-center gap-2">
+        <p className="text-sm text-slate-500 flex items-center gap-2">
           <Loader2 size={14} className="animate-spin" /> Loading milestones…
         </p>
       ) : milestones.length === 0 ? (
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-slate-500">
           No milestones for this project. Add one above or create them in the New Project wizard.
         </p>
       ) : (
@@ -180,14 +184,20 @@ export default function ProjectsMilestonesPage() {
                   <Flag
                     size={16}
                     className={`mt-0.5 ${
-                      m.isAchieved ? "text-emerald-600" : m.isOverdue ? "text-red-500" : "text-blue-600"
+                      m.isAchieved
+                        ? "text-emerald-600"
+                        : m.isOverdue
+                          ? "text-red-500"
+                          : "text-blue-600"
                     }`}
                   />
                   <div>
-                    <p className={`text-sm font-semibold ${m.isAchieved ? "text-slate-400 line-through" : "text-slate-900"}`}>
+                    <p
+                      className={`text-sm font-semibold ${m.isAchieved ? "text-slate-500 line-through" : "text-slate-900"}`}
+                    >
                       {m.name}
                     </p>
-                    <p className="text-[12px] text-slate-400 mt-0.5">
+                    <p className="text-[12px] text-slate-500 mt-0.5">
                       Due {formatDate(m.dueDate)} · {m.taskCount} task{m.taskCount === 1 ? "" : "s"}
                     </p>
                     {m.isOverdue && (

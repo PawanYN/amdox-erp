@@ -173,7 +173,7 @@ export default function ArInvoicesPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <TrendingUp size={18} className="text-slate-400" />
+            <TrendingUp size={18} className="text-slate-500" />
             AR Receivable
           </h1>
           <p className="page-subtitle mt-1">Customer invoices and payment recording</p>
@@ -193,7 +193,7 @@ export default function ArInvoicesPage() {
       </div>
 
       {loading ? (
-        <p className="text-sm text-slate-400 flex items-center gap-2">
+        <p className="text-sm text-slate-500 flex items-center gap-2">
           <Loader2 size={16} className="animate-spin" /> Loading…
         </p>
       ) : (

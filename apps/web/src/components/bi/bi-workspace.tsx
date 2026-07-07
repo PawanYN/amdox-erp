@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import {
   biApi,
   subscribeBiMetricsStream,
@@ -15,7 +16,13 @@ import {
   type BiScheduledReport,
   type BiWidgetData,
 } from "@/lib/types/bi";
-import { BiWidgetChart } from "@/components/bi/widget-chart";
+// widget-chart.tsx statically imports recharts (~380KB parsed, chunk 7222
+// in the bundle analysis) — dynamically imported so it only loads once a
+// widget actually needs to render, not as part of /bi's initial bundle.
+const BiWidgetChart = dynamic(
+  () => import("@/components/bi/widget-chart").then((m) => m.BiWidgetChart),
+  { ssr: false },
+);
 import { PowerBiVisual, PowerBiKpiCard } from "@/components/bi/power-bi-visual";
 import { CardKpi } from "@/components/bi/advanced-charts";
 import { VisualizationPane } from "@/components/bi/visualization-pane";
@@ -29,7 +36,7 @@ import {
 } from "@/components/bi/grid-layout-wrapper";
 import { Modal, inputClasses } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import { DATA_SOURCE_OPTIONS } from "@/components/bi/widget-chart";
+import { DATA_SOURCE_OPTIONS } from "@/components/bi/widget-config-constants";
 import {
   DEFAULT_STYLE,
   type WidgetFilter,
@@ -139,7 +146,7 @@ function FieldTypeIcon({ type }: { type: string }) {
     return <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-1 rounded">Σ</span>;
   if (type === "date")
     return <span className="text-[9px] font-bold text-amber-600 bg-amber-50 px-1 rounded">📅</span>;
-  return <span className="text-[9px] font-bold text-slate-400 bg-slate-100 px-1 rounded">Aa</span>;
+  return <span className="text-[9px] font-bold text-slate-500 bg-slate-100 px-1 rounded">Aa</span>;
 }
 
 function FieldsPane({ visible }: { visible: boolean }) {
@@ -150,7 +157,7 @@ function FieldsPane({ visible }: { visible: boolean }) {
   return (
     <aside className="w-56 shrink-0 flex flex-col overflow-hidden border-r border-slate-200 bg-white">
       <div className="px-3 py-2.5 border-b border-slate-100 flex items-center gap-2">
-        <Database size={13} className="text-slate-400" />
+        <Database size={13} className="text-slate-500" />
         <span className="text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
           Data
         </span>
@@ -166,14 +173,14 @@ function FieldsPane({ visible }: { visible: boolean }) {
                 onClick={() => setOpen((p) => ({ ...p, [table.id]: !p[table.id] }))}
                 className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-slate-50 transition-colors"
               >
-                <Icon size={13} className="text-slate-400 shrink-0" />
+                <Icon size={13} className="text-slate-500 shrink-0" />
                 <span className="flex-1 text-[12px] font-medium text-slate-700 truncate">
                   {table.label}
                 </span>
                 {isOpen ? (
-                  <ChevronDown size={11} className="text-slate-400" />
+                  <ChevronDown size={11} className="text-slate-500" />
                 ) : (
-                  <ChevronRight size={11} className="text-slate-400" />
+                  <ChevronRight size={11} className="text-slate-500" />
                 )}
               </button>
               {isOpen && (
@@ -224,7 +231,7 @@ function KpiCard({
 
   const TrendIcon = trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : Minus;
   const trendColor =
-    trend === "up" ? "text-emerald-600" : trend === "down" ? "text-red-500" : "text-slate-400";
+    trend === "up" ? "text-emerald-600" : trend === "down" ? "text-red-500" : "text-slate-500";
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-col gap-1 hover:shadow-md transition-shadow">
@@ -235,7 +242,7 @@ function KpiCard({
         <span className="text-2xl font-bold text-slate-900 tabular-nums">{display}</span>
         {trend && <TrendIcon size={14} className={`mb-0.5 shrink-0 ${trendColor}`} />}
       </div>
-      {sub && <span className="text-[11px] text-slate-400">{sub}</span>}
+      {sub && <span className="text-[11px] text-slate-500">{sub}</span>}
     </div>
   );
 }
@@ -268,7 +275,7 @@ function VisualCard({
       <div className="flex items-center justify-between px-4 pt-3 pb-1 shrink-0">
         <div className="min-w-0">
           <p className="text-[12px] font-semibold text-slate-800 truncate">{title}</p>
-          {subtitle && <p className="text-[10px] text-slate-400 truncate">{subtitle}</p>}
+          {subtitle && <p className="text-[10px] text-slate-500 truncate">{subtitle}</p>}
         </div>
         {editMode && onDelete && (
           <button
@@ -378,7 +385,7 @@ function RightPane({
               <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">
                 Visual filters
               </p>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-slate-500">
                 Select a visual on the canvas to apply visual-level filters.
               </p>
             </div>
@@ -937,7 +944,7 @@ export function BiWorkspace() {
           >
             {/* Loading state */}
             {!kpis && isExecutive && (
-              <div className="flex items-center justify-center py-20 text-slate-400 text-[13px] gap-2">
+              <div className="flex items-center justify-center py-20 text-slate-500 text-[13px] gap-2">
                 <RefreshCw size={14} className="animate-spin" /> Loading analytics data…
               </div>
             )}
@@ -1084,11 +1091,11 @@ export function BiWorkspace() {
             {!isExecutive && activeDashboard && activeDashboard.widgets.length === 0 && (
               <div className="flex flex-col items-center justify-center py-20 gap-4">
                 <div className="h-16 w-16 rounded-2xl bg-slate-100 flex items-center justify-center">
-                  <BarChart3 size={28} className="text-slate-400" />
+                  <BarChart3 size={28} className="text-slate-500" />
                 </div>
                 <div className="text-center">
                   <p className="text-[14px] font-semibold text-slate-700">This page is empty</p>
-                  <p className="text-[12px] text-slate-400 mt-1">
+                  <p className="text-[12px] text-slate-500 mt-1">
                     Switch to <strong>Edit</strong> mode and use the Visualizations pane to add
                     charts.
                   </p>
@@ -1105,7 +1112,7 @@ export function BiWorkspace() {
 
             {/* No page selected */}
             {!isExecutive && !activeDashboard && (
-              <div className="flex flex-col items-center justify-center py-20 text-slate-400 text-[13px] gap-2">
+              <div className="flex flex-col items-center justify-center py-20 text-slate-500 text-[13px] gap-2">
                 Select a report page or create a new one.
               </div>
             )}

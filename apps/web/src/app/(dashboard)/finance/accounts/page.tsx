@@ -126,7 +126,7 @@ export default function ChartOfAccountsPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <BookOpen size={18} className="text-slate-400" />
+            <BookOpen size={18} className="text-slate-500" />
             Chart of Accounts
           </h1>
           <p className="page-subtitle mt-1">
@@ -192,14 +192,14 @@ export default function ChartOfAccountsPage() {
                 <div className="flex items-center gap-2.5">
                   <ChevronRight
                     size={14}
-                    className={`text-slate-400 transition-transform duration-150 ${open ? "rotate-90" : ""}`}
+                    className={`text-slate-500 transition-transform duration-150 ${open ? "rotate-90" : ""}`}
                   />
                   <span
                     className={`text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize ${meta.bg} ${meta.color} ${meta.border} border`}
                   >
                     {meta.label}
                   </span>
-                  <span className="text-[12px] text-slate-400">{group.length} accounts</span>
+                  <span className="text-[12px] text-slate-500">{group.length} accounts</span>
                 </div>
                 <span className="text-[12px] font-mono text-slate-500">
                   ₹{total.toLocaleString()}
@@ -211,18 +211,18 @@ export default function ChartOfAccountsPage() {
                   <tbody className="divide-y divide-slate-100">
                     {group.length === 0 ? (
                       <tr>
-                        <td colSpan={4} className="px-4 py-3 text-[12px] text-slate-400 italic">
+                        <td colSpan={4} className="px-4 py-3 text-[12px] text-slate-500 italic">
                           No {type} accounts found.
                         </td>
                       </tr>
                     ) : (
                       group.map((a) => (
                         <tr key={a.code} className="hover:bg-slate-50/60 transition-colors">
-                          <td className="px-4 py-2.5 font-mono text-[12px] text-slate-400 w-16">
+                          <td className="px-4 py-2.5 font-mono text-[12px] text-slate-500 w-16">
                             {a.code}
                           </td>
                           <td className="px-4 py-2.5 font-medium text-slate-800">{a.name}</td>
-                          <td className="px-4 py-2.5 text-[12px] text-slate-400 hidden sm:table-cell">
+                          <td className="px-4 py-2.5 text-[12px] text-slate-500 hidden sm:table-cell">
                             {a.subType.replace(/_/g, " ")}
                           </td>
                           <td className="px-4 py-2.5 text-right font-mono text-slate-700">

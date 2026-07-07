@@ -102,7 +102,7 @@ export default function DepartmentsPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <Building2 size={18} className="text-slate-400" />
+            <Building2 size={18} className="text-slate-500" />
             Departments
           </h1>
           <p className="page-subtitle mt-1">Manage organizational departments</p>

@@ -1,9 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { TrendingUp, BarChart2, Loader2, CheckCircle, Clock, RefreshCw } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { forecastApi } from "@/lib/api/forecast-api";
+
+// recharts (+ its d3/redux-toolkit internals) is ~370KB parsed — deferred
+// out of this page's initial bundle the same way bi/widget-chart.tsx
+// already defers echarts-for-react.
+const MapeChart = dynamic(() => import("./mape-chart"), { ssr: false });
 
 type ForecastStatus = {
   id: string;
@@ -17,19 +22,21 @@ type ForecastStatus = {
 };
 
 function MapeChip({ score }: { score: number | null }) {
-  if (score === null) return <span className="text-[11px] text-slate-400">—</span>;
+  if (score === null) return <span className="text-[11px] text-slate-500">—</span>;
   const pct = score * 100;
   const color = pct < 10 ? "text-emerald-600" : pct < 12 ? "text-amber-600" : "text-red-500";
   return <span className={`text-[11px] font-medium font-mono ${color}`}>{pct.toFixed(1)}%</span>;
 }
 
 function TrainedAtCell({ trainedAt }: { trainedAt: string | null }) {
-  if (!trainedAt) return <span className="text-[11px] text-slate-400">Not trained</span>;
+  if (!trainedAt) return <span className="text-[11px] text-slate-500">Not trained</span>;
   const d = new Date(trainedAt);
-  const stale = (Date.now() - d.getTime()) > 7 * 24 * 60 * 60 * 1000;
+  const stale = Date.now() - d.getTime() > 7 * 24 * 60 * 60 * 1000;
   const label = d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" });
   return (
-    <span className={`text-[11px] flex items-center gap-1 ${stale ? "text-amber-600" : "text-slate-600"}`}>
+    <span
+      className={`text-[11px] flex items-center gap-1 ${stale ? "text-amber-600" : "text-slate-600"}`}
+    >
       {stale ? <Clock size={10} /> : <CheckCircle size={10} className="text-emerald-500" />}
       {label}
       {stale && <span className="text-[10px]">(stale)</span>}
@@ -56,7 +63,9 @@ export default function ForecastPage() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const trainOne = async (productId: string) => {
     setTraining((prev) => ({ ...prev, [productId]: true }));
@@ -94,7 +103,7 @@ export default function ForecastPage() {
       : null;
 
   const staleCount = trained.filter(
-    (i) => i.trainedAt && (Date.now() - new Date(i.trainedAt).getTime()) > 7 * 24 * 60 * 60 * 1000,
+    (i) => i.trainedAt && Date.now() - new Date(i.trainedAt).getTime() > 7 * 24 * 60 * 60 * 1000,
   ).length;
 
   const mapeData = items
@@ -104,7 +113,7 @@ export default function ForecastPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-48 text-slate-400 gap-2">
+      <div className="flex items-center justify-center h-48 text-slate-500 gap-2">
         <Loader2 size={16} className="animate-spin" />
         <span className="text-[13px]">Loading forecast status…</span>
       </div>
@@ -122,7 +131,10 @@ export default function ForecastPage() {
           <p className="page-subtitle">Prophet / statistical fallback · 90-day horizon · F-06</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={load} className="inline-flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50">
+          <button
+            onClick={load}
+            className="inline-flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50"
+          >
             <RefreshCw size={11} /> Refresh
           </button>
           <button
@@ -137,19 +149,35 @@ export default function ForecastPage() {
       </div>
 
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-[12px] text-red-600">{error}</div>
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-[12px] text-red-600">
+          {error}
+        </div>
       )}
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-3">
         {[
-          { label: "Total SKUs",  value: items.length,    color: "text-slate-900" },
-          { label: "Trained",     value: `${trained.length} / ${items.length}`, color: "text-emerald-600" },
-          { label: "Avg MAPE",    value: avgMape !== null ? `${(avgMape * 100).toFixed(1)}%` : "—", color: avgMape !== null && avgMape * 100 < 12 ? "text-emerald-600" : "text-amber-600" },
-          { label: "Stale (>7d)", value: staleCount,      color: staleCount > 0 ? "text-amber-600" : "text-slate-400" },
+          { label: "Total SKUs", value: items.length, color: "text-slate-900" },
+          {
+            label: "Trained",
+            value: `${trained.length} / ${items.length}`,
+            color: "text-emerald-600",
+          },
+          {
+            label: "Avg MAPE",
+            value: avgMape !== null ? `${(avgMape * 100).toFixed(1)}%` : "—",
+            color: avgMape !== null && avgMape * 100 < 12 ? "text-emerald-600" : "text-amber-600",
+          },
+          {
+            label: "Stale (>7d)",
+            value: staleCount,
+            color: staleCount > 0 ? "text-amber-600" : "text-slate-500",
+          },
         ].map(({ label, value, color }) => (
           <div key={label} className="shadow-card rounded-xl px-4 py-3">
-            <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wide">{label}</p>
+            <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">
+              {label}
+            </p>
             <p className={`text-[22px] font-bold mt-0.5 ${color}`}>{value}</p>
           </div>
         ))}
@@ -162,19 +190,7 @@ export default function ForecastPage() {
             <BarChart2 size={12} className="text-blue-600" />
             MAPE by SKU — lower is better · target &lt;12%
           </p>
-          <ResponsiveContainer width="100%" height={110}>
-            <BarChart data={mapeData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-              <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} unit="%" />
-              <Tooltip
-                contentStyle={{ fontSize: 12, border: "1px solid #e2e8f0", borderRadius: 8 }}
-                formatter={(v) => [`${v}%`, "MAPE"]}
-                cursor={{ fill: "#eff6ff" }}
-              />
-              <Bar dataKey="mape" fill="#2563eb" radius={[3, 3, 0, 0]} maxBarSize={28} />
-            </BarChart>
-          </ResponsiveContainer>
+          <MapeChart data={mapeData} />
         </div>
       )}
 
@@ -196,26 +212,43 @@ export default function ForecastPage() {
               <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50">
                 <td className="px-4 py-2.5">
                   <p className="font-medium text-slate-900">{item.name}</p>
-                  <p className="text-[10px] text-slate-400 font-mono">{item.sku} · {item.category ?? "General"}</p>
+                  <p className="text-[10px] text-slate-500 font-mono">
+                    {item.sku} · {item.category ?? "General"}
+                  </p>
                 </td>
                 <td className="px-4 py-2.5">
-                  {item.modelType
-                    ? <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-blue-50 text-blue-700">{item.modelType}</span>
-                    : <span className="text-[11px] text-slate-400">—</span>
-                  }
+                  {item.modelType ? (
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-blue-50 text-blue-700">
+                      {item.modelType}
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-slate-500">—</span>
+                  )}
                 </td>
-                <td className="px-4 py-2.5 text-right"><MapeChip score={item.mapeScore} /></td>
+                <td className="px-4 py-2.5 text-right">
+                  <MapeChip score={item.mapeScore} />
+                </td>
                 <td className="px-4 py-2.5 text-right font-mono text-slate-600">
-                  {item.predictionCount > 0 ? item.predictionCount : <span className="text-slate-400">—</span>}
+                  {item.predictionCount > 0 ? (
+                    item.predictionCount
+                  ) : (
+                    <span className="text-slate-500">—</span>
+                  )}
                 </td>
-                <td className="px-4 py-2.5"><TrainedAtCell trainedAt={item.trainedAt} /></td>
+                <td className="px-4 py-2.5">
+                  <TrainedAtCell trainedAt={item.trainedAt} />
+                </td>
                 <td className="px-4 py-2.5 text-right">
                   <button
                     onClick={() => trainOne(item.id)}
                     disabled={training[item.id] || trainAll}
                     className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
                   >
-                    {training[item.id] ? <Loader2 size={9} className="animate-spin" /> : <TrendingUp size={9} />}
+                    {training[item.id] ? (
+                      <Loader2 size={9} className="animate-spin" />
+                    ) : (
+                      <TrendingUp size={9} />
+                    )}
                     {training[item.id] ? "Training…" : item.trainedAt ? "Re-train" : "Train"}
                   </button>
                 </td>
@@ -223,7 +256,9 @@ export default function ForecastPage() {
             ))}
             {items.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-slate-400 text-[12px]">No products found.</td>
+                <td colSpan={6} className="px-4 py-10 text-center text-slate-500 text-[12px]">
+                  No products found.
+                </td>
               </tr>
             )}
           </tbody>

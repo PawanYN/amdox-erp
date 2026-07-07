@@ -30,7 +30,7 @@ export function StatCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-1.5">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-1.5">
             {label}
           </p>
           <p className="text-2xl font-semibold text-slate-900 tracking-tight">{value}</p>
@@ -40,7 +40,8 @@ export function StatCard({
                 deltaPositive ? "text-emerald-600" : "text-red-500"
               }`}
             >
-              {deltaPositive ? "+" : ""}{delta}
+              {deltaPositive ? "+" : ""}
+              {delta}
             </p>
           )}
         </div>
