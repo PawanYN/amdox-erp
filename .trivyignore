@@ -1,0 +1,17 @@
+# CVEs blocked on upstream image rebuilds — every entry MUST carry an exp:
+# date so the ignore lapses and CI goes red again if upstream still hasn't
+# shipped. Do not add entries without an expiry.
+
+# Debian 12 shipped patched openssl (3.0.19/3.0.20-1~deb12u2) in early July
+# 2026, but gcr.io/distroless/* has not been rebuilt against it yet. Affects
+# libssl3 in all three images (api, web, ml-service).
+CVE-2026-31789 exp:2026-08-08
+CVE-2026-28387 exp:2026-08-08
+CVE-2026-28388 exp:2026-08-08
+CVE-2026-28389 exp:2026-08-08
+CVE-2026-28390 exp:2026-08-08
+CVE-2026-45447 exp:2026-08-08
+
+# python3.11 3.11.2-6+deb12u7 fix not yet in gcr.io/distroless/python3-debian12
+# (ml-service image still ships deb12u6).
+CVE-2025-13836 exp:2026-08-08

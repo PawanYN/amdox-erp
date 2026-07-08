@@ -127,14 +127,52 @@ jobs:
           scan-ref: .
           severity: CRITICAL,HIGH
           exit-code: '1'
-      - name: Build ml-service image
-        run: docker build -t amdox-ml-service:ci -f apps/ml-service/Dockerfile apps/ml-service
-      - name: Trivy image scan (ml-service)
+
+  # Builds each production image and scans the result with Trivy. Unlike the
+  # filesystem scan above (which only sees lockfiles/config in the repo), this
+  # catches CVEs in the base-image OS packages and anything else that only
+  # exists inside the built image.
+  image-scan:
+    name: Image scan (Trivy) — ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: api
+            dockerfile: infra/docker/Dockerfile.api
+            context: .
+          - service: web
+            dockerfile: infra/docker/Dockerfile.web
+            context: .
+          - service: ml-service
+            dockerfile: apps/ml-service/Dockerfile
+            context: apps/ml-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build ${{ matrix.service }} image
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          tags: amdox-${{ matrix.service }}:ci
+          push: false
+          load: true
+          # always re-pull base images so Debian/distroless security patches
+          # are picked up instead of scanning a stale cached base
+          pull: true
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,scope=${{ matrix.service }},mode=max
+      - name: Trivy image scan (${{ matrix.service }})
         uses: aquasecurity/trivy-action@0.24.0
         with:
-          image-ref: amdox-ml-service:ci
+          image-ref: amdox-${{ matrix.service }}:ci
           severity: CRITICAL,HIGH
           exit-code: '1'
-      # apps/api and apps/web have no production Dockerfile yet (dev-only via
-      # `pnpm dev`) -- nothing to image-scan for them until that's built out
-      # separately (a deployment/PLAT-01 concern, not this scan step).
+          # distroless/Debian bases always carry a tail of will_not_fix CVEs
+          # nobody can act on; fail only on findings that have a patch
+          ignore-unfixed: true
+          # time-boxed ignores for CVEs blocked on upstream image rebuilds —
+          # every entry carries an exp: date, see the file's header comment
+          trivyignores: .trivyignore

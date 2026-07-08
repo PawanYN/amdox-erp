@@ -24,6 +24,11 @@ ENV PATH="/opt/venv/bin:$PATH"
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+# wheel/jaraco.context land in the venv at vulnerable versions
+# (CVE-2026-24049 / CVE-2026-23949) — both standalone AND vendored inside
+# setuptools/_vendor, so setuptools itself must be upgraded too or the
+# vendored copies keep failing the CI image scan
+RUN pip install --no-cache-dir --upgrade setuptools wheel jaraco.context
 
 # ---- runtime: distroless, no shell/package manager ----
 FROM gcr.io/distroless/python3-debian12 AS runner

@@ -1,0 +1,342 @@
+## ==============================================
+## Amdox ERP — Production Stack
+## ==============================================
+## Usage (from the repo root):
+##   docker compose -f infra/docker/docker-compose.prod.yml up -d --build
+##
+## Unlike docker-compose.yml (dev), this file:
+##   • runs api / web / ml-service as containers (dev runs them via pnpm)
+##   • has NO default passwords — every secret is ${VAR:?} and compose
+##     refuses to start until it is set in the environment or an .env file
+##   • publishes only the three user-facing ports (web, api, keycloak);
+##     Postgres / Redis / Elasticsearch stay on the internal network
+##   • caps every service with CPU/memory limits so one service can't
+##     starve the rest of the host
+##
+## Required environment:
+##   DB_PASSWORD, DB_REPLICATION_PASSWORD, JWT_SECRET,
+##   KEYCLOAK_ADMIN_PASSWORD, BULL_BOARD_PASSWORD,
+##   NEXT_PUBLIC_API_URL, NEXT_PUBLIC_KEYCLOAK_URL, FRONTEND_URL
+## ==============================================
+
+name: amdox-prod
+
+services:
+
+  # ─────────────────────────────────────
+  # PostgreSQL 17 — Primary Database
+  # ─────────────────────────────────────
+  api-db:
+    image: postgres:17-alpine
+    restart: always
+    # not published to the host — only reachable on the internal network
+    environment:
+      POSTGRES_USER: ${DB_USER:-amdox}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      POSTGRES_DB: ${DB_NAME:-amdox_erp}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-amdox} -d ${DB_NAME:-amdox_erp}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1g
+        reservations:
+          memory: 256m
+    networks:
+      - amdox-network
+
+  # ─────────────────────────────────────
+  # PostgreSQL 17 — Streaming Read Replica (BI/reporting reads)
+  # ─────────────────────────────────────
+  api-db-replica:
+    image: postgres:17-alpine
+    restart: always
+    environment:
+      PGDATA: /var/lib/postgresql/data
+      PRIMARY_HOST: api-db
+      PRIMARY_PORT: 5432
+      REPLICATION_USER: replicator
+      REPLICATION_PASSWORD: ${DB_REPLICATION_PASSWORD:?DB_REPLICATION_PASSWORD is required}
+    volumes:
+      - postgres_replica_data:/var/lib/postgresql/data
+      - ./replica-entrypoint.sh:/replica-entrypoint.sh:ro
+    entrypoint: ["/bin/sh", "/replica-entrypoint.sh"]
+    depends_on:
+      api-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-amdox} -d ${DB_NAME:-amdox_erp}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1g
+        reservations:
+          memory: 256m
+    networks:
+      - amdox-network
+
+  # ─────────────────────────────────────
+  # Redis 8 — Cache, Sessions, BullMQ
+  # ─────────────────────────────────────
+  redis:
+    image: redis:8-alpine
+    restart: always
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 384m
+        reservations:
+          memory: 64m
+    networks:
+      - amdox-network
+
+  # ─────────────────────────────────────
+  # Keycloak 25 — Identity Provider (SSO)
+  # `start` (production mode), not `start-dev`. HTTP stays enabled because
+  # TLS is expected to terminate at the reverse proxy / load balancer in
+  # front of this stack (KC_PROXY_HEADERS tells Keycloak to trust it).
+  # ─────────────────────────────────────
+  keycloak:
+    image: quay.io/keycloak/keycloak:25.0
+    restart: always
+    ports:
+      - "8180:8080"
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://api-db:5432/${DB_NAME:-amdox_erp}
+      KC_DB_USERNAME: ${DB_USER:-amdox}
+      KC_DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN_USERNAME:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?KEYCLOAK_ADMIN_PASSWORD is required}
+      KC_HEALTH_ENABLED: "true"
+      KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME_STRICT: "false"
+      KC_PROXY_HEADERS: xforwarded
+    command: start
+    depends_on:
+      api-db:
+        condition: service_healthy
+    healthcheck:
+      # Keycloak 25 serves /health/* on the management interface (:9000),
+      # and the image has no curl — hence the bash /dev/tcp probe.
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1g
+        reservations:
+          memory: 512m
+    networks:
+      - amdox-network
+
+  # ─────────────────────────────────────
+  # Elasticsearch 8 — Full-Text Search
+  # Internal network only (no published port). Security stays off because
+  # the API has no ES auth wiring yet; revisit before exposing externally.
+  # ─────────────────────────────────────
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    restart: always
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.security.http.ssl.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - cluster.name=amdox-prod
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\\|yellow\"'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1536m
+        reservations:
+          memory: 768m
+    networks:
+      - amdox-network
+
+  # ─────────────────────────────────────
+  # NestJS API (distroless)
+  # ─────────────────────────────────────
+  api:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.api
+    image: amdox-api:latest
+    restart: always
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgresql://${DB_USER:-amdox}:${DB_PASSWORD:?DB_PASSWORD is required}@api-db:5432/${DB_NAME:-amdox_erp}?schema=public
+      DATABASE_REPLICA_URL: postgresql://${DB_USER:-amdox}:${DB_PASSWORD}@api-db-replica:5432/${DB_NAME:-amdox_erp}?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      KEYCLOAK_BASE_URL: http://keycloak:8080
+      KEYCLOAK_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?KEYCLOAK_ADMIN_PASSWORD is required}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required (comma-separated CORS allowlist)}
+      ML_SERVICE_URL: http://ml-service:8091
+      OCR_PROVIDER: ${OCR_PROVIDER:-mock}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_REGION: ${AWS_REGION:-ap-south-1}
+      BULL_BOARD_USER: ${BULL_BOARD_USER:-admin}
+      BULL_BOARD_PASSWORD: ${BULL_BOARD_PASSWORD:?BULL_BOARD_PASSWORD is required}
+    depends_on:
+      api-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      # Distroless image: no shell/curl. Exec the image's own node binary
+      # and use its built-in fetch against the liveness endpoint.
+      test:
+        [
+          "CMD",
+          "/nodejs/bin/node",
+          "-e",
+          "fetch('http://localhost:3001/health/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 768m
+        reservations:
+          memory: 256m
+    networks:
+      - amdox-network
+
+  # ─────────────────────────────────────
+  # Next.js Frontend (distroless)
+  # NEXT_PUBLIC_* are BUILD args — Next.js inlines them into the client
+  # bundle at build time, so changing them requires a rebuild, not a restart.
+  # ─────────────────────────────────────
+  web:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.web
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?NEXT_PUBLIC_API_URL is required (public URL of the API)}
+        NEXT_PUBLIC_KEYCLOAK_URL: ${NEXT_PUBLIC_KEYCLOAK_URL:?NEXT_PUBLIC_KEYCLOAK_URL is required (public URL of Keycloak)}
+        NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: ${NEXT_PUBLIC_KEYCLOAK_CLIENT_ID:-amdox-erp-web}
+    image: amdox-web:latest
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      # Any response below 500 counts as alive — an auth redirect on / is fine.
+      test:
+        [
+          "CMD",
+          "/nodejs/bin/node",
+          "-e",
+          "fetch('http://localhost:3000/').then(r=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512m
+        reservations:
+          memory: 128m
+    networks:
+      - amdox-network
+
+  # ─────────────────────────────────────
+  # ML Service — Demand Forecasting (distroless)
+  # ─────────────────────────────────────
+  ml-service:
+    build:
+      context: ../../apps/ml-service
+      dockerfile: Dockerfile
+    image: amdox-ml-service:latest
+    restart: always
+    # not published — only the API calls it, over the internal network
+    volumes:
+      - ml-model-registry:/app/model_registry
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "/usr/bin/python3",
+          "-c",
+          "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8091/health').status==200 else 1)",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1g
+        reservations:
+          memory: 256m
+    networks:
+      - amdox-network
+
+# ─────────────────────────────────────
+# Volumes — prod data, kept separate from dev via the `amdox-prod`
+# project name at the top of this file
+# ─────────────────────────────────────
+volumes:
+  postgres_data:
+  postgres_replica_data:
+  redis_data:
+  elasticsearch_data:
+  ml-model-registry:
+
+networks:
+  amdox-network:
+    driver: bridge
