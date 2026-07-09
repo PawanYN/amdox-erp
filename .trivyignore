@@ -15,3 +15,10 @@ CVE-2026-45447 exp:2026-08-08
 # python3.11 3.11.2-6+deb12u7 fix not yet in gcr.io/distroless/python3-debian12
 # (ml-service image still ships deb12u6).
 CVE-2025-13836 exp:2026-08-08
+
+# krb5 1.20.1-2+deb12u5 fix not yet in gcr.io/distroless/python3-debian12
+# (confirmed against :latest too, not just our pinned digest — deb12u4
+# still shipped everywhere as of 2026-07-09). Affects libgssapi-krb5-2 /
+# libk5crypto3 / libkrb5-3 / libkrb5support0 in ml-service only.
+CVE-2026-40355 exp:2026-08-08
+CVE-2026-40356 exp:2026-08-08
