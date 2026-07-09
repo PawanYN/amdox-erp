@@ -92,28 +92,31 @@ jobs:
           extra_args: --only-verified
 
   dependency-scan:
-    name: Dependency scan (Snyk)
+    name: Dependency scan (Grype)
     runs-on: ubuntu-latest
-    # Requires a SNYK_TOKEN repo secret (Settings -> Secrets and variables -> Actions).
-    # Skips cleanly instead of failing the pipeline when it isn't configured yet.
+    permissions:
+      security-events: write
+    # Grype (free/OSS, Apache 2.0) replaces Snyk — no account/token/signup
+    # required, so this actually runs on every push instead of silently
+    # skipping (Snyk needs a SNYK_TOKEN repo secret that was never set,
+    # so it never scanned anything). See docs/Amdox_Free_Alternatives.pdf.
     steps:
       - uses: actions/checkout@v4
-      - name: Check for SNYK_TOKEN
-        id: check-token
-        run: |
-          if [ -n "${{ secrets.SNYK_TOKEN }}" ]; then
-            echo "has_token=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_token=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::SNYK_TOKEN secret not set — skipping Snyk dependency scan. Add it under Settings > Secrets and variables > Actions to enable."
-          fi
-      - name: Run Snyk
-        if: steps.check-token.outputs.has_token == 'true'
-        uses: snyk/actions/node@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      - name: Run Grype
+        id: grype
+        uses: anchore/scan-action@v7
         with:
-          args: --all-projects --severity-threshold=high
+          path: '.'
+          fail-build: true
+          severity-cutoff: high
+          only-fixed: true
+          cache-db: true
+      - name: Upload Grype SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v4
+        if: always() && steps.grype.outputs.sarif != ''
+        with:
+          sarif_file: ${{ steps.grype.outputs.sarif }}
+          category: grype-dependencies
 
   container-scan:
     name: Container scan (Trivy)

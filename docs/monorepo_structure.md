@@ -1,6 +1,7 @@
 # Monorepo Structure — Amdox AI-Powered Cloud ERP Suite
 
 ## How to use
+
 This is the folder structure your team creates on Day 3. Copy this as-is when initializing the repo.
 
 ## Folder Tree
@@ -11,7 +12,7 @@ amdox-erp/
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml                    # GitHub Actions — lint → test → build → docker → deploy
-│       └── security-scan.yml         # Trivy + Snyk + trufflehog
+│       └── ci.yml                    # lint, typecheck, build, TruffleHog + Grype + Trivy
 │
 ├── apps/
 │   │
@@ -299,13 +300,15 @@ amdox-erp/
 ## Key Config Files
 
 ### pnpm-workspace.yaml
+
 ```yaml
 packages:
-  - "apps/*"
-  - "packages/*"
+  - 'apps/*'
+  - 'packages/*'
 ```
 
 ### turbo.json
+
 ```json
 {
   "$schema": "https://turbo.build/schema.json",
@@ -337,6 +340,7 @@ packages:
 ```
 
 ### Root package.json scripts
+
 ```json
 {
   "scripts": {
@@ -370,11 +374,11 @@ pnpm workspaces auto-links them — no need to publish to npm.
 
 ## DDD Guardrail Check
 
-| Rule | Status |
-|---|---|
-| Each domain module is self-contained (controller + service + repository + dto) | ✅ |
-| No cross-module imports (finance doesn't import from hr) | ✅ |
-| Shared code lives in packages/, not duplicated | ✅ |
-| DB schema is single source of truth in packages/db | ✅ |
-| Infra is separated from application code | ✅ |
-| Tests co-located with the app they test | ✅ |
+| Rule                                                                           | Status |
+| ------------------------------------------------------------------------------ | ------ |
+| Each domain module is self-contained (controller + service + repository + dto) | ✅     |
+| No cross-module imports (finance doesn't import from hr)                       | ✅     |
+| Shared code lives in packages/, not duplicated                                 | ✅     |
+| DB schema is single source of truth in packages/db                             | ✅     |
+| Infra is separated from application code                                       | ✅     |
+| Tests co-located with the app they test                                        | ✅     |

@@ -351,11 +351,11 @@ value itself.
 "Scan for security problems" isn't one check — it's several, each looking
 for a different category of mistake:
 
-| Tool class                             | Question it answers                                                      | Example finding                                                                                    |
-| -------------------------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| Secret scanner (TruffleHog, gitleaks)  | Did anyone commit a real credential?                                     | An AWS key accidentally pasted into a commit, even one later "removed" (it's still in git history) |
-| Dependency scanner (Snyk, `npm audit`) | Do any of my dependencies have a known vulnerability?                    | A transitive package with a published CVE for remote code execution                                |
-| Container scanner (Trivy)              | Does my built image contain vulnerable OS packages or bad configuration? | A base image with an outdated OpenSSL that has a known exploit                                     |
+| Tool class                              | Question it answers                                                      | Example finding                                                                                    |
+| --------------------------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| Secret scanner (TruffleHog, gitleaks)   | Did anyone commit a real credential?                                     | An AWS key accidentally pasted into a commit, even one later "removed" (it's still in git history) |
+| Dependency scanner (Grype, `npm audit`) | Do any of my dependencies have a known vulnerability?                    | A transitive package with a published CVE for remote code execution                                |
+| Container scanner (Trivy)               | Does my built image contain vulnerable OS packages or bad configuration? | A base image with an outdated OpenSSL that has a known exploit                                     |
 
 None of these substitute for the others — a project can have zero
 committed secrets, perfectly safe dependencies, _and_ a container image
@@ -363,19 +363,21 @@ built on a base OS with three months of unpatched CVEs. Running all three
 in CI means each class of mistake gets caught the moment it's introduced,
 not discovered later during an incident.
 
-**Practical note on gating vs. blocking:** a scanner that needs an
-external account (Snyk needs an auth token) shouldn't hard-fail your
-entire pipeline the day it's added if that token isn't configured yet —
-that just trains people to ignore CI failures. Skip cleanly with a
-visible warning instead, so it's easy to see what's missing without
-blocking unrelated work:
+**Practical note on gating vs. blocking:** prefer scanners that run
+without external accounts or tokens (Grype is free/OSS and needs no
+signup) so the dependency scan actually executes on every push instead
+of silently skipping when a secret like `SNYK_TOKEN` was never
+configured. Fail only on fixable high/critical findings so CI blocks
+real risk without noise from unpatched upstream packages:
 
 ```yaml
-- name: Check for SNYK_TOKEN
-  run: |
-    if [ -z "${{ secrets.SNYK_TOKEN }}" ]; then
-      echo "::warning::SNYK_TOKEN not set — skipping Snyk scan."
-    fi
+- name: Run Grype
+  uses: anchore/scan-action@v7
+  with:
+    path: '.'
+    fail-build: true
+    severity-cutoff: high
+    only-fixed: true
 ```
 
 ---
