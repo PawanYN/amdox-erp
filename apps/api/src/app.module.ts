@@ -9,6 +9,7 @@ import { AuditModule } from './audit/audit.module';
 import { AppController } from './app.controller';
 import { RedisModule } from './common/redis/redis.module';
 import { RedisService } from './common/redis/redis.service';
+import { StorageModule } from './common/storage/storage.module';
 import { BullModule } from '@nestjs/bullmq';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -39,6 +40,7 @@ import { LoggerModule } from 'nestjs-pino';
       },
     }),
     RedisModule,
+    StorageModule,
     BullModule.forRoot({
       connection: {
         host: process.env.REDIS_HOST || 'localhost',

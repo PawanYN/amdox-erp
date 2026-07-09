@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@amdox/db": "workspace:*",
+    "@aws-sdk/client-s3": "^3.1083.0",
     "@bull-board/api": "^8.1.1",
     "@bull-board/express": "^8.1.1",
     "@keycloak/keycloak-admin-client": "^26.6.4",
@@ -37,6 +38,7 @@
     "ioredis": "^5.3.2",
     "jwks-rsa": "^4.1.0",
     "nestjs-pino": "^4.6.1",
+    "nodemailer": "^9.0.3",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "pdfkit": "^0.15.0",
@@ -51,6 +53,7 @@
     "@nestjs/testing": "^11.0.1",
     "@types/express": "^5.0.0",
     "@types/node": "^20.11.0",
+    "@types/nodemailer": "^8.0.1",
     "@types/passport-jwt": "^4.0.1",
     "@types/pdfkit": "^0.13.4",
     "eslint": "^9",

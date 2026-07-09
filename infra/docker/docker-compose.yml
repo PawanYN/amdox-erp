@@ -181,6 +181,53 @@ services:
   # ─────────────────────────────────────
   # Redis Commander — Redis GUI (optional)
   # ─────────────────────────────────────
+  # ─────────────────────────────────────
+  # MinIO — S3-compatible object storage (free/OSS alternative to AWS S3)
+  # ─────────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    container_name: amdox-minio
+    restart: unless-stopped
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # Web console (http://localhost:9001)
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-amdox}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-amdox_dev_123}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      # the image ships no curl/wget/mc — a raw TCP connect via bash is
+      # the only dependency-free way to check the S3 port is accepting
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/127.0.0.1/9000"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - amdox-network
+
+  # ─────────────────────────────────────
+  # Mailpit — fake SMTP server + web UI (free/OSS alternative to AWS SES
+  # for local dev: real emails are sent over real SMTP, just caught here
+  # instead of actually leaving the machine, so no external mail account
+  # or credentials are needed to verify delivery end-to-end)
+  # ─────────────────────────────────────
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: amdox-mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI (http://localhost:8025)
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8025/readyz"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - amdox-network
+
   redis-commander:
     image: rediscommander/redis-commander:latest
     container_name: amdox-redis-ui
@@ -216,6 +263,8 @@ volumes:
   elasticsearch_data:
     driver: local
   ml-model-registry:
+    driver: local
+  minio_data:
     driver: local
 
 # ─────────────────────────────────────

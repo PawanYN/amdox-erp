@@ -6,6 +6,7 @@ import { RecordPaymentDto } from '../dto/record-payment.dto';
 import { RunPaymentBatchDto } from '../dto/run-payment-batch.dto';
 import { InvoiceMatchingService } from './invoice-matching.service';
 import { OcrService } from './ocr.service';
+import { StorageService } from '../../common/storage/storage.service';
 
 interface InvoiceApprovedEvent {
   tenantId: string;
@@ -48,6 +49,7 @@ export class ApService {
     private readonly invoiceMatchingService: InvoiceMatchingService,
     private readonly ocrService: OcrService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly storageService: StorageService,
   ) {}
 
   /**
@@ -66,12 +68,41 @@ export class ApService {
    * WHY: Automates manual data entry (F-03 requirement) allowing for auto-approval if the
    * extracted data matches a Goods Receipt and Purchase Order perfectly.
    */
-  async processInvoiceDocument(tenantId: string, documentBuffer: Buffer, goodsReceiptId?: string) {
+  async processInvoiceDocument(
+    tenantId: string,
+    documentBuffer: Buffer,
+    goodsReceiptId?: string,
+    contentType = 'application/octet-stream',
+  ) {
     const { data: ocrData, confidenceScore } =
       await this.ocrService.extractInvoiceData(documentBuffer);
 
     // We will save it to the DB as pending match initially
-    return this.createInvoice(tenantId, ocrData, confidenceScore, goodsReceiptId);
+    const invoice = await this.createInvoice(tenantId, ocrData, confidenceScore, goodsReceiptId);
+
+    // Persist the original document so it can be retrieved later — the
+    // invoice's own ID makes a natural, collision-proof object key.
+    const documentKey = `invoices/${tenantId}/${invoice.id}/original`;
+    await this.storageService.upload(documentKey, documentBuffer, contentType);
+    await prisma.invoice.update({ where: { id: invoice.id }, data: { documentKey } });
+
+    return { ...invoice, documentKey };
+  }
+
+  /**
+   * Streams the original uploaded document for an AP invoice back out of
+   * storage. Tenant-scoped: the invoice lookup (not just the storage key)
+   * enforces that a caller can only ever fetch their own tenant's document.
+   */
+  async getInvoiceDocument(tenantId: string, invoiceId: string) {
+    const invoice = await prisma.invoice.findFirst({
+      where: { id: invoiceId, tenantId, type: 'AP' },
+      select: { documentKey: true },
+    });
+    if (!invoice?.documentKey) {
+      throw new NotFoundException('No document stored for this invoice.');
+    }
+    return this.storageService.download(invoice.documentKey);
   }
 
   /**

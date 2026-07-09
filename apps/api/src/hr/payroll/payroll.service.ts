@@ -27,12 +27,14 @@ import { prisma, PayrollRunStatus } from '@amdox/db';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { PayslipGenerator } from './payslip-generator';
+import { StorageService } from '../../common/storage/storage.service';
 
 @Injectable()
 export class PayrollService {
   constructor(
     @InjectQueue('payroll') private payrollQueue: Queue,
     private payslipGenerator: PayslipGenerator,
+    private storageService: StorageService,
   ) {}
 
   async enqueuePayrollRun(tenantId: string, payPeriod: string) {
@@ -142,16 +144,29 @@ export class PayrollService {
       throw new NotFoundException('Payslip not found');
     }
 
-    // Return the dynamically generated PDF buffer using proper pdfkit
-    return this.payslipGenerator.generatePdfBuffer(
-      payslip.employee.fullName,
-      payslip.payrollRun.periodLabel,
-      {
-        grossPay: Number(payslip.grossPay),
-        deductions: Number(payslip.deductions),
-        netPay: Number(payslip.netPay),
-      },
-    );
+    // Serve the persisted PDF from object storage (MinIO/S3 — StorageService)
+    // instead of regenerating it on every download.
+    const documentKey = `payslips/${tenantId}/${payslip.payrollRunId}/${payslip.employeeId}.pdf`;
+    try {
+      return await this.storageService.download(documentKey);
+    } catch {
+      // Backfill path for payslips created before storage was wired up
+      // (their pdfUrl is a stale placeholder route, never an object that
+      // actually exists) — regenerate once, persist it under the real
+      // key, and repair the row so future downloads hit storage directly.
+      const pdfBuffer = await this.payslipGenerator.generatePdfBuffer(
+        payslip.employee.fullName,
+        payslip.payrollRun.periodLabel,
+        {
+          grossPay: Number(payslip.grossPay),
+          deductions: Number(payslip.deductions),
+          netPay: Number(payslip.netPay),
+        },
+      );
+      await this.storageService.upload(documentKey, pdfBuffer, 'application/pdf');
+      await prisma.payslip.update({ where: { id: payslip.id }, data: { pdfUrl: documentKey } });
+      return pdfBuffer;
+    }
   }
 
   private normalizePayPeriod(payPeriod: string) {
