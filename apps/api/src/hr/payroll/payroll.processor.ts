@@ -22,6 +22,7 @@ import { Logger } from '@nestjs/common';
 import { AmdoxLogger } from '../../common/logger/amdox-logger';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PayslipGenerator } from './payslip-generator';
+import { StorageService } from '../../common/storage/storage.service';
 
 @Processor('payroll')
 export class PayrollProcessor extends WorkerHost {
@@ -29,6 +30,7 @@ export class PayrollProcessor extends WorkerHost {
   constructor(
     private readonly payslipGenerator: PayslipGenerator,
     private readonly eventEmitter: EventEmitter2,
+    private readonly storageService: StorageService,
   ) {
     super();
   }
@@ -116,14 +118,19 @@ export class PayrollProcessor extends WorkerHost {
 
           totalNetPaySum += netPay;
 
-          // Generate the PDF now so a broken payslip template fails the run early, rather than
-          // silently at download time. (In a real app we'd upload this buffer to S3 and save the URL,
-          // but here the download endpoint regenerates it on demand — see pdfUrl below.)
-          await this.payslipGenerator.generatePdfBuffer(employee.fullName, label, {
-            grossPay,
-            deductions,
-            netPay,
-          });
+          // Generate the PDF now so a broken payslip template fails the run early, rather
+          // than silently at download time, and persist it to object storage (MinIO in
+          // dev/kind, real S3/R2 in production — StorageService) so the download endpoint
+          // can serve the stored file instead of regenerating it every time. Keyed by
+          // payrollRunId+employeeId, both known before the batch insert below assigns
+          // each Payslip row its own id.
+          const pdfBuffer = await this.payslipGenerator.generatePdfBuffer(
+            employee.fullName,
+            label,
+            { grossPay, deductions, netPay },
+          );
+          const documentKey = `payslips/${tenantId}/${payrollRunId}/${employee.id}.pdf`;
+          await this.storageService.upload(documentKey, pdfBuffer, 'application/pdf');
 
           payslipInserts.push({
             tenantId,
@@ -132,7 +139,7 @@ export class PayrollProcessor extends WorkerHost {
             grossPay,
             deductions,
             netPay,
-            pdfUrl: `/hr/payroll/${employee.id}/payslip.pdf`,
+            pdfUrl: documentKey,
           });
         }
 

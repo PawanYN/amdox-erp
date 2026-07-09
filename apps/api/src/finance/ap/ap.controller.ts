@@ -4,11 +4,13 @@ import {
   Post,
   Body,
   Param,
+  Res,
   UseInterceptors,
   UploadedFile,
   UseGuards,
   Req,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
@@ -74,7 +76,26 @@ export class ApController {
       req.user.tenantId,
       document.buffer,
       goodsReceiptId,
+      document.mimetype,
     );
+  }
+
+  /**
+   * Downloads the original uploaded invoice document (Tech Stack "File
+   * Storage" gap — the file used for OCR is now durably persisted, not
+   * discarded after extraction).
+   */
+  @Roles('Manager', 'TenantAdmin', 'Viewer')
+  @Get(':id/document')
+  @ApiOperation({ summary: 'Download the original invoice document' })
+  async downloadInvoiceDocument(
+    @Req() req: any,
+    @Param('id') invoiceId: string,
+    @Res() res: Response,
+  ) {
+    const buffer = await this.apService.getInvoiceDocument(req.user.tenantId, invoiceId);
+    res.setHeader('Content-Disposition', `attachment; filename="invoice-${invoiceId}"`);
+    res.send(buffer);
   }
 
   /**

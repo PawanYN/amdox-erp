@@ -578,6 +578,7 @@ model Invoice {
   currency        Currency?     @relation(fields: [currencyId], references: [id])
   status          InvoiceStatus @default(DRAFT)
   ocrConfidence   Float?
+  documentKey     String?       // original uploaded document's object-storage key (StorageService)
   issueDate       DateTime
   dueDate         DateTime
   totalAmount     Decimal       @db.Decimal(18, 4)
