@@ -176,3 +176,47 @@ jobs:
           # time-boxed ignores for CVEs blocked on upstream image rebuilds —
           # every entry carries an exp: date, see the file's header comment
           trivyignores: .trivyignore
+
+  # One Slack message per pipeline run, success or failure. Plain curl
+  # against the incoming-webhook URL (repo secret SLACK_WEBHOOK_URL) rather
+  # than a marketplace action — one less third-party step to trust.
+  notify:
+    name: Slack notification
+    runs-on: ubuntu-latest
+    needs:
+      [
+        lint,
+        typecheck,
+        tenant-scoping-audit,
+        build,
+        secret-scan,
+        dependency-scan,
+        container-scan,
+        image-scan,
+      ]
+    # always(): report failures too — a notify job that only runs on green
+    # would be silent exactly when someone needs to look
+    if: always()
+    steps:
+      - name: Post pipeline result to Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          REF: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+        run: |
+          # Forked PRs don't receive secrets — skip quietly instead of failing
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            echo "SLACK_WEBHOOK_URL not available — skipping notification"
+            exit 0
+          fi
+          if printf '%s' "$RESULTS" | grep -qE 'failure|cancelled'; then
+            STATUS="❌ CI failed"
+          else
+            STATUS="✅ CI passed"
+          fi
+          payload=$(printf '{"text":"%s — `%s` @ %.7s (<%s|view run>)"}' \
+            "$STATUS" "$REF" "$SHA" "$RUN_URL")
+          curl -sf -X POST -H 'Content-Type: application/json' \
+            -d "$payload" "$SLACK_WEBHOOK_URL"
