@@ -18,7 +18,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: http://172.19.0.100:8929/amdox-erp.git
+    repoURL: http://172.19.0.100:8929/cgi-bin/git/amdox-erp.git
     targetRevision: feature/day24-cicd-gitops
     path: infra/helm/amdox
     helm:
