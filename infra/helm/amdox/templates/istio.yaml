@@ -1,0 +1,60 @@
+# Istio traffic rules for canary-deploying the api. Only rendered when
+# istio.enabled (the cluster must have istiod + sidecar injection on the
+# namespace — pods show 2/2 when the Envoy sidecar is inside).
+#
+# Why the plain Service can't do this: a k8s Service load-balances evenly
+# over every pod it selects, full stop. Istio's sidecars, in contrast, can
+# be programmed with percentage routes. The two objects below are that
+# program, and every sidecar in the namespace enforces it on outbound
+# calls to `amdox-api`.
+{{- if .Values.istio.enabled }}
+---
+# DestinationRule — the LABELING rule. Splits the pods behind the
+# `amdox-api` Service into named subsets by their `version` pod label.
+# On its own it routes nothing; it only defines the groups.
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: amdox-api
+  labels:
+    app.kubernetes.io/name: amdox-api
+    app.kubernetes.io/part-of: amdox
+spec:
+  host: amdox-api # the Service name, i.e. amdox-api.<this namespace>.svc
+  subsets:
+    - name: stable
+      labels:
+        version: stable
+    - name: canary
+      labels:
+        version: canary
+---
+# VirtualService — the ROUTING rule. "Of requests addressed to amdox-api,
+# send N% to the canary subset, the rest to stable." With canary disabled
+# it pins 100% to stable, so an accidentally-lingering canary pod would
+# get zero traffic rather than its Service-proportional share.
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: amdox-api
+  labels:
+    app.kubernetes.io/name: amdox-api
+    app.kubernetes.io/part-of: amdox
+spec:
+  hosts:
+    - amdox-api
+  http:
+    - route:
+        - destination:
+            host: amdox-api
+            subset: stable
+          {{- if .Values.istio.canary.enabled }}
+          weight: {{ sub 100 (int .Values.istio.canary.weight) }}
+        - destination:
+            host: amdox-api
+            subset: canary
+          weight: {{ .Values.istio.canary.weight }}
+          {{- else }}
+          weight: 100
+          {{- end }}
+{{- end }}

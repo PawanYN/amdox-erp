@@ -1,0 +1,37 @@
+# Ingress — HTTP routing rules from the outside world into Services. The
+# rules are inert on their own: an Ingress CONTROLLER (nginx here) watches
+# them and does the actual listening/proxying on port 80/443. Host-based
+# routing: the controller reads the Host header and picks the backend.
+# TLS is deliberately absent for the local cluster; in a real environment
+# cert-manager adds a `tls:` block here (Day 25 scope).
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: amdox
+  labels:
+    app.kubernetes.io/part-of: amdox
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  rules:
+    - host: {{ .Values.ingress.webHost }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: amdox-web
+                port:
+                  name: http
+    - host: {{ .Values.ingress.apiHost }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: amdox-api
+                port:
+                  name: http
+{{- end }}

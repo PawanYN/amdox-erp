@@ -1,0 +1,16 @@
+# ConfigMap — non-secret configuration as plain key/value pairs, decoupled
+# from the workload. The Deployment pulls the whole map in with a single
+# `envFrom: configMapRef` — change config here (or per-env values files),
+# not in the Deployment. ConfigMap values must be strings, hence the quote.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: amdox-api-config
+  labels:
+    app.kubernetes.io/name: amdox-api
+    app.kubernetes.io/part-of: amdox
+data:
+  PORT: {{ .Values.api.port | quote }}
+  {{- range $key, $value := .Values.api.config }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}

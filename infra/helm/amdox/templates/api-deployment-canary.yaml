@@ -1,0 +1,62 @@
+# Canary api Deployment — a SECOND, small deployment of the api, labeled
+# version: canary, selected by the same `amdox-api` Service as the stable
+# pods. The VirtualService (templates/istio.yaml) decides what fraction of
+# traffic it sees; without Istio this pod would get its even Service share,
+# which is exactly the all-or-nothing behavior canary deployments avoid —
+# hence the double gate on istio.enabled AND istio.canary.enabled.
+#
+# istio.canary.tag is the point of the exercise: run the NEW image tag here
+# while stable keeps the old one, watch, then promote by flipping api.tag
+# and turning the canary off.
+{{- if and .Values.istio.enabled .Values.istio.canary.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: amdox-api-canary
+  labels:
+    app.kubernetes.io/name: amdox-api
+    app.kubernetes.io/part-of: amdox
+    version: canary
+spec:
+  # Fixed size, no HPA: a canary is a controlled experiment, not capacity.
+  replicas: {{ .Values.istio.canary.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: amdox-api
+      version: canary
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: amdox-api
+        app.kubernetes.io/part-of: amdox
+        version: canary
+    spec:
+      containers:
+        - name: api
+          image: "{{ .Values.api.image }}:{{ .Values.istio.canary.tag }}"
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.api.port }}
+          # Identical config/secrets to stable — a canary tests the new
+          # CODE, so everything else must be held constant.
+          envFrom:
+            - configMapRef:
+                name: amdox-api-config
+            - secretRef:
+                name: amdox-api-secrets
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.api.resources | nindent 12 }}
+{{- end }}

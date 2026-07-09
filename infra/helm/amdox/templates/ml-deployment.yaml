@@ -1,0 +1,64 @@
+# ML service (FastAPI) — same pattern again. Its model registry directory
+# is an emptyDir for now: models retrain on demand and this is a validation
+# cluster; a real deployment would use a PersistentVolumeClaim.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: amdox-ml-service
+  labels:
+    app.kubernetes.io/name: amdox-ml-service
+    app.kubernetes.io/part-of: amdox
+spec:
+  replicas: {{ .Values.mlService.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: amdox-ml-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: amdox-ml-service
+        app.kubernetes.io/part-of: amdox
+    spec:
+      containers:
+        - name: ml-service
+          image: "{{ .Values.mlService.image }}:{{ .Values.mlService.tag }}"
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.mlService.port }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: model-registry
+              mountPath: /app/model_registry
+          resources:
+            {{- toYaml .Values.mlService.resources | nindent 12 }}
+      volumes:
+        - name: model-registry
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: amdox-ml-service
+  labels:
+    app.kubernetes.io/name: amdox-ml-service
+    app.kubernetes.io/part-of: amdox
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: amdox-ml-service
+  ports:
+    - name: http
+      port: {{ .Values.mlService.port }}
+      targetPort: http

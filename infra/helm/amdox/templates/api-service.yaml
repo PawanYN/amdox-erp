@@ -1,0 +1,22 @@
+# Service — a stable internal name + virtual IP in front of the api pods.
+# Pods die and respawn with new IPs; this name never changes. Inside the
+# cluster anything can reach the api at http://amdox-api:3001 (or the
+# fully-qualified amdox-api.<namespace>.svc.cluster.local). Traffic is
+# load-balanced across every pod matching the selector.
+apiVersion: v1
+kind: Service
+metadata:
+  name: amdox-api
+  labels:
+    app.kubernetes.io/name: amdox-api
+    app.kubernetes.io/part-of: amdox
+spec:
+  # ClusterIP = internal-only (the default). Exposure to the outside world
+  # is the Ingress's job, added later.
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: amdox-api
+  ports:
+    - name: http
+      port: {{ .Values.api.port }} # port the Service listens on
+      targetPort: http # container port it forwards to (named in the Deployment)
