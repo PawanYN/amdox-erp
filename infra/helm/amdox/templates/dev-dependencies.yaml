@@ -1,0 +1,181 @@
+# Dev-only backing services: Postgres, Redis, Keycloak as bare-bones
+# Deployment+Service pairs so the app is fully testable inside a local
+# (kind) cluster. Real environments set devDependencies.enabled=false and
+# point the ConfigMap/Secret at managed services (RDS, ElastiCache, a real
+# Keycloak) — running stateful databases in-cluster is its own discipline
+# (StatefulSets, PVCs, operators) and out of scope here. Storage is
+# emptyDir: data lives only as long as the pod. Fine for validation,
+# useless for anything else.
+{{- if .Values.devDependencies.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: amdox-postgres
+  labels:
+    app.kubernetes.io/name: amdox-postgres
+    app.kubernetes.io/part-of: amdox
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: amdox-postgres
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: amdox-postgres
+        app.kubernetes.io/part-of: amdox
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:17-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5432
+          env:
+            # dev-cluster-only credentials, matching the DATABASE_URL the
+            # api Secret gets at install time
+            - name: POSTGRES_USER
+              value: amdox
+            - name: POSTGRES_PASSWORD
+              value: amdox
+            - name: POSTGRES_DB
+              value: amdox_erp
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "amdox", "-d", "amdox_erp"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { cpu: "1", memory: 512Mi }
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: amdox-postgres
+  labels:
+    app.kubernetes.io/name: amdox-postgres
+    app.kubernetes.io/part-of: amdox
+spec:
+  selector:
+    app.kubernetes.io/name: amdox-postgres
+  ports:
+    # `tcp-`/`http-` prefixed names tell Istio's sidecars which protocol to
+    # expect (IST0118); unnamed ports force it to sniff.
+    - name: tcp-postgres
+      port: 5432
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: amdox-redis
+  labels:
+    app.kubernetes.io/name: amdox-redis
+    app.kubernetes.io/part-of: amdox
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: amdox-redis
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: amdox-redis
+        app.kubernetes.io/part-of: amdox
+    spec:
+      containers:
+        - name: redis
+          image: redis:8-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 6379
+          readinessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { cpu: 500m, memory: 256Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: amdox-redis
+  labels:
+    app.kubernetes.io/name: amdox-redis
+    app.kubernetes.io/part-of: amdox
+spec:
+  selector:
+    app.kubernetes.io/name: amdox-redis
+  ports:
+    - name: tcp-redis
+      port: 6379
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: amdox-keycloak
+  labels:
+    app.kubernetes.io/name: amdox-keycloak
+    app.kubernetes.io/part-of: amdox
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: amdox-keycloak
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: amdox-keycloak
+        app.kubernetes.io/part-of: amdox
+    spec:
+      containers:
+        - name: keycloak
+          image: quay.io/keycloak/keycloak:25.0
+          imagePullPolicy: IfNotPresent
+          # start-dev: in-memory H2 database, HTTP, no hostname config —
+          # dev-cluster only, mirrors how local docker-compose runs it
+          args: ["start-dev"]
+          ports:
+            - containerPort: 8080
+          env:
+            - name: KEYCLOAK_ADMIN
+              value: admin
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              value: admin
+            - name: KC_HEALTH_ENABLED
+              value: "true"
+          # Keycloak 25 serves /health/* on the management port 9000
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 9000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 10
+          resources:
+            requests: { cpu: 200m, memory: 512Mi }
+            limits: { cpu: "1", memory: 1Gi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: amdox-keycloak
+  labels:
+    app.kubernetes.io/name: amdox-keycloak
+    app.kubernetes.io/part-of: amdox
+spec:
+  selector:
+    app.kubernetes.io/name: amdox-keycloak
+  ports:
+    - name: http-keycloak
+      port: 8080
+{{- end }}

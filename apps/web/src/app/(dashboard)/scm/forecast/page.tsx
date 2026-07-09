@@ -1,9 +1,22 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { TrendingUp, BarChart2, Loader2, AlertTriangle, CheckCircle, Clock, RefreshCw } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import dynamic from "next/dynamic";
+import {
+  TrendingUp,
+  BarChart2,
+  Loader2,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  RefreshCw,
+} from "lucide-react";
 import { forecastApi } from "@/lib/api/forecast-api";
+
+// recharts (+ its d3/redux-toolkit internals) is ~370KB parsed — deferred
+// out of this page's initial bundle the same way bi/widget-chart.tsx
+// already defers echarts-for-react.
+const MapeChart = dynamic(() => import("./mape-chart"), { ssr: false });
 
 type ForecastStatus = {
   id: string;
@@ -44,7 +57,9 @@ function TrainedAtCell({ trainedAt }: { trainedAt: string | null }) {
   const label = d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" });
   const stale = daysDiff > 7;
   return (
-    <span className={`text-[11px] flex items-center gap-1 ${stale ? "text-[#D9A85C]" : "text-[#4A4740]"}`}>
+    <span
+      className={`text-[11px] flex items-center gap-1 ${stale ? "text-[#D9A85C]" : "text-[#4A4740]"}`}
+    >
       {stale ? <Clock size={10} /> : <CheckCircle size={10} className="text-[#2F6B4F]" />}
       {label}
       {stale && <span className="text-[10px] text-[#D9A85C]">(stale)</span>}
@@ -71,7 +86,9 @@ export default function ForecastPage() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const trainOne = async (productId: string) => {
     setTraining((prev) => ({ ...prev, [productId]: true }));
@@ -165,7 +182,9 @@ export default function ForecastPage() {
       {/* Stats cards */}
       <div className="grid grid-cols-4 gap-3">
         <div className="rounded-lg border border-[#E4E2DC] bg-white px-4 py-3">
-          <p className="text-[10px] text-[#8A8678] font-medium uppercase tracking-wide">Total SKUs</p>
+          <p className="text-[10px] text-[#8A8678] font-medium uppercase tracking-wide">
+            Total SKUs
+          </p>
           <p className="text-[22px] font-bold text-[#14171F] mt-0.5">{items.length}</p>
         </div>
         <div className="rounded-lg border border-[#E4E2DC] bg-white px-4 py-3">
@@ -177,17 +196,24 @@ export default function ForecastPage() {
         </div>
         <div className="rounded-lg border border-[#E4E2DC] bg-white px-4 py-3">
           <p className="text-[10px] text-[#8A8678] font-medium uppercase tracking-wide">Avg MAPE</p>
-          <p className="text-[22px] font-bold mt-0.5" style={{ color: avgMape !== null && avgMape * 100 < 12 ? "#2F6B4F" : "#D9A85C" }}>
+          <p
+            className="text-[22px] font-bold mt-0.5"
+            style={{ color: avgMape !== null && avgMape * 100 < 12 ? "#2F6B4F" : "#D9A85C" }}
+          >
             {avgMape !== null ? `${(avgMape * 100).toFixed(1)}%` : "—"}
           </p>
         </div>
         <div className="rounded-lg border border-[#E4E2DC] bg-white px-4 py-3">
-          <p className="text-[10px] text-[#8A8678] font-medium uppercase tracking-wide">Stale (&gt;7d)</p>
+          <p className="text-[10px] text-[#8A8678] font-medium uppercase tracking-wide">
+            Stale (&gt;7d)
+          </p>
           <p className="text-[22px] font-bold text-[#D9A85C] mt-0.5">
-            {trained.filter((i) => {
-              if (!i.trainedAt) return false;
-              return (Date.now() - new Date(i.trainedAt).getTime()) > 7 * 24 * 60 * 60 * 1000;
-            }).length}
+            {
+              trained.filter((i) => {
+                if (!i.trainedAt) return false;
+                return Date.now() - new Date(i.trainedAt).getTime() > 7 * 24 * 60 * 60 * 1000;
+              }).length
+            }
           </p>
         </div>
       </div>
@@ -199,24 +225,7 @@ export default function ForecastPage() {
             <BarChart2 size={11} className="text-[#1E3A5F]" />
             MAPE by SKU (lower is better · target &lt;12%)
           </p>
-          <ResponsiveContainer width="100%" height={100}>
-            <BarChart data={mapeData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#F0EEE7" vertical={false} />
-              <XAxis dataKey="name" tick={{ fontSize: 9, fill: "#8A8678" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 9, fill: "#8A8678" }} axisLine={false} tickLine={false} unit="%" />
-              <Tooltip
-                contentStyle={{ fontSize: 11, border: "1px solid #E4E2DC", borderRadius: 6 }}
-                formatter={(v) => [`${v}%`, "MAPE"]}
-                cursor={{ fill: "#1E3A5F10" }}
-              />
-              <Bar
-                dataKey="mape"
-                radius={[2, 2, 0, 0]}
-                maxBarSize={24}
-                fill="#1E3A5F"
-              />
-            </BarChart>
-          </ResponsiveContainer>
+          <MapeChart data={mapeData} />
         </div>
       )}
 
@@ -238,7 +247,9 @@ export default function ForecastPage() {
               <tr key={item.id} className="border-b border-[#F0EEE7] hover:bg-[#FAFAF9]">
                 <td className="px-3 py-2">
                   <p className="font-medium text-[#14171F]">{item.name}</p>
-                  <p className="text-[10px] text-[#8A8678] font-mono">{item.sku} · {item.category ?? "General"}</p>
+                  <p className="text-[10px] text-[#8A8678] font-mono">
+                    {item.sku} · {item.category ?? "General"}
+                  </p>
                 </td>
                 <td className="px-3 py-2">
                   <ModelBadge type={item.modelType} />
@@ -247,7 +258,11 @@ export default function ForecastPage() {
                   <MapeChip score={item.mapeScore} />
                 </td>
                 <td className="px-3 py-2 text-right font-mono text-[#4A4740]">
-                  {item.predictionCount > 0 ? item.predictionCount : <span className="text-[#8A8678]">—</span>}
+                  {item.predictionCount > 0 ? (
+                    item.predictionCount
+                  ) : (
+                    <span className="text-[#8A8678]">—</span>
+                  )}
                 </td>
                 <td className="px-3 py-2">
                   <TrainedAtCell trainedAt={item.trainedAt} />
@@ -258,7 +273,11 @@ export default function ForecastPage() {
                     disabled={training[item.id] || trainAll}
                     className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md bg-[#1E3A5F] text-white disabled:opacity-50"
                   >
-                    {training[item.id] ? <Loader2 size={9} className="animate-spin" /> : <TrendingUp size={9} />}
+                    {training[item.id] ? (
+                      <Loader2 size={9} className="animate-spin" />
+                    ) : (
+                      <TrendingUp size={9} />
+                    )}
                     {training[item.id] ? "Training…" : item.trainedAt ? "Re-train" : "Train"}
                   </button>
                 </td>

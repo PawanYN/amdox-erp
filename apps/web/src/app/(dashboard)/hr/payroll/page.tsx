@@ -1,7 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Play, Loader2, Download, Wallet, DollarSign, TrendingDown, CheckCircle, RefreshCw, Calendar } from "lucide-react";
+import {
+  Play,
+  Loader2,
+  Download,
+  Wallet,
+  DollarSign,
+  TrendingDown,
+  CheckCircle,
+  RefreshCw,
+  Calendar,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge, statusToTone } from "@/components/ui/badge";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
@@ -50,8 +60,8 @@ export default function PayrollPage() {
     try {
       await hrApi.runPayroll(period);
       await fetchPayroll();
-    } catch (e: any) {
-      alert(e.message || "Failed to run payroll");
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Failed to run payroll");
     } finally {
       setIsRunning(false);
     }
@@ -68,7 +78,11 @@ export default function PayrollPage() {
       cell: (rec) => (
         <div className="flex items-center gap-2.5">
           <div className="h-8 w-8 rounded-full bg-emerald-600 flex items-center justify-center text-white text-[11px] font-bold shrink-0">
-            {rec.employeeName.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
+            {rec.employeeName
+              .split(" ")
+              .map((n: string) => n[0])
+              .join("")
+              .slice(0, 2)}
           </div>
           <span className="font-semibold text-slate-900">{rec.employeeName}</span>
         </div>
@@ -127,14 +141,14 @@ export default function PayrollPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <Wallet size={18} className="text-slate-400" />
+            <Wallet size={18} className="text-slate-500" />
             Payroll
           </h1>
           <p className="page-subtitle mt-1">Gross-to-net calculation, batch runs and payslips</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 border border-slate-200 rounded-md px-3 py-1.5 bg-white">
-            <Calendar size={14} className="text-slate-400" />
+            <Calendar size={14} className="text-slate-500" />
             <input
               type="month"
               value={period}
@@ -162,24 +176,39 @@ export default function PayrollPage() {
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="bg-white rounded-lg border border-slate-200 shadow-card p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-1.5">Total Gross</p>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-1.5">
+            Total Gross
+          </p>
           <p className="text-2xl font-semibold text-slate-900">{formatINR(totalGross)}</p>
         </div>
         <div className="bg-emerald-50 rounded-lg border border-emerald-100 p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-emerald-600 mb-1.5">Net Pay</p>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-emerald-600 mb-1.5">
+            Net Pay
+          </p>
           <p className="text-2xl font-semibold text-emerald-700">{formatINR(totalNet)}</p>
         </div>
         <div className="bg-red-50 rounded-lg border border-red-100 p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-red-500 mb-1.5">Deductions</p>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-red-500 mb-1.5">
+            Deductions
+          </p>
           <p className="text-2xl font-semibold text-red-600">{formatINR(totalDeductions)}</p>
         </div>
         <div className="bg-white rounded-lg border border-slate-200 shadow-card p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-1.5">Processed</p>
-          <p className="text-2xl font-semibold text-slate-900">{processedCount} / {records.length}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-1.5">
+            Processed
+          </p>
+          <p className="text-2xl font-semibold text-slate-900">
+            {processedCount} / {records.length}
+          </p>
         </div>
       </div>
 
-      <DataTable data={records} columns={columns} keyExtractor={(rec) => rec.id} emptyMessage="No payroll records for this period yet." />
+      <DataTable
+        data={records}
+        columns={columns}
+        keyExtractor={(rec) => rec.id}
+        emptyMessage="No payroll records for this period yet."
+      />
 
       <PayslipModal record={previewRecord} onClose={() => setPreviewRecord(null)} />
     </div>

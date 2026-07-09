@@ -1,8 +1,26 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaClient, NotificationChannel, NotificationDeliveryStatus } from '@amdox/db';
-import { WebhookChannel } from './channels/webhook.channel';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { Subject } from 'rxjs';
+import { prisma, NotificationChannel, NotificationDeliveryStatus, Notification } from '@amdox/db';
 
 export interface NotifyInput {
+  tenantId: string;
+  eventType: string;
+  title: string;
+  body?: string;
+  userId?: string;
+}
+
+export interface NotificationStreamEvent {
+  tenantId: string;
+  userId?: string;
+  notification: Notification;
+}
+
+export interface DispatchJobData {
+  deliveryId: string;
+  channel: NotificationChannel;
   tenantId: string;
   eventType: string;
   title: string;
@@ -14,21 +32,68 @@ export interface NotifyInput {
  * Central notification dispatch service.
  *
  * Delivery channels:
- *  1. IN_APP — always: creates a Notification record readable by /notifications
- *  2. WEBHOOK — when tenant.settings.webhookUrl is configured: HMAC-signed HTTP POST
+ *  1. IN_APP — creates a Notification record readable by /notifications, and
+ *     pushed live over SSE (`GET /notifications/stream`) to connected clients.
+ *  2. WEBHOOK / EMAIL — dispatched asynchronously via the `notification-dispatch`
+ *     BullMQ queue (see NotificationDispatchProcessor) instead of inline, so a
+ *     transient failure (network blip, tenant endpoint down) gets retried with
+ *     backoff instead of being marked FAILED once and forgotten. Jobs that
+ *     exhaust their retries are kept (not auto-removed) and stay visible in the
+ *     Bull Board dashboard mounted at /admin/queues — the dead-letter view.
+ *     EMAIL ultimately hits EmailChannel, which has no AWS SES credentials wired
+ *     in yet (BE-07) so it logs instead of hitting the wire; the moment those
+ *     credentials are added, this path starts delivering for real unchanged.
+ *
+ * Each channel is skipped if the target user has an explicit NotificationPreference
+ * row disabling it for that eventType. No preference row means the channel defaults
+ * to enabled (opt-out model, matching NotificationPreference.isEnabled's schema
+ * default). Preferences only apply when a specific userId is known — tenant-wide
+ * broadcast events with no target user always go through, since there's no
+ * individual to opt out.
  *
  * INT-07: All → Notifications integration.
  */
 @Injectable()
 export class NotificationService {
   private readonly logger = new Logger('NotificationEngine');
-  private prisma = new PrismaClient();
+  private readonly stream$ = new Subject<NotificationStreamEvent>();
 
-  constructor(private readonly webhookChannel: WebhookChannel) {}
+  constructor(@InjectQueue('notification-dispatch') private readonly dispatchQueue: Queue) {}
+
+  getStream() {
+    return this.stream$.asObservable();
+  }
+
+  private async isChannelEnabled(
+    tenantId: string,
+    userId: string | undefined,
+    eventType: string,
+    channel: NotificationChannel,
+  ): Promise<boolean> {
+    if (!userId) return true;
+    const pref = await prisma.notificationPreference.findFirst({
+      where: { userId, eventType, channel, tenantId },
+      select: { isEnabled: true },
+    });
+    return pref?.isEnabled ?? true;
+  }
 
   async notify(input: NotifyInput) {
+    const inAppEnabled = await this.isChannelEnabled(
+      input.tenantId,
+      input.userId,
+      input.eventType,
+      NotificationChannel.IN_APP,
+    );
+    if (!inAppEnabled) {
+      this.logger.log(
+        `[NOTIFICATION] ${input.eventType} suppressed for user=${input.userId} — IN_APP disabled by NotificationPreference`,
+      );
+      return null;
+    }
+
     // 1. Persist in-app notification
-    const notification = await this.prisma.notification.create({
+    const notification = await prisma.notification.create({
       data: {
         tenantId: input.tenantId,
         userId: input.userId,
@@ -44,7 +109,7 @@ export class NotificationService {
     );
 
     // 3. Mark IN_APP delivery
-    await this.prisma.notificationDelivery.create({
+    await prisma.notificationDelivery.create({
       data: {
         tenantId: input.tenantId,
         notificationId: notification.id,
@@ -55,54 +120,90 @@ export class NotificationService {
       },
     });
 
-    // 4. Dispatch webhook if tenant has one configured
-    await this.dispatchWebhookIfConfigured(notification.id, input);
+    // 4. Push live over SSE to any connected client for this tenant/user
+    this.stream$.next({ tenantId: input.tenantId, userId: input.userId, notification });
+
+    // 5. Queue webhook dispatch if tenant has one configured and user hasn't opted out
+    await this.enqueueIfEligible(notification.id, input, NotificationChannel.WEBHOOK);
+
+    // 6. Queue email dispatch if the target user has an address on file and hasn't opted out
+    await this.enqueueIfEligible(notification.id, input, NotificationChannel.EMAIL);
 
     return notification;
   }
 
-  private async dispatchWebhookIfConfigured(notificationId: string, input: NotifyInput) {
+  /**
+   * Checks channel-specific eligibility (preference + whether there's actually
+   * somewhere to send it), then hands the real dispatch off to the
+   * `notification-dispatch` BullMQ queue so a transient failure gets retried
+   * with backoff instead of being marked FAILED once and forgotten.
+   */
+  private async enqueueIfEligible(
+    notificationId: string,
+    input: NotifyInput,
+    channel: Extract<NotificationChannel, 'WEBHOOK' | 'EMAIL'>,
+  ) {
     try {
-      const tenant = await this.prisma.tenant.findUnique({
-        where: { id: input.tenantId },
-        select: { settings: true },
-      });
+      const enabled = await this.isChannelEnabled(
+        input.tenantId,
+        input.userId,
+        input.eventType,
+        channel,
+      );
+      if (!enabled) return;
 
-      const settings = tenant?.settings as Record<string, unknown> | null;
-      const webhookUrl = settings?.webhookUrl as string | undefined;
-      const signingSecret = (settings?.webhookSecret as string | undefined) ?? input.tenantId;
+      if (channel === NotificationChannel.WEBHOOK) {
+        // tenant-scope-ok: Tenant model has no tenantId field (it IS the tenant).
+        const tenant = await prisma.tenant.findUnique({
+          where: { id: input.tenantId },
+          select: { settings: true },
+        });
+        const settings = tenant?.settings as Record<string, unknown> | null;
+        if (!settings?.webhookUrl) return;
+      }
 
-      if (!webhookUrl) return;
+      if (channel === NotificationChannel.EMAIL) {
+        if (!input.userId) return;
+        const user = await prisma.user.findFirst({
+          where: { id: input.userId, tenantId: input.tenantId },
+          select: { email: true },
+        });
+        if (!user?.email) return;
+      }
 
-      const payload = {
-        eventType: input.eventType,
-        title: input.title,
-        body: input.body,
-        tenantId: input.tenantId,
-        userId: input.userId,
-        timestamp: new Date().toISOString(),
-      };
-
-      const ok = await this.webhookChannel.dispatch(webhookUrl, signingSecret, payload);
-
-      await this.prisma.notificationDelivery.create({
+      const delivery = await prisma.notificationDelivery.create({
         data: {
           tenantId: input.tenantId,
           notificationId,
-          channel: NotificationChannel.WEBHOOK,
-          status: ok ? NotificationDeliveryStatus.SENT : NotificationDeliveryStatus.FAILED,
-          attempts: 1,
-          sentAt: ok ? new Date() : undefined,
-          lastError: ok ? undefined : 'Webhook dispatch failed',
+          channel,
+          status: NotificationDeliveryStatus.PENDING,
+          attempts: 0,
         },
       });
+
+      const jobData: DispatchJobData = {
+        deliveryId: delivery.id,
+        channel,
+        tenantId: input.tenantId,
+        eventType: input.eventType,
+        title: input.title,
+        body: input.body,
+        userId: input.userId,
+      };
+
+      await this.dispatchQueue.add(`${channel.toLowerCase()}-dispatch`, jobData, {
+        attempts: 5,
+        backoff: { type: 'exponential', delay: 2000 },
+        removeOnComplete: 100,
+        removeOnFail: false, // keep exhausted jobs visible — dead-letter view in Bull Board
+      });
     } catch (err: any) {
-      this.logger.error(`Webhook dispatch error: ${err?.message}`);
+      this.logger.error(`Failed to enqueue ${channel} dispatch: ${err?.message}`);
     }
   }
 
   async listForTenant(tenantId: string, limit = 50) {
-    return this.prisma.notification.findMany({
+    return prisma.notification.findMany({
       where: { tenantId },
       orderBy: { createdAt: 'desc' },
       take: limit,
@@ -111,9 +212,35 @@ export class NotificationService {
   }
 
   async markRead(tenantId: string, notificationId: string) {
-    return this.prisma.notification.updateMany({
+    return prisma.notification.updateMany({
       where: { id: notificationId, tenantId },
       data: { isRead: true },
+    });
+  }
+
+  async listPreferences(tenantId: string, userId: string) {
+    return prisma.notificationPreference.findMany({ where: { userId, tenantId } });
+  }
+
+  async setPreference(
+    tenantId: string,
+    userId: string,
+    eventType: string,
+    channel: NotificationChannel,
+    isEnabled: boolean,
+  ) {
+    const existing = await prisma.notificationPreference.findFirst({
+      where: { userId, eventType, channel, tenantId },
+    });
+    if (existing) {
+      // tenant-scope-ok: `existing` was just found via a tenantId-scoped findFirst above.
+      return prisma.notificationPreference.update({
+        where: { id: existing.id },
+        data: { isEnabled },
+      });
+    }
+    return prisma.notificationPreference.create({
+      data: { tenantId, userId, eventType, channel, isEnabled },
     });
   }
 }

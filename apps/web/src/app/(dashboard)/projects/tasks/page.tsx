@@ -7,10 +7,10 @@ import { pmApi } from "@/lib/api/pm-api";
 const STATUSES = ["TODO", "IN_PROGRESS", "BLOCKED", "DONE"] as const;
 
 const BAR_COLOR: Record<string, string> = {
-  TODO:        "bg-slate-400",
+  TODO: "bg-slate-400",
   IN_PROGRESS: "bg-blue-600",
-  BLOCKED:     "bg-red-500",
-  DONE:        "bg-emerald-500",
+  BLOCKED: "bg-red-500",
+  DONE: "bg-emerald-500",
 };
 
 function parseDate(d: string | Date | null | undefined): Date | null {
@@ -19,10 +19,22 @@ function parseDate(d: string | Date | null | undefined): Date | null {
   return Number.isNaN(dt.getTime()) ? null : dt;
 }
 
+type ProjectOption = { id: string; name: string };
+
+type TaskItem = {
+  id: string;
+  title: string;
+  status: string;
+  startDate?: string;
+  dueDate?: string;
+  project?: { name: string };
+  dependsOn?: { prerequisiteTask?: { title: string } }[];
+};
+
 export default function ProjectsTasksPage() {
-  const [projects, setProjects] = useState<any[]>([]);
+  const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [projectId, setProjectId] = useState("");
-  const [tasks, setTasks] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadTasks = (pid?: string) => {
@@ -45,7 +57,9 @@ export default function ProjectsTasksPage() {
   }, [projectId]);
 
   const range = useMemo(() => {
-    const dates = tasks.flatMap((t) => [parseDate(t.startDate), parseDate(t.dueDate)]).filter(Boolean) as Date[];
+    const dates = tasks
+      .flatMap((t) => [parseDate(t.startDate), parseDate(t.dueDate)])
+      .filter(Boolean) as Date[];
     if (dates.length === 0) {
       const start = new Date();
       start.setDate(start.getDate() - 1);
@@ -93,24 +107,29 @@ export default function ProjectsTasksPage() {
           >
             <option value="">All projects</option>
             {projects.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
             ))}
           </select>
         </label>
         {projectId && (
-          <Link href={`/projects/${projectId}`} className="text-[12px] text-blue-600 hover:text-blue-700 hover:underline">
+          <Link
+            href={`/projects/${projectId}`}
+            className="text-[12px] text-blue-600 hover:text-blue-700 hover:underline"
+          >
             Open project detail →
           </Link>
         )}
       </div>
 
       {loading ? (
-        <p className="text-sm text-slate-400">Loading Gantt data…</p>
+        <p className="text-sm text-slate-500">Loading Gantt data…</p>
       ) : (
         <div className="border border-slate-200 rounded-lg bg-white overflow-x-auto shadow-card">
           <div style={{ minWidth: Math.max(700, range.days * 28) }}>
             {/* Header row */}
-            <div className="flex border-b border-slate-200 text-[10px] text-slate-400 py-2 px-3 bg-slate-50">
+            <div className="flex border-b border-slate-200 text-[10px] text-slate-500 py-2 px-3 bg-slate-50">
               <span className="w-52 shrink-0 font-semibold uppercase tracking-wider">Task</span>
               <div
                 className="flex-1 grid"
@@ -125,13 +144,13 @@ export default function ProjectsTasksPage() {
             </div>
 
             {tasks.length === 0 ? (
-              <p className="p-6 text-sm text-slate-400 text-center">No tasks defined yet.</p>
+              <p className="p-6 text-sm text-slate-500 text-center">No tasks defined yet.</p>
             ) : (
               tasks.map((t) => {
                 const start = toIndex(t.startDate);
                 const end = toIndex(t.dueDate || t.startDate);
                 const len = Math.max(1, end - start + 1);
-                const deps = t.dependsOn?.map((d: any) => d.prerequisiteTask?.title).filter(Boolean);
+                const deps = t.dependsOn?.map((d) => d.prerequisiteTask?.title).filter(Boolean);
                 return (
                   <div
                     key={t.id}
@@ -139,7 +158,7 @@ export default function ProjectsTasksPage() {
                   >
                     <div className="w-52 shrink-0 pr-2">
                       <p className="text-[12px] font-medium text-slate-900 truncate">{t.title}</p>
-                      <p className="text-[10px] text-slate-400 truncate">
+                      <p className="text-[10px] text-slate-500 truncate">
                         {t.project?.name}
                         {deps?.length ? ` · after ${deps.join(", ")}` : ""}
                       </p>
@@ -149,7 +168,9 @@ export default function ProjectsTasksPage() {
                         className="mt-1 text-[10px] border border-slate-200 rounded px-1 py-0.5 bg-white focus:outline-none"
                       >
                         {STATUSES.map((s) => (
-                          <option key={s} value={s}>{s}</option>
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
                         ))}
                       </select>
                     </div>
@@ -172,7 +193,7 @@ export default function ProjectsTasksPage() {
             )}
           </div>
 
-          <div className="flex items-center gap-4 px-3 py-2 text-[11px] text-slate-400 border-t border-slate-100">
+          <div className="flex items-center gap-4 px-3 py-2 text-[11px] text-slate-500 border-t border-slate-100">
             {Object.entries(BAR_COLOR).map(([status, color]) => (
               <span key={status} className="flex items-center gap-1.5">
                 <span className={`h-2 w-2 rounded-sm ${color}`} />

@@ -2,14 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Package, Truck, FileText, CheckCircle, TrendingUp } from "lucide-react";
+import { Package, Truck, FileText, CheckCircle, TrendingUp, Building2, Boxes } from "lucide-react";
 
 const TABS = [
-  { id: "inventory", label: "Inventory",        path: "/scm/inventory",       icon: Package },
-  { id: "po",        label: "Purchase Orders",   path: "/scm/purchase-orders", icon: FileText },
-  { id: "gr",        label: "Goods Receipt",     path: "/scm/goods-receipt",   icon: Truck },
-  { id: "invoice",   label: "AP Invoice (3-way)", path: "/scm/invoices",       icon: CheckCircle },
-  { id: "forecast",  label: "AI Forecast",        path: "/scm/forecast",        icon: TrendingUp },
+  { id: "vendors", label: "Vendors", path: "/scm/vendors", icon: Building2 },
+  { id: "products", label: "Products", path: "/scm/products", icon: Boxes },
+  { id: "inventory", label: "Inventory", path: "/scm/inventory", icon: Package },
+  { id: "po", label: "Purchase Orders", path: "/scm/purchase-orders", icon: FileText },
+  { id: "gr", label: "Goods Receipt", path: "/scm/goods-receipt", icon: Truck },
+  { id: "invoice", label: "AP Invoice (3-way)", path: "/scm/invoices", icon: CheckCircle },
+  { id: "forecast", label: "AI Forecast", path: "/scm/forecast", icon: TrendingUp },
 ];
 
 export default function SCMLayout({ children }: { children: React.ReactNode }) {
@@ -19,10 +21,10 @@ export default function SCMLayout({ children }: { children: React.ReactNode }) {
     <div className="space-y-0">
       {/* Module header */}
       <div className="flex items-center gap-2 mb-0.5">
-        <Package size={17} className="text-slate-400" />
+        <Package size={17} className="text-slate-500" />
         <h1 className="text-[15px] font-semibold text-slate-900">Supply Chain</h1>
       </div>
-      <p className="text-[12px] text-slate-400 mb-5">
+      <p className="text-[12px] text-slate-500 mb-5">
         Procure-to-Pay: Inventory · Purchase Orders · Goods Receipt · AP Invoice (3-way match)
       </p>
 

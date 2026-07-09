@@ -1,14 +1,33 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaClient } from '@amdox/db';
+import { prisma, queryReplicaOrPrimary } from '@amdox/db';
+import { CacheService } from '../common/redis/cache.service';
+
+// Executive KPIs tolerate a short staleness window in exchange for not
+// re-running 7 aggregate queries (across Invoice/PurchaseOrder/Employee/
+// ReorderRule/Project/Department/StockLevel) on every dashboard load —
+// this is the Day 21 "Redis cache gaps" fix for the heaviest BI read.
+const KPI_CACHE_TTL_SECONDS = 30;
 
 const VALID_WIDGET_TYPES = new Set([
-  'bar', 'line', 'pie', 'heatmap', 'funnel',
-  'gauge', 'card', 'waterfall', 'scatter', 'treemap',
+  'bar',
+  'line',
+  'pie',
+  'heatmap',
+  'funnel',
+  'gauge',
+  'card',
+  'waterfall',
+  'scatter',
+  'treemap',
 ]);
 
 const VALID_DATA_SOURCES = new Set<string>([
-  'ar_aging', 'inventory', 'purchase_orders',
-  'employees_by_department', 'project_funnel', 'resource_heatmap',
+  'ar_aging',
+  'inventory',
+  'purchase_orders',
+  'employees_by_department',
+  'project_funnel',
+  'resource_heatmap',
 ]);
 
 export type BiFilters = {
@@ -19,10 +38,10 @@ export type BiFilters = {
 
 @Injectable()
 export class BiService {
-  private prisma = new PrismaClient();
+  constructor(private readonly cache: CacheService) {}
 
   async listDashboards(tenantId: string) {
-    return this.prisma.dashboard.findMany({
+    return prisma.dashboard.findMany({
       where: { tenantId, deletedAt: null },
       include: { widgets: true },
       orderBy: { updatedAt: 'desc' },
@@ -30,7 +49,7 @@ export class BiService {
   }
 
   async getDashboard(tenantId: string, id: string) {
-    const dashboard = await this.prisma.dashboard.findFirst({
+    const dashboard = await prisma.dashboard.findFirst({
       where: { id, tenantId, deletedAt: null },
       include: { widgets: true },
     });
@@ -39,18 +58,16 @@ export class BiService {
   }
 
   async createDashboard(tenantId: string, name: string, ownerId?: string) {
-    return this.prisma.dashboard.create({
+    return prisma.dashboard.create({
       data: { tenantId, name, ownerId, layout: {} },
     });
   }
 
-  async updateDashboard(
-    tenantId: string,
-    id: string,
-    data: { name?: string; layout?: object },
-  ) {
+  async updateDashboard(tenantId: string, id: string, data: { name?: string; layout?: object }) {
     await this.getDashboard(tenantId, id);
-    return this.prisma.dashboard.update({
+    // tenant-scope-ok: getDashboard() above already throws NotFoundException
+    // unless `id` belongs to `tenantId`.
+    return prisma.dashboard.update({
       where: { id },
       data: {
         ...(data.name !== undefined ? { name: data.name } : {}),
@@ -61,38 +78,32 @@ export class BiService {
 
   async deleteDashboard(tenantId: string, id: string) {
     await this.getDashboard(tenantId, id);
-    return this.prisma.dashboard.update({
+    // tenant-scope-ok: getDashboard() above already throws NotFoundException
+    // unless `id` belongs to `tenantId`.
+    return prisma.dashboard.update({
       where: { id },
       data: { deletedAt: new Date() },
     });
   }
 
-  async addWidget(
-    tenantId: string,
-    dashboardId: string,
-    type: string,
-    config: object,
-  ) {
+  async addWidget(tenantId: string, dashboardId: string, type: string, config: object) {
     this.validateWidget(type, config);
     await this.getDashboard(tenantId, dashboardId);
-    return this.prisma.widget.create({
+    return prisma.widget.create({
       data: { tenantId, dashboardId, type, config },
     });
   }
 
-  async updateWidget(
-    tenantId: string,
-    id: string,
-    data: { type?: string; config?: object },
-  ) {
-    const widget = await this.prisma.widget.findFirst({
+  async updateWidget(tenantId: string, id: string, data: { type?: string; config?: object }) {
+    const widget = await prisma.widget.findFirst({
       where: { id, tenantId },
     });
     if (!widget) throw new NotFoundException('Widget not found');
     const nextType = data.type ?? widget.type;
     const nextConfig = data.config ?? (widget.config as object);
     this.validateWidget(nextType, nextConfig);
-    return this.prisma.widget.update({
+    // tenant-scope-ok: `widget` was just found via a tenantId-scoped findFirst above.
+    return prisma.widget.update({
       where: { id },
       data: {
         ...(data.type !== undefined ? { type: data.type } : {}),
@@ -115,15 +126,16 @@ export class BiService {
   }
 
   async deleteWidget(tenantId: string, id: string) {
-    const widget = await this.prisma.widget.findFirst({
+    const widget = await prisma.widget.findFirst({
       where: { id, tenantId },
     });
     if (!widget) throw new NotFoundException('Widget not found');
-    return this.prisma.widget.delete({ where: { id } });
+    // tenant-scope-ok: `widget` was just found via a tenantId-scoped findFirst above.
+    return prisma.widget.delete({ where: { id } });
   }
 
   async getWidget(tenantId: string, id: string) {
-    const widget = await this.prisma.widget.findFirst({
+    const widget = await prisma.widget.findFirst({
       where: { id, tenantId },
     });
     if (!widget) throw new NotFoundException('Widget not found');
@@ -131,93 +143,105 @@ export class BiService {
   }
 
   async getExecutiveKpis(tenantId: string, filters: BiFilters = {}) {
-    const departmentFilter = this.resolveDepartmentFilter(filters.department);
+    const cacheKey = `bi:kpis:${tenantId}:${filters.period ?? '-'}:${filters.department ?? '-'}:${filters.status ?? '-'}`;
+    return this.cache.wrap(cacheKey, KPI_CACHE_TTL_SECONDS, () =>
+      this.computeExecutiveKpis(tenantId, filters),
+    );
+  }
 
-    const employeeWhere: Record<string, unknown> = {
-      tenantId,
-      status: 'ACTIVE',
-      deletedAt: null,
-    };
-    if (departmentFilter) {
-      employeeWhere.department = {
-        name: { contains: departmentFilter, mode: 'insensitive' },
+  // Runs against the read replica (docs/postgres-read-replica-strategy.md)
+  // — this is 7+ aggregate queries across Invoice/PurchaseOrder/Employee/
+  // ReorderRule/Project/Department/StockLevel, exactly the kind of
+  // reporting read that shouldn't compete with transactional writes for
+  // primary DB connections/IO. Falls back to the primary automatically if
+  // the replica is unavailable (queryReplicaOrPrimary).
+  private async computeExecutiveKpis(tenantId: string, filters: BiFilters = {}) {
+    return queryReplicaOrPrimary(async (db) => {
+      const departmentFilter = this.resolveDepartmentFilter(filters.department);
+
+      const employeeWhere: Record<string, unknown> = {
+        tenantId,
+        status: 'ACTIVE',
+        deletedAt: null,
       };
-    }
+      if (departmentFilter) {
+        employeeWhere.department = {
+          name: { contains: departmentFilter, mode: 'insensitive' },
+        };
+      }
 
-    const arStatusFilter =
-      filters.status === 'closed'
-        ? { in: ['PAID', 'CANCELLED'] as ('PAID' | 'CANCELLED')[] }
-        : { notIn: ['PAID', 'CANCELLED'] as ('PAID' | 'CANCELLED')[] };
+      const arStatusFilter =
+        filters.status === 'closed'
+          ? { in: ['PAID', 'CANCELLED'] as ('PAID' | 'CANCELLED')[] }
+          : { notIn: ['PAID', 'CANCELLED'] as ('PAID' | 'CANCELLED')[] };
 
-    const [
-      invoiceCount,
-      openPos,
-      employeeCount,
-      lowStockProducts,
-      projectCount,
-      arInvoices,
-      departments,
-    ] = await Promise.all([
-      this.prisma.invoice.count({ where: { tenantId } }),
-      this.prisma.purchaseOrder.count({
-        where: { tenantId, status: { in: ['SUBMITTED', 'APPROVED'] } },
-      }),
-      this.prisma.employee.count({ where: employeeWhere }),
-      this.prisma.reorderRule.count({ where: { tenantId, isActive: true } }),
-      this.prisma.project.count({ where: { tenantId, deletedAt: null } }),
-      this.prisma.invoice.findMany({
-        where: { tenantId, type: 'AR', status: arStatusFilter },
-        select: { totalAmount: true, dueDate: true },
-      }),
-      this.prisma.department.findMany({
-        where: { tenantId, deletedAt: null },
-        select: { name: true },
-        orderBy: { name: 'asc' },
-      }),
-    ]);
+      const [
+        invoiceCount,
+        openPos,
+        employeeCount,
+        lowStockProducts,
+        projectCount,
+        arInvoices,
+        departments,
+      ] = await Promise.all([
+        db.invoice.count({ where: { tenantId } }),
+        db.purchaseOrder.count({
+          where: { tenantId, status: { in: ['SUBMITTED', 'APPROVED'] } },
+        }),
+        db.employee.count({ where: employeeWhere }),
+        db.reorderRule.count({ where: { tenantId, isActive: true } }),
+        db.project.count({ where: { tenantId, deletedAt: null } }),
+        db.invoice.findMany({
+          where: { tenantId, type: 'AR', status: arStatusFilter },
+          select: { totalAmount: true, dueDate: true },
+        }),
+        db.department.findMany({
+          where: { tenantId, deletedAt: null },
+          select: { name: true },
+          orderBy: { name: 'asc' },
+        }),
+      ]);
 
-    const now = Date.now();
-    const aging = { current: 0, d31_60: 0, d61_90: 0, over90: 0 };
-    for (const inv of arInvoices) {
-      const days = Math.floor(
-        (now - new Date(inv.dueDate).getTime()) / (86400000),
-      );
-      const bucket =
-        days <= 30 ? 'Current' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '90+';
+      const now = Date.now();
+      const aging = { current: 0, d31_60: 0, d61_90: 0, over90: 0 };
+      for (const inv of arInvoices) {
+        const days = Math.floor((now - new Date(inv.dueDate).getTime()) / 86400000);
+        const bucket = days <= 30 ? 'Current' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '90+';
 
-      if (filters.period === 'current' && bucket !== 'Current') continue;
-      if (filters.period === 'overdue' && bucket === 'Current') continue;
+        if (filters.period === 'current' && bucket !== 'Current') continue;
+        if (filters.period === 'overdue' && bucket === 'Current') continue;
 
-      const amt = Number(inv.totalAmount);
-      if (days <= 30) aging.current += amt;
-      else if (days <= 60) aging.d31_60 += amt;
-      else if (days <= 90) aging.d61_90 += amt;
-      else aging.over90 += amt;
-    }
+        const amt = Number(inv.totalAmount);
+        if (days <= 30) aging.current += amt;
+        else if (days <= 60) aging.d31_60 += amt;
+        else if (days <= 90) aging.d61_90 += amt;
+        else aging.over90 += amt;
+      }
 
-    const stockLevels = await this.prisma.stockLevel.findMany({
-      where: { tenantId },
-      include: { product: true },
-      take: 20,
+      const stockLevels = await db.stockLevel.findMany({
+        where: { tenantId },
+        include: { product: true },
+        take: 20,
+      });
+
+      return {
+        totals: {
+          invoices: invoiceCount,
+          openArInvoices: arInvoices.length,
+          openPurchaseOrders: openPos,
+          activeEmployees: employeeCount,
+          activeProjects: projectCount,
+          reorderRules: lowStockProducts,
+        },
+        arAging: aging,
+        inventorySnapshot: stockLevels.map((s) => ({
+          sku: s.product.sku,
+          name: s.product.name,
+          quantity: Number(s.quantity),
+        })),
+        departments: departments.map((d) => d.name),
+      };
     });
-
-    return {
-      totals: {
-        invoices: invoiceCount,
-        openArInvoices: arInvoices.length,
-        openPurchaseOrders: openPos,
-        activeEmployees: employeeCount,
-        activeProjects: projectCount,
-        reorderRules: lowStockProducts,
-      },
-      arAging: aging,
-      inventorySnapshot: stockLevels.map((s) => ({
-        sku: s.product.sku,
-        name: s.product.name,
-        quantity: Number(s.quantity),
-      })),
-      departments: departments.map((d) => d.name),
-    };
   }
 
   private resolveDepartmentFilter(value?: string): string | null {

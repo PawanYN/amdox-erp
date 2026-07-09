@@ -23,8 +23,17 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+
   return (
     <html lang="en" suppressHydrationWarning className={inter.variable}>
+      <head>
+        {/* Nearly every page fires an XHR to the API immediately on load
+            (BI KPIs, dashboards, reports, etc.) — preconnect so the TCP/TLS
+            handshake happens during page load instead of on first request.
+            Found via Lighthouse's uses-rel-preconnect audit on /bi. */}
+        <link rel="preconnect" href={apiUrl} />
+      </head>
       <body className="antialiased" suppressHydrationWarning>
         <QueryProvider>{children}</QueryProvider>
       </body>

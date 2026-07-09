@@ -33,7 +33,7 @@ export class HealthService {
       const kcUrl = process.env.KEYCLOAK_BASE_URL || 'http://localhost:8180';
       const response = await fetch(`${kcUrl}/realms/master`, { signal: AbortSignal.timeout(3000) });
       keycloakStatus = response.ok ? 'connected' : 'unreachable';
-    } catch (error) {
+    } catch {
       keycloakStatus = 'disconnected';
     }
 
@@ -41,7 +41,7 @@ export class HealthService {
     try {
       // TODO: Connect redis client ping check here
       redisStatus = 'connected';
-    } catch (error) {
+    } catch {
       redisStatus = 'disconnected';
     }
 
@@ -49,7 +49,7 @@ export class HealthService {
     try {
       // TODO: Connect elasticsearch client ping check here
       esStatus = 'connected';
-    } catch (error) {
+    } catch {
       esStatus = 'disconnected';
     }
 
@@ -64,7 +64,7 @@ export class HealthService {
     }
 
     return {
-      status: (dbStatus === 'connected' && keycloakStatus === 'connected') ? 'ready' : 'error',
+      status: dbStatus === 'connected' && keycloakStatus === 'connected' ? 'ready' : 'error',
       db: dbStatus,
       keycloak: keycloakStatus,
       redis: redisStatus,

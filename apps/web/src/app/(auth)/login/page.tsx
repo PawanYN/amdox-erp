@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { ArrowRight, Building2, Loader2, AlertCircle } from "lucide-react";
 import { tenantApi } from "@/lib/api/tenant-api";
 
@@ -54,7 +55,7 @@ export default function LoginPage() {
             </div>
             <span className="text-xl font-semibold text-slate-900 tracking-tight">AmdoxERP</span>
           </div>
-          <p className="text-sm text-slate-400">Sign in to your company workspace</p>
+          <p className="text-sm text-slate-500">Sign in to your company workspace</p>
         </div>
 
         {/* Card */}
@@ -65,7 +66,9 @@ export default function LoginPage() {
             </div>
             <div>
               <h1 className="text-sm font-semibold text-slate-900">Enter your company domain</h1>
-              <p className="text-xs text-slate-400 mt-0.5">You'll be redirected to your company's login page</p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                You&apos;ll be redirected to your company&apos;s login page
+              </p>
             </div>
           </div>
 
@@ -75,7 +78,7 @@ export default function LoginPage() {
                 Company Domain
               </label>
               <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
-                <span className="px-3 py-2.5 text-sm text-slate-400 bg-slate-50 border-r border-slate-200 select-none">
+                <span className="px-3 py-2.5 text-sm text-slate-500 bg-slate-50 border-r border-slate-200 select-none">
                   app /
                 </span>
                 <input
@@ -88,10 +91,11 @@ export default function LoginPage() {
                   placeholder="company-b"
                   autoFocus
                   required
+                  suppressHydrationWarning
                   className="flex-1 px-3 py-2.5 text-sm outline-none bg-white text-slate-900 placeholder:text-slate-300"
                 />
               </div>
-              <p className="text-xs text-slate-400 mt-1.5">
+              <p className="text-xs text-slate-500 mt-1.5">
                 This is the slug you used when creating your tenant.
               </p>
             </div>
@@ -111,7 +115,9 @@ export default function LoginPage() {
               {loading ? (
                 <Loader2 size={16} className="animate-spin" />
               ) : (
-                <>Continue <ArrowRight size={15} /></>
+                <>
+                  Continue <ArrowRight size={15} />
+                </>
               )}
             </button>
           </form>
@@ -119,15 +125,18 @@ export default function LoginPage() {
 
         {/* Footer */}
         <div className="mt-5 text-center space-y-2">
-          <p className="text-xs text-slate-400">
-            Don't have an account?{" "}
-            <a href="/create-tenant" className="text-blue-600 hover:underline font-medium">
+          <p className="text-xs text-slate-500">
+            Don&apos;t have an account?{" "}
+            <Link href="/create-tenant" className="text-blue-600 hover:underline font-medium">
               Create a tenant
-            </a>
+            </Link>
           </p>
-          <a href="/" className="block text-xs text-slate-400 hover:text-slate-700 transition-colors">
+          <Link
+            href="/"
+            className="block text-xs text-slate-500 hover:text-slate-700 transition-colors"
+          >
             ← Back to home
-          </a>
+          </Link>
         </div>
       </div>
     </div>

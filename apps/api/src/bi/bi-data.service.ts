@@ -1,5 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaClient } from '@amdox/db';
+import { prisma, queryReplicaOrPrimary, type ScopedPrismaClient } from '@amdox/db';
+import { CacheService } from '../common/redis/cache.service';
+
+// Same tradeoff as BiService's KPI cache: chart widgets tolerate a short
+// staleness window in exchange for not recomputing on every dashboard
+// render/poll.
+const WIDGET_DATA_CACHE_TTL_SECONDS = 30;
 
 export type BiDataSource =
   | 'ar_aging'
@@ -21,27 +27,47 @@ export interface WidgetDataPoint {
   key?: string;
 }
 
+type WidgetDataResult =
+  | { series: WidgetDataPoint[]; meta: { dataSource: string; currency?: string } }
+  | { heatmap: { x: string; y: string; value: number }[]; meta: { dataSource: string } };
+
 @Injectable()
 export class BiDataService {
-  private prisma = new PrismaClient();
+  constructor(private readonly cache: CacheService) {}
 
   async getWidgetData(tenantId: string, dataSource: BiDataSource, filters: BiFilters = {}) {
-    switch (dataSource) {
-      case 'ar_aging':
-        return this.getArAgingChart(tenantId, filters);
-      case 'inventory':
-        return this.getInventoryChart(tenantId);
-      case 'purchase_orders':
-        return this.getPurchaseOrderChart(tenantId, filters);
-      case 'employees_by_department':
-        return this.getEmployeesByDepartmentChart(tenantId, filters);
-      case 'project_funnel':
-        return this.getProjectFunnelChart(tenantId, filters);
-      case 'resource_heatmap':
-        return this.getResourceHeatmap(tenantId);
-      default:
-        return { series: [], meta: { dataSource } };
-    }
+    const cacheKey = `bi:widget-data:${tenantId}:${dataSource}:${filters.period ?? '-'}:${filters.department ?? '-'}:${filters.status ?? '-'}`;
+    return this.cache.wrap(cacheKey, WIDGET_DATA_CACHE_TTL_SECONDS, () =>
+      this.computeWidgetData(tenantId, dataSource, filters),
+    );
+  }
+
+  // Runs against the read replica (docs/postgres-read-replica-strategy.md)
+  // — all 6 chart data sources are read-only reporting queries. Falls back
+  // to the primary automatically if the replica is unavailable.
+  private async computeWidgetData(
+    tenantId: string,
+    dataSource: BiDataSource,
+    filters: BiFilters = {},
+  ) {
+    return queryReplicaOrPrimary<WidgetDataResult>((db) => {
+      switch (dataSource) {
+        case 'ar_aging':
+          return this.getArAgingChart(db, tenantId, filters);
+        case 'inventory':
+          return this.getInventoryChart(db, tenantId);
+        case 'purchase_orders':
+          return this.getPurchaseOrderChart(db, tenantId, filters);
+        case 'employees_by_department':
+          return this.getEmployeesByDepartmentChart(db, tenantId, filters);
+        case 'project_funnel':
+          return this.getProjectFunnelChart(db, tenantId, filters);
+        case 'resource_heatmap':
+          return this.getResourceHeatmap(db, tenantId);
+        default:
+          return Promise.resolve({ series: [], meta: { dataSource } });
+      }
+    });
   }
 
   async getDrillDown(
@@ -79,13 +105,13 @@ export class BiDataService {
     return map[value.toLowerCase()] || value.replace(/_/g, ' ');
   }
 
-  private async getArAgingChart(tenantId: string, filters: BiFilters = {}) {
+  private async getArAgingChart(db: ScopedPrismaClient, tenantId: string, filters: BiFilters = {}) {
     const statusFilter =
       filters.status === 'closed'
         ? { in: ['PAID', 'CANCELLED'] as ('PAID' | 'CANCELLED')[] }
         : { notIn: ['PAID', 'CANCELLED'] as ('PAID' | 'CANCELLED')[] };
 
-    const invoices = await this.prisma.invoice.findMany({
+    const invoices = await db.invoice.findMany({
       where: { tenantId, type: 'AR', status: statusFilter },
       select: { totalAmount: true, dueDate: true },
     });
@@ -93,8 +119,7 @@ export class BiDataService {
     const now = Date.now();
     for (const inv of invoices) {
       const days = Math.floor((now - inv.dueDate.getTime()) / 86400000);
-      const bucket =
-        days <= 30 ? 'Current' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '90+';
+      const bucket = days <= 30 ? 'Current' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '90+';
 
       if (filters.period === 'current' && bucket !== 'Current') continue;
       if (filters.period === 'overdue' && bucket === 'Current') continue;
@@ -110,8 +135,8 @@ export class BiDataService {
     return { series, meta: { dataSource: 'ar_aging', currency: 'INR' } };
   }
 
-  private async getInventoryChart(tenantId: string) {
-    const levels = await this.prisma.stockLevel.findMany({
+  private async getInventoryChart(db: ScopedPrismaClient, tenantId: string) {
+    const levels = await db.stockLevel.findMany({
       where: { tenantId },
       include: { product: true },
       take: 12,
@@ -125,7 +150,11 @@ export class BiDataService {
     return { series, meta: { dataSource: 'inventory' } };
   }
 
-  private async getPurchaseOrderChart(tenantId: string, filters: BiFilters = {}) {
+  private async getPurchaseOrderChart(
+    db: ScopedPrismaClient,
+    tenantId: string,
+    filters: BiFilters = {},
+  ) {
     const statusFilter =
       filters.status === 'open'
         ? { in: ['SUBMITTED', 'APPROVED', 'DRAFT'] as ('SUBMITTED' | 'APPROVED' | 'DRAFT')[] }
@@ -133,7 +162,7 @@ export class BiDataService {
           ? { in: ['RECEIVED', 'CANCELLED', 'CLOSED'] as ('RECEIVED' | 'CANCELLED' | 'CLOSED')[] }
           : undefined;
 
-    const pos = await this.prisma.purchaseOrder.groupBy({
+    const pos = await db.purchaseOrder.groupBy({
       by: ['status'],
       where: { tenantId, ...(statusFilter ? { status: statusFilter } : {}) },
       _count: { _all: true },
@@ -146,9 +175,13 @@ export class BiDataService {
     return { series, meta: { dataSource: 'purchase_orders' } };
   }
 
-  private async getEmployeesByDepartmentChart(tenantId: string, filters: BiFilters = {}) {
+  private async getEmployeesByDepartmentChart(
+    db: ScopedPrismaClient,
+    tenantId: string,
+    filters: BiFilters = {},
+  ) {
     const deptFilter = this.resolveDepartmentFilter(filters.department);
-    const employees = await this.prisma.employee.findMany({
+    const employees = await db.employee.findMany({
       where: {
         tenantId,
         deletedAt: null,
@@ -172,7 +205,11 @@ export class BiDataService {
     return { series, meta: { dataSource: 'employees_by_department' } };
   }
 
-  private async getProjectFunnelChart(tenantId: string, filters: BiFilters = {}) {
+  private async getProjectFunnelChart(
+    db: ScopedPrismaClient,
+    tenantId: string,
+    filters: BiFilters = {},
+  ) {
     const stages = ['PLANNING', 'ACTIVE', 'ON_HOLD', 'COMPLETED', 'CANCELLED'];
     const statusFilter =
       filters.status === 'open'
@@ -181,7 +218,7 @@ export class BiDataService {
           ? { in: ['COMPLETED', 'CANCELLED'] as ('COMPLETED' | 'CANCELLED')[] }
           : undefined;
 
-    const groups = await this.prisma.project.groupBy({
+    const groups = await db.project.groupBy({
       by: ['status'],
       where: {
         tenantId,
@@ -199,8 +236,8 @@ export class BiDataService {
     return { series, meta: { dataSource: 'project_funnel' } };
   }
 
-  private async getResourceHeatmap(tenantId: string) {
-    const allocations = await this.prisma.resourceAllocation.findMany({
+  private async getResourceHeatmap(db: ScopedPrismaClient, tenantId: string) {
+    const allocations = await db.resourceAllocation.findMany({
       where: { tenantId },
       include: { employee: true, project: true },
       take: 100,
@@ -219,7 +256,7 @@ export class BiDataService {
   }
 
   private async drillDownArAging(tenantId: string, bucket: string) {
-    const invoices = await this.prisma.invoice.findMany({
+    const invoices = await prisma.invoice.findMany({
       where: { tenantId, type: 'AR', status: { notIn: ['PAID', 'CANCELLED'] } },
       include: { customer: true },
       orderBy: { dueDate: 'asc' },
@@ -228,8 +265,7 @@ export class BiDataService {
     const rows = invoices
       .filter((inv) => {
         const days = Math.floor((now - inv.dueDate.getTime()) / 86400000);
-        const b =
-          days <= 30 ? 'Current' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '90+';
+        const b = days <= 30 ? 'Current' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '90+';
         return b === bucket;
       })
       .map((inv) => ({
@@ -246,7 +282,7 @@ export class BiDataService {
   }
 
   private async drillDownInventory(tenantId: string, sku: string) {
-    const levels = await this.prisma.stockLevel.findMany({
+    const levels = await prisma.stockLevel.findMany({
       where: { tenantId, product: { sku } },
       include: { product: true, warehouse: true },
     });
@@ -264,7 +300,7 @@ export class BiDataService {
   }
 
   private async drillDownPurchaseOrders(tenantId: string, status: string) {
-    const pos = await this.prisma.purchaseOrder.findMany({
+    const pos = await prisma.purchaseOrder.findMany({
       where: { tenantId, status: status as any },
       include: { vendor: true },
       orderBy: { orderedAt: 'desc' },
@@ -284,7 +320,7 @@ export class BiDataService {
   }
 
   private async drillDownEmployees(tenantId: string, departmentName: string) {
-    const employees = await this.prisma.employee.findMany({
+    const employees = await prisma.employee.findMany({
       where:
         departmentName === 'Unassigned'
           ? {
@@ -315,7 +351,7 @@ export class BiDataService {
   }
 
   private async drillDownProjects(tenantId: string, status: string) {
-    const projects = await this.prisma.project.findMany({
+    const projects = await prisma.project.findMany({
       where: { tenantId, deletedAt: null, status: status as any },
       orderBy: { updatedAt: 'desc' },
       take: 50,
@@ -334,7 +370,7 @@ export class BiDataService {
   }
 
   private async drillDownResources(tenantId: string, projectName: string) {
-    const allocations = await this.prisma.resourceAllocation.findMany({
+    const allocations = await prisma.resourceAllocation.findMany({
       where: {
         tenantId,
         project: { name: { equals: projectName, mode: 'insensitive' } },

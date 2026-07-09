@@ -1,15 +1,15 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { PrismaClient } from '@amdox/db';
+import { prisma } from '@amdox/db';
 import * as fs from 'fs';
 import * as path from 'path';
-import PDFDocument = require('pdfkit');
+import PDFDocument from 'pdfkit';
+import ExcelJS from 'exceljs';
 import { BiService } from './bi.service';
 import { EmailChannel } from '../notification/channels/email.channel';
 
 @Injectable()
 export class BiReportService {
   private readonly logger = new Logger(BiReportService.name);
-  private prisma = new PrismaClient();
   private readonly storageRoot = path.join(process.cwd(), 'storage', 'reports');
 
   constructor(
@@ -20,7 +20,7 @@ export class BiReportService {
   }
 
   listReports(tenantId: string) {
-    return this.prisma.scheduledReport.findMany({
+    return prisma.scheduledReport.findMany({
       where: { tenantId },
       orderBy: { createdAt: 'desc' },
       include: { dashboard: { select: { id: true, name: true } } },
@@ -40,7 +40,7 @@ export class BiReportService {
     if (data.dashboardId) {
       await this.biService.getDashboard(tenantId, data.dashboardId);
     }
-    return this.prisma.scheduledReport.create({
+    return prisma.scheduledReport.create({
       data: {
         tenantId,
         name: data.name,
@@ -54,18 +54,19 @@ export class BiReportService {
   }
 
   async deleteReport(tenantId: string, id: string) {
-    const report = await this.prisma.scheduledReport.findFirst({
+    const report = await prisma.scheduledReport.findFirst({
       where: { id, tenantId },
     });
     if (!report) throw new NotFoundException('Scheduled report not found');
     if (report.lastReportPath && fs.existsSync(report.lastReportPath)) {
       fs.unlinkSync(report.lastReportPath);
     }
-    return this.prisma.scheduledReport.delete({ where: { id } });
+    // tenant-scope-ok: `report` was just found via a tenantId-scoped findFirst above.
+    return prisma.scheduledReport.delete({ where: { id } });
   }
 
   async runReport(tenantId: string, reportId: string) {
-    const report = await this.prisma.scheduledReport.findFirst({
+    const report = await prisma.scheduledReport.findFirst({
       where: { id: reportId, tenantId, isActive: true },
     });
     if (!report) throw new NotFoundException('Scheduled report not found');
@@ -74,18 +75,19 @@ export class BiReportService {
     const tenantDir = path.join(this.storageRoot, tenantId);
     fs.mkdirSync(tenantDir, { recursive: true });
 
-    const ext = report.format === 'EXCEL' ? 'csv' : 'pdf';
+    const ext = report.format === 'EXCEL' ? 'xlsx' : 'pdf';
     const filePath = path.join(tenantDir, `${report.id}.${ext}`);
 
     if (report.format === 'EXCEL') {
-      const csv = this.buildCsv(kpis);
-      fs.writeFileSync(filePath, csv, 'utf8');
+      const excel = await this.buildExcel(kpis);
+      fs.writeFileSync(filePath, excel);
     } else {
       const pdf = await this.buildPdf(report.name, kpis);
       fs.writeFileSync(filePath, pdf);
     }
 
-    await this.prisma.scheduledReport.update({
+    // tenant-scope-ok: `report` was just found via a tenantId-scoped findFirst above.
+    await prisma.scheduledReport.update({
       where: { id: report.id },
       data: { lastRunAt: new Date(), lastReportPath: filePath },
     });
@@ -104,7 +106,7 @@ export class BiReportService {
   }
 
   async getReportFile(tenantId: string, reportId: string) {
-    const report = await this.prisma.scheduledReport.findFirst({
+    const report = await prisma.scheduledReport.findFirst({
       where: { id: reportId, tenantId },
     });
     if (!report?.lastReportPath || !fs.existsSync(report.lastReportPath)) {
@@ -135,24 +137,41 @@ export class BiReportService {
     }
   }
 
-  private buildCsv(kpis: Awaited<ReturnType<BiService['getExecutiveKpis']>>) {
-    const lines = [
-      'Metric,Value',
-      `Open POs,${kpis.totals.openPurchaseOrders}`,
-      `Active Employees,${kpis.totals.activeEmployees}`,
-      `Active Projects,${kpis.totals.activeProjects}`,
-      `Invoices,${kpis.totals.invoices}`,
-      `AR Current,${kpis.arAging.current}`,
-      `AR 31-60,${kpis.arAging.d31_60}`,
-      `AR 61-90,${kpis.arAging.d61_90}`,
-      `AR 90+,${kpis.arAging.over90}`,
-      '',
-      'SKU,Product,Quantity',
-      ...kpis.inventorySnapshot.map(
-        (s) => `${s.sku},"${s.name}",${s.quantity}`,
-      ),
+  private async buildExcel(
+    kpis: Awaited<ReturnType<BiService['getExecutiveKpis']>>,
+  ): Promise<Buffer> {
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Amdox ERP';
+    workbook.created = new Date();
+
+    const summary = workbook.addWorksheet('Summary');
+    summary.columns = [
+      { header: 'Metric', key: 'metric', width: 24 },
+      { header: 'Value', key: 'value', width: 18 },
     ];
-    return lines.join('\n');
+    summary.addRows([
+      { metric: 'Open POs', value: kpis.totals.openPurchaseOrders },
+      { metric: 'Active Employees', value: kpis.totals.activeEmployees },
+      { metric: 'Active Projects', value: kpis.totals.activeProjects },
+      { metric: 'Invoices', value: kpis.totals.invoices },
+      { metric: 'AR Current', value: kpis.arAging.current },
+      { metric: 'AR 31-60', value: kpis.arAging.d31_60 },
+      { metric: 'AR 61-90', value: kpis.arAging.d61_90 },
+      { metric: 'AR 90+', value: kpis.arAging.over90 },
+    ]);
+    summary.getRow(1).font = { bold: true };
+
+    const inventory = workbook.addWorksheet('Inventory Snapshot');
+    inventory.columns = [
+      { header: 'SKU', key: 'sku', width: 16 },
+      { header: 'Product', key: 'name', width: 32 },
+      { header: 'Quantity', key: 'quantity', width: 14 },
+    ];
+    inventory.addRows(kpis.inventorySnapshot);
+    inventory.getRow(1).font = { bold: true };
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    return Buffer.from(buffer);
   }
 
   private buildPdf(

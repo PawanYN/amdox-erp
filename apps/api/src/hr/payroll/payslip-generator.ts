@@ -2,21 +2,21 @@
  * ============================================================================
  * SERVICE: payslip-generator.ts
  * ============================================================================
- * 
+ *
  * WHAT THIS FILE DOES:
  * This file replaces the old manual byte-array hack with a proper, standard-compliant
  * PDF generation service using `pdfkit`. It beautifully formats the payslip.
  * ============================================================================
  */
 import { Injectable } from '@nestjs/common';
-import PDFDocument = require('pdfkit');
+import PDFDocument from 'pdfkit';
 
 @Injectable()
 export class PayslipGenerator {
   async generatePdfBuffer(
     employeeName: string,
     payPeriod: string,
-    amounts: { grossPay: number; deductions: number; netPay: number }
+    amounts: { grossPay: number; deductions: number; netPay: number },
   ): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       try {
@@ -55,7 +55,9 @@ export class PayslipGenerator {
           .fontSize(10)
           .font('Helvetica-Oblique')
           .fillColor('gray')
-          .text('This is a computer generated document and requires no signature.', { align: 'center' });
+          .text('This is a computer generated document and requires no signature.', {
+            align: 'center',
+          });
 
         doc.end();
       } catch (err) {

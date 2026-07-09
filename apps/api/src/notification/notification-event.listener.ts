@@ -26,12 +26,14 @@ export class NotificationEventListener {
     tenantId: string;
     poId: string;
     poNumber?: string;
+    userId?: string;
   }) {
     await this.notifications.notify({
       tenantId: payload.tenantId,
       eventType: 'po.created',
       title: 'Purchase order created',
       body: `PO ${payload.poNumber ?? payload.poId} was created`,
+      userId: payload.userId,
     });
   }
 
@@ -46,21 +48,18 @@ export class NotificationEventListener {
   }
 
   @OnEvent('project.created')
-  async onProjectCreated(payload: { tenantId: string; projectId: string }) {
+  async onProjectCreated(payload: { tenantId: string; projectId: string; userId?: string }) {
     await this.notifications.notify({
       tenantId: payload.tenantId,
       eventType: 'project.created',
       title: 'New project created',
       body: `Project ${payload.projectId} is now active`,
+      userId: payload.userId,
     });
   }
 
   @OnEvent('reorder.triggered')
-  async onReorder(payload: {
-    tenantId: string;
-    productSku: string;
-    purchaseOrderId: string;
-  }) {
+  async onReorder(payload: { tenantId: string; productSku: string; purchaseOrderId: string }) {
     await this.notifications.notify({
       tenantId: payload.tenantId,
       eventType: 'reorder.triggered',
@@ -121,11 +120,7 @@ export class NotificationEventListener {
   }
 
   @OnEvent('payroll.completed')
-  async onPayrollCompleted(payload: {
-    tenantId: string;
-    payrollRunId: string;
-    label: string;
-  }) {
+  async onPayrollCompleted(payload: { tenantId: string; payrollRunId: string; label: string }) {
     await this.notifications.notify({
       tenantId: payload.tenantId,
       eventType: 'payroll.completed',
@@ -151,7 +146,7 @@ export class NotificationEventListener {
   }
 
   @OnEvent('budget.overrun')
-  async onBudgetOverrunWebhook(payload: {
+  async onBudgetOverrunWebhook(_payload: {
     tenantId: string;
     projectId: string;
     actual: number;
@@ -162,16 +157,13 @@ export class NotificationEventListener {
   }
 
   @OnEvent('employee.created')
-  async onEmployeeCreated(payload: {
-    tenantId: string;
-    employeeId: string;
-    userId?: string;
-  }) {
+  async onEmployeeCreated(payload: { tenantId: string; employeeId: string; userId?: string }) {
     await this.notifications.notify({
       tenantId: payload.tenantId,
       eventType: 'employee.created',
       title: 'New employee added',
       body: `Employee ${payload.employeeId} has been onboarded`,
+      userId: payload.userId,
     });
   }
 

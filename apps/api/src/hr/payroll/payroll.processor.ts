@@ -2,22 +2,22 @@
  * ============================================================================
  * BACKGROUND WORKER: payroll.processor.ts
  * ============================================================================
- * 
+ *
  * WHAT THIS FILE DOES:
- * This worker picks up jobs dispatched by `payroll.service.ts` and processes 
+ * This worker picks up jobs dispatched by `payroll.service.ts` and processes
  * them asynchronously using BullMQ (Redis).
- * 
+ *
  * HOW IT IS IMPLEMENTED (10k SCALE):
  * - It fetches employees in chunks (e.g., 500 at a time) using Prisma `take` and `skip`.
  * - For each employee, it looks up their dynamic `TaxSlab` (instead of a hardcoded 12%).
  * - It calls `PayslipGenerator` (pdfkit) to generate the PDF buffer.
- * - This prevents the Node server from crashing out of memory when processing 
+ * - This prevents the Node server from crashing out of memory when processing
  *   large enterprise workforces.
  * ============================================================================
  */
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
-import { PrismaClient, EmploymentStatus } from '@amdox/db';
+import { prisma, EmploymentStatus } from '@amdox/db';
 import { Logger } from '@nestjs/common';
 import { AmdoxLogger } from '../../common/logger/amdox-logger';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -26,8 +26,6 @@ import { PayslipGenerator } from './payslip-generator';
 @Processor('payroll')
 export class PayrollProcessor extends WorkerHost {
   private readonly logger = new Logger(PayrollProcessor.name);
-  private prisma = new PrismaClient();
-
   constructor(
     private readonly payslipGenerator: PayslipGenerator,
     private readonly eventEmitter: EventEmitter2,
@@ -41,7 +39,7 @@ export class PayrollProcessor extends WorkerHost {
 
     try {
       // 1. Fetch dynamic tax slabs for this tenant
-      const taxSlabs = await this.prisma.taxSlab.findMany({
+      const taxSlabs = await prisma.taxSlab.findMany({
         where: { tenantId },
         orderBy: { minSalary: 'asc' },
       });
@@ -50,7 +48,7 @@ export class PayrollProcessor extends WorkerHost {
       const getDeductionRate = (salary: number) => {
         if (taxSlabs.length === 0) return 0.12; // Fallback to 12%
         const slab = taxSlabs.find(
-          (s) => salary >= Number(s.minSalary) && (!s.maxSalary || salary <= Number(s.maxSalary))
+          (s) => salary >= Number(s.minSalary) && (!s.maxSalary || salary <= Number(s.maxSalary)),
         );
         return slab ? Number(slab.rate) : 0.12;
       };
@@ -62,7 +60,7 @@ export class PayrollProcessor extends WorkerHost {
 
       while (true) {
         // Fetch chunk of employees
-        const employees = await this.prisma.employee.findMany({
+        const employees = await prisma.employee.findMany({
           where: { tenantId, status: EmploymentStatus.ACTIVE },
           include: {
             contracts: {
@@ -80,7 +78,7 @@ export class PayrollProcessor extends WorkerHost {
         if (employees.length === 0) break;
 
         const employeeIds = employees.map((e) => e.id);
-        const attendanceRecords = await this.prisma.attendanceRecord.findMany({
+        const attendanceRecords = await prisma.attendanceRecord.findMany({
           where: {
             tenantId,
             employeeId: { in: employeeIds },
@@ -96,8 +94,13 @@ export class PayrollProcessor extends WorkerHost {
           if (!contract) continue;
 
           // Compute overtimes
-          const relevantRecords = attendanceRecords.filter((record) => record.employeeId === employee.id);
-          const overtimeMins = relevantRecords.reduce((sum, record) => sum + record.overtimeMins, 0);
+          const relevantRecords = attendanceRecords.filter(
+            (record) => record.employeeId === employee.id,
+          );
+          const overtimeMins = relevantRecords.reduce(
+            (sum, record) => sum + record.overtimeMins,
+            0,
+          );
           const overtimeHours = overtimeMins / 60;
 
           // Financial math
@@ -106,19 +109,20 @@ export class PayrollProcessor extends WorkerHost {
           const hourlyRate = salary / monthlyHours;
           const overtimePay = overtimeHours * hourlyRate * 1.5;
           const grossPay = Number((salary + overtimePay).toFixed(4));
-          
+
           const deductionRate = getDeductionRate(salary);
           const deductions = Number((grossPay * deductionRate).toFixed(4));
           const netPay = Number((grossPay - deductions).toFixed(4));
 
           totalNetPaySum += netPay;
 
-          // Generate real PDF buffer 
-          // (In a real app, we'd upload this to AWS S3 and save the URL, but here we'll mock the URL path)
-          const pdfBuffer = await this.payslipGenerator.generatePdfBuffer(employee.fullName, label, {
+          // Generate the PDF now so a broken payslip template fails the run early, rather than
+          // silently at download time. (In a real app we'd upload this buffer to S3 and save the URL,
+          // but here the download endpoint regenerates it on demand — see pdfUrl below.)
+          await this.payslipGenerator.generatePdfBuffer(employee.fullName, label, {
             grossPay,
             deductions,
-            netPay
+            netPay,
           });
 
           payslipInserts.push({
@@ -134,7 +138,7 @@ export class PayrollProcessor extends WorkerHost {
 
         // Batch insert the chunk
         if (payslipInserts.length > 0) {
-          await this.prisma.payslip.createMany({
+          await prisma.payslip.createMany({
             data: payslipInserts,
           });
         }
@@ -143,12 +147,12 @@ export class PayrollProcessor extends WorkerHost {
         skip += CHUNK_SIZE;
 
         // Report progress to BullMQ
-        await job.updateProgress((totalProcessed / (totalProcessed + 1)) * 100); 
+        await job.updateProgress((totalProcessed / (totalProcessed + 1)) * 100);
       }
 
       // Mark run complete
-      await this.prisma.payrollRun.update({
-        where: { id: payrollRunId },
+      await prisma.payrollRun.updateMany({
+        where: { id: payrollRunId, tenantId },
         data: {
           totalNetPay: totalNetPaySum.toFixed(4),
           status: 'COMPLETED',
@@ -170,9 +174,12 @@ export class PayrollProcessor extends WorkerHost {
       );
       AmdoxLogger.event('Emitted payroll.completed', `runId=${payrollRunId}`);
     } catch (error: any) {
-      AmdoxLogger.critical(`Payroll run FAILED: ${label}`, `runId=${payrollRunId}  err=${error.message}`);
-      await this.prisma.payrollRun.update({
-        where: { id: payrollRunId },
+      AmdoxLogger.critical(
+        `Payroll run FAILED: ${label}`,
+        `runId=${payrollRunId}  err=${error.message}`,
+      );
+      await prisma.payrollRun.updateMany({
+        where: { id: payrollRunId, tenantId },
         data: {
           status: 'FAILED',
           completedAt: new Date(),

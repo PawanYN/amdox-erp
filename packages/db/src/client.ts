@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { tenantContext } from './context';
+import { tenantScopeExtension } from './tenant-scope-extension';
 
 declare global {
   // eslint-disable-next-line no-var
@@ -15,42 +15,8 @@ if (process.env.NODE_ENV !== 'production') {
 
 // We extend the PrismaClient to automatically inject `tenantId` into queries
 // based on the AsyncLocalStorage context.
-export const prisma = prismaRaw.$extends({
-  query: {
-    $allModels: {
-      async $allOperations({ model, operation, args, query }) {
-        // Models that do NOT have a tenantId field should bypass the filter
-        const globallyAccessibleModels = ['Tenant', 'WebhookDelivery']; // Add models here that don't have tenantId
-
-        if (!globallyAccessibleModels.includes(model)) {
-          const store = tenantContext.getStore();
-          const tenantId = store?.tenantId;
-          
-          if (tenantId) {
-            const anyArgs = args as any;
-            if (operation === 'create' || operation === 'createMany') {
-              // Inject into data
-              anyArgs.data = { ...anyArgs.data, tenantId };
-            } else if (
-              operation === 'findUnique' || 
-              operation === 'findFirst' || 
-              operation === 'findMany' || 
-              operation === 'update' || 
-              operation === 'updateMany' || 
-              operation === 'delete' || 
-              operation === 'deleteMany' || 
-              operation === 'count'
-            ) {
-              // Auto-inject tenantId into the where clause for data isolation
-              anyArgs.where = { ...anyArgs.where, tenantId };
-            }
-          }
-        }
-        return query(args);
-      },
-    },
-  },
-});
+export const prisma = prismaRaw.$extends(tenantScopeExtension);
+export type ScopedPrismaClient = typeof prisma;
 
 // Also export the context so the NestJS middleware can set it
 export { tenantContext } from './context';

@@ -12,11 +12,7 @@ export class AuditEventListener {
   constructor(private readonly auditService: AuditService) {}
 
   @OnEvent('invoice.approved')
-  async onInvoiceApproved(payload: {
-    tenantId: string;
-    invoiceId: string;
-    userId?: string;
-  }) {
+  async onInvoiceApproved(payload: { tenantId: string; invoiceId: string; userId?: string }) {
     await this.auditService.record({
       tenantId: payload.tenantId,
       userId: payload.userId,
@@ -49,6 +45,23 @@ export class AuditEventListener {
       tenantId: payload.tenantId,
       userId: payload.userId,
       action: 'PAYMENT_RECEIVED',
+      entityType: 'Payment',
+      entityId: payload.paymentId,
+      afterState: { invoiceId: payload.invoiceId },
+    });
+  }
+
+  @OnEvent('payment.made')
+  async onPaymentMade(payload: {
+    tenantId: string;
+    paymentId: string;
+    invoiceId: string;
+    userId?: string;
+  }) {
+    await this.auditService.record({
+      tenantId: payload.tenantId,
+      userId: payload.userId,
+      action: 'PAYMENT_MADE',
       entityType: 'Payment',
       entityId: payload.paymentId,
       afterState: { invoiceId: payload.invoiceId },
@@ -167,11 +180,7 @@ export class AuditEventListener {
   }
 
   @OnEvent('payroll.completed')
-  async onPayrollCompleted(payload: {
-    tenantId: string;
-    payrollRunId: string;
-    userId?: string;
-  }) {
+  async onPayrollCompleted(payload: { tenantId: string; payrollRunId: string; userId?: string }) {
     await this.auditService.record({
       tenantId: payload.tenantId,
       userId: payload.userId ?? null,

@@ -1,22 +1,19 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
-import { PrismaClient } from '@amdox/db';
+import { prisma } from '@amdox/db';
 import { CreateProjectDto } from '../dto/create-project.dto';
 import { CreateTaskDto } from '../dto/create-task.dto';
 import { MaterialRequestDto } from '../dto/material-request.dto';
 import { CreateMilestoneDto } from '../dto/create-milestone.dto';
 import { UpdateMilestoneDto } from '../dto/update-milestone.dto';
-import { UpdateTaskStatusDto } from '../dto/update-task-status.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { TaskStatus } from '@amdox/db';
 
 @Injectable()
 export class ProjectService {
-  private prisma = new PrismaClient();
-
   constructor(private eventEmitter: EventEmitter2) {}
 
   async listProjects(tenantId: string) {
-    const projects = await this.prisma.project.findMany({
+    const projects = await prisma.project.findMany({
       where: { tenantId, deletedAt: null },
       include: {
         budgets: { orderBy: { createdAt: 'desc' }, take: 1 },
@@ -56,7 +53,7 @@ export class ProjectService {
   }
 
   async getProject(tenantId: string, projectId: string) {
-    const project = await this.prisma.project.findFirst({
+    const project = await prisma.project.findFirst({
       where: { id: projectId, tenantId, deletedAt: null },
       include: {
         budgets: { orderBy: { createdAt: 'desc' }, take: 1 },
@@ -131,17 +128,14 @@ export class ProjectService {
     };
   }
 
-  async updateTaskStatus(
-    tenantId: string,
-    taskId: string,
-    status: TaskStatus,
-  ) {
-    const task = await this.prisma.task.findFirst({
+  async updateTaskStatus(tenantId: string, taskId: string, status: TaskStatus) {
+    const task = await prisma.task.findFirst({
       where: { id: taskId, tenantId },
     });
     if (!task) throw new NotFoundException('Task not found');
 
-    return this.prisma.task.update({
+    // tenant-scope-ok: `task` was just found via a tenantId-scoped findFirst above.
+    return prisma.task.update({
       where: { id: taskId },
       data: { status },
       include: {
@@ -152,7 +146,7 @@ export class ProjectService {
   }
 
   async listTasks(tenantId: string, projectId?: string) {
-    return this.prisma.task.findMany({
+    return prisma.task.findMany({
       where: {
         tenantId,
         ...(projectId ? { projectId } : {}),
@@ -167,7 +161,7 @@ export class ProjectService {
   }
 
   async createProject(tenantId: string, dto: CreateProjectDto, actingUserId?: string) {
-    const project = await this.prisma.project.create({
+    const project = await prisma.project.create({
       data: {
         tenantId,
         ...dto,
@@ -184,19 +178,26 @@ export class ProjectService {
     return project;
   }
 
-  async updateProject(tenantId: string, projectId: string, dto: import('../dto/update-project.dto').UpdateProjectDto) {
-    const project = await this.prisma.project.findFirst({
+  async updateProject(
+    tenantId: string,
+    projectId: string,
+    dto: import('../dto/update-project.dto').UpdateProjectDto,
+  ) {
+    const project = await prisma.project.findFirst({
       where: { id: projectId, tenantId, deletedAt: null },
     });
     if (!project) throw new NotFoundException('Project not found');
 
-    return this.prisma.project.update({
+    // tenant-scope-ok: `project` was just found via a tenantId-scoped findFirst above.
+    return prisma.project.update({
       where: { id: projectId },
       data: {
         ...(dto.name !== undefined && { name: dto.name }),
         ...(dto.description !== undefined && { description: dto.description }),
         ...(dto.status !== undefined && { status: dto.status }),
-        ...(dto.startDate !== undefined && { startDate: dto.startDate ? new Date(dto.startDate) : null }),
+        ...(dto.startDate !== undefined && {
+          startDate: dto.startDate ? new Date(dto.startDate) : null,
+        }),
         ...(dto.endDate !== undefined && { endDate: dto.endDate ? new Date(dto.endDate) : null }),
       },
     });
@@ -208,13 +209,13 @@ export class ProjectService {
     newTaskId: string,
     dependsOn: string[],
   ): Promise<boolean> {
-    const projectTasks = await this.prisma.task.findMany({
+    const projectTasks = await prisma.task.findMany({
       where: { tenantId, projectId },
       select: { id: true },
     });
     const taskIds = new Set(projectTasks.map((t) => t.id));
 
-    const deps = await this.prisma.taskDependency.findMany({
+    const deps = await prisma.taskDependency.findMany({
       where: { tenantId },
       select: { prerequisiteTaskId: true, dependentTaskId: true },
     });
@@ -248,7 +249,7 @@ export class ProjectService {
 
   async createTask(tenantId: string, dto: CreateTaskDto) {
     if (dto.dependsOn && dto.dependsOn.length > 0) {
-      const prereqs = await this.prisma.task.findMany({
+      const prereqs = await prisma.task.findMany({
         where: {
           id: { in: dto.dependsOn },
           projectId: dto.projectId,
@@ -265,19 +266,12 @@ export class ProjectService {
     const tempId = 'new-task';
     if (
       dto.dependsOn?.length &&
-      (await this.wouldCreateCycle(
-        tenantId,
-        dto.projectId,
-        tempId,
-        dto.dependsOn,
-      ))
+      (await this.wouldCreateCycle(tenantId, dto.projectId, tempId, dto.dependsOn))
     ) {
-      throw new BadRequestException(
-        'Task dependencies would create a cycle (DAG violation).',
-      );
+      throw new BadRequestException('Task dependencies would create a cycle (DAG violation).');
     }
 
-    const task = await this.prisma.task.create({
+    const task = await prisma.task.create({
       data: {
         tenantId,
         projectId: dto.projectId,
@@ -302,12 +296,12 @@ export class ProjectService {
   }
 
   async listMilestones(tenantId: string, projectId: string) {
-    const project = await this.prisma.project.findFirst({
+    const project = await prisma.project.findFirst({
       where: { id: projectId, tenantId, deletedAt: null },
     });
     if (!project) throw new NotFoundException('Project not found');
 
-    const milestones = await this.prisma.milestone.findMany({
+    const milestones = await prisma.milestone.findMany({
       where: { tenantId, projectId },
       include: { _count: { select: { tasks: true } } },
       orderBy: { dueDate: 'asc' },
@@ -326,17 +320,13 @@ export class ProjectService {
     }));
   }
 
-  async createMilestone(
-    tenantId: string,
-    projectId: string,
-    dto: CreateMilestoneDto,
-  ) {
-    const project = await this.prisma.project.findFirst({
+  async createMilestone(tenantId: string, projectId: string, dto: CreateMilestoneDto) {
+    const project = await prisma.project.findFirst({
       where: { id: projectId, tenantId, deletedAt: null },
     });
     if (!project) throw new NotFoundException('Project not found');
 
-    const milestone = await this.prisma.milestone.create({
+    const milestone = await prisma.milestone.create({
       data: {
         tenantId,
         projectId,
@@ -378,12 +368,13 @@ export class ProjectService {
     milestoneId: string,
     dto: UpdateMilestoneDto,
   ) {
-    const existing = await this.prisma.milestone.findFirst({
+    const existing = await prisma.milestone.findFirst({
       where: { id: milestoneId, projectId, tenantId },
     });
     if (!existing) throw new NotFoundException('Milestone not found');
 
-    const milestone = await this.prisma.milestone.update({
+    // tenant-scope-ok: `existing` was just found via a tenantId-scoped findFirst above.
+    const milestone = await prisma.milestone.update({
       where: { id: milestoneId },
       data: {
         ...(dto.name !== undefined ? { name: dto.name } : {}),
@@ -394,7 +385,7 @@ export class ProjectService {
     const now = new Date();
     const formatted = {
       ...milestone,
-      taskCount: await this.prisma.task.count({
+      taskCount: await prisma.task.count({
         where: { milestoneId, tenantId },
       }),
       isOverdue: milestone.dueDate < now && !milestone.isAchieved,
@@ -404,12 +395,8 @@ export class ProjectService {
     return formatted;
   }
 
-  async achieveMilestone(
-    tenantId: string,
-    projectId: string,
-    milestoneId: string,
-  ) {
-    const existing = await this.prisma.milestone.findFirst({
+  async achieveMilestone(tenantId: string, projectId: string, milestoneId: string) {
+    const existing = await prisma.milestone.findFirst({
       where: { id: milestoneId, projectId, tenantId },
     });
     if (!existing) throw new NotFoundException('Milestone not found');
@@ -417,7 +404,8 @@ export class ProjectService {
       throw new BadRequestException('Milestone is already achieved.');
     }
 
-    const milestone = await this.prisma.milestone.update({
+    // tenant-scope-ok: `existing` was just found via a tenantId-scoped findFirst above.
+    const milestone = await prisma.milestone.update({
       where: { id: milestoneId },
       data: { isAchieved: true },
     });
@@ -431,7 +419,7 @@ export class ProjectService {
 
     return {
       ...milestone,
-      taskCount: await this.prisma.task.count({
+      taskCount: await prisma.task.count({
         where: { milestoneId, tenantId },
       }),
       isOverdue: false,
@@ -445,7 +433,7 @@ export class ProjectService {
     dto: MaterialRequestDto,
     requestedBy?: string,
   ) {
-    const project = await this.prisma.project.findFirst({
+    const project = await prisma.project.findFirst({
       where: { id: projectId, tenantId, deletedAt: null },
     });
     if (!project) {
@@ -457,7 +445,7 @@ export class ProjectService {
       );
     }
 
-    const products = await this.prisma.product.findMany({
+    const products = await prisma.product.findMany({
       where: {
         tenantId,
         id: { in: dto.lines.map((l) => l.productId) },
@@ -466,9 +454,7 @@ export class ProjectService {
       },
     });
     if (products.length !== dto.lines.length) {
-      throw new BadRequestException(
-        'One or more products are invalid or inactive.',
-      );
+      throw new BadRequestException('One or more products are invalid or inactive.');
     }
 
     this.eventEmitter.emit('project.material_requested', {

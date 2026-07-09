@@ -10,11 +10,11 @@ export default function ProjectsLayout({ children }: { children: React.ReactNode
   if (pathname === "/projects/new") return <>{children}</>;
 
   const tabs = [
-    { name: "Overview",          path: "/projects/overview" },
-    { name: "Milestones",        path: "/projects/milestones" },
-    { name: "Tasks & Gantt",     path: "/projects/tasks" },
-    { name: "Resources",         path: "/projects/resources" },
-    { name: "Budget",            path: "/projects/budget" },
+    { name: "Overview", path: "/projects/overview" },
+    { name: "Milestones", path: "/projects/milestones" },
+    { name: "Tasks & Gantt", path: "/projects/tasks" },
+    { name: "Resources", path: "/projects/resources" },
+    { name: "Budget", path: "/projects/budget" },
   ];
 
   return (
@@ -22,7 +22,7 @@ export default function ProjectsLayout({ children }: { children: React.ReactNode
       {/* Module header */}
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
-          <FolderKanban size={17} className="text-slate-400" />
+          <FolderKanban size={17} className="text-slate-500" />
           <h1 className="text-[15px] font-semibold text-slate-900">Project Management</h1>
         </div>
         <Link href="/projects/new">
@@ -31,7 +31,7 @@ export default function ProjectsLayout({ children }: { children: React.ReactNode
           </button>
         </Link>
       </div>
-      <p className="text-[12px] text-slate-400 mb-5">
+      <p className="text-[12px] text-slate-500 mb-5">
         Coordinates HR (people), SCM (materials) and Finance (budget) via domain events.
       </p>
 

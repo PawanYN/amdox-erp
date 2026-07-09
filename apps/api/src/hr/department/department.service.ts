@@ -1,17 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaClient } from '@amdox/db';
+import { prisma } from '@amdox/db';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CreateDepartmentDto } from '../dto/create-department.dto';
 import { UpdateDepartmentDto } from '../dto/update-department.dto';
 
 @Injectable()
 export class DepartmentService {
-  private prisma = new PrismaClient();
-
   constructor(private readonly eventEmitter: EventEmitter2) {}
 
   async create(tenantId: string, createDepartmentDto: CreateDepartmentDto) {
-    const department = await this.prisma.department.create({
+    const department = await prisma.department.create({
       data: {
         ...createDepartmentDto,
         tenantId,
@@ -22,7 +20,7 @@ export class DepartmentService {
   }
 
   async findAll(tenantId: string) {
-    return this.prisma.department.findMany({
+    return prisma.department.findMany({
       where: { tenantId },
       include: {
         parent: true,
@@ -32,7 +30,7 @@ export class DepartmentService {
   }
 
   async findOne(tenantId: string, id: string) {
-    const department = await this.prisma.department.findFirst({
+    const department = await prisma.department.findFirst({
       where: { id, tenantId },
       include: {
         parent: true,
@@ -45,7 +43,8 @@ export class DepartmentService {
 
   async update(tenantId: string, id: string, updateDepartmentDto: UpdateDepartmentDto) {
     await this.findOne(tenantId, id); // Ensure it exists in this tenant
-    const department = await this.prisma.department.update({
+    // tenant-scope-ok: findOne() above already threw NotFoundException unless `id` belongs to `tenantId`.
+    const department = await prisma.department.update({
       where: { id },
       data: updateDepartmentDto,
     });
@@ -55,7 +54,8 @@ export class DepartmentService {
 
   async remove(tenantId: string, id: string) {
     await this.findOne(tenantId, id); // Ensure it exists
-    const department = await this.prisma.department.delete({
+    // tenant-scope-ok: findOne() above already threw NotFoundException unless `id` belongs to `tenantId`.
+    const department = await prisma.department.delete({
       where: { id },
     });
     this.eventEmitter.emit('department.deleted', { tenantId, departmentId: id });

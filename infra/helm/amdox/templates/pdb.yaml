@@ -1,0 +1,35 @@
+# PodDisruptionBudget — a floor under VOLUNTARY disruptions (node drains,
+# cluster upgrades, `kubectl drain`): the eviction API refuses to take the
+# service below minAvailable. It does nothing about crashes or node
+# failures — it only makes planned maintenance safe. Note: with 1 replica
+# and minAvailable 1, drains BLOCK until the HPA has scaled to 2+ — a
+# deliberate "don't cause an outage" stance.
+{{- if .Values.api.pdb.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: amdox-api
+  labels:
+    app.kubernetes.io/name: amdox-api
+    app.kubernetes.io/part-of: amdox
+spec:
+  minAvailable: {{ .Values.api.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: amdox-api
+{{- end }}
+{{- if .Values.web.pdb.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: amdox-web
+  labels:
+    app.kubernetes.io/name: amdox-web
+    app.kubernetes.io/part-of: amdox
+spec:
+  minAvailable: {{ .Values.web.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: amdox-web
+{{- end }}

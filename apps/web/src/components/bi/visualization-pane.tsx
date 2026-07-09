@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { PBI, VISUAL_TYPE_META } from "./power-bi-theme";
 import type { BiDataSource, WidgetType } from "@/lib/api/bi-api";
-import { DATA_SOURCE_OPTIONS } from "./widget-chart";
+import { DATA_SOURCE_OPTIONS } from "./widget-config-constants";
 import {
   AGGREGATIONS,
   COLOR_PALETTES,
@@ -132,11 +132,7 @@ function renderDataField(
     <input
       type="text"
       value={value || ""}
-      placeholder={
-        key === "stages"
-          ? "requisitioned, approved, ordered, received"
-          : "Field name"
-      }
+      placeholder={key === "stages" ? "requisitioned, approved, ordered, received" : "Field name"}
       onChange={(e) => onChange(key, e.target.value)}
       className={inputClass}
       style={inputStyle}
@@ -238,11 +234,7 @@ function renderStyleField(
       </select>
     );
   }
-  if (
-    key.startsWith("show") ||
-    key === "donut" ||
-    key === "smooth"
-  ) {
+  if (key.startsWith("show") || key === "donut" || key === "smooth") {
     return (
       <label className="flex items-center gap-2 cursor-pointer">
         <input
@@ -340,12 +332,10 @@ export function VisualizationPane({
     [selectedSource, selectedType, queryAttrs, filters],
   );
 
-  const addFilter = () =>
-    onFilterChange([...filters, { field: "", op: "=", value: "" }]);
+  const addFilter = () => onFilterChange([...filters, { field: "", op: "=", value: "" }]);
   const updateFilter = (i: number, key: keyof WidgetFilter, val: string) =>
     onFilterChange(filters.map((row, idx) => (idx === i ? { ...row, [key]: val } : row)));
-  const removeFilter = (i: number) =>
-    onFilterChange(filters.filter((_, idx) => idx !== i));
+  const removeFilter = (i: number) => onFilterChange(filters.filter((_, idx) => idx !== i));
 
   return (
     <aside
@@ -362,7 +352,11 @@ export function VisualizationPane({
       {isEditing && (
         <div
           className="px-3 py-2 text-[11px]"
-          style={{ background: "#DEECF9", color: "#005A9E", borderBottom: `1px solid ${PBI.paneBorder}` }}
+          style={{
+            background: "#DEECF9",
+            color: "#005A9E",
+            borderBottom: `1px solid ${PBI.paneBorder}`,
+          }}
         >
           Editing selected visual — configure fields below and click Update.
         </div>
@@ -435,7 +429,10 @@ export function VisualizationPane({
           <div className="px-3 pb-3 grid grid-cols-1 gap-2.5">
             {dataFields.map((key) => (
               <div key={key}>
-                <label className="text-[11px] font-medium block mb-1 flex items-center gap-1" style={{ color: PBI.textMuted }}>
+                <label
+                  className="text-[11px] font-medium block mb-1 flex items-center gap-1"
+                  style={{ color: PBI.textMuted }}
+                >
                   {DATA_FIELD_LABELS[key] || key}
                   {requiredFields.includes(key) && <span className="text-red-500">*</span>}
                 </label>
@@ -443,9 +440,7 @@ export function VisualizationPane({
               </div>
             ))}
             {missingLabels.length > 0 && (
-              <p className="text-[10px] text-amber-600">
-                Recommended: {missingLabels.join(", ")}
-              </p>
+              <p className="text-[10px] text-amber-600">Recommended: {missingLabels.join(", ")}</p>
             )}
           </div>
         )}
@@ -461,7 +456,10 @@ export function VisualizationPane({
           <div className="px-3 pb-3 grid grid-cols-1 gap-2.5">
             {styleFields.map((key) => (
               <div key={key}>
-                <label className="text-[11px] font-medium block mb-1" style={{ color: PBI.textMuted }}>
+                <label
+                  className="text-[11px] font-medium block mb-1"
+                  style={{ color: PBI.textMuted }}
+                >
                   {STYLE_FIELD_LABELS[key] || key}
                 </label>
                 {renderStyleField(key, style, onStyleChange)}
@@ -510,7 +508,7 @@ export function VisualizationPane({
                 <button
                   type="button"
                   onClick={() => removeFilter(i)}
-                  className="text-slate-400 hover:text-red-500 p-0.5"
+                  className="text-slate-500 hover:text-red-500 p-0.5"
                 >
                   <X size={13} />
                 </button>
@@ -601,8 +599,15 @@ function SectionHeader({
       style={{ borderTop: `1px solid ${PBI.paneBorder}`, background: "#fff" }}
     >
       <div className="flex items-center gap-1.5">
-        {open ? <ChevronDown size={14} style={{ color: PBI.textMuted }} /> : <ChevronRight size={14} style={{ color: PBI.textMuted }} />}
-        <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: PBI.textMuted }}>
+        {open ? (
+          <ChevronDown size={14} style={{ color: PBI.textMuted }} />
+        ) : (
+          <ChevronRight size={14} style={{ color: PBI.textMuted }} />
+        )}
+        <span
+          className="text-[11px] font-semibold uppercase tracking-wide"
+          style={{ color: PBI.textMuted }}
+        >
           {title}
         </span>
       </div>

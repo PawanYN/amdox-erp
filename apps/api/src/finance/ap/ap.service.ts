@@ -1,7 +1,9 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { PrismaClient, InvoiceStatus } from '@amdox/db';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { prisma, InvoiceStatus } from '@amdox/db';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CreateInvoiceDto, InvoiceType } from '../dto/create-invoice.dto';
+import { RecordPaymentDto } from '../dto/record-payment.dto';
+import { RunPaymentBatchDto } from '../dto/run-payment-batch.dto';
 import { InvoiceMatchingService } from './invoice-matching.service';
 import { OcrService } from './ocr.service';
 
@@ -14,9 +16,26 @@ interface InvoiceApprovedEvent {
   userId?: string;
 }
 
+interface PaymentMadeEvent {
+  tenantId: string;
+  paymentId: string;
+  invoiceId: string;
+  amount: number;
+  bankReference?: string;
+  userId?: string;
+}
+
+export interface PaymentRunResult {
+  invoiceId: string;
+  status: 'PAID' | 'FAILED';
+  amount?: number;
+  paymentId?: string;
+  error?: string;
+}
+
 /**
  * Service to handle Accounts Payable (AP) operations.
- * 
+ *
  * WHAT: This service manages the lifecycle of vendor invoices, from creation/OCR extraction
  * to approval and outbox event publishing.
  * WHY: We need a centralized place to enforce AP business logic, ensure transactions are atomic,
@@ -25,22 +44,20 @@ interface InvoiceApprovedEvent {
 @Injectable()
 export class ApService {
   private readonly logger = new Logger(ApService.name);
-  private prisma = new PrismaClient();
-
   constructor(
     private readonly invoiceMatchingService: InvoiceMatchingService,
     private readonly ocrService: OcrService,
-    private readonly eventEmitter: EventEmitter2
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   /**
    * Retrieves all AP invoices for a tenant.
    */
   async getInvoices(tenantId: string) {
-    return this.prisma.invoice.findMany({
+    return prisma.invoice.findMany({
       where: { tenantId, type: 'AP' },
       include: { lines: true },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
   }
 
@@ -50,8 +67,9 @@ export class ApService {
    * extracted data matches a Goods Receipt and Purchase Order perfectly.
    */
   async processInvoiceDocument(tenantId: string, documentBuffer: Buffer, goodsReceiptId?: string) {
-    const { data: ocrData, confidenceScore } = await this.ocrService.extractInvoiceData(documentBuffer);
-    
+    const { data: ocrData, confidenceScore } =
+      await this.ocrService.extractInvoiceData(documentBuffer);
+
     // We will save it to the DB as pending match initially
     return this.createInvoice(tenantId, ocrData, confidenceScore, goodsReceiptId);
   }
@@ -61,7 +79,12 @@ export class ApService {
    * WHY: Central creation logic that handles the 3-way match attempt within a database transaction.
    * If purchaseOrderId is present and goodsReceiptId is provided, it attempts a 3-way match.
    */
-  async createInvoice(tenantId: string, dto: CreateInvoiceDto, ocrConfidence?: number, goodsReceiptId?: string) {
+  async createInvoice(
+    tenantId: string,
+    dto: CreateInvoiceDto,
+    ocrConfidence?: number,
+    goodsReceiptId?: string,
+  ) {
     if (dto.type !== InvoiceType.AP) {
       throw new Error('AP Service only handles AP invoices.');
     }
@@ -69,8 +92,8 @@ export class ApService {
     // Wrap in a transaction to safely handle the Outbox pattern
     let approvalEvent: InvoiceApprovedEvent | null = null;
 
-    const result = await this.prisma.$transaction(async (tx) => {
-      let initialStatus: InvoiceStatus = 'PENDING_MATCH';
+    const result = await prisma.$transaction(async (tx) => {
+      const initialStatus: InvoiceStatus = 'PENDING_MATCH';
       let projectId: string | undefined;
 
       if (dto.purchaseOrderId) {
@@ -96,38 +119,41 @@ export class ApService {
           ocrConfidence: ocrConfidence,
           status: initialStatus,
           lines: {
-            create: dto.lines.map(line => ({
+            create: dto.lines.map((line) => ({
               tenantId,
               description: line.description,
               quantity: line.quantity,
               unitPrice: line.unitPrice,
-              lineTotal: line.lineTotal
-            }))
-          }
+              lineTotal: line.lineTotal,
+            })),
+          },
         },
-        include: { lines: true }
+        include: { lines: true },
       });
 
       // Attempt 3-way match if we have the necessary references
       if (dto.purchaseOrderId && goodsReceiptId) {
-        const po = await tx.purchaseOrder.findFirst({ where: { id: dto.purchaseOrderId, tenantId }});
-        const gr = await tx.goodsReceipt.findFirst({ where: { id: goodsReceiptId, tenantId }});
-        
+        const po = await tx.purchaseOrder.findFirst({
+          where: { id: dto.purchaseOrderId, tenantId },
+        });
+        const gr = await tx.goodsReceipt.findFirst({ where: { id: goodsReceiptId, tenantId } });
+
         if (po && gr && po.vendorId === dto.vendorId && gr.purchaseOrderId === po.id) {
           const invoiceTotal = invoice.totalAmount.toNumber();
           const poTotal = po.totalAmount?.toNumber() || 0;
           const diff = poTotal === 0 ? 1 : Math.abs(invoiceTotal - poTotal) / poTotal;
-          
+
           if (diff <= 0.02) {
             // MATCH SUCCESSFUL -> Auto-approve
             this.logger.log(`Invoice ${invoice.id} matched successfully! Auto-approving.`);
-            
+
+            // tenant-scope-ok: `invoice` was created earlier in this same transaction, scoped to `tenantId`.
             const approvedInvoice = await tx.invoice.update({
               where: { id: invoice.id },
               data: {
                 status: 'APPROVED',
-                matchedAt: new Date()
-              }
+                matchedAt: new Date(),
+              },
             });
 
             approvalEvent = {
@@ -143,9 +169,12 @@ export class ApService {
               data: {
                 tenantId,
                 eventType: 'invoice.approved',
-                payload: { invoiceId: approvedInvoice.id, totalAmount: approvedInvoice.totalAmount },
-                status: 'PENDING'
-              }
+                payload: {
+                  invoiceId: approvedInvoice.id,
+                  totalAmount: approvedInvoice.totalAmount,
+                },
+                status: 'PENDING',
+              },
             });
 
             return approvedInvoice;
@@ -172,7 +201,7 @@ export class ApService {
     purchaseOrderId: string,
     goodsReceiptId: string,
   ) {
-    const existing = await this.prisma.invoice.findFirst({
+    const existing = await prisma.invoice.findFirst({
       where: { tenantId, type: 'AP', purchaseOrderId },
     });
     if (existing) {
@@ -182,7 +211,7 @@ export class ApService {
       return existing;
     }
 
-    const po = await this.prisma.purchaseOrder.findFirst({
+    const po = await prisma.purchaseOrder.findFirst({
       where: { id: purchaseOrderId, tenantId },
       include: { lines: true },
     });
@@ -219,13 +248,16 @@ export class ApService {
   async manuallyApproveInvoice(tenantId: string, invoiceId: string, actingUserId?: string) {
     let approvalEvent: InvoiceApprovedEvent | null = null;
 
-    const approvedInvoice = await this.prisma.$transaction(async (tx) => {
-      const invoice = await tx.invoice.findFirst({ where: { id: invoiceId, tenantId, type: 'AP' } });
+    const approvedInvoice = await prisma.$transaction(async (tx) => {
+      const invoice = await tx.invoice.findFirst({
+        where: { id: invoiceId, tenantId, type: 'AP' },
+      });
       if (!invoice) throw new NotFoundException('Invoice not found');
 
+      // tenant-scope-ok: `invoice` was just found via a tenantId-scoped findFirst above.
       const updated = await tx.invoice.update({
         where: { id: invoice.id },
-        data: { status: 'APPROVED', matchedAt: new Date() }
+        data: { status: 'APPROVED', matchedAt: new Date() },
       });
 
       approvalEvent = {
@@ -242,8 +274,8 @@ export class ApService {
           tenantId,
           eventType: 'invoice.approved',
           payload: { invoiceId: updated.id, totalAmount: updated.totalAmount },
-          status: 'PENDING'
-        }
+          status: 'PENDING',
+        },
       });
 
       return updated;
@@ -254,5 +286,166 @@ export class ApService {
     }
 
     return approvedInvoice;
+  }
+
+  /**
+   * WHAT: Records a disbursement against an outstanding AP invoice.
+   * WHY: Approval alone never moved money — this is the step that actually pays a
+   * vendor, reduces the payable balance, and triggers the GL event to debit
+   * Accounts Payable and credit Cash.
+   */
+  async recordPayment(
+    tenantId: string,
+    dto: RecordPaymentDto,
+    actingUserId?: string,
+    paymentRunId?: string,
+  ) {
+    let paymentEvent: PaymentMadeEvent | null = null;
+
+    const result = await prisma.$transaction(async (tx) => {
+      const invoice = await tx.invoice.findFirst({
+        where: { id: dto.invoiceId, tenantId, type: 'AP' },
+        include: { payments: true },
+      });
+      if (!invoice) throw new NotFoundException('AP Invoice not found.');
+      if (invoice.status !== 'APPROVED' && invoice.status !== 'PARTIALLY_PAID') {
+        throw new BadRequestException(
+          `Invoice must be APPROVED before payment (current status: ${invoice.status}).`,
+        );
+      }
+
+      const payment = await tx.payment.create({
+        data: {
+          tenantId,
+          invoiceId: dto.invoiceId,
+          paymentRunId,
+          amount: dto.amount,
+          bankReference: dto.bankReference,
+          status: 'COMPLETED',
+          paidAt: new Date(),
+        },
+      });
+
+      const priorPaid = invoice.payments.reduce((sum, p) => sum + p.amount.toNumber(), 0);
+      const totalPaid = priorPaid + dto.amount;
+      const invoiceTotal = invoice.totalAmount.toNumber();
+
+      let newStatus: InvoiceStatus = invoice.status;
+      if (totalPaid >= invoiceTotal) {
+        newStatus = 'PAID';
+      } else if (totalPaid > 0) {
+        newStatus = 'PARTIALLY_PAID';
+      }
+
+      // tenant-scope-ok: `invoice` was just found via a tenantId-scoped findFirst above.
+      await tx.invoice.update({ where: { id: invoice.id }, data: { status: newStatus } });
+
+      paymentEvent = {
+        tenantId,
+        paymentId: payment.id,
+        invoiceId: invoice.id,
+        amount: dto.amount,
+        bankReference: dto.bankReference,
+        userId: actingUserId,
+      };
+
+      await tx.outboxEvent.create({
+        data: {
+          tenantId,
+          eventType: 'payment.made',
+          payload: {
+            paymentId: payment.id,
+            invoiceId: invoice.id,
+            amount: payment.amount,
+            bankReference: dto.bankReference,
+          },
+          status: 'PENDING',
+        },
+      });
+
+      return {
+        payment,
+        reconciliation: {
+          invoiceTotal,
+          totalPaid,
+          balanceDue: Math.max(invoiceTotal - totalPaid, 0),
+          status: newStatus,
+        },
+      };
+    });
+
+    if (paymentEvent) {
+      this.eventEmitter.emit('payment.made', paymentEvent);
+    }
+
+    return result;
+  }
+
+  /**
+   * WHAT: Batch-pays a set of approved AP invoices in full (the actual "payment run").
+   * WHY: `approve()` only ever authorized an invoice for payment — nothing previously
+   * moved it to PAID or disbursed cash. This settles each selected invoice's remaining
+   * balance in one call, continuing past individual failures so one bad invoice ID
+   * doesn't block the rest of the run.
+   */
+  async runPaymentBatch(tenantId: string, dto: RunPaymentBatchDto, actingUserId?: string) {
+    const paymentRun = await prisma.paymentRun.create({
+      data: {
+        tenantId,
+        runDate: new Date(),
+        description: dto.description,
+      },
+    });
+
+    const results: PaymentRunResult[] = [];
+
+    // Fetch every candidate invoice in one round-trip instead of one findFirst
+    // per invoiceId in the loop below (N+1) — the per-invoice write logic still
+    // runs individually since each payment is its own financial transaction.
+    const invoices = await prisma.invoice.findMany({
+      where: { id: { in: dto.invoiceIds }, tenantId, type: 'AP' },
+      include: { payments: true },
+    });
+    const invoiceById = new Map(invoices.map((inv) => [inv.id, inv]));
+
+    for (const invoiceId of dto.invoiceIds) {
+      try {
+        const invoice = invoiceById.get(invoiceId);
+        if (!invoice) throw new NotFoundException('AP Invoice not found.');
+        if (invoice.status !== 'APPROVED' && invoice.status !== 'PARTIALLY_PAID') {
+          throw new BadRequestException(
+            `Invoice ${invoice.invoiceNumber} is not APPROVED (status: ${invoice.status}).`,
+          );
+        }
+
+        const priorPaid = invoice.payments.reduce((sum, p) => sum + p.amount.toNumber(), 0);
+        const balanceDue = invoice.totalAmount.toNumber() - priorPaid;
+        if (balanceDue <= 0) {
+          throw new BadRequestException(
+            `Invoice ${invoice.invoiceNumber} has no outstanding balance.`,
+          );
+        }
+
+        const paid = await this.recordPayment(
+          tenantId,
+          { invoiceId, amount: balanceDue, bankReference: dto.bankReference },
+          actingUserId,
+          paymentRun.id,
+        );
+
+        results.push({ invoiceId, status: 'PAID', amount: balanceDue, paymentId: paid.payment.id });
+      } catch (error) {
+        results.push({ invoiceId, status: 'FAILED', error: (error as Error).message });
+      }
+    }
+
+    return {
+      paymentRunId: paymentRun.id,
+      processed: results.length,
+      paidCount: results.filter((r) => r.status === 'PAID').length,
+      failedCount: results.filter((r) => r.status === 'FAILED').length,
+      totalPaid: results.reduce((sum, r) => sum + (r.amount ?? 0), 0),
+      results,
+    };
   }
 }

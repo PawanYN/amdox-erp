@@ -1,0 +1,10 @@
+node_modules
+.next
+dist
+out
+.turbo
+pnpm-lock.yaml
+*.min.js
+coverage
+apps/api/openapi-spec.json
+apps/api/postman_collection.json

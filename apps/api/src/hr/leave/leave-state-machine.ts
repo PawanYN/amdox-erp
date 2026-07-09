@@ -2,19 +2,19 @@
  * ============================================================================
  * STATE MACHINE: leave-state-machine.ts
  * ============================================================================
- * 
+ *
  * WHAT THIS FILE DOES:
- * This handles the formal workflow for Leave Requests. It dictates exactly 
- * which status transitions are allowed (e.g. you cannot "Approve" a leave 
+ * This handles the formal workflow for Leave Requests. It dictates exactly
+ * which status transitions are allowed (e.g. you cannot "Approve" a leave
  * that is already "Rejected" or "Cancelled").
- * 
+ *
  * HOW IT IS IMPLEMENTED:
- * - We enforce the Business Rule: Only the employee's direct manager (or 
+ * - We enforce the Business Rule: Only the employee's direct manager (or
  *   a global Tenant Admin) is allowed to approve or reject a leave.
  * - It throws HTTP Exceptions automatically if the transition is illegal.
  * ============================================================================
  */
-import { Injectable, BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { LeaveStatus } from '@amdox/db';
 
 export interface LeaveEntity {
@@ -28,12 +28,11 @@ export interface LeaveEntity {
 
 @Injectable()
 export class LeaveStateMachine {
-  
   public validateTransition(
-    leave: LeaveEntity, 
-    newStatus: LeaveStatus, 
-    approvingManagerId: string, 
-    isTenantAdmin: boolean
+    leave: LeaveEntity,
+    newStatus: LeaveStatus,
+    approvingManagerId: string,
+    isTenantAdmin: boolean,
   ): void {
     // 1. Validate Current State
     if (leave.status !== LeaveStatus.PENDING) {

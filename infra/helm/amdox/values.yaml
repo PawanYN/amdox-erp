@@ -1,0 +1,128 @@
+# values.yaml — the knobs. Everything a template references as
+# `{{ .Values.something }}` comes from here, and per-environment files
+# (values-dev.yaml / values-staging.yaml / values-prod.yaml) override
+# only the keys that differ.
+
+# Never pull images from a registry — kind clusters use images side-loaded
+# with `kind load docker-image`. Real clusters override this to IfNotPresent
+# and point image.repository at a registry.
+imagePullPolicy: Never
+
+# In-cluster Postgres/Redis/Keycloak so the stack is testable on kind.
+# Real environments set this false and use managed services instead —
+# see templates/dev-dependencies.yaml.
+devDependencies:
+  enabled: true
+
+# Hostnames the Ingress routes on. .local names resolve nowhere by design —
+# local validation sends an explicit Host header (or an /etc/hosts entry);
+# real environments override these with actual domains.
+ingress:
+  enabled: true
+  className: nginx
+  webHost: app.amdox.local
+  apiHost: api.amdox.local
+
+# Istio canary routing (templates/istio.yaml + api-deployment-canary.yaml).
+# Requires istiod in the cluster and istio-injection=enabled on the target
+# namespace. weight = % of api traffic the canary pods receive.
+istio:
+  enabled: false
+  canary:
+    enabled: false
+    tag: ci
+    replicas: 1
+    weight: 10
+
+api:
+  image: amdox-api
+  tag: ci
+  replicas: 1
+  port: 3001
+  # Non-secret runtime config — becomes the amdox-api-config ConfigMap
+  # verbatim. Values here are dev-cluster defaults; per-env values files
+  # override the keys that differ. Secrets (DATABASE_URL, JWT_SECRET, ...)
+  # never go in this block.
+  config:
+    NODE_ENV: production
+    FRONTEND_URL: http://localhost:3000
+    ML_SERVICE_URL: http://amdox-ml-service:8091
+    REDIS_HOST: amdox-redis
+    REDIS_PORT: "6379"
+    KEYCLOAK_BASE_URL: http://amdox-keycloak:8080
+    OCR_PROVIDER: mock
+    THROTTLE_SHORT_LIMIT: "20"
+    THROTTLE_SHORT_TTL_MS: "1000"
+    THROTTLE_MEDIUM_LIMIT: "600"
+    THROTTLE_MEDIUM_TTL_MS: "60000"
+  # Sealed Secrets (see templates/api-secret.yaml). Per-env values files
+  # flip enabled: true and carry the kubeseal-encrypted blobs, which ARE
+  # safe to commit. Off by default so `helm template` without an env file
+  # still renders something installable on controller-less clusters.
+  sealedSecrets:
+    enabled: false
+    encryptedData: {}
+  # Plain-Secret fallback when sealedSecrets is disabled. Deliberately
+  # EMPTY in this committed file: supply real values at install time with
+  # --set api.secrets.JWT_SECRET=... or -f an uncommitted values file.
+  secrets:
+    DATABASE_URL: ""
+    JWT_SECRET: ""
+    KEYCLOAK_ADMIN_USERNAME: admin
+    KEYCLOAK_ADMIN_PASSWORD: ""
+    BULL_BOARD_USER: admin
+    BULL_BOARD_PASSWORD: ""
+  resources:
+    requests: # scheduler guarantees this much (pod won't land on a full node)
+      cpu: 100m # 100 millicores = 0.1 CPU
+      memory: 256Mi
+    limits: # hard cap — throttled (CPU) or OOM-killed (memory) above this
+      cpu: "1"
+      memory: 768Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 4
+    # scale up when average CPU across pods exceeds 70% of requests.cpu
+    targetCPUUtilizationPercentage: 70
+  pdb:
+    enabled: true
+    # voluntary disruptions (node drains) may never take the api below this
+    minAvailable: 1
+
+web:
+  image: amdox-web
+  tag: ci
+  replicas: 1
+  port: 3000
+  # No config/secrets blocks: all NEXT_PUBLIC_* values are baked into the
+  # client bundle at image build time (see infra/docker/Dockerfile.web) —
+  # runtime env can't change them.
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 70
+  pdb:
+    enabled: true
+    minAvailable: 1
+
+mlService:
+  image: amdox-ml-service
+  tag: ci
+  replicas: 1
+  port: 8091
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi

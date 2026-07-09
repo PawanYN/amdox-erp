@@ -1,12 +1,12 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { PrismaClient } from '@amdox/db';
+import { prisma } from '@amdox/db';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CreateInvoiceDto, InvoiceType } from '../dto/create-invoice.dto';
 import { RecordPaymentDto } from '../dto/record-payment.dto';
 
 /**
  * Service to handle Accounts Receivable (AR) operations.
- * 
+ *
  * WHAT: Manages the lifecycle of customer invoices and the payments received against them.
  * WHY: This tracks money owed to the company (receivables) and ensures proper matching
  * of incoming cash to outstanding invoices, integrating with the GL via domain events.
@@ -14,8 +14,6 @@ import { RecordPaymentDto } from '../dto/record-payment.dto';
 @Injectable()
 export class ArService {
   private readonly logger = new Logger(ArService.name);
-  private prisma = new PrismaClient();
-
   constructor(private readonly eventEmitter: EventEmitter2) {}
 
   /**
@@ -28,7 +26,7 @@ export class ArService {
       throw new Error('AR Service only handles AR invoices.');
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    return prisma.$transaction(async (tx) => {
       const invoice = await tx.invoice.create({
         data: {
           tenantId,
@@ -41,22 +39,22 @@ export class ArService {
           totalAmount: dto.totalAmount,
           status: 'APPROVED', // AR invoices are typically approved upon creation (sent to customer)
           lines: {
-            create: dto.lines.map(line => ({
+            create: dto.lines.map((line) => ({
               tenantId,
               description: line.description,
               quantity: line.quantity,
               unitPrice: line.unitPrice,
-              lineTotal: line.lineTotal
-            }))
-          }
+              lineTotal: line.lineTotal,
+            })),
+          },
         },
-        include: { lines: true }
+        include: { lines: true },
       });
 
       // AR Invoices emit an event when issued to post to the GL (Debit AR, Credit Revenue)
       this.eventEmitter.emit('invoice.issued', {
         tenantId,
-        invoiceId: invoice.id
+        invoiceId: invoice.id,
       });
 
       await tx.outboxEvent.create({
@@ -64,8 +62,8 @@ export class ArService {
           tenantId,
           eventType: 'invoice.issued',
           payload: { invoiceId: invoice.id, totalAmount: invoice.totalAmount },
-          status: 'PENDING'
-        }
+          status: 'PENDING',
+        },
       });
 
       return invoice;
@@ -78,12 +76,12 @@ export class ArService {
    * and triggers the GL event to debit Cash and credit Accounts Receivable.
    */
   async recordPayment(tenantId: string, dto: RecordPaymentDto) {
-    return this.prisma.$transaction(async (tx) => {
+    return prisma.$transaction(async (tx) => {
       const invoice = await tx.invoice.findFirst({
         where: { id: dto.invoiceId, tenantId, type: 'AR' },
         include: { payments: true, salesOrder: true },
       });
-      
+
       if (!invoice) {
         throw new NotFoundException('AR Invoice not found.');
       }
@@ -95,14 +93,11 @@ export class ArService {
           amount: dto.amount,
           bankReference: dto.bankReference,
           status: 'COMPLETED',
-          paidAt: new Date()
-        }
+          paidAt: new Date(),
+        },
       });
 
-      const priorPaid = invoice.payments.reduce(
-        (sum, p) => sum + p.amount.toNumber(),
-        0,
-      );
+      const priorPaid = invoice.payments.reduce((sum, p) => sum + p.amount.toNumber(), 0);
       const totalPaid = priorPaid + dto.amount;
       const invoiceTotal = invoice.totalAmount.toNumber();
 
@@ -113,12 +108,15 @@ export class ArService {
         newStatus = 'PARTIALLY_PAID';
       }
 
+      // tenant-scope-ok: `invoice` was just found via a tenantId-scoped findFirst above.
       await tx.invoice.update({
         where: { id: invoice.id },
         data: { status: newStatus },
       });
 
       if (invoice.salesOrderId && newStatus === 'PAID') {
+        // tenant-scope-ok: invoice.salesOrder was included in the same tenantId-scoped
+        // fetch above — it belongs to the same tenant as the invoice.
         await tx.salesOrder.update({
           where: { id: invoice.salesOrderId },
           data: { status: 'FULFILLED' },
@@ -144,8 +142,8 @@ export class ArService {
             amount: payment.amount,
             bankReference: dto.bankReference,
           },
-          status: 'PENDING'
-        }
+          status: 'PENDING',
+        },
       });
 
       return {
@@ -166,26 +164,26 @@ export class ArService {
    */
   async getAgingReport(tenantId: string) {
     const now = new Date();
-    
-    const invoices = await this.prisma.invoice.findMany({
+
+    const invoices = await prisma.invoice.findMany({
       where: {
         tenantId,
         type: 'AR',
-        status: { in: ['APPROVED', 'OVERDUE'] }
-      }
+        status: { in: ['APPROVED', 'OVERDUE'] },
+      },
     });
 
     const report = {
       '0-30': 0,
       '31-60': 0,
       '61-90': 0,
-      '90+': 0
+      '90+': 0,
     };
 
     for (const inv of invoices) {
       const diffTime = Math.abs(now.getTime() - inv.dueDate.getTime());
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
+
       const amount = inv.totalAmount.toNumber();
 
       if (diffDays <= 30) report['0-30'] += amount;
@@ -198,7 +196,7 @@ export class ArService {
   }
 
   async listInvoices(tenantId: string) {
-    return this.prisma.invoice.findMany({
+    return prisma.invoice.findMany({
       where: { tenantId, type: 'AR' },
       include: { customer: true, lines: true },
       orderBy: { createdAt: 'desc' },
@@ -206,14 +204,14 @@ export class ArService {
   }
 
   async listCustomers(tenantId: string) {
-    return this.prisma.customer.findMany({
+    return prisma.customer.findMany({
       where: { tenantId, isActive: true, deletedAt: null },
       orderBy: { name: 'asc' },
     });
   }
 
   async createCustomer(tenantId: string, name: string, email?: string) {
-    return this.prisma.customer.create({
+    return prisma.customer.create({
       data: { tenantId, name, email: email || null },
     });
   }

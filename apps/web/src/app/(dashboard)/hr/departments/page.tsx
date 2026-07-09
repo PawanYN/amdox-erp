@@ -22,8 +22,7 @@ export default function DepartmentsPage() {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const load = () =>
-    hrApi.getDepartments().then(setDepartments).catch(console.error);
+  const load = () => hrApi.getDepartments().then(setDepartments).catch(console.error);
 
   useEffect(() => {
     load();
@@ -54,8 +53,8 @@ export default function DepartmentsPage() {
       }
       await load();
       setFormOpen(false);
-    } catch (err: any) {
-      alert(err.message || "Failed to save department.");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to save department.");
     } finally {
       setLoading(false);
     }
@@ -66,13 +65,16 @@ export default function DepartmentsPage() {
     try {
       await hrApi.deleteDepartment(dept.id);
       await load();
-    } catch (err: any) {
-      alert(err.message || "Failed to delete department.");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete department.");
     }
   }
 
   const columns: ColumnDef<Department>[] = [
-    { header: "Code", cell: (d) => <span className="font-mono text-xs text-slate-600">{d.code}</span> },
+    {
+      header: "Code",
+      cell: (d) => <span className="font-mono text-xs text-slate-600">{d.code}</span>,
+    },
     { header: "Name", cell: (d) => <span className="font-semibold text-slate-900">{d.name}</span> },
     {
       header: "Actions",
@@ -100,7 +102,7 @@ export default function DepartmentsPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <Building2 size={18} className="text-slate-400" />
+            <Building2 size={18} className="text-slate-500" />
             Departments
           </h1>
           <p className="page-subtitle mt-1">Manage organizational departments</p>
@@ -142,7 +144,9 @@ export default function DepartmentsPage() {
             />
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => setFormOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setFormOpen(false)}>
+              Cancel
+            </Button>
             <Button onClick={handleSave} disabled={loading}>
               {loading ? "Saving…" : editing ? "Update" : "Create"}
             </Button>

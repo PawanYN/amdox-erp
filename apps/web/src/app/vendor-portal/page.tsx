@@ -19,7 +19,11 @@ type PurchaseOrder = {
   vendorAcknowledgedAt?: string | null;
   vendorExpectedDeliveryAt?: string | null;
   vendorShipmentNotes?: string | null;
-  lines?: { quantity: string | number; unitPrice: string | number; product?: { name: string; sku: string } }[];
+  lines?: {
+    quantity: string | number;
+    unitPrice: string | number;
+    product?: { name: string; sku: string };
+  }[];
 };
 
 const inputClass =
@@ -31,7 +35,9 @@ export default function VendorPortalPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loginForm, setLoginForm] = useState({ tenantSlug: "", email: "", accessKey: "" });
-  const [ackForm, setAckForm] = useState<Record<string, { expectedDeliveryAt: string; notes: string }>>({});
+  const [ackForm, setAckForm] = useState<
+    Record<string, { expectedDeliveryAt: string; notes: string }>
+  >({});
 
   useEffect(() => {
     const saved = getVendorPortalSession();
@@ -53,7 +59,11 @@ export default function VendorPortalPage() {
     setLoading(true);
     setError(null);
     try {
-      const result = await vendorPortalApi.login(loginForm.tenantSlug, loginForm.email, loginForm.accessKey);
+      const result = await vendorPortalApi.login(
+        loginForm.tenantSlug,
+        loginForm.email,
+        loginForm.accessKey,
+      );
       setVendorPortalSession(result);
       setSession(result);
     } catch (err) {
@@ -98,7 +108,7 @@ export default function VendorPortalPage() {
             </div>
             <div>
               <h1 className="text-lg font-semibold text-slate-900">Supplier Portal</h1>
-              <p className="text-sm text-slate-400">View and acknowledge purchase orders</p>
+              <p className="text-sm text-slate-500">View and acknowledge purchase orders</p>
             </div>
           </div>
 
@@ -124,7 +134,9 @@ export default function VendorPortalPage() {
               />
             </div>
             <div>
-              <label className="text-[12px] font-medium text-slate-600 block">Portal access key</label>
+              <label className="text-[12px] font-medium text-slate-600 block">
+                Portal access key
+              </label>
               <input
                 type="password"
                 className={inputClass + " font-mono"}
@@ -134,7 +146,11 @@ export default function VendorPortalPage() {
                 required
               />
             </div>
-            {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
+            {error && (
+              <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                {error}
+              </p>
+            )}
             <button
               type="submit"
               disabled={loading}
@@ -154,7 +170,7 @@ export default function VendorPortalPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-xl font-semibold text-slate-900">Supplier Portal</h1>
-            <p className="text-sm text-slate-400 mt-0.5">
+            <p className="text-sm text-slate-500 mt-0.5">
               {session.vendorName} · {session.tenantName}
             </p>
           </div>
@@ -167,30 +183,37 @@ export default function VendorPortalPage() {
         </div>
 
         {error && (
-          <p className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
+          <p className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+            {error}
+          </p>
         )}
 
         {loading && orders.length === 0 ? (
-          <div className="flex items-center gap-2 text-slate-400">
+          <div className="flex items-center gap-2 text-slate-500">
             <Loader2 className="animate-spin" size={18} /> Loading orders…
           </div>
         ) : orders.length === 0 ? (
-          <div className="bg-white rounded-xl border border-slate-200 shadow-card p-10 text-center text-slate-400">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-card p-10 text-center text-slate-500">
             <Package className="mx-auto mb-3 opacity-30" size={32} />
             No purchase orders sent to you yet.
           </div>
         ) : (
           <div className="space-y-4">
             {orders.map((po) => (
-              <div key={po.id} className="bg-white rounded-xl border border-slate-200 shadow-card p-5">
+              <div
+                key={po.id}
+                className="bg-white rounded-xl border border-slate-200 shadow-card p-5"
+              >
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <h2 className="font-semibold text-slate-900">{po.poNumber}</h2>
-                    <p className="text-sm text-slate-400 mt-0.5">
+                    <p className="text-sm text-slate-500 mt-0.5">
                       {po.orderedAt ? new Date(po.orderedAt).toLocaleDateString() : "—"} · ₹
                       {Number(po.totalAmount).toLocaleString()}
                     </p>
-                    <p className="text-xs text-slate-400 mt-0.5 capitalize">{po.status.toLowerCase().replace("_", " ")}</p>
+                    <p className="text-xs text-slate-500 mt-0.5 capitalize">
+                      {po.status.toLowerCase().replace("_", " ")}
+                    </p>
                   </div>
                   {po.vendorAcknowledgedAt ? (
                     <span className="flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-full">
@@ -206,17 +229,22 @@ export default function VendorPortalPage() {
                 <ul className="mt-4 space-y-1 text-sm text-slate-600">
                   {po.lines?.map((line, i) => (
                     <li key={i} className="flex items-center gap-2">
-                      <span className="font-mono text-[11px] text-slate-400">{line.product?.sku}</span>
+                      <span className="font-mono text-[11px] text-slate-500">
+                        {line.product?.sku}
+                      </span>
                       <span>{line.product?.name}:</span>
-                      <span className="font-medium">{Number(line.quantity)} × ₹{Number(line.unitPrice).toLocaleString()}</span>
+                      <span className="font-medium">
+                        {Number(line.quantity)} × ₹{Number(line.unitPrice).toLocaleString()}
+                      </span>
                     </li>
                   ))}
                 </ul>
 
                 {po.vendorAcknowledgedAt ? (
-                  <p className="mt-3 text-xs text-slate-400">
+                  <p className="mt-3 text-xs text-slate-500">
                     Acknowledged {new Date(po.vendorAcknowledgedAt).toLocaleString()}
-                    {po.vendorExpectedDeliveryAt && ` · ETA ${new Date(po.vendorExpectedDeliveryAt).toLocaleDateString()}`}
+                    {po.vendorExpectedDeliveryAt &&
+                      ` · ETA ${new Date(po.vendorExpectedDeliveryAt).toLocaleDateString()}`}
                     {po.vendorShipmentNotes && ` · ${po.vendorShipmentNotes}`}
                   </p>
                 ) : po.status === "APPROVED" ? (
@@ -226,7 +254,14 @@ export default function VendorPortalPage() {
                       className="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                       value={ackForm[po.id]?.expectedDeliveryAt || ""}
                       onChange={(e) =>
-                        setAckForm({ ...ackForm, [po.id]: { ...ackForm[po.id], expectedDeliveryAt: e.target.value, notes: ackForm[po.id]?.notes || "" } })
+                        setAckForm({
+                          ...ackForm,
+                          [po.id]: {
+                            ...ackForm[po.id],
+                            expectedDeliveryAt: e.target.value,
+                            notes: ackForm[po.id]?.notes || "",
+                          },
+                        })
                       }
                     />
                     <input
@@ -234,7 +269,13 @@ export default function VendorPortalPage() {
                       placeholder="Shipment notes (optional)"
                       value={ackForm[po.id]?.notes || ""}
                       onChange={(e) =>
-                        setAckForm({ ...ackForm, [po.id]: { expectedDeliveryAt: ackForm[po.id]?.expectedDeliveryAt || "", notes: e.target.value } })
+                        setAckForm({
+                          ...ackForm,
+                          [po.id]: {
+                            expectedDeliveryAt: ackForm[po.id]?.expectedDeliveryAt || "",
+                            notes: e.target.value,
+                          },
+                        })
                       }
                     />
                     <button

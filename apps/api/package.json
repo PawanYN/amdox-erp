@@ -8,12 +8,17 @@
     "dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "postman": "openapi-to-postmanv2 -s openapi-spec.json -o postman_collection.json -p",
-    "verify:p2p": "ts-node scripts/verify-p2p-flow.ts"
+    "postman": "openapi2postmanv2 -s openapi-spec.json -o postman_collection.json -p",
+    "verify:p2p": "ts-node scripts/verify-p2p-flow.ts",
+    "audit:tenant-scoping": "ts-node scripts/audit-tenant-scoping.ts",
+    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\""
   },
   "dependencies": {
     "@amdox/db": "workspace:*",
+    "@bull-board/api": "^8.1.1",
+    "@bull-board/express": "^8.1.1",
     "@keycloak/keycloak-admin-client": "^26.6.4",
+    "@nest-lab/throttler-storage-redis": "^1.2.0",
     "@nestjs/bullmq": "^11.0.1",
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
@@ -22,10 +27,13 @@
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/schedule": "^6.1.3",
     "@nestjs/swagger": "^11.4.4",
+    "@nestjs/throttler": "^6.5.0",
     "bullmq": "^5.7.8",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "dotenv": "^16.4.5",
+    "exceljs": "^4.4.0",
+    "helmet": "^8.2.0",
     "ioredis": "^5.3.2",
     "jwks-rsa": "^4.1.0",
     "nestjs-pino": "^4.6.1",
@@ -45,7 +53,12 @@
     "@types/node": "^20.11.0",
     "@types/passport-jwt": "^4.0.1",
     "@types/pdfkit": "^0.13.4",
+    "eslint": "^9",
+    "eslint-config-prettier": "^9",
+    "globals": "^15",
+    "openapi-to-postmanv2": "^6.2.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "typescript-eslint": "^8"
   }
 }

@@ -1,0 +1,9 @@
+# Chart.yaml — the chart's identity card. `helm install` refuses anything
+# without it. `version` is the version of the CHART (bump when templates
+# change); `appVersion` is the version of the APP it deploys.
+apiVersion: v2
+name: amdox
+description: Amdox ERP — api, web and ml-service on Kubernetes
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

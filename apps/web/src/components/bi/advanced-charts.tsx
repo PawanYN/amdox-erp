@@ -109,8 +109,7 @@ export function CardKpi({ title, value, change, trend, format = "number", icon }
           : value.toLocaleString()
       : value;
 
-  const trendColor =
-    trend === "up" ? "#107C10" : trend === "down" ? "#D13438" : "#605E5C";
+  const trendColor = trend === "up" ? "#107C10" : trend === "down" ? "#D13438" : "#605E5C";
 
   return (
     <div className="h-full flex flex-col justify-between p-4">
@@ -119,9 +118,7 @@ export function CardKpi({ title, value, change, trend, format = "number", icon }
         {icon && <div className="text-[#118DFF]">{icon}</div>}
       </div>
       <div className="flex-1 flex items-center">
-        <div className="text-[42px] font-semibold text-[#252423] leading-none">
-          {displayValue}
-        </div>
+        <div className="text-[42px] font-semibold text-[#252423] leading-none">{displayValue}</div>
       </div>
       {change !== undefined && (
         <div className="flex items-center gap-2 text-[12px]" style={{ color: trendColor }}>
@@ -142,7 +139,11 @@ type WaterfallChartProps = {
   negativeColor?: string;
 };
 
-export function WaterfallChart({ data, positiveColor = "#107C10", negativeColor = "#D13438" }: WaterfallChartProps) {
+export function WaterfallChart({
+  data,
+  positiveColor = "#107C10",
+  negativeColor = "#D13438",
+}: WaterfallChartProps) {
   const option = {
     title: {
       show: false,
@@ -172,7 +173,7 @@ export function WaterfallChart({ data, positiveColor = "#107C10", negativeColor 
       axisPointer: {
         type: "shadow",
       },
-      formatter: (params: any) => {
+      formatter: (params: { name: string; seriesName: string; value: number }[]) => {
         const point = params[0];
         return `${point.name}<br/>${point.seriesName}: ₹${Math.abs(point.value).toLocaleString()}`;
       },
@@ -184,7 +185,7 @@ export function WaterfallChart({ data, positiveColor = "#107C10", negativeColor 
         stack: "total",
         itemStyle: {
           borderColor: "transparent",
-          color: (params: any) => {
+          color: (params: { dataIndex: number }) => {
             const isTotal = data[params.dataIndex]?.isTotal;
             if (isTotal) return "#118DFF";
             return data[params.dataIndex].value >= 0 ? positiveColor : negativeColor;
@@ -204,7 +205,7 @@ export function WaterfallChart({ data, positiveColor = "#107C10", negativeColor 
         type: "bar",
         stack: "total",
         itemStyle: {
-          color: (params: any) => {
+          color: (params: { dataIndex: number }) => {
             const isTotal = data[params.dataIndex]?.isTotal;
             if (isTotal) return "transparent";
             return data[params.dataIndex].value >= 0 ? positiveColor : negativeColor;
@@ -226,7 +227,13 @@ type ScatterChartProps = {
   color?: string;
 };
 
-export function ScatterChart({ data, xLabel, yLabel, pointSize = 10, color = "#118DFF" }: ScatterChartProps) {
+export function ScatterChart({
+  data,
+  xLabel,
+  yLabel,
+  pointSize = 10,
+  color = "#118DFF",
+}: ScatterChartProps) {
   const option = {
     grid: {
       left: 60,
@@ -249,7 +256,7 @@ export function ScatterChart({ data, xLabel, yLabel, pointSize = 10, color = "#1
       axisLabel: { fontSize: 10 },
     },
     tooltip: {
-      formatter: (params: any) => {
+      formatter: (params: { data: { name: string; value: [number, number] } }) => {
         return `${params.data.name}<br/>X: ${params.data.value[0]}<br/>Y: ${params.data.value[1]}`;
       },
     },
@@ -284,10 +291,14 @@ type TreemapChartProps = {
   showLabels?: boolean;
 };
 
-export function TreemapChart({ data, colors = PBI_CHART_COLORS, showLabels = true }: TreemapChartProps) {
+export function TreemapChart({
+  data,
+  colors = PBI_CHART_COLORS,
+  showLabels = true,
+}: TreemapChartProps) {
   const option = {
     tooltip: {
-      formatter: (params: any) => {
+      formatter: (params: { name: string; value: number }) => {
         return `${params.name}<br/>Value: ${params.value.toLocaleString()}`;
       },
     },

@@ -2,14 +2,14 @@
  * ============================================================================
  * SERVICE: purchase.service.ts
  * ============================================================================
- * 
+ *
  * WHAT THIS FILE DOES:
- * This service controls the complete Purchasing Lifecycle. 
+ * This service controls the complete Purchasing Lifecycle.
  * It manages Purchase Orders (POs) and Goods Receipts (GRs).
- * 
+ *
  * HOW IT IS IMPLEMENTED:
- * - `createPurchaseOrder`: Generates a unique PO number, maps the nested `lines` 
- *   DTO into the Prisma relation, and automatically calculates the `totalAmount` 
+ * - `createPurchaseOrder`: Generates a unique PO number, maps the nested `lines`
+ *   DTO into the Prisma relation, and automatically calculates the `totalAmount`
  *   by doing `quantity * unitPrice` for each line.
  * - `receiveGoods`: This is a massive, highly-critical database transaction.
  *   When goods arrive at the physical warehouse:
@@ -17,21 +17,21 @@
  *   2. It creates a `GoodsReceipt` record for auditing.
  *   3. It mathematically loops through EVERY line on the Purchase Order.
  *   4. For each line, it creates a `StockMovement` (type: RECEIPT).
- *   5. It looks up the `StockLevel` in the selected warehouse and upserts it 
+ *   5. It looks up the `StockLevel` in the selected warehouse and upserts it
  *      to reflect the newly added quantity.
  *   6. Finally, it marks the Purchase Order status as RECEIVED.
- *   Because this is wrapped in `prisma.$transaction()`, if ANY step fails 
+ *   Because this is wrapped in `prisma.$transaction()`, if ANY step fails
  *   (e.g., database drops connection), the entire process rolls back safely!
- * 
+ *
  * RELEVANT CONTEXT FOR NEW DEVS:
- * This file replaces the older boilerplate `po.service.ts` and `gr.service.ts` 
- * to ensure that POs and GRs are tightly coupled and updated safely within 
+ * This file replaces the older boilerplate `po.service.ts` and `gr.service.ts`
+ * to ensure that POs and GRs are tightly coupled and updated safely within
  * single transactions.
  * ============================================================================
  */
 
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
-import { PrismaClient } from '@amdox/db';
+import { prisma } from '@amdox/db';
 import { CreatePurchaseOrderDto } from '../dto/create-purchase-order.dto';
 import { ReceiveGoodsDto } from '../dto/receive-goods.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -42,7 +42,6 @@ import { AmdoxLogger } from '../../common/logger/amdox-logger';
 
 @Injectable()
 export class PurchaseService {
-  private prisma = new PrismaClient();
   private readonly logger = new Logger(PurchaseService.name);
 
   constructor(
@@ -53,12 +52,12 @@ export class PurchaseService {
 
   // --- Purchase Orders ---
   async createPurchaseOrder(tenantId: string, dto: CreatePurchaseOrderDto) {
-    const totalAmount = dto.lines.reduce((sum, line) => sum + (line.quantity * line.unitPrice), 0);
+    const totalAmount = dto.lines.reduce((sum, line) => sum + line.quantity * line.unitPrice, 0);
     const poNumber = `PO-${Date.now()}`;
 
     let projectId = dto.projectId;
     if (dto.requisitionId) {
-      const requisition = await this.prisma.purchaseRequisition.findFirst({
+      const requisition = await prisma.purchaseRequisition.findFirst({
         where: { id: dto.requisitionId, tenantId },
       });
       if (requisition?.projectId) {
@@ -66,7 +65,7 @@ export class PurchaseService {
       }
     }
 
-    return this.prisma.purchaseOrder.create({
+    return prisma.purchaseOrder.create({
       data: {
         tenantId,
         poNumber,
@@ -77,7 +76,7 @@ export class PurchaseService {
         totalAmount,
         orderedAt: new Date(),
         lines: {
-          create: dto.lines.map(line => ({
+          create: dto.lines.map((line) => ({
             tenantId,
             productId: line.productId,
             quantity: line.quantity,
@@ -90,7 +89,7 @@ export class PurchaseService {
   }
 
   async getPurchaseOrders(tenantId: string) {
-    return this.prisma.purchaseOrder.findMany({
+    return prisma.purchaseOrder.findMany({
       where: { tenantId },
       include: {
         vendor: true,
@@ -103,7 +102,7 @@ export class PurchaseService {
   }
 
   async getPurchaseOrder(tenantId: string, id: string) {
-    const po = await this.prisma.purchaseOrder.findFirst({
+    const po = await prisma.purchaseOrder.findFirst({
       where: { id, tenantId },
       include: { vendor: true, lines: { include: { product: true } }, goodsReceipts: true },
     });
@@ -113,7 +112,9 @@ export class PurchaseService {
 
   async approvePurchaseOrder(tenantId: string, id: string, actingUserId?: string) {
     const po = await this.getPurchaseOrder(tenantId, id);
-    const updatedPo = await this.prisma.purchaseOrder.update({
+    // tenant-scope-ok: getPurchaseOrder() above already throws NotFoundException
+    // unless `id` belongs to `tenantId`.
+    const updatedPo = await prisma.purchaseOrder.update({
       where: { id },
       data: { status: 'APPROVED' },
     });
@@ -125,7 +126,10 @@ export class PurchaseService {
       vendorId: po.vendorId,
       userId: actingUserId,
     });
-    AmdoxLogger.scm(`PO approved`, `poNumber=${updatedPo.poNumber}  total=${updatedPo.totalAmount}`);
+    AmdoxLogger.scm(
+      `PO approved`,
+      `poNumber=${updatedPo.poNumber}  total=${updatedPo.totalAmount}`,
+    );
     AmdoxLogger.event('Emitted po.created', `poId=${id}`);
 
     if (po.vendor?.webhookUrl) {
@@ -145,7 +149,7 @@ export class PurchaseService {
 
   // --- Goods Receipt ---
   async receiveGoods(tenantId: string, id: string, dto: ReceiveGoodsDto, actingUserId?: string) {
-    const result = await this.prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       const po = await tx.purchaseOrder.findFirst({
         where: { id, tenantId },
         include: { lines: true },
@@ -155,6 +159,15 @@ export class PurchaseService {
       if (po.status !== 'APPROVED' && po.status !== 'PARTIALLY_RECEIVED') {
         throw new BadRequestException('Cannot receive goods for unapproved PO');
       }
+
+      // dto.warehouseId is caller-supplied — without this check, a caller could name
+      // another tenant's warehouse and this loop would read/write that tenant's
+      // StockLevel rows (StockLevel's unique key is productId+warehouseId only, with
+      // no tenantId component, so a plain findUnique below can't catch this itself).
+      const warehouse = await tx.warehouse.findFirst({
+        where: { id: dto.warehouseId, tenantId },
+      });
+      if (!warehouse) throw new NotFoundException('Warehouse not found');
 
       // 1. Create Goods Receipt
       const receipt = await tx.goodsReceipt.create({
@@ -191,11 +204,17 @@ export class PurchaseService {
           },
         });
 
+        // tenant-scope-ok: line.productId comes from po.lines, and `po` above was
+        // fetched scoped to `tenantId` — products referenced by a tenant's own PO
+        // lines belong to that tenant.
         await tx.product.update({
           where: { id: line.productId },
           data: { unitCost: line.unitPrice },
         });
 
+        // tenant-scope-ok: StockLevel's unique key is productId+warehouseId with no
+        // tenantId component, but both productId (see above) and warehouseId (verified
+        // against `tenantId` earlier in this transaction) are already tenant-safe.
         const existingLevel = await tx.stockLevel.findUnique({
           where: {
             productId_warehouseId: {
@@ -206,6 +225,7 @@ export class PurchaseService {
         });
 
         if (existingLevel) {
+          // tenant-scope-ok: existingLevel was just found via the tenant-safe lookup above.
           await tx.stockLevel.update({
             where: { id: existingLevel.id },
             data: { quantity: Number(existingLevel.quantity) + Number(line.quantity) },
@@ -223,6 +243,7 @@ export class PurchaseService {
       }
 
       // 3. Mark PO as RECEIVED
+      // tenant-scope-ok: `po` was fetched scoped to `tenantId` at the top of this transaction.
       await tx.purchaseOrder.update({
         where: { id },
         data: { status: 'RECEIVED' },
@@ -235,10 +256,10 @@ export class PurchaseService {
     });
 
     // 5. Enqueue heavy async task for Finance 3-way match
-    await this.scmQueue.add('goods.received', { 
-      tenantId, 
-      purchaseOrderId: id, 
-      goodsReceiptId: result.id 
+    await this.scmQueue.add('goods.received', {
+      tenantId,
+      purchaseOrderId: id,
+      goodsReceiptId: result.id,
     });
     this.eventEmitter.emit('goods.received', {
       tenantId,

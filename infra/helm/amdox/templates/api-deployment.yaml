@@ -1,0 +1,64 @@
+# Deployment — "keep N identical copies (pods) of this container running,
+# and continuously repair reality to match". Crashed pods are replaced
+# automatically; changing the pod template below triggers a rolling update.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: amdox-api
+  labels:
+    app.kubernetes.io/name: amdox-api
+    app.kubernetes.io/part-of: amdox
+spec:
+  # When the HPA owns scaling, the chart must NOT set replicas — otherwise
+  # every `helm upgrade` would fight the autoscaler and reset the count.
+  {{- if not .Values.api.autoscaling.enabled }}
+  replicas: {{ .Values.api.replicas }}
+  {{- end }}
+  selector:
+    # How the Deployment finds "its" pods — must match the pod labels below.
+    matchLabels:
+      app.kubernetes.io/name: amdox-api
+  template:
+    # Everything under here is the pod blueprint.
+    metadata:
+      labels:
+        app.kubernetes.io/name: amdox-api
+        app.kubernetes.io/part-of: amdox
+        # Istio's DestinationRule groups api pods by this label into the
+        # `stable` vs `canary` subsets (see istio.yaml). Harmless without
+        # Istio; deliberately NOT in the selector above (immutable field).
+        version: stable
+    spec:
+      containers:
+        - name: api
+          image: "{{ .Values.api.image }}:{{ .Values.api.tag }}"
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.api.port }}
+          # Inject every key of the ConfigMap as an env var. checksum/config
+          # annotation trick comes later if needed; for now note that pods
+          # only read the ConfigMap at startup.
+          envFrom:
+            - configMapRef:
+                name: amdox-api-config
+            - secretRef:
+                name: amdox-api-secrets
+          # livenessProbe: "is the process wedged?" — fails => container is
+          # RESTARTED. readinessProbe: "can it serve requests right now?" —
+          # fails => pod is only TAKEN OUT of load balancing, not killed
+          # (e.g. still booting, or its DB connection dropped).
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.api.resources | nindent 12 }}

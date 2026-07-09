@@ -4,26 +4,36 @@ import { useState, useEffect } from "react";
 import { financeApi } from "@/lib/api/finance-api";
 
 const STATUS_STYLE: Record<string, string> = {
-  DRAFT:         "bg-slate-100 text-slate-600",
-  SUBMITTED:     "bg-blue-50 text-blue-700",
-  APPROVED:      "bg-emerald-50 text-emerald-700",
-  RECEIVED:      "bg-emerald-50 text-emerald-700",
-  CANCELLED:     "bg-red-50 text-red-600",
+  DRAFT: "bg-slate-100 text-slate-600",
+  SUBMITTED: "bg-blue-50 text-blue-700",
+  APPROVED: "bg-emerald-50 text-emerald-700",
+  RECEIVED: "bg-emerald-50 text-emerald-700",
+  CANCELLED: "bg-red-50 text-red-600",
   PENDING_MATCH: "bg-amber-50 text-amber-700",
-  MATCHED:       "bg-emerald-50 text-emerald-700",
-  PAID:          "bg-emerald-50 text-emerald-700",
+  MATCHED: "bg-emerald-50 text-emerald-700",
+  PAID: "bg-emerald-50 text-emerald-700",
 };
 
 function StatusPill({ status }: { status: string }) {
   return (
-    <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full capitalize ${STATUS_STYLE[status] || "bg-slate-100 text-slate-600"}`}>
+    <span
+      className={`text-[11px] font-medium px-2 py-0.5 rounded-full capitalize ${STATUS_STYLE[status] || "bg-slate-100 text-slate-600"}`}
+    >
       {status.replace("_", " ")}
     </span>
   );
 }
 
+type ApInvoice = {
+  id: string;
+  invoiceNumber?: string;
+  vendorId: string;
+  status: string;
+  totalAmount: number | string;
+};
+
 export default function InvoicesPage() {
-  const [invoices, setInvoices] = useState<any[]>([]);
+  const [invoices, setInvoices] = useState<ApInvoice[]>([]);
 
   const fetchInvoices = () => financeApi.getInvoices().then(setInvoices);
 
@@ -39,30 +49,39 @@ export default function InvoicesPage() {
   return (
     <div className="space-y-4">
       <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-500">
-        OCR extracts invoice → 3-way match: Invoice qty ↔ PO qty ↔ GR qty. Within tolerance → auto-approve. Else → manual review queue.
+        OCR extracts invoice → 3-way match: Invoice qty ↔ PO qty ↔ GR qty. Within tolerance →
+        auto-approve. Else → manual review queue.
       </div>
 
       {invoices.map((inv) => {
         const allMatch = inv.status === "APPROVED" || inv.status === "PAID";
         return (
-          <div key={inv.id} className="border border-slate-200 rounded-lg p-4 bg-white space-y-4 shadow-card">
+          <div
+            key={inv.id}
+            className="border border-slate-200 rounded-lg p-4 bg-white space-y-4 shadow-card"
+          >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[13px] font-semibold text-slate-900 font-mono">{inv.invoiceNumber || inv.id}</p>
-                <p className="text-[11px] text-slate-400 mt-0.5">{inv.vendorId}</p>
+                <p className="text-[13px] font-semibold text-slate-900 font-mono">
+                  {inv.invoiceNumber || inv.id}
+                </p>
+                <p className="text-[11px] text-slate-500 mt-0.5">{inv.vendorId}</p>
               </div>
               <StatusPill status={inv.status} />
             </div>
 
             <div className="flex items-center justify-between">
               <p className="text-[12px] font-medium text-slate-700">Total Amount</p>
-              <p className="font-mono font-bold text-slate-900">₹{Number(inv.totalAmount).toLocaleString()}</p>
+              <p className="font-mono font-bold text-slate-900">
+                ₹{Number(inv.totalAmount).toLocaleString()}
+              </p>
             </div>
 
             {allMatch ? (
               <div className="rounded-md bg-emerald-50 border border-emerald-200 px-3 py-2 text-[11px] text-emerald-700">
                 ✓ All 3 match — auto-approved. emits:{" "}
-                <span className="font-mono">invoice.approved</span> → GL posts JournalEntry (debit Inventory / credit AP)
+                <span className="font-mono">invoice.approved</span> → GL posts JournalEntry (debit
+                Inventory / credit AP)
               </div>
             ) : (
               <div className="rounded-md bg-red-50 border border-red-200 px-3 py-2 space-y-2">

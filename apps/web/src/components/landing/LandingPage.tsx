@@ -2,31 +2,38 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import {
-  ArrowRight,
-  TrendingUp,
-  Users,
-  Package,
-  FolderKanban,
-  BarChart3,
-} from "lucide-react";
+import { ArrowRight, TrendingUp, Users, Package, FolderKanban, BarChart3 } from "lucide-react";
 
 const MODULES = [
-  { icon: TrendingUp,   name: "Finance",      desc: "GL, AP/AR, multi-currency" },
-  { icon: Users,        name: "HR & Payroll", desc: "Lifecycle, leave, payroll" },
-  { icon: Package,      name: "Supply Chain", desc: "Inventory, vendors, PO" },
-  { icon: FolderKanban, name: "Projects",     desc: "Budgets, milestones" },
-  { icon: BarChart3,    name: "Analytics",    desc: "Dashboards, forecasting" },
+  { icon: TrendingUp, name: "Finance", desc: "GL, AP/AR, multi-currency" },
+  { icon: Users, name: "HR & Payroll", desc: "Lifecycle, leave, payroll" },
+  { icon: Package, name: "Supply Chain", desc: "Inventory, vendors, PO" },
+  { icon: FolderKanban, name: "Projects", desc: "Budgets, milestones" },
+  { icon: BarChart3, name: "Analytics", desc: "Dashboards, forecasting" },
 ];
 
-function LiveKPI({ label, value, prefix = "", suffix = "", highlight = false }: {
-  label: string; value: string | number; prefix?: string; suffix?: string; highlight?: boolean;
+function LiveKPI({
+  label,
+  value,
+  prefix = "",
+  suffix = "",
+  highlight = false,
+}: {
+  label: string;
+  value: string | number;
+  prefix?: string;
+  suffix?: string;
+  highlight?: boolean;
 }) {
   return (
     <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
-      <p className="text-[11px] uppercase tracking-wide text-slate-400 font-medium">{label}</p>
-      <p className={`mt-1 font-mono text-xl font-semibold tabular-nums ${highlight ? "text-emerald-600" : "text-blue-700"}`}>
-        {prefix}{value}{suffix}
+      <p className="text-[11px] uppercase tracking-wide text-slate-500 font-medium">{label}</p>
+      <p
+        className={`mt-1 font-mono text-xl font-semibold tabular-nums ${highlight ? "text-emerald-600" : "text-blue-700"}`}
+      >
+        {prefix}
+        {value}
+        {suffix}
       </p>
     </div>
   );
@@ -49,7 +56,7 @@ function DashboardPreview() {
   return (
     <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <span className="text-xs font-mono text-slate-400 font-medium">LIVE DASHBOARD</span>
+        <span className="text-xs font-mono text-slate-500 font-medium">LIVE DASHBOARD</span>
         <span className="flex items-center gap-1.5 text-[11px] text-emerald-600 font-medium">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
           syncing
@@ -63,11 +70,7 @@ function DashboardPreview() {
       </div>
       <div className="mt-4 flex items-end gap-1 h-12">
         {[40, 55, 48, 62, 58, 70, 66, 78, 74, 85].map((h, i) => (
-          <div
-            key={i}
-            className="flex-1 rounded-sm bg-blue-600/15"
-            style={{ height: `${h}%` }}
-          />
+          <div key={i} className="flex-1 rounded-sm bg-blue-600/15" style={{ height: `${h}%` }} />
         ))}
       </div>
     </div>
@@ -84,10 +87,18 @@ function Nav() {
         <span className="text-lg font-semibold text-slate-900 tracking-tight">AmdoxERP</span>
       </div>
       <div className="hidden md:flex items-center gap-8 text-sm text-slate-500">
-        <a href="#features" className="hover:text-slate-900 transition-colors">Features</a>
-        <a href="#modules" className="hover:text-slate-900 transition-colors">Modules</a>
-        <a href="#about" className="hover:text-slate-900 transition-colors">About</a>
-        <a href="#contact" className="hover:text-slate-900 transition-colors">Contact</a>
+        <a href="#features" className="hover:text-slate-900 transition-colors">
+          Features
+        </a>
+        <a href="#modules" className="hover:text-slate-900 transition-colors">
+          Modules
+        </a>
+        <a href="#about" className="hover:text-slate-900 transition-colors">
+          About
+        </a>
+        <a href="#contact" className="hover:text-slate-900 transition-colors">
+          Contact
+        </a>
       </div>
       <Link
         href="/login"
@@ -109,8 +120,7 @@ function Hero() {
           With AI-Powered ERP
         </h1>
         <p className="mt-5 text-slate-500 text-lg max-w-md">
-          Manage HR, Payroll, Inventory, Projects and Analytics from a single
-          intelligent platform.
+          Manage HR, Payroll, Inventory, Projects and Analytics from a single intelligent platform.
         </p>
         <div className="mt-7 flex gap-3 flex-wrap">
           <Link
@@ -122,10 +132,16 @@ function Hero() {
           <button className="px-5 py-2.5 rounded-md border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
             Request Demo
           </button>
-          <Link href="/home" className="inline-flex items-center px-5 py-2.5 rounded-md border border-slate-200 text-sm font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 transition-colors">
+          <Link
+            href="/home"
+            className="inline-flex items-center px-5 py-2.5 rounded-md border border-slate-200 text-sm font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 transition-colors"
+          >
             Bypass to Dashboard
           </Link>
-          <Link href="/create-tenant" className="inline-flex items-center px-5 py-2.5 rounded-md border border-blue-200 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors">
+          <Link
+            href="/create-tenant"
+            className="inline-flex items-center px-5 py-2.5 rounded-md border border-blue-200 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors"
+          >
             Create Tenant
           </Link>
         </div>
@@ -149,7 +165,7 @@ function ModulesRow() {
           >
             <Icon size={20} className="mx-auto text-blue-600" />
             <p className="mt-2 text-sm font-semibold text-slate-900">{name}</p>
-            <p className="text-xs text-slate-400 mt-0.5">{desc}</p>
+            <p className="text-xs text-slate-500 mt-0.5">{desc}</p>
           </div>
         ))}
       </div>

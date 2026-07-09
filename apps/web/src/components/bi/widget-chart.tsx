@@ -20,13 +20,7 @@ import type { BiDataSource, WidgetType } from "@/lib/api/bi-api";
 import type { BiWidgetStyleConfig } from "@/lib/types/bi";
 import { PBI_CHART_COLORS } from "./power-bi-theme";
 import { resolvePaletteColors } from "./widget-config-schema";
-import {
-  GaugeChart,
-  CardKpi,
-  WaterfallChart,
-  ScatterChart,
-  TreemapChart,
-} from "./advanced-charts";
+import { GaugeChart, CardKpi, WaterfallChart, ScatterChart, TreemapChart } from "./advanced-charts";
 
 const ReactECharts = dynamic(() => import("echarts-for-react"), { ssr: false });
 
@@ -64,7 +58,14 @@ const HEAT_GRADIENTS: Record<string, [string, string, string]> = {
   redGreen: ["#E81123", "#FFB900", "#107C10"],
 };
 
-export function BiWidgetChart({ type, series = [], heatmap = [], onSegmentClick, activeKey, config }: ChartProps) {
+export function BiWidgetChart({
+  type,
+  series = [],
+  heatmap = [],
+  onSegmentClick,
+  activeKey,
+  config,
+}: ChartProps) {
   const style = getStyle(config);
   const colors = getColors(style);
   const data = series.map((s) => ({ ...s, label: s.name }));
@@ -74,7 +75,8 @@ export function BiWidgetChart({ type, series = [], heatmap = [], onSegmentClick,
     onSegmentClick?.(key || "", entry?.name || key || "");
   };
 
-  const gridProps = style.showGrid !== false ? { strokeDasharray: "3 3", stroke: "#EDEBE9" } : undefined;
+  const gridProps =
+    style.showGrid !== false ? { strokeDasharray: "3 3", stroke: "#EDEBE9" } : undefined;
 
   if (type === "gauge" && series.length > 0) {
     return (
@@ -102,7 +104,11 @@ export function BiWidgetChart({ type, series = [], heatmap = [], onSegmentClick,
   if (type === "waterfall" && series.length > 0) {
     return (
       <WaterfallChart
-        data={series.map((s) => ({ name: s.name, value: s.value, isTotal: s.key?.includes("Total") }))}
+        data={series.map((s) => ({
+          name: s.name,
+          value: s.value,
+          isTotal: s.key?.includes("Total"),
+        }))}
         positiveColor={style.positiveColor}
         negativeColor={style.negativeColor}
       />
@@ -213,7 +219,8 @@ export function BiWidgetChart({ type, series = [], heatmap = [], onSegmentClick,
         option={option}
         style={{ height: 260, width: "100%" }}
         onEvents={{
-          click: (params: { name?: string }) => onSegmentClick?.(params.name || "", params.name || ""),
+          click: (params: { name?: string }) =>
+            onSegmentClick?.(params.name || "", params.name || ""),
         }}
       />
     );
@@ -325,13 +332,7 @@ export function BiWidgetChart({ type, series = [], heatmap = [], onSegmentClick,
   );
 }
 
-export const DATA_SOURCE_OPTIONS: { value: BiDataSource; label: string; defaultType: WidgetType }[] = [
-  { value: "ar_aging", label: "AR Aging", defaultType: "pie" },
-  { value: "inventory", label: "Inventory levels", defaultType: "bar" },
-  { value: "purchase_orders", label: "Purchase orders by status", defaultType: "bar" },
-  { value: "employees_by_department", label: "Employees by department", defaultType: "pie" },
-  { value: "project_funnel", label: "Project funnel", defaultType: "funnel" },
-  { value: "resource_heatmap", label: "Resource utilisation heatmap", defaultType: "heatmap" },
-];
-
-export const WIDGET_TYPES: WidgetType[] = ["bar", "line", "pie", "heatmap", "funnel", "gauge", "card", "waterfall", "scatter", "treemap"];
+// Moved to widget-config-constants.ts (pure data, no chart-library
+// imports) so importing these doesn't force-load recharts/echarts as a
+// side effect — re-exported here for backward compatibility.
+export { DATA_SOURCE_OPTIONS, WIDGET_TYPES } from "./widget-config-constants";
