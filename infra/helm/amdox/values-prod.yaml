@@ -13,9 +13,6 @@ ingress:
 api:
   config:
     FRONTEND_URL: http://app-prod.amdox.local
-    # Bumped 600 → 900 via a git commit as the Day 24 GitOps proof: ArgoCD
-    # saw the commit and rolled the ConfigMap with no kubectl/helm run.
-    THROTTLE_MEDIUM_LIMIT: "900"
   # 2 always-on api pods: HPA can never scale below this, and it makes the
   # PDB (minAvailable: 1) meaningful — a node drain may evict one api pod
   # but never both at once.
