@@ -15,6 +15,12 @@ kind: Application
 metadata:
   name: amdox-prod
   namespace: argocd # Applications live where ArgoCD runs, not in the target ns
+  annotations:
+    # Slack notifications (Day 24). The `slack` service is a generic webhook
+    # defined in argocd-notifications-cm; its URL comes from the
+    # `slack-webhook-url` key of argocd-notifications-secret — never from git.
+    notifications.argoproj.io/subscribe.on-sync-succeeded.slack: ''
+    notifications.argoproj.io/subscribe.on-sync-failed.slack: ''
 spec:
   project: default
   source:
