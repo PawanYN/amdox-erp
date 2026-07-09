@@ -94,6 +94,8 @@ jobs:
   dependency-scan:
     name: Dependency scan (Grype)
     runs-on: ubuntu-latest
+    permissions:
+      security-events: write
     # Grype (free/OSS, Apache 2.0) replaces Snyk — no account/token/signup
     # required, so this actually runs on every push instead of silently
     # skipping (Snyk needs a SNYK_TOKEN repo secret that was never set,
@@ -101,11 +103,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run Grype
+        id: grype
         uses: anchore/scan-action@v7
         with:
           path: '.'
+          fail-build: true
           severity-cutoff: high
           only-fixed: true
+          cache-db: true
+      - name: Upload Grype SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v4
+        if: always() && steps.grype.outputs.sarif != ''
+        with:
+          sarif_file: ${{ steps.grype.outputs.sarif }}
+          category: grype-dependencies
 
   container-scan:
     name: Container scan (Trivy)
