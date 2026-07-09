@@ -1,0 +1,42 @@
+# ArgoCD Application — the GitOps contract for prod. One object that says:
+# "keep namespace amdox-prod equal to what infra/helm/amdox renders with
+# values-prod.yaml at this git revision". Nobody runs `helm upgrade` against
+# prod anymore; you change prod by committing, and ArgoCD (running in the
+# cluster, pulling git every ~3 min) converges reality onto the commit.
+# Rollback = git revert. Audit log = git log.
+#
+# NOTE on repoURL: this points at the local HTTP mirror of the repo used by
+# the kind-cluster validation (the Day 23/24 branches aren't pushed yet).
+# A real setup replaces it with https://github.com/PawanYN/amdox-erp.git
+# (plus repo credentials in ArgoCD if the repo is private) and
+# targetRevision: main once this work merges.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: amdox-prod
+  namespace: argocd # Applications live where ArgoCD runs, not in the target ns
+  annotations:
+    # Slack notifications (Day 24). The `slack` service is a generic webhook
+    # defined in argocd-notifications-cm; its URL comes from the
+    # `slack-webhook-url` key of argocd-notifications-secret — never from git.
+    notifications.argoproj.io/subscribe.on-sync-succeeded.slack: ''
+    notifications.argoproj.io/subscribe.on-sync-failed.slack: ''
+spec:
+  project: default
+  source:
+    repoURL: http://172.19.0.100:8929/cgi-bin/git/amdox-erp.git
+    targetRevision: feature/day24-cicd-gitops
+    path: infra/helm/amdox
+    helm:
+      valueFiles:
+        - values-prod.yaml # relative to `path`
+  destination:
+    server: https://kubernetes.default.svc # this same cluster
+    namespace: amdox-prod
+  syncPolicy:
+    # automated: don't wait for a human to press Sync in the UI.
+    automated:
+      prune: true # delete cluster objects whose manifests left git
+      selfHeal: true # revert manual kubectl edits — git wins, always
+    syncOptions:
+      - CreateNamespace=false # amdox-prod already exists

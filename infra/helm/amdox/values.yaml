@@ -23,6 +23,11 @@ ingress:
   webHost: app.amdox.local
   apiHost: api.amdox.local
 
+# Post-deployment smoke test (templates/smoke-test.yaml) — hook Job run by
+# ArgoCD after every sync and by helm on install/upgrade.
+smokeTest:
+  enabled: true
+
 # Istio canary routing (templates/istio.yaml + api-deployment-canary.yaml).
 # Requires istiod in the cluster and istio-injection=enabled on the target
 # namespace. weight = % of api traffic the canary pods receive.

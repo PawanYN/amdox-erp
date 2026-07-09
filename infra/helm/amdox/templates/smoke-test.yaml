@@ -1,0 +1,63 @@
+# Post-deployment smoke test — a short-lived Job that asks "did the deploy
+# obviously break anything?" right after every rollout: api alive, api ready
+# (its DB connection works), web serving pages, ml-service healthy. Not a
+# test suite — a tripwire.
+#
+# The hook annotations make deploy+verify one atomic unit:
+#  - ArgoCD (prod): `PostSync` runs the Job after each sync; if it fails,
+#    the Application's sync is marked Failed — visibly red, not silently
+#    wrong. BeforeHookCreation keeps the last Job around for inspection and
+#    replaces it on the next sync (Jobs are immutable, so re-use is not an
+#    option anyway).
+#  - Plain helm (dev/staging): the equivalent helm hooks run it on
+#    install/upgrade; --wait makes a red smoke test fail the helm command.
+{{- if .Values.smokeTest.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: amdox-smoke-test
+  labels:
+    app.kubernetes.io/name: amdox-smoke-test
+    app.kubernetes.io/part-of: amdox
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  backoffLimit: 2 # retry twice before declaring the deploy broken
+  activeDeadlineSeconds: 180
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: amdox-smoke-test
+      annotations:
+        # A Job pod with an Envoy sidecar never completes (the sidecar
+        # outlives the test container), so opt out of Istio injection.
+        sidecar.istio.io/inject: "false"
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: smoke
+          image: curlimages/curl:8.14.1
+          # Public image, not side-loaded like the app images — must pull.
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              check() {
+                echo "SMOKE: $1"
+                # -f: non-2xx = fail; retries paper over pods that are
+                # mid-rollout for a few seconds after the sync completes.
+                curl -sf --retry 5 --retry-delay 3 --retry-all-errors \
+                  --max-time 10 -o /dev/null "$1"
+                echo "SMOKE: OK"
+              }
+              check http://amdox-api:{{ .Values.api.port }}/health/live
+              check http://amdox-api:{{ .Values.api.port }}/health/ready
+              check http://amdox-web:{{ .Values.web.port }}/
+              check http://amdox-ml-service:{{ .Values.mlService.port }}/health
+              echo "SMOKE: all checks passed"
+{{- end }}
