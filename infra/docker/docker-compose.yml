@@ -207,6 +207,27 @@ services:
     networks:
       - amdox-network
 
+  # ─────────────────────────────────────
+  # Mailpit — fake SMTP server + web UI (free/OSS alternative to AWS SES
+  # for local dev: real emails are sent over real SMTP, just caught here
+  # instead of actually leaving the machine, so no external mail account
+  # or credentials are needed to verify delivery end-to-end)
+  # ─────────────────────────────────────
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: amdox-mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI (http://localhost:8025)
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8025/readyz"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - amdox-network
+
   redis-commander:
     image: rediscommander/redis-commander:latest
     container_name: amdox-redis-ui
