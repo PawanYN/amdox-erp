@@ -1,17 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
+import { Pencil, Trash2 } from "lucide-react";
 import { pmApi } from "@/lib/api/pm-api";
+import { D3GanttChart } from "@/components/pm/D3GanttChart";
 
 const STATUSES = ["TODO", "IN_PROGRESS", "BLOCKED", "DONE"] as const;
-
-const BAR_COLOR: Record<string, string> = {
-  TODO: "bg-slate-400",
-  IN_PROGRESS: "bg-blue-600",
-  BLOCKED: "bg-red-500",
-  DONE: "bg-emerald-500",
-};
 
 function parseDate(d: string | Date | null | undefined): Date | null {
   if (!d) return null;
@@ -36,6 +31,9 @@ export default function ProjectsTasksPage() {
   const [projectId, setProjectId] = useState("");
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [view, setView] = useState<"d3" | "table">("d3");
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [titleEdit, setTitleEdit] = useState("");
 
   const loadTasks = (pid?: string) => {
     setLoading(true);
@@ -65,33 +63,39 @@ export default function ProjectsTasksPage() {
       start.setDate(start.getDate() - 1);
       const end = new Date(start);
       end.setDate(end.getDate() + 29);
-      return { start, end, days: 30 };
+      return { start, days: 30 };
     }
     const min = new Date(Math.min(...dates.map((d) => d.getTime())));
     const max = new Date(Math.max(...dates.map((d) => d.getTime())));
     min.setHours(0, 0, 0, 0);
     max.setHours(0, 0, 0, 0);
     const days = Math.max(7, Math.ceil((max.getTime() - min.getTime()) / 86400000) + 1);
-    return { start: min, end: max, days: Math.min(days, 60) };
+    return { start: min, days: Math.min(days, 60) };
   }, [tasks]);
-
-  const dayLabels = useMemo(() => {
-    return Array.from({ length: range.days }, (_, i) => {
-      const d = new Date(range.start);
-      d.setDate(d.getDate() + i);
-      return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-    });
-  }, [range]);
-
-  const toIndex = (d: string | Date | null | undefined) => {
-    const dt = parseDate(d);
-    if (!dt) return 0;
-    const diff = Math.floor((dt.getTime() - range.start.getTime()) / 86400000);
-    return Math.max(0, Math.min(range.days - 1, diff));
-  };
 
   const onStatusChange = async (taskId: string, status: string) => {
     await pmApi.updateTaskStatus(taskId, status);
+    loadTasks(projectId || undefined);
+  };
+
+  const onReschedule = useCallback(
+    async (taskId: string, startDate: string, dueDate: string) => {
+      await pmApi.updateTask(taskId, { startDate, dueDate });
+      loadTasks(projectId || undefined);
+    },
+    [projectId],
+  );
+
+  const handleSaveTitle = async (taskId: string) => {
+    if (!titleEdit.trim()) return;
+    await pmApi.updateTask(taskId, { title: titleEdit.trim() });
+    setEditingTaskId(null);
+    loadTasks(projectId || undefined);
+  };
+
+  const handleDeleteTask = async (taskId: string, title: string) => {
+    if (!confirm(`Delete task "${title}"?`)) return;
+    await pmApi.deleteTask(taskId);
     loadTasks(projectId || undefined);
   };
 
@@ -113,6 +117,22 @@ export default function ProjectsTasksPage() {
             ))}
           </select>
         </label>
+        <div className="flex rounded-md border border-slate-200 overflow-hidden text-xs">
+          <button
+            type="button"
+            className={`px-3 py-1.5 ${view === "d3" ? "bg-blue-600 text-white" : "bg-white text-slate-600"}`}
+            onClick={() => setView("d3")}
+          >
+            D3 Gantt
+          </button>
+          <button
+            type="button"
+            className={`px-3 py-1.5 ${view === "table" ? "bg-blue-600 text-white" : "bg-white text-slate-600"}`}
+            onClick={() => setView("table")}
+          >
+            Table
+          </button>
+        </div>
         {projectId && (
           <Link
             href={`/projects/${projectId}`}
@@ -125,82 +145,90 @@ export default function ProjectsTasksPage() {
 
       {loading ? (
         <p className="text-sm text-slate-500">Loading Gantt data…</p>
+      ) : view === "d3" ? (
+        <div className="border border-slate-200 rounded-lg bg-white overflow-x-auto shadow-card p-4">
+          {tasks.length === 0 ? (
+            <p className="p-6 text-sm text-slate-500 text-center">No tasks defined yet.</p>
+          ) : (
+            <D3GanttChart
+              tasks={tasks}
+              rangeStart={range.start}
+              rangeDays={range.days}
+              onReschedule={onReschedule}
+            />
+          )}
+          <p className="text-[11px] text-slate-500 mt-2">Drag task bars to reschedule dates.</p>
+        </div>
       ) : (
-        <div className="border border-slate-200 rounded-lg bg-white overflow-x-auto shadow-card">
-          <div style={{ minWidth: Math.max(700, range.days * 28) }}>
-            {/* Header row */}
-            <div className="flex border-b border-slate-200 text-[10px] text-slate-500 py-2 px-3 bg-slate-50">
-              <span className="w-52 shrink-0 font-semibold uppercase tracking-wider">Task</span>
-              <div
-                className="flex-1 grid"
-                style={{ gridTemplateColumns: `repeat(${range.days}, minmax(24px, 1fr))` }}
-              >
-                {dayLabels.map((label, i) => (
-                  <span key={i} className="text-center truncate px-0.5" title={label}>
-                    {label}
-                  </span>
-                ))}
+        <div className="border border-slate-200 rounded-lg bg-white shadow-card divide-y divide-slate-100">
+          {tasks.map((t) => (
+            <div key={t.id} className="flex items-center justify-between px-4 py-3 gap-2">
+              <div className="flex-1 min-w-0">
+                {editingTaskId === t.id ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      className="flex-1 text-sm border border-slate-200 rounded px-2 py-1"
+                      value={titleEdit}
+                      onChange={(e) => setTitleEdit(e.target.value)}
+                    />
+                    <button
+                      onClick={() => handleSaveTitle(t.id)}
+                      className="text-xs px-2 py-1 rounded bg-blue-600 text-white"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => setEditingTaskId(null)}
+                      className="text-xs px-2 py-1 rounded border"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm font-medium text-slate-900">{t.title}</p>
+                    <p className="text-xs text-slate-500">
+                      {t.startDate?.slice(0, 10)} → {t.dueDate?.slice(0, 10) || "—"}
+                    </p>
+                  </>
+                )}
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <select
+                  value={t.status}
+                  onChange={(e) => onStatusChange(t.id, e.target.value)}
+                  className="text-xs border border-slate-200 rounded px-2 py-1"
+                >
+                  {STATUSES.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+                {editingTaskId !== t.id && (
+                  <>
+                    <button
+                      onClick={() => {
+                        setEditingTaskId(t.id);
+                        setTitleEdit(t.title);
+                      }}
+                      className="p-1.5 rounded text-slate-500 hover:bg-slate-100"
+                      title="Edit task"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteTask(t.id, t.title)}
+                      className="p-1.5 rounded text-red-500 hover:bg-red-50"
+                      title="Delete task"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </>
+                )}
               </div>
             </div>
-
-            {tasks.length === 0 ? (
-              <p className="p-6 text-sm text-slate-500 text-center">No tasks defined yet.</p>
-            ) : (
-              tasks.map((t) => {
-                const start = toIndex(t.startDate);
-                const end = toIndex(t.dueDate || t.startDate);
-                const len = Math.max(1, end - start + 1);
-                const deps = t.dependsOn?.map((d) => d.prerequisiteTask?.title).filter(Boolean);
-                return (
-                  <div
-                    key={t.id}
-                    className="flex items-center py-2 px-3 border-b border-slate-100 last:border-0 gap-2 hover:bg-slate-50/50 transition-colors"
-                  >
-                    <div className="w-52 shrink-0 pr-2">
-                      <p className="text-[12px] font-medium text-slate-900 truncate">{t.title}</p>
-                      <p className="text-[10px] text-slate-500 truncate">
-                        {t.project?.name}
-                        {deps?.length ? ` · after ${deps.join(", ")}` : ""}
-                      </p>
-                      <select
-                        value={t.status}
-                        onChange={(e) => onStatusChange(t.id, e.target.value)}
-                        className="mt-1 text-[10px] border border-slate-200 rounded px-1 py-0.5 bg-white focus:outline-none"
-                      >
-                        {STATUSES.map((s) => (
-                          <option key={s} value={s}>
-                            {s}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div
-                      className="flex-1 grid relative h-6"
-                      style={{ gridTemplateColumns: `repeat(${range.days}, minmax(24px, 1fr))` }}
-                    >
-                      <div
-                        className={`absolute h-4 top-1 rounded-md opacity-90 ${BAR_COLOR[t.status] || BAR_COLOR.TODO}`}
-                        style={{
-                          left: `${(start / range.days) * 100}%`,
-                          width: `${(len / range.days) * 100}%`,
-                        }}
-                        title={`${t.title}: ${t.status}`}
-                      />
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-          <div className="flex items-center gap-4 px-3 py-2 text-[11px] text-slate-500 border-t border-slate-100">
-            {Object.entries(BAR_COLOR).map(([status, color]) => (
-              <span key={status} className="flex items-center gap-1.5">
-                <span className={`h-2 w-2 rounded-sm ${color}`} />
-                {status.replace("_", " ")}
-              </span>
-            ))}
-          </div>
+          ))}
         </div>
       )}
     </div>

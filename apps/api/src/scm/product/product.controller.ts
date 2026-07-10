@@ -4,12 +4,15 @@ import { CreateProductDto } from '../dto/create-product.dto';
 import { UpdateProductDto } from '../dto/update-product.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../../auth/guards/roles.guard';
+import { ModuleGuard } from '../../auth/guards/module.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
+import { RequireModule } from '../../auth/decorators/require-module.decorator';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 
 @ApiTags('Products')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('keycloak'), RolesGuard)
+@RequireModule('scm')
+@UseGuards(AuthGuard('keycloak'), RolesGuard, ModuleGuard)
 @Controller('scm/products')
 export class ProductController {
   constructor(private readonly productService: ProductService) {}

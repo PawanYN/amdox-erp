@@ -211,7 +211,102 @@ export class TenantService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async provisionEmployeeUser(tenantId: string, email: string, fullName: string) {
+  private static readonly ERP_ROLE_TO_SYSTEM: Record<
+    string,
+    'TENANT_ADMIN' | 'MANAGER' | 'VIEWER' | 'EMPLOYEE'
+  > = {
+    TenantAdmin: 'TENANT_ADMIN',
+    Manager: 'MANAGER',
+    Viewer: 'VIEWER',
+    Employee: 'EMPLOYEE',
+  };
+
+  private static readonly ALL_ERP_REALM_ROLES = ['TenantAdmin', 'Manager', 'Viewer', 'Employee'];
+
+  async assignUserRole(
+    tenantId: string,
+    userId: string,
+    roleName: 'TenantAdmin' | 'Manager' | 'Viewer' | 'Employee',
+  ) {
+    const tenant = await this.getTenant(tenantId);
+    const systemRole = TenantService.ERP_ROLE_TO_SYSTEM[roleName];
+    if (!systemRole) {
+      throw new InternalServerErrorException(`Unknown ERP role: ${roleName}`);
+    }
+
+    const role = await prisma.role.findFirst({
+      where: { tenantId: tenant.id, systemRole },
+    });
+    if (!role) {
+      throw new InternalServerErrorException(`Role ${roleName} not found for tenant`);
+    }
+
+    const user = await prisma.user.findFirst({
+      where: { id: userId, tenantId: tenant.id },
+    });
+    if (!user) {
+      throw new InternalServerErrorException('User not found for role assignment');
+    }
+
+    await prisma.userRole.deleteMany({
+      where: { userId, tenantId: tenant.id },
+    });
+    await prisma.userRole.create({
+      data: {
+        tenantId: tenant.id,
+        userId,
+        roleId: role.id,
+      },
+    });
+    AmdoxLogger.tenant(`Role assigned: ${role.name}`, `userId=${userId}`);
+
+    if (user.ssoSubject) {
+      await this.provisionKcRoles(tenantId);
+      for (const realmRoleName of TenantService.ALL_ERP_REALM_ROLES) {
+        if (realmRoleName === roleName) continue;
+        try {
+          const existing = await this.kcAdminClient.roles.findOneByName({
+            realm: tenant.slug,
+            name: realmRoleName,
+          });
+          if (existing?.id) {
+            await this.kcAdminClient.users.delRealmRoleMappings({
+              realm: tenant.slug,
+              id: user.ssoSubject,
+              roles: [{ id: existing.id, name: existing.name! }],
+            });
+          }
+        } catch {
+          // Role mapping may not exist — ignore
+        }
+      }
+
+      const kcRole = await this.kcAdminClient.roles.findOneByName({
+        realm: tenant.slug,
+        name: roleName,
+      });
+      if (kcRole?.id) {
+        try {
+          await this.kcAdminClient.users.addRealmRoleMappings({
+            realm: tenant.slug,
+            id: user.ssoSubject,
+            roles: [{ id: kcRole.id, name: kcRole.name! }],
+          });
+        } catch {
+          // Already assigned — ignore
+        }
+      }
+    }
+
+    return { userId, roleName };
+  }
+
+  async provisionEmployeeUser(
+    tenantId: string,
+    email: string,
+    fullName: string,
+    roleName: 'TenantAdmin' | 'Manager' | 'Viewer' | 'Employee' = 'Employee',
+  ) {
     const tenant = await this.getTenant(tenantId);
 
     // Generate a temporary password
@@ -219,6 +314,8 @@ export class TenantService implements OnModuleInit, OnModuleDestroy {
 
     let kcUserId: string | undefined;
     try {
+      await this.provisionKcRoles(tenantId);
+
       // 1. Create User in Keycloak
       const kcUser = await this.kcAdminClient.users.create({
         realm: tenant.slug,
@@ -240,18 +337,25 @@ export class TenantService implements OnModuleInit, OnModuleDestroy {
 
       AmdoxLogger.tenant(`KC user provisioned: ${email}`, `kcUserId=${kcUserId}`);
       AmdoxLogger.hr(`NEW EMPLOYEE LOGIN  email=${email}`, `tempPassword=${tempPassword}`);
+      // Dev-only: loud credential log for flow testing (remove before production)
+      console.log(
+        '\n\x1b[1;93m════════════════════════════════════════════════════════════\x1b[0m',
+      );
+      console.log('\x1b[1;92m  EMPLOYEE LOGIN CREDENTIALS (save this — not shown again)\x1b[0m');
+      console.log(`  Tenant:   \x1b[1;96m${tenant.slug}\x1b[0m`);
+      console.log(`  Email:    \x1b[1;96m${email}\x1b[0m`);
+      console.log(`  Password: \x1b[1;93m${tempPassword}\x1b[0m`);
+      console.log(`  ERP Role: \x1b[1;96m${roleName}\x1b[0m`);
+      console.log(
+        '\x1b[1;93m════════════════════════════════════════════════════════════\x1b[0m\n',
+      );
     } catch (error) {
       AmdoxLogger.critical('KC user provisioning failed for employee', (error as Error).message);
       throw new InternalServerErrorException('Failed to create Keycloak user');
     }
 
-    // 4. Create User in Prisma
+    // 3. Create User in Prisma and assign ERP role
     try {
-      // Find the Employee role ID for this tenant
-      const employeeRole = await prisma.role.findFirst({
-        where: { tenantId: tenant.id, systemRole: 'EMPLOYEE' },
-      });
-
       const newUser = await prisma.user.create({
         data: {
           tenantId: tenant.id,
@@ -262,16 +366,7 @@ export class TenantService implements OnModuleInit, OnModuleDestroy {
       });
       AmdoxLogger.tenant(`DB user created: ${email}`, `userId=${newUser.id}`);
 
-      if (employeeRole) {
-        await prisma.userRole.create({
-          data: {
-            tenantId: tenant.id,
-            userId: newUser.id,
-            roleId: employeeRole.id,
-          },
-        });
-        AmdoxLogger.tenant(`Role assigned: ${employeeRole.name}`, `userId=${newUser.id}`);
-      }
+      await this.assignUserRole(tenant.id, newUser.id, roleName);
 
       return newUser.id;
     } catch (error: any) {

@@ -1,11 +1,29 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
-import { prisma } from '@amdox/db';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { prisma, EmploymentStatus } from '@amdox/db';
 import { AllocateResourceDto } from '../dto/allocate-resource.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class ResourceService {
   constructor(private eventEmitter: EventEmitter2) {}
+
+  /** Minimal employee list for PM resource allocation — no HR module required. */
+  async listAllocatableEmployees(tenantId: string) {
+    return prisma.employee.findMany({
+      where: {
+        tenantId,
+        deletedAt: null,
+        status: { notIn: [EmploymentStatus.TERMINATED, EmploymentStatus.SUSPENDED] },
+      },
+      select: {
+        id: true,
+        fullName: true,
+        designation: true,
+        department: { select: { name: true } },
+      },
+      orderBy: { fullName: 'asc' },
+    });
+  }
 
   async listAllocations(tenantId: string) {
     return prisma.resourceAllocation.findMany({
@@ -49,6 +67,17 @@ export class ResourceService {
       tenantId,
     });
     return allocation;
+  }
+
+  async deleteAllocation(tenantId: string, allocationId: string) {
+    const allocation = await prisma.resourceAllocation.findFirst({
+      where: { id: allocationId, tenantId },
+    });
+    if (!allocation) {
+      throw new NotFoundException('Resource allocation not found');
+    }
+    await prisma.resourceAllocation.delete({ where: { id: allocationId } });
+    return { deleted: true, allocationId };
   }
 
   async getUtilisationHeatmap(tenantId: string, employeeId?: string) {

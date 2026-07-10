@@ -25,6 +25,7 @@ export class ForecastClientService {
     let predictions: Array<{ date: string; quantity: number }> = [];
     let mape = 0.12;
     let modelType: string = 'prophet';
+    let modelVersion = '1';
 
     try {
       const res = await fetch(`${this.mlBaseUrl}/predict`, {
@@ -37,6 +38,7 @@ export class ForecastClientService {
         predictions = body.predictions ?? [];
         mape = body.mape ?? mape;
         modelType = body.model ?? modelType;
+        if (body.version != null) modelVersion = String(body.version);
       } else {
         this.logger.warn(`ML service returned ${res.status}, using statistical fallback`);
         predictions = this.statisticalFallback(history, horizonDays);
@@ -65,7 +67,7 @@ export class ForecastClientService {
             type: dbModelType,
             mapeScore: mape,
             trainedAt: new Date(),
-            version: '1.0',
+            version: modelVersion,
             isActive: true,
           },
         })
@@ -74,7 +76,7 @@ export class ForecastClientService {
             tenantId,
             productId,
             type: dbModelType,
-            version: '1.0',
+            version: modelVersion,
             mapeScore: mape,
             trainedAt: new Date(),
             isActive: true,

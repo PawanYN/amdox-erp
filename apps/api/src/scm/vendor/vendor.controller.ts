@@ -5,12 +5,15 @@ import { CreateVendorDto } from '../dto/create-vendor.dto';
 import { UpdateVendorDto } from '../dto/update-vendor.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../../auth/guards/roles.guard';
+import { ModuleGuard } from '../../auth/guards/module.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
+import { RequireModule } from '../../auth/decorators/require-module.decorator';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 
 @ApiTags('Vendors')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('keycloak'), RolesGuard)
+@RequireModule('scm')
+@UseGuards(AuthGuard('keycloak'), RolesGuard, ModuleGuard)
 @Controller('scm/vendors')
 export class VendorController {
   constructor(

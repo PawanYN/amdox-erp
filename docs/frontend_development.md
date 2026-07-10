@@ -42,5 +42,5 @@ Create or update the environment file:
 
 ```env
 # Path: apps/web/.env.local
-NEXT_PUBLIC_API_URL=https://api.staging.amdox.com
+NEXT_PUBLIC_API_URL=https://api.staging.amdox.com/api/v1
 ```

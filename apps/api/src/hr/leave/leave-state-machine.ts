@@ -9,8 +9,8 @@
  * that is already "Rejected" or "Cancelled").
  *
  * HOW IT IS IMPLEMENTED:
- * - We enforce the Business Rule: Only the employee's direct manager (or
- *   a global Tenant Admin) is allowed to approve or reject a leave.
+ * - We enforce the Business Rule: Only the employee's direct manager, an HR
+ *   department approver, or a global Tenant Admin may approve or reject leave.
  * - It throws HTTP Exceptions automatically if the transition is illegal.
  * ============================================================================
  */
@@ -33,6 +33,7 @@ export class LeaveStateMachine {
     newStatus: LeaveStatus,
     approvingManagerId: string,
     isTenantAdmin: boolean,
+    isHrApprover = false,
   ): void {
     // 1. Validate Current State
     if (leave.status !== LeaveStatus.PENDING) {
@@ -44,9 +45,10 @@ export class LeaveStateMachine {
       throw new BadRequestException(`Invalid state transition to ${newStatus}.`);
     }
 
-    // 3. Enforce Business Authorization (Manager or Admin)
-    if (!isTenantAdmin && leave.employee.managerId !== approvingManagerId) {
-      throw new ForbiddenException('Only the direct manager can approve this leave request.');
+    // 3. Enforce Business Authorization (direct manager, HR approver, or admin)
+    const isDirectManager = leave.employee.managerId === approvingManagerId;
+    if (!isTenantAdmin && !isHrApprover && !isDirectManager) {
+      throw new ForbiddenException('Only the direct manager or HR can approve this leave request.');
     }
   }
 }

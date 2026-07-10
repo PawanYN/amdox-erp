@@ -16,7 +16,7 @@
 ## Required environment:
 ##   DB_PASSWORD, DB_REPLICATION_PASSWORD, JWT_SECRET,
 ##   KEYCLOAK_ADMIN_PASSWORD, BULL_BOARD_PASSWORD,
-##   NEXT_PUBLIC_API_URL, NEXT_PUBLIC_KEYCLOAK_URL, FRONTEND_URL
+##   NEXT_PUBLIC_API_URL (must include /api/v1), NEXT_PUBLIC_KEYCLOAK_URL, FRONTEND_URL
 ## ==============================================
 
 name: amdox-prod
@@ -259,7 +259,7 @@ services:
       context: ../..
       dockerfile: infra/docker/Dockerfile.web
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?NEXT_PUBLIC_API_URL is required (public URL of the API)}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?NEXT_PUBLIC_API_URL is required (public API URL including /api/v1)}
         NEXT_PUBLIC_KEYCLOAK_URL: ${NEXT_PUBLIC_KEYCLOAK_URL:?NEXT_PUBLIC_KEYCLOAK_URL is required (public URL of Keycloak)}
         NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: ${NEXT_PUBLIC_KEYCLOAK_CLIENT_ID:-amdox-erp-web}
     image: amdox-web:latest

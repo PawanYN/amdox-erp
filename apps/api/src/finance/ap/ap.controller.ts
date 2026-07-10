@@ -15,7 +15,9 @@ import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { RolesGuard } from '../../auth/guards/roles.guard';
+import { ModuleGuard } from '../../auth/guards/module.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
+import { RequireModule } from '../../auth/decorators/require-module.decorator';
 import { ApService } from './ap.service';
 import { CreateInvoiceDto } from '../dto/create-invoice.dto';
 import { RecordPaymentDto } from '../dto/record-payment.dto';
@@ -27,7 +29,8 @@ import { RunPaymentBatchDto } from '../dto/run-payment-batch.dto';
  */
 @ApiTags('Accounts Payable')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('keycloak'), RolesGuard)
+@RequireModule('finance')
+@UseGuards(AuthGuard('keycloak'), RolesGuard, ModuleGuard)
 @Controller('finance/ap/invoices')
 export class ApController {
   constructor(private readonly apService: ApService) {}

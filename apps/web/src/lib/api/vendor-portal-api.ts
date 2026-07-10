@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+import { API_BASE_URL } from "./client";
 
 export type VendorPortalSession = {
   tenantId: string;
@@ -71,8 +71,7 @@ export const vendorPortalApi = {
     return response.json() as Promise<VendorPortalSession>;
   },
 
-  getProfile: (session: VendorPortalSession) =>
-    vendorPortalClient("/vendor-portal/me", session),
+  getProfile: (session: VendorPortalSession) => vendorPortalClient("/vendor-portal/me", session),
 
   getPurchaseOrders: (session: VendorPortalSession) =>
     vendorPortalClient("/vendor-portal/purchase-orders", session),

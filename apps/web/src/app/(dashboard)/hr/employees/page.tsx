@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Users, UserCheck, UserMinus, Building2, Pencil, Trash2 } from "lucide-react";
+import {
+  Plus,
+  Users,
+  UserCheck,
+  UserMinus,
+  Building2,
+  Pencil,
+  Trash2,
+  RotateCcw,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge, statusToTone } from "@/components/ui/badge";
 import { Card } from "@/components/ui/table";
@@ -14,8 +23,9 @@ import { EmployeeForm } from "./employee-form";
 import { OrgChart } from "./org-chart";
 
 type ViewMode = "list" | "org-chart";
+type StatusFilter = "all" | "active" | "inactive";
 
-type DepartmentOption = { id: string; name: string };
+type DepartmentOption = { id: string; name: string; code?: string; allowedModules?: string[] };
 
 type RawEmployee = {
   id: string;
@@ -29,8 +39,14 @@ type RawEmployee = {
   hireDate?: string;
   managerId?: string | null;
   status?: string;
+  deletedAt?: string | null;
   dateOfBirth?: string;
+  contracts?: { salary?: string | number; currencyCode?: string }[];
 };
+
+function isInactiveEmployee(emp: RawEmployee): boolean {
+  return Boolean(emp.deletedAt) || emp.status === "TERMINATED" || emp.status === "SUSPENDED";
+}
 
 function mapEmployee(emp: RawEmployee): Employee {
   return {
@@ -44,10 +60,12 @@ function mapEmployee(emp: RawEmployee): Employee {
     contractType: (emp.contractType || "Full-time") as Employee["contractType"],
     startDate: emp.hireDate ? new Date(emp.hireDate).toISOString().split("T")[0] : "",
     reportsToId: emp.managerId || null,
-    status: (emp.status || "ACTIVE") === "ACTIVE" ? "Active" : "Inactive",
+    status: isInactiveEmployee(emp) ? "Inactive" : "Active",
     dateOfBirth: emp.dateOfBirth
       ? new Date(emp.dateOfBirth).toISOString().split("T")[0]
       : undefined,
+    salary: emp.contracts?.[0]?.salary != null ? Number(emp.contracts[0].salary) : undefined,
+    currencyCode: emp.contracts?.[0]?.currencyCode,
   };
 }
 
@@ -56,6 +74,7 @@ export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [departments, setDepartments] = useState<DepartmentOption[]>([]);
   const [view, setView] = useState<ViewMode>("list");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
   const [formOpen, setFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [loading, setLoading] = useState(false);
@@ -63,7 +82,7 @@ export default function EmployeesPage() {
   const fetchEmployees = async () => {
     if (!token) return;
     try {
-      setEmployees((await hrApi.getEmployees()).map(mapEmployee));
+      setEmployees((await hrApi.getEmployees("all")).map(mapEmployee));
     } catch (err) {
       console.error(err);
     }
@@ -86,19 +105,43 @@ export default function EmployeesPage() {
   }, [initialized, token]);
 
   async function handleDelete(emp: Employee) {
-    if (!confirm(`Delete employee "${emp.name}"? This cannot be undone.`)) return;
+    if (
+      !confirm(
+        `Deactivate employee "${emp.name}"? They will be marked inactive and hidden from the active list. You can reactivate them later.`,
+      )
+    )
+      return;
     try {
       await hrApi.deleteEmployee(emp.id);
       await fetchEmployees();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to delete employee.");
+      alert(err instanceof Error ? err.message : "Failed to deactivate employee.");
+    }
+  }
+
+  async function handleRestore(emp: Employee) {
+    if (!confirm(`Reactivate employee "${emp.name}"?`)) return;
+    try {
+      await hrApi.restoreEmployee(emp.id);
+      await fetchEmployees();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to reactivate employee.");
     }
   }
 
   const visibleEmployees = employees.filter((e) => e.id !== "EMP-100");
-  const activeCount = visibleEmployees.filter((e) => e.status === "Active").length;
-  const inactiveCount = visibleEmployees.filter((e) => e.status !== "Active").length;
-  const deptCount = new Set(visibleEmployees.map((e) => e.department)).size;
+  const activeEmployees = visibleEmployees.filter((e) => e.status === "Active");
+  const inactiveEmployees = visibleEmployees.filter((e) => e.status === "Inactive");
+  const activeCount = activeEmployees.length;
+  const inactiveCount = inactiveEmployees.length;
+  const deptCount = new Set(activeEmployees.map((e) => e.department)).size;
+
+  const filteredEmployees =
+    statusFilter === "all"
+      ? visibleEmployees
+      : statusFilter === "inactive"
+        ? inactiveEmployees
+        : activeEmployees;
 
   const columns: ColumnDef<Employee>[] = [
     {
@@ -147,21 +190,35 @@ export default function EmployeesPage() {
       header: "",
       cell: (emp) => (
         <div className="flex gap-1.5 justify-end">
-          <button
-            onClick={() => {
-              setEditingEmployee(emp);
-              setFormOpen(true);
-            }}
-            className="h-7 w-7 flex items-center justify-center rounded-md bg-slate-50 border border-slate-200 text-slate-500 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-colors"
-          >
-            <Pencil size={13} />
-          </button>
-          <button
-            onClick={() => handleDelete(emp)}
-            className="h-7 w-7 flex items-center justify-center rounded-md bg-slate-50 border border-slate-200 text-slate-500 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors"
-          >
-            <Trash2 size={13} />
-          </button>
+          {emp.status === "Inactive" ? (
+            <button
+              onClick={() => handleRestore(emp)}
+              title="Reactivate employee"
+              className="h-7 px-2 flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 transition-colors text-[11px] font-semibold"
+            >
+              <RotateCcw size={12} />
+              Reactivate
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={() => {
+                  setEditingEmployee(emp);
+                  setFormOpen(true);
+                }}
+                className="h-7 w-7 flex items-center justify-center rounded-md bg-slate-50 border border-slate-200 text-slate-500 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-colors"
+              >
+                <Pencil size={13} />
+              </button>
+              <button
+                onClick={() => handleDelete(emp)}
+                title="Deactivate employee"
+                className="h-7 w-7 flex items-center justify-center rounded-md bg-slate-50 border border-slate-200 text-slate-500 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors"
+              >
+                <Trash2 size={13} />
+              </button>
+            </>
+          )}
         </div>
       ),
     },
@@ -181,6 +238,12 @@ export default function EmployeesPage() {
         employmentType: data.contractType.toLowerCase().replace("-", "_"),
         departmentId: data.department,
         managerId: data.reportsToId || null,
+        designation: data.designation || undefined,
+        salary: data.salary,
+        currencyCode: data.currencyCode,
+        provideErpAccess: data.provideErpAccess ?? true,
+        systemRole: data.systemRole || "Employee",
+        allowedModules: data.allowedModules ?? [],
       });
       await fetchEmployees();
     } catch (err) {
@@ -204,6 +267,11 @@ export default function EmployeesPage() {
         employmentType: data.contractType.toLowerCase().replace("-", "_"),
         departmentId: data.department,
         managerId: data.reportsToId || null,
+        designation: data.designation || undefined,
+        salary: data.salary,
+        currencyCode: data.currencyCode,
+        ...(data.allowedModules ? { allowedModules: data.allowedModules } : {}),
+        ...(data.systemRole ? { systemRole: data.systemRole } : {}),
       });
       await fetchEmployees();
     } catch (err) {
@@ -269,34 +337,67 @@ export default function EmployeesPage() {
         />
       </div>
 
-      {/* View toggle */}
-      <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1 w-fit">
-        {(["list", "org-chart"] as ViewMode[]).map((v) => (
-          <button
-            key={v}
-            onClick={() => setView(v)}
-            className={`px-4 py-1.5 text-[13px] font-medium rounded-md transition-all duration-150 ${
-              view === v
-                ? "bg-white text-slate-900 shadow-sm"
-                : "text-slate-500 hover:text-slate-700"
-            }`}
-          >
-            {v === "list" ? "List View" : "Org Chart"}
-          </button>
-        ))}
+      {/* View + status filters */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1 w-fit">
+          {(["list", "org-chart"] as ViewMode[]).map((v) => (
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              className={`px-4 py-1.5 text-[13px] font-medium rounded-md transition-all duration-150 ${
+                view === v
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              {v === "list" ? "List View" : "Org Chart"}
+            </button>
+          ))}
+        </div>
+
+        {view === "list" && (
+          <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1 w-fit">
+            {(
+              [
+                { key: "active", label: "Active" },
+                { key: "inactive", label: "Inactive" },
+                { key: "all", label: "All" },
+              ] as const
+            ).map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setStatusFilter(key)}
+                className={`px-4 py-1.5 text-[13px] font-medium rounded-md transition-all duration-150 ${
+                  statusFilter === key
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                {label}
+                {key === "inactive" && inactiveCount > 0 ? ` (${inactiveCount})` : ""}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Content */}
       {view === "list" ? (
         <DataTable
-          data={visibleEmployees}
+          data={filteredEmployees}
           columns={columns}
           keyExtractor={(emp) => emp.id}
-          emptyMessage="No employees yet. Add the first one to get started."
+          emptyMessage={
+            statusFilter === "inactive"
+              ? "No inactive employees."
+              : statusFilter === "active"
+                ? "No active employees yet. Add the first one to get started."
+                : "No employees yet. Add the first one to get started."
+          }
         />
       ) : (
         <Card>
-          <OrgChart employees={employees} />
+          <OrgChart employees={activeEmployees} />
         </Card>
       )}
 
@@ -306,7 +407,7 @@ export default function EmployeesPage() {
           setFormOpen(false);
           setEditingEmployee(null);
         }}
-        managers={employees}
+        managers={activeEmployees}
         departments={departments}
         editEmployee={editingEmployee}
         onCreate={handleCreate}

@@ -2,13 +2,16 @@ import { Controller, Post, Get, Body, Req, Param, UseGuards } from '@nestjs/comm
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { RolesGuard } from '../../auth/guards/roles.guard';
+import { ModuleGuard } from '../../auth/guards/module.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
+import { RequireModule } from '../../auth/decorators/require-module.decorator';
 import { BudgetService } from './budget.service';
 import { SetBudgetDto } from '../dto/set-budget.dto';
 
 @ApiTags('Project Management - Budgets')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('keycloak'), RolesGuard)
+@RequireModule('projects')
+@UseGuards(AuthGuard('keycloak'), RolesGuard, ModuleGuard)
 @Controller('pm/budgets')
 export class BudgetController {
   constructor(private readonly budgetService: BudgetService) {}

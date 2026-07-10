@@ -16,10 +16,12 @@ import {
   CheckCircle2,
   Sliders,
   ShieldAlert,
+  Loader2,
+  XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
-import { auditApi } from "@/lib/api/audit-api";
+import { auditApi, type ConsentRecord, type VerifyChainResponse } from "@/lib/api/audit-api";
 import { tenantApi } from "@/lib/api/tenant-api";
 import { useKeycloak } from "@/components/KeycloakProvider";
 import { apiClient } from "@/lib/api/client";
@@ -111,6 +113,8 @@ type AuthFlow = {
   builtIn?: boolean;
 };
 
+const CONSENT_TYPES = ["marketing", "analytics", "data_processing", "third_party_sharing"] as const;
+
 function AdminRequired() {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center gap-4">
@@ -142,6 +146,57 @@ export default function SettingsPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [gdprRequests, setGdprRequests] = useState<GdprRequest[]>([]);
+  const [dsrEmail, setDsrEmail] = useState("");
+  const [dsrType, setDsrType] = useState("ACCESS");
+  const [consents, setConsents] = useState<ConsentRecord[]>([]);
+  const [consentEmail, setConsentEmail] = useState("");
+  const [consentType, setConsentType] = useState<string>(CONSENT_TYPES[0]);
+  const [consentGranted, setConsentGranted] = useState(true);
+  const [consentFilter, setConsentFilter] = useState("");
+  const [consentLoading, setConsentLoading] = useState(false);
+  const [consentError, setConsentError] = useState<string | null>(null);
+  const [consentSaving, setConsentSaving] = useState(false);
+  const [chainStatus, setChainStatus] = useState<
+    "idle" | "checking" | "valid" | "invalid" | "error"
+  >("idle");
+  const [chainDetail, setChainDetail] = useState<string | null>(null);
+
+  const refreshGdpr = () => auditApi.getGdprRequests().then(setGdprRequests).catch(console.error);
+
+  const refreshConsents = async (emailFilter?: string) => {
+    setConsentLoading(true);
+    setConsentError(null);
+    try {
+      const data = await auditApi.listConsents(emailFilter || undefined);
+      setConsents(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setConsentError(err instanceof Error ? err.message : "Failed to load consents");
+    } finally {
+      setConsentLoading(false);
+    }
+  };
+
+  const handleVerifyChain = async () => {
+    setChainStatus("checking");
+    setChainDetail(null);
+    try {
+      const result: VerifyChainResponse = await auditApi.verifyChain();
+      if (result?.valid) {
+        setChainStatus("valid");
+        setChainDetail("Hash chain integrity verified.");
+      } else {
+        setChainStatus("invalid");
+        setChainDetail(
+          typeof result?.brokenAt === "number"
+            ? `Chain broken at index ${result.brokenAt}.`
+            : "Hash chain integrity check failed.",
+        );
+      }
+    } catch (err) {
+      setChainStatus("error");
+      setChainDetail(err instanceof Error ? err.message : "Failed to verify hash chain.");
+    }
+  };
 
   // Keycloak configs
   const [kcConfig, setKcConfig] = useState<KcConfig>({
@@ -197,9 +252,12 @@ export default function SettingsPage() {
   useEffect(() => {
     if (activeTab === "audit") {
       auditApi.getLogs().then(setAuditLogs).catch(console.error);
+      setChainStatus("idle");
+      setChainDetail(null);
     }
     if (activeTab === "compliance") {
       auditApi.getGdprRequests().then(setGdprRequests).catch(console.error);
+      refreshConsents(consentFilter.trim() || undefined);
     }
   }, [activeTab]);
 
@@ -346,6 +404,67 @@ export default function SettingsPage() {
           {row.status}
         </span>
       ),
+    },
+    {
+      header: "Actions",
+      cell: (row) => (
+        <div className="flex gap-2">
+          {row.status !== "FULFILLED" && (
+            <button
+              type="button"
+              className="text-xs text-blue-600 hover:underline"
+              onClick={async () => {
+                await auditApi.fulfillGdprRequest(row.id);
+                refreshGdpr();
+              }}
+            >
+              Fulfill
+            </button>
+          )}
+          {row.status === "FULFILLED" && (row.type === "ACCESS" || row.type === "PORTABILITY") && (
+            <button
+              type="button"
+              className="text-xs text-emerald-600 hover:underline"
+              onClick={async () => {
+                const blob = await auditApi.downloadGdprExport(row.id);
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `dsr-export-${row.id}.zip`;
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+            >
+              Download ZIP
+            </button>
+          )}
+        </div>
+      ),
+    },
+  ];
+
+  const consentColumns: ColumnDef<ConsentRecord>[] = [
+    { header: "Subject Email", accessorKey: "subjectEmail" },
+    { header: "Consent Type", accessorKey: "consentType" },
+    {
+      header: "Granted",
+      accessorKey: "granted",
+      cell: (row) => (
+        <span
+          className={`px-2 py-1 rounded-lg text-xs font-medium ${
+            row.granted
+              ? "bg-emerald-50 text-emerald-600 border border-emerald-200"
+              : "bg-slate-100 text-slate-600 border border-slate-200"
+          }`}
+        >
+          {row.granted ? "Granted" : "Withdrawn"}
+        </span>
+      ),
+    },
+    {
+      header: "Recorded",
+      accessorKey: "recordedAt",
+      cell: (row) => new Date(row.recordedAt).toLocaleString(),
     },
   ];
 
@@ -1228,23 +1347,202 @@ export default function SettingsPage() {
           {/* AUDIT LOGS */}
           {activeTab === "audit" && (
             <div className="space-y-4">
-              <div className="flex justify-between items-center pb-2 border-b">
+              <div className="flex flex-wrap justify-between items-center gap-3 pb-2 border-b">
                 <h2 className="text-sm font-semibold text-gray-900">Immutable Audit Trail</h2>
-                <div className="flex items-center gap-1.5 text-[10px] text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100 font-medium">
-                  <ShieldCheck size={12} /> Hash Chain Verified
+                <div className="flex items-center gap-2">
+                  {chainStatus === "valid" && (
+                    <div className="flex items-center gap-1.5 text-[10px] text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100 font-medium">
+                      <ShieldCheck size={12} /> Hash Chain Verified
+                    </div>
+                  )}
+                  {chainStatus === "invalid" && (
+                    <div className="flex items-center gap-1.5 text-[10px] text-red-600 bg-red-50 px-2.5 py-1 rounded-full border border-red-100 font-medium">
+                      <XCircle size={12} /> Chain Broken
+                    </div>
+                  )}
+                  {chainStatus === "error" && (
+                    <div className="flex items-center gap-1.5 text-[10px] text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-100 font-medium">
+                      <AlertCircle size={12} /> Verify Failed
+                    </div>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleVerifyChain}
+                    disabled={chainStatus === "checking"}
+                    icon={
+                      chainStatus === "checking" ? (
+                        <Loader2 size={13} className="animate-spin" />
+                      ) : (
+                        <ShieldCheck size={13} />
+                      )
+                    }
+                  >
+                    {chainStatus === "checking" ? "Verifying…" : "Verify chain"}
+                  </Button>
                 </div>
               </div>
+              {chainDetail && (
+                <p
+                  className={`text-xs ${
+                    chainStatus === "valid"
+                      ? "text-emerald-700"
+                      : chainStatus === "invalid"
+                        ? "text-red-600"
+                        : "text-amber-700"
+                  }`}
+                >
+                  {chainDetail}
+                </p>
+              )}
               <DataTable data={auditLogs} columns={auditColumns} keyExtractor={(r) => r.id} />
             </div>
           )}
 
           {/* COMPLIANCE */}
           {activeTab === "compliance" && (
-            <div className="space-y-4">
-              <h2 className="text-sm font-semibold text-gray-900 pb-2 border-b">
-                Data Subject Requests (GDPR)
-              </h2>
-              <DataTable data={gdprRequests} columns={gdprColumns} keyExtractor={(r) => r.id} />
+            <div className="space-y-8">
+              <div className="space-y-4">
+                <h2 className="text-sm font-semibold text-gray-900 pb-2 border-b">
+                  Data Subject Requests (GDPR)
+                </h2>
+                <div className="flex flex-wrap gap-2 items-end pb-4 border-b border-slate-100">
+                  <label className="text-xs text-slate-600">
+                    Subject email
+                    <input
+                      className="mt-1 block border border-slate-200 rounded-md px-3 py-1.5 text-sm"
+                      value={dsrEmail}
+                      onChange={(e) => setDsrEmail(e.target.value)}
+                      placeholder="user@example.com"
+                    />
+                  </label>
+                  <label className="text-xs text-slate-600">
+                    Type
+                    <select
+                      className="mt-1 block border border-slate-200 rounded-md px-3 py-1.5 text-sm"
+                      value={dsrType}
+                      onChange={(e) => setDsrType(e.target.value)}
+                    >
+                      <option value="ACCESS">ACCESS</option>
+                      <option value="PORTABILITY">PORTABILITY</option>
+                      <option value="ERASURE">ERASURE</option>
+                    </select>
+                  </label>
+                  <Button
+                    size="sm"
+                    onClick={async () => {
+                      if (!dsrEmail) return;
+                      await auditApi.createGdprRequest(dsrEmail, dsrType);
+                      setDsrEmail("");
+                      refreshGdpr();
+                    }}
+                  >
+                    Create DSR
+                  </Button>
+                </div>
+                <DataTable data={gdprRequests} columns={gdprColumns} keyExtractor={(r) => r.id} />
+              </div>
+
+              <div className="space-y-4">
+                <h2 className="text-sm font-semibold text-gray-900 pb-2 border-b">
+                  Consent Records
+                </h2>
+                <div className="flex flex-wrap gap-2 items-end pb-4 border-b border-slate-100">
+                  <label className="text-xs text-slate-600">
+                    Subject email
+                    <input
+                      className="mt-1 block border border-slate-200 rounded-md px-3 py-1.5 text-sm"
+                      value={consentEmail}
+                      onChange={(e) => setConsentEmail(e.target.value)}
+                      placeholder="user@example.com"
+                    />
+                  </label>
+                  <label className="text-xs text-slate-600">
+                    Consent type
+                    <select
+                      className="mt-1 block border border-slate-200 rounded-md px-3 py-1.5 text-sm"
+                      value={consentType}
+                      onChange={(e) => setConsentType(e.target.value)}
+                    >
+                      {CONSENT_TYPES.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="text-xs text-slate-600">
+                    Decision
+                    <select
+                      className="mt-1 block border border-slate-200 rounded-md px-3 py-1.5 text-sm"
+                      value={consentGranted ? "granted" : "withdrawn"}
+                      onChange={(e) => setConsentGranted(e.target.value === "granted")}
+                    >
+                      <option value="granted">Granted</option>
+                      <option value="withdrawn">Withdrawn</option>
+                    </select>
+                  </label>
+                  <Button
+                    size="sm"
+                    disabled={consentSaving || !consentEmail.trim()}
+                    onClick={async () => {
+                      if (!consentEmail.trim()) return;
+                      setConsentSaving(true);
+                      setConsentError(null);
+                      try {
+                        await auditApi.recordConsent(
+                          consentEmail.trim(),
+                          consentType,
+                          consentGranted,
+                        );
+                        setConsentEmail("");
+                        await refreshConsents(consentFilter.trim() || undefined);
+                      } catch (err) {
+                        setConsentError(
+                          err instanceof Error ? err.message : "Failed to record consent",
+                        );
+                      } finally {
+                        setConsentSaving(false);
+                      }
+                    }}
+                  >
+                    {consentSaving ? "Recording…" : "Record Consent"}
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2 items-end">
+                  <label className="text-xs text-slate-600">
+                    Filter by email
+                    <input
+                      className="mt-1 block border border-slate-200 rounded-md px-3 py-1.5 text-sm"
+                      value={consentFilter}
+                      onChange={(e) => setConsentFilter(e.target.value)}
+                      placeholder="optional filter"
+                    />
+                  </label>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => refreshConsents(consentFilter.trim() || undefined)}
+                    disabled={consentLoading}
+                  >
+                    {consentLoading ? "Loading…" : "Refresh"}
+                  </Button>
+                </div>
+                {consentError && (
+                  <div className="text-[12px] text-red-600 bg-red-50 border border-red-100 rounded-md px-3 py-2">
+                    {consentError}
+                  </div>
+                )}
+                {consentLoading && consents.length === 0 ? (
+                  <div className="space-y-2">
+                    {[0, 1].map((i) => (
+                      <div key={i} className="h-10 rounded-md bg-slate-100 animate-pulse" />
+                    ))}
+                  </div>
+                ) : (
+                  <DataTable data={consents} columns={consentColumns} keyExtractor={(r) => r.id} />
+                )}
+              </div>
             </div>
           )}
         </div>

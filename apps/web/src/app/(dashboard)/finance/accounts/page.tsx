@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/ui/stat-card";
 import { Modal, inputClasses } from "@/components/ui/modal";
-import { financeApi } from "@/lib/api/finance-api";
+import { financeApi, type AccountBalance } from "@/lib/api/finance-api";
 
 const TYPE_META: Record<string, { label: string; color: string; bg: string; border: string }> = {
   asset: { label: "Asset", color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-100" },
@@ -47,10 +47,18 @@ type Account = {
 const ACCOUNT_TYPES = ["asset", "liability", "equity", "revenue", "expense"] as const;
 
 type RawAccount = {
+  id: string;
   code: string;
   name: string;
   type: string;
 };
+
+/** Credit-normal account types: display balance as credit − debit so KPIs stay positive. */
+const CREDIT_NORMAL = new Set(["liability", "equity", "revenue"]);
+
+function displayBalance(type: Account["type"], rawDebitMinusCredit: number): number {
+  return CREDIT_NORMAL.has(type) ? -rawDebitMinusCredit : rawDebitMinusCredit;
+}
 
 export default function ChartOfAccountsPage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -71,19 +79,24 @@ export default function ChartOfAccountsPage() {
   const [saving, setSaving] = useState(false);
 
   const load = () =>
-    financeApi
-      .getAccounts()
-      .then((rows: RawAccount[]) =>
+    Promise.all([financeApi.getAccounts(), financeApi.getAccountBalances()])
+      .then(([rows, balances]: [RawAccount[], AccountBalance[]]) => {
+        const byId = new Map(balances.map((b) => [b.accountId, b.balance]));
+        const byCode = new Map(balances.map((b) => [b.code, b.balance]));
         setAccounts(
-          rows.map((a) => ({
-            code: a.code,
-            name: a.name,
-            type: String(a.type).toLowerCase() as Account["type"],
-            subType: a.type,
-            balance: 0,
-          })),
-        ),
-      )
+          rows.map((a) => {
+            const acctType = String(a.type).toLowerCase() as Account["type"];
+            const raw = byId.get(a.id) ?? byCode.get(a.code) ?? 0;
+            return {
+              code: a.code,
+              name: a.name,
+              type: acctType,
+              subType: a.type,
+              balance: displayBalance(acctType, raw),
+            };
+          }),
+        );
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
 

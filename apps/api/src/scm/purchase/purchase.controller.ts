@@ -4,12 +4,15 @@ import { CreatePurchaseOrderDto } from '../dto/create-purchase-order.dto';
 import { ReceiveGoodsDto } from '../dto/receive-goods.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../../auth/guards/roles.guard';
+import { ModuleGuard } from '../../auth/guards/module.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
+import { RequireModule } from '../../auth/decorators/require-module.decorator';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 
 @ApiTags('Purchase Orders')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('keycloak'), RolesGuard)
+@RequireModule('scm')
+@UseGuards(AuthGuard('keycloak'), RolesGuard, ModuleGuard)
 @Controller('scm/purchase-orders')
 export class PurchaseController {
   constructor(private readonly purchaseService: PurchaseService) {}
@@ -35,12 +38,21 @@ export class PurchaseController {
   @Roles('SuperAdmin', 'TenantAdmin', 'Manager')
   @Patch(':id/approve')
   approvePurchaseOrder(@Req() req: any, @Param('id') id: string) {
-    return this.purchaseService.approvePurchaseOrder(req.user.tenantId, id, req.user.id ?? req.user.sub);
+    return this.purchaseService.approvePurchaseOrder(
+      req.user.tenantId,
+      id,
+      req.user.id ?? req.user.sub,
+    );
   }
 
   @Roles('SuperAdmin', 'TenantAdmin', 'Manager')
   @Post(':id/receive')
   receiveGoods(@Req() req: any, @Param('id') id: string, @Body() dto: ReceiveGoodsDto) {
-    return this.purchaseService.receiveGoods(req.user.tenantId, id, dto, req.user.id ?? req.user.sub);
+    return this.purchaseService.receiveGoods(
+      req.user.tenantId,
+      id,
+      dto,
+      req.user.id ?? req.user.sub,
+    );
   }
 }

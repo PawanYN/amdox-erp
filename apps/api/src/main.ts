@@ -89,6 +89,11 @@ async function bootstrap() {
     }),
   );
 
+  // Version all REST endpoints under /api/v1; keep health, docs, admin, and GraphQL at root paths.
+  app.setGlobalPrefix('api/v1', {
+    exclude: ['health/(.*)', 'api-docs', 'admin/queues', 'graphql'],
+  });
+
   // Enforce strict validation rules across the entire API
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
   // Generate the interactive API Menu (Swagger UI)
@@ -139,6 +144,8 @@ async function bootstrap() {
 
   AmdoxLogger.divider('AMDOX ERP API');
   AmdoxLogger.brand('Server ready', `http://localhost:${port}`);
+  AmdoxLogger.brand('REST API  ', `http://localhost:${port}/api/v1`);
+  AmdoxLogger.brand('GraphQL   ', `http://localhost:${port}/graphql`);
   AmdoxLogger.brand('API docs  ', `http://localhost:${port}/api-docs`);
   AmdoxLogger.divider();
 }

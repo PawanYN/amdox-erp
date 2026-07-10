@@ -34,8 +34,26 @@ type ApInvoice = {
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<ApInvoice[]>([]);
+  const [noAccess, setNoAccess] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
-  const fetchInvoices = () => financeApi.getInvoices().then(setInvoices);
+  const fetchInvoices = () =>
+    financeApi
+      .getInvoices()
+      .then((data) => {
+        setInvoices(data);
+        setNoAccess(false);
+      })
+      .catch((err) => {
+        // AP invoices live in the Finance module. An SCM-only user has no
+        // `finance` module grant, so this endpoint returns 403 — surface that
+        // clearly instead of silently rendering an empty list.
+        const msg = String(err?.message ?? "");
+        if (/forbidden|module|access denied|\b403\b/i.test(msg)) {
+          setNoAccess(true);
+        }
+      })
+      .finally(() => setLoaded(true));
 
   useEffect(() => {
     fetchInvoices();
@@ -46,12 +64,39 @@ export default function InvoicesPage() {
     fetchInvoices();
   };
 
+  if (noAccess) {
+    return (
+      <div className="space-y-4">
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-5 text-amber-800">
+          <p className="text-sm font-semibold">AP invoices are managed by Finance</p>
+          <p className="mt-1 text-[13px] text-amber-700">
+            These invoices are auto-created when goods are received and posted to the ledger by the
+            Finance team. Your SCM access can raise POs and receive goods, but viewing / approving
+            AP invoices requires the <strong>Finance</strong> module.
+          </p>
+          <p className="mt-2 text-[13px] text-amber-700">
+            Ask a Finance user (or an admin) to review them under{" "}
+            <span className="font-mono">Finance → AP Invoices</span>, or request the Finance module
+            be added to your account.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-500">
         OCR extracts invoice → 3-way match: Invoice qty ↔ PO qty ↔ GR qty. Within tolerance →
         auto-approve. Else → manual review queue.
       </div>
+
+      {loaded && invoices.length === 0 && (
+        <div className="rounded-md border border-slate-200 bg-white px-3 py-6 text-center text-[13px] text-slate-500">
+          No AP invoices yet. They are created automatically when goods are received against an
+          approved purchase order.
+        </div>
+      )}
 
       {invoices.map((inv) => {
         const allMatch = inv.status === "APPROVED" || inv.status === "PAID";

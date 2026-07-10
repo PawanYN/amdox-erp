@@ -3,15 +3,25 @@ import { prisma } from '@amdox/db';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CreateDepartmentDto } from '../dto/create-department.dto';
 import { UpdateDepartmentDto } from '../dto/update-department.dto';
+import { mergeDepartmentModules } from '../../auth/erp-modules';
 
 @Injectable()
 export class DepartmentService {
   constructor(private readonly eventEmitter: EventEmitter2) {}
 
   async create(tenantId: string, createDepartmentDto: CreateDepartmentDto) {
+    const allowedModules = mergeDepartmentModules(
+      createDepartmentDto.code,
+      createDepartmentDto.allowedModules,
+    ).filter((m) => !['home', 'notifications', 'settings'].includes(m));
+
     const department = await prisma.department.create({
       data: {
-        ...createDepartmentDto,
+        name: createDepartmentDto.name,
+        code: createDepartmentDto.code,
+        headId: createDepartmentDto.headId,
+        parentId: createDepartmentDto.parentId,
+        allowedModules,
         tenantId,
       },
     });
@@ -42,11 +52,22 @@ export class DepartmentService {
   }
 
   async update(tenantId: string, id: string, updateDepartmentDto: UpdateDepartmentDto) {
-    await this.findOne(tenantId, id); // Ensure it exists in this tenant
+    const existing = await this.findOne(tenantId, id);
+    const data: Record<string, unknown> = { ...updateDepartmentDto };
+
+    if (updateDepartmentDto.allowedModules !== undefined || updateDepartmentDto.code) {
+      const code = updateDepartmentDto.code ?? existing.code;
+      const allowedModules = mergeDepartmentModules(
+        code,
+        updateDepartmentDto.allowedModules ?? existing.allowedModules,
+      ).filter((m) => !['home', 'notifications', 'settings'].includes(m));
+      data.allowedModules = allowedModules;
+    }
+
     // tenant-scope-ok: findOne() above already threw NotFoundException unless `id` belongs to `tenantId`.
     const department = await prisma.department.update({
       where: { id },
-      data: updateDepartmentDto,
+      data,
     });
     this.eventEmitter.emit('department.updated', { tenantId, departmentId: id });
     return department;

@@ -7,8 +7,10 @@ import {
   Param,
   Query,
   Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { DataSubjectRequestType } from '@amdox/db';
@@ -61,7 +63,7 @@ export class GdprController {
 
   @Roles('SuperAdmin', 'TenantAdmin')
   @Patch('requests/:id/fulfill')
-  @ApiOperation({ summary: 'Mark a DSR as fulfilled (target < 72h per PDF)' })
+  @ApiOperation({ summary: 'Fulfill a DSR — export ZIP (access/portability) or erase data' })
   async fulfill(@Req() req: any, @Param('id') id: string) {
     const tenantId = this.tenantId(req);
     const dsr = await this.gdprService.fulfillRequest(tenantId, id);
@@ -71,8 +73,20 @@ export class GdprController {
       action: 'DSR_FULFILLED',
       entityType: 'DataSubjectRequest',
       entityId: id,
+      afterState: { type: dsr.type, exportKey: (dsr as any).exportKey },
     });
     return dsr;
+  }
+
+  @Roles('SuperAdmin', 'TenantAdmin')
+  @Get('requests/:id/export')
+  @ApiOperation({ summary: 'Download fulfilled DSR export ZIP' })
+  async downloadExport(@Req() req: any, @Param('id') id: string, @Res() res: Response) {
+    const tenantId = this.tenantId(req);
+    const buffer = await this.gdprService.getExportBuffer(tenantId, id);
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="dsr-export-${id}.zip"`);
+    res.send(buffer);
   }
 
   @Roles('SuperAdmin', 'TenantAdmin')
@@ -83,12 +97,7 @@ export class GdprController {
     @Body('consentType') consentType: string,
     @Body('granted') granted: boolean,
   ) {
-    return this.gdprService.recordConsent(
-      this.tenantId(req),
-      subjectEmail,
-      consentType,
-      granted,
-    );
+    return this.gdprService.recordConsent(this.tenantId(req), subjectEmail, consentType, granted);
   }
 
   @Roles('SuperAdmin', 'TenantAdmin')

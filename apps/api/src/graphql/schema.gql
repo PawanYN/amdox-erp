@@ -1,0 +1,17 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type Query {
+  """Count of active employees for the tenant"""
+  employeeCount: Float!
+
+  """API health summary via GraphQL"""
+  health: String!
+
+  """Count of open projects for the tenant"""
+  projectCount: Float!
+
+  """Search vendor names (GraphQL passthrough to DB)"""
+  searchVendors(q: String! = ""): [String!]!
+}

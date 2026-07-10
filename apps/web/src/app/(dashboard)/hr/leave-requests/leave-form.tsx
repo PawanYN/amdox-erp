@@ -4,14 +4,8 @@ import { FormEvent, useMemo, useState } from "react";
 import { Modal, FormField, inputClasses } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { LeaveRequest, LeaveType } from "@/lib/types";
-import { currentUser } from "@/lib/current-user";
 
-const LEAVE_TYPES: LeaveType[] = [
-  "Sick Leave",
-  "Earned Leave",
-  "Casual Leave",
-  "Unpaid Leave",
-];
+const LEAVE_TYPES: LeaveType[] = ["Sick Leave", "Earned Leave", "Casual Leave", "Unpaid Leave"];
 
 function calculateDays(from: string, to: string): number {
   if (!from || !to) return 0;
@@ -26,10 +20,14 @@ export function LeaveForm({
   open,
   onClose,
   onCreate,
+  employeeId,
+  employeeName,
 }: {
   open: boolean;
   onClose: () => void;
   onCreate: (request: Omit<LeaveRequest, "id" | "status">) => void;
+  employeeId: string;
+  employeeName: string;
 }) {
   const [leaveType, setLeaveType] = useState<LeaveType>(LEAVE_TYPES[0]);
   const [fromDate, setFromDate] = useState("");
@@ -37,6 +35,7 @@ export function LeaveForm({
   const [reason, setReason] = useState("");
 
   const days = useMemo(() => calculateDays(fromDate, toDate), [fromDate, toDate]);
+  const canSubmit = Boolean(employeeId) && days > 0;
 
   function reset() {
     setLeaveType(LEAVE_TYPES[0]);
@@ -47,12 +46,10 @@ export function LeaveForm({
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    // TODO(Task 5 — backend): POST /api/hr/leave-requests with this
-    // payload. Server computes `days` authoritatively — see
-    // CreateLeaveRequestRequest in lib/api/contracts.ts.
+    if (!employeeId) return;
     onCreate({
-      employeeId: currentUser.employeeId,
-      employeeName: currentUser.name,
+      employeeId,
+      employeeName: employeeName || "Unknown",
       leaveType,
       fromDate,
       toDate,
@@ -74,6 +71,12 @@ export function LeaveForm({
       description="Your manager will be notified once submitted."
     >
       <form onSubmit={handleSubmit} className="space-y-4">
+        {!employeeId && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            Employee profile not loaded. Close and try again after your session is ready.
+          </div>
+        )}
+
         <FormField label="Leave type">
           <select
             className={inputClasses}
@@ -112,9 +115,7 @@ export function LeaveForm({
 
         <div className="rounded-lg bg-canvas px-4 py-3 text-sm">
           <span className="text-muted">Total days: </span>
-          <span className="font-semibold text-ink">
-            {days > 0 ? days : "—"}
-          </span>
+          <span className="font-semibold text-ink">{days > 0 ? days : "—"}</span>
         </div>
 
         <FormField label="Reason">
@@ -132,7 +133,7 @@ export function LeaveForm({
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" variant="primary" disabled={days <= 0}>
+          <Button type="submit" variant="primary" disabled={!canSubmit}>
             Submit request
           </Button>
         </div>

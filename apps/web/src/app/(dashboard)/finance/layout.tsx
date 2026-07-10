@@ -2,13 +2,23 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Wallet, BookOpen, TrendingDown, TrendingUp, Clock } from "lucide-react";
+import {
+  Wallet,
+  BookOpen,
+  TrendingDown,
+  TrendingUp,
+  Clock,
+  ShoppingCart,
+  ArrowLeftRight,
+} from "lucide-react";
 
 const TABS = [
   { id: "coa", label: "Chart of Accounts", path: "/finance/accounts", icon: BookOpen },
   { id: "gl", label: "Journal Entries", path: "/finance/journal-entries", icon: Wallet },
   { id: "ap", label: "AP Payable", path: "/finance/invoices", icon: TrendingDown },
   { id: "ar", label: "AR Receivable", path: "/finance/ar-invoices", icon: TrendingUp },
+  { id: "so", label: "Sales Orders", path: "/finance/sales-orders", icon: ShoppingCart },
+  { id: "ic", label: "Intercompany", path: "/finance/intercompany", icon: ArrowLeftRight },
   { id: "periods", label: "Fiscal Periods", path: "/finance/fiscal-periods", icon: Clock },
   { id: "aging", label: "Aging Report", path: "/finance/aging-report", icon: Clock },
 ];
@@ -24,7 +34,7 @@ export default function FinanceLayout({ children }: { children: React.ReactNode 
         <h1 className="text-[15px] font-semibold text-slate-900">Finance</h1>
       </div>
       <p className="text-[12px] text-slate-500 mb-5">
-        GL · AP · AR · Aging Report · Fiscal Periods
+        GL · AP · AR · Sales Orders · Intercompany · Fiscal Periods
       </p>
 
       {/* Tab navigation */}

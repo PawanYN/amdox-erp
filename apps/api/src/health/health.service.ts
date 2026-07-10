@@ -1,9 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { prisma } from '@amdox/db';
+import { RedisService } from '../common/redis/redis.service';
 
 @Injectable()
 export class HealthService {
   private readonly logger = new Logger(HealthService.name);
+
+  constructor(private readonly redis: RedisService) {}
 
   async checkLiveness() {
     return { status: 'ok' };
@@ -37,18 +40,21 @@ export class HealthService {
       keycloakStatus = 'disconnected';
     }
 
-    // 3. Check Redis (Placeholder for future setup)
+    // 3. Check Redis
     try {
-      // TODO: Connect redis client ping check here
-      redisStatus = 'connected';
+      const pong = await this.redis.ping();
+      redisStatus = pong === 'PONG' ? 'connected' : 'disconnected';
     } catch {
       redisStatus = 'disconnected';
     }
 
-    // 4. Check Elasticsearch (Placeholder for future setup)
+    // 4. Check Elasticsearch
     try {
-      // TODO: Connect elasticsearch client ping check here
-      esStatus = 'connected';
+      const esUrl = process.env.ELASTICSEARCH_URL || 'http://localhost:9200';
+      const response = await fetch(`${esUrl}/_cluster/health`, {
+        signal: AbortSignal.timeout(3000),
+      });
+      esStatus = response.ok ? 'connected' : 'unreachable';
     } catch {
       esStatus = 'disconnected';
     }

@@ -17,11 +17,20 @@ export interface Employee {
   reportsToId: string | null; // Employee.id of manager, null for top of org
   status: EmployeeStatus;
   dateOfBirth?: string;
+  /** Monthly gross salary. Backs the employee's EmploymentContract, which payroll reads from. */
+  salary?: number;
+  currencyCode?: string;
 }
 
 /** Payload from the add-employee wizard (extends API-bound fields with form-only data). */
 export type NewEmployeeInput = Omit<Employee, "id" | "status"> & {
   dateOfBirth?: string;
+  /** ERP system role when portal login is enabled */
+  systemRole?: "TenantAdmin" | "Manager" | "Viewer" | "Employee";
+  /** When false, only HR record is created — no login */
+  provideErpAccess?: boolean;
+  /** ERP sidebar tabs this person can access (when empty, inherits department defaults) */
+  allowedModules?: string[];
 };
 
 export type LeaveType = "Sick Leave" | "Earned Leave" | "Casual Leave" | "Unpaid Leave";

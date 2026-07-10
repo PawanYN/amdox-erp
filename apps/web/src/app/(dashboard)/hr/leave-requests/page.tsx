@@ -1,12 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, CalendarDays, Clock, CheckCircle, XCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { CalendarDays } from "lucide-react";
 import { LeaveRequest } from "@/lib/types";
-import { apiClient } from "@/lib/api/client";
-import { currentUser } from "@/lib/current-user";
-import { LeaveForm } from "./leave-form";
+import { useKeycloak } from "@/components/KeycloakProvider";
+import { hrApi } from "@/lib/api/hr-api";
 import { LeaveTable } from "./leave-table";
 
 type RawLeaveRequest = {
@@ -20,85 +18,106 @@ type RawLeaveRequest = {
   status: string;
 };
 
+type MeProfile = {
+  id: string;
+  fullName?: string;
+};
+
+function formatLeaveRequests(data: RawLeaveRequest[]): LeaveRequest[] {
+  return data.map((d) => ({
+    id: d.id,
+    employeeId: d.employeeId,
+    employeeName: d.employee?.fullName || "Unknown",
+    leaveType: (d.leaveType?.name || "Leave") as LeaveRequest["leaveType"],
+    fromDate: new Date(d.startDate).toISOString().split("T")[0],
+    toDate: new Date(d.endDate).toISOString().split("T")[0],
+    days: Math.max(
+      1,
+      Math.ceil(
+        (new Date(d.endDate).getTime() - new Date(d.startDate).getTime()) / (1000 * 60 * 60 * 24),
+      ),
+    ),
+    reason: d.reason || "No reason",
+    status: (d.status.charAt(0).toUpperCase() +
+      d.status.slice(1).toLowerCase()) as LeaveRequest["status"],
+  }));
+}
+
+function rolesFromToken(token: string | undefined): string[] {
+  if (!token) return [];
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.realm_access?.roles || [];
+  } catch {
+    return [];
+  }
+}
+
+function canApproveLeave(roles: string[]): boolean {
+  const normalized = roles.map((r) => r.toLowerCase().replace(/\s+/g, "_"));
+  return (
+    normalized.includes("manager") ||
+    normalized.includes("tenant_admin") ||
+    normalized.includes("tenantadmin") ||
+    normalized.includes("superadmin")
+  );
+}
+
 export default function LeaveRequestsPage() {
+  const { token } = useKeycloak();
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
-  const [formOpen, setFormOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<MeProfile | null>(null);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [listError, setListError] = useState<string | null>(null);
+
+  const roles = rolesFromToken(token);
+  const canApprove = canApproveLeave(roles);
 
   useEffect(() => {
-    async function loadRequests() {
+    if (!token) return;
+
+    async function load() {
+      setLoading(true);
+      setProfileError(null);
+      setListError(null);
+
       try {
-        const data: RawLeaveRequest[] = await apiClient("/leave/all-requests");
-        const formatted = data.map((d) => ({
-          id: d.id,
-          employeeId: d.employeeId,
-          employeeName: d.employee?.fullName || "Unknown",
-          leaveType: (d.leaveType?.name || "Leave") as LeaveRequest["leaveType"],
-          fromDate: new Date(d.startDate).toISOString().split("T")[0],
-          toDate: new Date(d.endDate).toISOString().split("T")[0],
-          days: Math.max(
-            1,
-            Math.ceil(
-              (new Date(d.endDate).getTime() - new Date(d.startDate).getTime()) /
-                (1000 * 60 * 60 * 24),
-            ),
-          ),
-          reason: d.reason || "No reason",
-          status: (d.status.charAt(0).toUpperCase() +
-            d.status.slice(1).toLowerCase()) as LeaveRequest["status"],
-        }));
-        setRequests(formatted);
+        const me = await hrApi.getMe();
+        if (!me?.id) {
+          setProfileError("Could not resolve your employee profile.");
+        } else {
+          setProfile({ id: me.id, fullName: me.fullName });
+        }
+      } catch (err) {
+        setProfileError(
+          err instanceof Error ? err.message : "Failed to load your employee profile.",
+        );
+      }
+
+      try {
+        const data: RawLeaveRequest[] = await hrApi.getAllLeaveRequests();
+        setRequests(formatLeaveRequests(data));
       } catch (err) {
         console.error(err);
+        setListError(err instanceof Error ? err.message : "Failed to load leave requests.");
       } finally {
         setLoading(false);
       }
     }
-    loadRequests();
-  }, []);
 
-  async function handleCreate(newRequest: Omit<LeaveRequest, "id" | "status">) {
-    const leaveTypeMap: Record<string, string> = {
-      "Earned Leave": "annual",
-      "Casual Leave": "annual",
-      "Sick Leave": "sick",
-      "Unpaid Leave": "unpaid",
-    };
-
-    const payload = {
-      employeeId: String(newRequest.employeeId || ""),
-      leaveType: String(leaveTypeMap[String(newRequest.leaveType)] || "annual"),
-      startDate: String(newRequest.fromDate || ""),
-      endDate: String(newRequest.toDate || ""),
-      reason: String(newRequest.reason || "No reason provided"),
-    };
-
-    try {
-      const res = await apiClient("/leave", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
-      const created = res.data || res;
-      setRequests((prev) => [
-        {
-          ...newRequest,
-          id: created.id || `LR-${String(prev.length + 1).padStart(3, "0")}`,
-          status: created.status || "Pending",
-        },
-        ...prev,
-      ]);
-      setFormOpen(false);
-    } catch (err) {
-      const errMsg = err instanceof Error ? err.message : "Failed to create leave request.";
-      alert(`Error: ${errMsg}`);
-    }
-  }
+    load();
+  }, [token]);
 
   async function handleApprove(id: string) {
+    if (!profile?.id) {
+      alert("Your employee profile is not loaded. Cannot approve leave.");
+      return;
+    }
     try {
-      await apiClient(`/leave/${id}/approve`, {
-        method: "PATCH",
-        body: JSON.stringify({ status: "approved", managerEmployeeId: currentUser.employeeId }),
+      await hrApi.approveLeaveRequest(id, {
+        status: "approved",
+        managerEmployeeId: profile.id,
       });
       setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: "Approved" } : r)));
     } catch (err) {
@@ -107,11 +126,12 @@ export default function LeaveRequestsPage() {
   }
 
   async function handleReject(id: string) {
+    if (!profile?.id) {
+      alert("Your employee profile is not loaded. Cannot reject leave.");
+      return;
+    }
     try {
-      await apiClient(`/leave/${id}/approve`, {
-        method: "PATCH",
-        body: JSON.stringify({ status: "rejected", managerEmployeeId: currentUser.employeeId }),
-      });
+      await hrApi.rejectLeaveRequest(id, profile.id);
       setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: "Rejected" } : r)));
     } catch (err) {
       alert(`Error rejecting leave: ${err instanceof Error ? err.message : "unknown error"}`);
@@ -132,46 +152,61 @@ export default function LeaveRequestsPage() {
           </h1>
           <p className="page-subtitle mt-1">Approval workflow for employee leave applications</p>
         </div>
-        <Button icon={<Plus size={16} />} onClick={() => setFormOpen(true)}>
-          Apply for Leave
-        </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div className="bg-white rounded-lg border border-slate-200 shadow-card p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-1.5">
-            Total
-          </p>
-          <p className="text-2xl font-semibold text-slate-900">{requests.length}</p>
+      {profileError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {profileError}
         </div>
-        <div className="bg-amber-50 rounded-lg border border-amber-100 p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-amber-600 mb-1.5">
-            Pending
-          </p>
-          <p className="text-2xl font-semibold text-amber-700">{pending}</p>
+      )}
+      {listError && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          {listError}
         </div>
-        <div className="bg-emerald-50 rounded-lg border border-emerald-100 p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-emerald-600 mb-1.5">
-            Approved
-          </p>
-          <p className="text-2xl font-semibold text-emerald-700">{approved}</p>
+      )}
+      {loading && (
+        <div className="rounded-lg border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-500">
+          Loading leave requests…
         </div>
-        <div className="bg-red-50 rounded-lg border border-red-100 p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-red-500 mb-1.5">
-            Rejected
-          </p>
-          <p className="text-2xl font-semibold text-red-600">{rejected}</p>
-        </div>
-      </div>
+      )}
 
-      <LeaveTable
-        requests={requests}
-        currentUserRole={currentUser.role}
-        onApprove={handleApprove}
-        onReject={handleReject}
-      />
+      {!loading && (
+        <>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div className="bg-white rounded-lg border border-slate-200 shadow-card p-5">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-1.5">
+                Total
+              </p>
+              <p className="text-2xl font-semibold text-slate-900">{requests.length}</p>
+            </div>
+            <div className="bg-amber-50 rounded-lg border border-amber-100 p-5">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-amber-600 mb-1.5">
+                Pending
+              </p>
+              <p className="text-2xl font-semibold text-amber-700">{pending}</p>
+            </div>
+            <div className="bg-emerald-50 rounded-lg border border-emerald-100 p-5">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-emerald-600 mb-1.5">
+                Approved
+              </p>
+              <p className="text-2xl font-semibold text-emerald-700">{approved}</p>
+            </div>
+            <div className="bg-red-50 rounded-lg border border-red-100 p-5">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-red-500 mb-1.5">
+                Rejected
+              </p>
+              <p className="text-2xl font-semibold text-red-600">{rejected}</p>
+            </div>
+          </div>
 
-      <LeaveForm open={formOpen} onClose={() => setFormOpen(false)} onCreate={handleCreate} />
+          <LeaveTable
+            requests={requests}
+            canApprove={canApprove && !!profile?.id}
+            onApprove={handleApprove}
+            onReject={handleReject}
+          />
+        </>
+      )}
     </div>
   );
 }

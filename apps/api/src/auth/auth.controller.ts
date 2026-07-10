@@ -1,31 +1,27 @@
-/**
- * CONTROLLER: auth.controller.ts
- *
- * This file acts as the "Traffic Cop". It receives incoming HTTP requests (like GET or POST)
- * from the frontend, reads the URL, and forwards the work to the correct Service file.
- * DO NOT put heavy database logic here!
- */
 import { Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { RedisService } from '../common/redis/redis.service';
+import { AccessService } from './access.service';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly redisService: RedisService) {}
+  constructor(
+    private readonly redisService: RedisService,
+    private readonly accessService: AccessService,
+  ) {}
 
   @UseGuards(AuthGuard('keycloak'))
   @Get('me')
   async me(@Req() req: any) {
     const user = req.user;
-    // Normalize role names the same way RolesGuard does (strip spaces)
-    const roles: string[] = (user?.userRoles ?? []).map((ur: any) =>
-      ur.role.name.replace(/\s+/g, ''),
-    );
+    const access = await this.accessService.resolveForUser(user);
     return {
       email: user?.email,
       fullName: user?.fullName,
       tenantId: user?.tenantId,
-      roles,
+      roles: access.roles,
+      modules: access.modules,
+      department: access.department,
     };
   }
 

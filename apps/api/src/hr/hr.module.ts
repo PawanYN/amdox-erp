@@ -1,6 +1,6 @@
 /**
  * MODULE: hr.module.ts
- * 
+ *
  * This file bundles together all the controllers and services for this specific feature.
  * It acts as the "glue" that tells NestJS how these files depend on each other.
  */
@@ -20,11 +20,15 @@ import { TaxSlabService } from './payroll/tax-slab.service';
 import { PayrollProcessor } from './payroll/payroll.processor';
 import { PayslipGenerator } from './payroll/payslip-generator';
 import { LeaveStateMachine } from './leave/leave-state-machine';
+import { ComplianceController } from './compliance/compliance.controller';
+import { ComplianceService } from './compliance/compliance.service';
 
 import { TenantModule } from '../tenant/tenant.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
+    AuthModule,
     BullModule.registerQueue({
       name: 'payroll',
     }),
@@ -36,6 +40,7 @@ import { TenantModule } from '../tenant/tenant.module';
     LeaveController,
     AttendanceController,
     PayrollController,
+    ComplianceController,
   ],
   providers: [
     DepartmentService,
@@ -47,6 +52,7 @@ import { TenantModule } from '../tenant/tenant.module';
     TaxSlabService,
     PayrollProcessor,
     PayslipGenerator,
+    ComplianceService,
   ],
 })
-export class HrModule { }
+export class HrModule {}

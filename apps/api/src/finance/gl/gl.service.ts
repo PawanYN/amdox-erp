@@ -37,6 +37,77 @@ export class GlService {
   }
 
   /**
+   * The default chart-of-accounts codes the automated GL postings rely on.
+   * Kept in one place so every auto-posting path (AP, AR, payments, payroll)
+   * references the same standard accounts.
+   */
+  private static readonly STANDARD_ACCOUNTS: Record<
+    string,
+    { name: string; type: 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE' }
+  > = {
+    '1000': { name: 'Cash', type: 'ASSET' },
+    '1200': { name: 'Accounts Receivable', type: 'ASSET' },
+    '1300': { name: 'Inventory', type: 'ASSET' },
+    '2000': { name: 'Accounts Payable', type: 'LIABILITY' },
+    '2100': { name: 'Payroll Payable', type: 'LIABILITY' },
+    '4000': { name: 'Sales Revenue', type: 'REVENUE' },
+    '6000': { name: 'Salary Expense', type: 'EXPENSE' },
+  };
+
+  /**
+   * WHAT: Infers an account type from the leading digit of its code, following the
+   * conventional chart-of-accounts numbering (1xxx assets, 2xxx liabilities, etc.).
+   * WHY: Lets us auto-create an account for any code that isn't in the static map,
+   * so a valid posting is never blocked just because a code wasn't pre-registered.
+   */
+  private static inferAccountType(
+    code: string,
+  ): 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE' {
+    switch (code.trim().charAt(0)) {
+      case '1':
+        return 'ASSET';
+      case '2':
+        return 'LIABILITY';
+      case '3':
+        return 'EQUITY';
+      case '4':
+        return 'REVENUE';
+      default:
+        return 'EXPENSE'; // 5xxx / 6xxx and anything else
+    }
+  }
+
+  /**
+   * WHAT: Returns the GL account for `code`, DB-first — using an existing account if
+   * present, otherwise creating one on demand.
+   * WHY: The chart of accounts (the `Account` table) is the source of truth. Auto-
+   * postings must use whatever account exists there; they must NOT reject a valid,
+   * existing account just because its code isn't in the static `STANDARD_ACCOUNTS`
+   * map. That map is now only a source of nice default names/types when an account
+   * has to be auto-created; unknown codes fall back to a name/type inferred from the
+   * code prefix so no posting ever fails with "Unknown standard account code".
+   */
+  private async ensureStandardAccount(tenantId: string, code: string) {
+    // 1. Source of truth: use the account from the chart of accounts if it exists.
+    const existing = await prisma.account.findUnique({
+      where: { tenantId_code: { tenantId, code } },
+    });
+    if (existing) return existing;
+
+    // 2. Not found — auto-create it, preferring the standard map for name/type and
+    //    falling back to a code-inferred default so a valid posting is never blocked.
+    const def = GlService.STANDARD_ACCOUNTS[code] ?? {
+      name: `Account ${code}`,
+      type: GlService.inferAccountType(code),
+    };
+    return prisma.account.upsert({
+      where: { tenantId_code: { tenantId, code } },
+      update: {},
+      create: { tenantId, code, name: def.name, type: def.type, isActive: true },
+    });
+  }
+
+  /**
    * WHAT: Retrieves all active accounts in the Chart of Accounts.
    * WHY: Required for drop-downs in the UI when creating manual journal entries or mapping items.
    */
@@ -45,6 +116,40 @@ export class GlService {
       where: { tenantId, isActive: true },
       orderBy: { code: 'asc' },
     });
+  }
+
+  /**
+   * WHAT: Returns per-account GL balances by summing posted journal lines (debit − credit).
+   * WHY: Chart of Accounts KPIs and row balances need live ledger totals, not metadata-only CoA rows.
+   */
+  async getAccountBalances(tenantId: string) {
+    const accounts = await prisma.account.findMany({
+      where: { tenantId, isActive: true },
+      select: { id: true, code: true },
+      orderBy: { code: 'asc' },
+    });
+
+    const aggregates = await prisma.journalLine.groupBy({
+      by: ['accountId'],
+      where: {
+        tenantId,
+        journalEntry: { status: 'POSTED', deletedAt: null },
+      },
+      _sum: { debit: true, credit: true },
+    });
+
+    const balanceByAccountId = new Map(
+      aggregates.map((row) => [
+        row.accountId,
+        Number(row._sum.debit ?? 0) - Number(row._sum.credit ?? 0),
+      ]),
+    );
+
+    return accounts.map((account) => ({
+      accountId: account.id,
+      code: account.code,
+      balance: balanceByAccountId.get(account.id) ?? 0,
+    }));
   }
 
   /**
@@ -206,6 +311,15 @@ export class GlService {
     const amount = Number(invoice.totalAmount);
     if (amount <= 0) return;
 
+    // Prevent duplicate GL postings if invoice.approved is delivered more than once.
+    const duplicate = await prisma.journalEntry.findFirst({
+      where: { tenantId: event.tenantId, sourceModule: 'AP', sourceId: invoice.id },
+    });
+    if (duplicate) {
+      this.logger.debug(`GL entry for AP invoice ${invoice.id} already exists — skipping.`);
+      return;
+    }
+
     // 2. Fetch or create current Fiscal Period (e.g., '2026-07')
     const now = new Date();
     const periodName = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -221,21 +335,13 @@ export class GlService {
       );
     }
 
-    // 3. Fetch standard Accounts (1300 = Inventory, 2000 = AP)
-    const invAccount = await prisma.account.findUnique({
-      where: { tenantId_code: { tenantId: event.tenantId, code: '1300' } },
-    });
-    const apAccount = await prisma.account.findUnique({
-      where: { tenantId_code: { tenantId: event.tenantId, code: '2000' } },
-    });
-
-    if (!invAccount || !apAccount) {
-      AmdoxLogger.critical(
-        'GL accounts 1300/2000 missing — AP invoice cannot be posted',
-        `tenant=${event.tenantId}`,
-      );
-      return;
-    }
+    // 3. Fetch standard Accounts (1300 = Inventory, 2000 = AP), creating them
+    // on first use so the AP → GL posting never silently no-ops for a tenant
+    // whose chart of accounts wasn't pre-seeded.
+    const [invAccount, apAccount] = await Promise.all([
+      this.ensureStandardAccount(event.tenantId, '1300'),
+      this.ensureStandardAccount(event.tenantId, '2000'),
+    ]);
 
     // 4. Create the Journal Entry
     try {
@@ -335,19 +441,10 @@ export class GlService {
     amount: number,
   ) {
     const period = await this.getOrCreateCurrentFiscalPeriod(tenantId);
-    const debitAccount = await prisma.account.findUnique({
-      where: { tenantId_code: { tenantId, code: debitAccountCode } },
-    });
-    const creditAccount = await prisma.account.findUnique({
-      where: { tenantId_code: { tenantId, code: creditAccountCode } },
-    });
-
-    if (!debitAccount || !creditAccount) {
-      this.logger.error(
-        `GL accounts ${debitAccountCode}/${creditAccountCode} not found for tenant ${tenantId}`,
-      );
-      return;
-    }
+    const [debitAccount, creditAccount] = await Promise.all([
+      this.ensureStandardAccount(tenantId, debitAccountCode),
+      this.ensureStandardAccount(tenantId, creditAccountCode),
+    ]);
 
     await this.createJournalEntry(tenantId, {
       fiscalPeriodId: period.id,
@@ -377,6 +474,15 @@ export class GlService {
 
     const amount = Number(invoice.totalAmount);
     if (amount <= 0) return;
+
+    // Prevent duplicate revenue postings if invoice.issued is delivered more than once.
+    const duplicate = await prisma.journalEntry.findFirst({
+      where: { tenantId: event.tenantId, sourceModule: 'AR', sourceId: invoice.id },
+    });
+    if (duplicate) {
+      this.logger.debug(`GL revenue entry for AR invoice ${invoice.id} already exists — skipping.`);
+      return;
+    }
 
     try {
       await this.postArGlEntry(
@@ -443,28 +549,8 @@ export class GlService {
 
     // Upsert payroll-specific accounts if they don't exist yet
     const [salaryAccount, payrollPayableAccount] = await Promise.all([
-      prisma.account.upsert({
-        where: { tenantId_code: { tenantId: event.tenantId, code: '6000' } },
-        update: {},
-        create: {
-          tenantId: event.tenantId,
-          code: '6000',
-          name: 'Salary Expense',
-          type: 'EXPENSE',
-          isActive: true,
-        },
-      }),
-      prisma.account.upsert({
-        where: { tenantId_code: { tenantId: event.tenantId, code: '2100' } },
-        update: {},
-        create: {
-          tenantId: event.tenantId,
-          code: '2100',
-          name: 'Payroll Payable',
-          type: 'LIABILITY',
-          isActive: true,
-        },
-      }),
+      this.ensureStandardAccount(event.tenantId, '6000'),
+      this.ensureStandardAccount(event.tenantId, '2100'),
     ]);
 
     try {
@@ -513,6 +599,15 @@ export class GlService {
     const amount = event.amount ?? Number(payment.amount);
     if (amount <= 0) return;
 
+    // Prevent duplicate GL postings if payment.received is delivered more than once.
+    const duplicate = await prisma.journalEntry.findFirst({
+      where: { tenantId: event.tenantId, sourceModule: 'AR', sourceId: payment.id },
+    });
+    if (duplicate) {
+      this.logger.debug(`GL entry for AR payment ${payment.id} already exists — skipping.`);
+      return;
+    }
+
     try {
       await this.postArGlEntry(
         event.tenantId,
@@ -555,6 +650,15 @@ export class GlService {
 
     const amount = event.amount ?? Number(payment.amount);
     if (amount <= 0) return;
+
+    // Prevent duplicate GL postings if payment.made is delivered more than once.
+    const duplicate = await prisma.journalEntry.findFirst({
+      where: { tenantId: event.tenantId, sourceModule: 'AP', sourceId: payment.id },
+    });
+    if (duplicate) {
+      this.logger.debug(`GL entry for AP payment ${payment.id} already exists — skipping.`);
+      return;
+    }
 
     try {
       await this.postArGlEntry(

@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, Flag, Users, Wallet, Pencil } from "lucide-react";
+import { ChevronLeft, Flag, Users, Wallet, Pencil, Trash2, Archive } from "lucide-react";
 import { pmApi } from "@/lib/api/pm-api";
 import { Button } from "@/components/ui/button";
 import { Modal, inputClasses } from "@/components/ui/modal";
@@ -59,6 +59,7 @@ type ProjectData = {
 
 export default function ProjectDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const projectId = params.id as string;
   const [data, setData] = useState<ProjectData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -70,6 +71,10 @@ export default function ProjectDetailPage() {
   const [editStart, setEditStart] = useState("");
   const [editEnd, setEditEnd] = useState("");
   const [saving, setSaving] = useState(false);
+  const [editingMilestoneId, setEditingMilestoneId] = useState<string | null>(null);
+  const [milestoneNameEdit, setMilestoneNameEdit] = useState("");
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [taskTitleEdit, setTaskTitleEdit] = useState("");
 
   const load = useCallback(() => {
     pmApi
@@ -122,6 +127,85 @@ export default function ProjectDetailPage() {
     }
   }
 
+  async function handleCloseProject() {
+    if (!data || !confirm(`Close "${data.name}"? Status will be set to COMPLETED.`)) return;
+    try {
+      await pmApi.closeProject(projectId);
+      load();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to close project.");
+    }
+  }
+
+  async function handleDeleteProject() {
+    if (
+      !data ||
+      !confirm(
+        `Delete "${data.name}" and all milestones, tasks, budgets, and allocations?\n\nThis cannot be undone.`,
+      )
+    )
+      return;
+    try {
+      await pmApi.deleteProject(projectId);
+      router.push("/projects/overview");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete project.");
+    }
+  }
+
+  async function handleSaveMilestone(milestoneId: string) {
+    if (!milestoneNameEdit.trim()) return;
+    try {
+      await pmApi.updateMilestone(projectId, milestoneId, { name: milestoneNameEdit.trim() });
+      setEditingMilestoneId(null);
+      load();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to update milestone.");
+    }
+  }
+
+  async function handleDeleteMilestone(milestoneId: string, name: string) {
+    if (!confirm(`Delete milestone "${name}"? Linked tasks will be kept without this milestone.`))
+      return;
+    try {
+      await pmApi.deleteMilestone(projectId, milestoneId);
+      load();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete milestone.");
+    }
+  }
+
+  async function handleSaveTask(taskId: string) {
+    if (!taskTitleEdit.trim()) return;
+    try {
+      await pmApi.updateTask(taskId, { title: taskTitleEdit.trim() });
+      setEditingTaskId(null);
+      load();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to update task.");
+    }
+  }
+
+  async function handleDeleteTask(taskId: string, title: string) {
+    if (!confirm(`Delete task "${title}" and its allocations?`)) return;
+    try {
+      await pmApi.deleteTask(taskId);
+      load();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete task.");
+    }
+  }
+
+  async function handleDeleteResource(allocationId: string, name: string) {
+    if (!confirm(`Remove allocation for ${name}?`)) return;
+    try {
+      await pmApi.deleteAllocation(allocationId);
+      load();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to remove allocation.");
+    }
+  }
+
   if (loading) return <p className="text-sm text-muted">Loading project…</p>;
   if (error) return <p className="text-sm text-red-600">{error}</p>;
   if (!data) return null;
@@ -136,22 +220,37 @@ export default function ProjectDetailPage() {
       </Link>
 
       <div className="border border-[#E4E2DC] rounded-lg p-4 bg-white">
-        <div className="flex items-start justify-between gap-3">
-          <div>
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="min-w-0 flex-1">
             <h2 className="text-base font-semibold text-[#14171F]">{data.name}</h2>
             <p className="text-[12px] text-[#8A8678] mt-1">{data.status}</p>
             {data.description && (
               <p className="text-[13px] text-[#4A4740] mt-2">{data.description}</p>
             )}
           </div>
-          {data.budget?.isOverrun && (
-            <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#B4533B]/10 text-[#B4533B]">
-              Budget overrun
-            </span>
-          )}
-          <Button variant="outline" icon={<Pencil size={14} />} onClick={openEdit}>
-            Edit
-          </Button>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {data.budget?.isOverrun && (
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#B4533B]/10 text-[#B4533B]">
+                Budget overrun
+              </span>
+            )}
+            <Button variant="outline" icon={<Pencil size={14} />} onClick={openEdit}>
+              Edit
+            </Button>
+            {data.status !== "COMPLETED" && data.status !== "CANCELLED" && (
+              <Button variant="outline" icon={<Archive size={14} />} onClick={handleCloseProject}>
+                Close
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              icon={<Trash2 size={14} />}
+              onClick={handleDeleteProject}
+              className="text-red-600 border-red-200 hover:bg-red-50"
+            >
+              Delete
+            </Button>
+          </div>
         </div>
         {data.budget && (
           <div className="mt-3 flex items-center gap-2 text-[12px] text-[#8A8678]">
@@ -173,21 +272,70 @@ export default function ProjectDetailPage() {
             data.milestones.map((m) => (
               <div
                 key={m.id}
-                className={`flex items-center justify-between border rounded-lg px-3 py-2 text-[13px] ${
+                className={`flex items-center justify-between gap-2 border rounded-lg px-3 py-2 text-[13px] ${
                   m.isOverdue ? "border-[#B4533B]/40 bg-[#B4533B]/5" : "border-[#E4E2DC] bg-white"
                 }`}
               >
-                <span className={m.isAchieved ? "line-through text-[#8A8678]" : "text-[#14171F]"}>
-                  {m.name} · {new Date(m.dueDate).toLocaleDateString()}
-                </span>
-                {!m.isAchieved && (
-                  <button
-                    onClick={() => onAchieve(m.id)}
-                    className="text-[11px] px-2 py-1 rounded border border-[#2F6B4F] text-[#2F6B4F] hover:bg-[#2F6B4F] hover:text-white"
-                  >
-                    Achieve
-                  </button>
-                )}
+                <div className="flex-1 min-w-0">
+                  {editingMilestoneId === m.id ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        className="flex-1 text-[13px] border border-[#E4E2DC] rounded px-2 py-1"
+                        value={milestoneNameEdit}
+                        onChange={(e) => setMilestoneNameEdit(e.target.value)}
+                      />
+                      <button
+                        onClick={() => handleSaveMilestone(m.id)}
+                        className="text-[11px] px-2 py-1 rounded border border-[#2F6B4F] text-[#2F6B4F]"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => setEditingMilestoneId(null)}
+                        className="text-[11px] px-2 py-1 rounded border border-[#E4E2DC]"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <span
+                      className={m.isAchieved ? "line-through text-[#8A8678]" : "text-[#14171F]"}
+                    >
+                      {m.name} · {new Date(m.dueDate).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  {!m.isAchieved && editingMilestoneId !== m.id && (
+                    <button
+                      onClick={() => onAchieve(m.id)}
+                      className="text-[11px] px-2 py-1 rounded border border-[#2F6B4F] text-[#2F6B4F] hover:bg-[#2F6B4F] hover:text-white"
+                    >
+                      Achieve
+                    </button>
+                  )}
+                  {editingMilestoneId !== m.id && (
+                    <>
+                      <button
+                        onClick={() => {
+                          setEditingMilestoneId(m.id);
+                          setMilestoneNameEdit(m.name);
+                        }}
+                        className="p-1.5 rounded text-[#8A8678] hover:bg-[#F0EEE7]"
+                        title="Edit milestone"
+                      >
+                        <Pencil size={13} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteMilestone(m.id, m.name)}
+                        className="p-1.5 rounded text-red-500 hover:bg-red-50"
+                        title="Delete milestone"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             ))
           )}
@@ -204,7 +352,29 @@ export default function ProjectDetailPage() {
               key={t.id}
               className="flex flex-wrap items-center gap-2 border border-[#E4E2DC] rounded-lg px-3 py-2 bg-white"
             >
-              <span className="flex-1 text-[13px] text-[#14171F] min-w-[120px]">{t.title}</span>
+              {editingTaskId === t.id ? (
+                <div className="flex flex-1 items-center gap-2 min-w-[200px]">
+                  <input
+                    className="flex-1 text-[13px] border border-[#E4E2DC] rounded px-2 py-1"
+                    value={taskTitleEdit}
+                    onChange={(e) => setTaskTitleEdit(e.target.value)}
+                  />
+                  <button
+                    onClick={() => handleSaveTask(t.id)}
+                    className="text-[11px] px-2 py-1 rounded border border-[#2F6B4F] text-[#2F6B4F]"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={() => setEditingTaskId(null)}
+                    className="text-[11px] px-2 py-1 rounded border border-[#E4E2DC]"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <span className="flex-1 text-[13px] text-[#14171F] min-w-[120px]">{t.title}</span>
+              )}
               {t.milestone && (
                 <span className="text-[10px] text-[#2F6B4F]">→ {t.milestone.name}</span>
               )}
@@ -219,6 +389,27 @@ export default function ProjectDetailPage() {
                   </option>
                 ))}
               </select>
+              {editingTaskId !== t.id && (
+                <>
+                  <button
+                    onClick={() => {
+                      setEditingTaskId(t.id);
+                      setTaskTitleEdit(t.title);
+                    }}
+                    className="p-1.5 rounded text-[#8A8678] hover:bg-[#F0EEE7]"
+                    title="Edit task"
+                  >
+                    <Pencil size={13} />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteTask(t.id, t.title)}
+                    className="p-1.5 rounded text-red-500 hover:bg-red-50"
+                    title="Delete task"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </>
+              )}
             </div>
           ))}
         </div>
@@ -238,6 +429,7 @@ export default function ProjectDetailPage() {
                   <th className="text-left px-3 py-2 text-[#8A8678]">Person</th>
                   <th className="text-left px-3 py-2 text-[#8A8678]">Task</th>
                   <th className="text-right px-3 py-2 text-[#8A8678]">Hours</th>
+                  <th className="text-right px-3 py-2 text-[#8A8678]">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -246,6 +438,15 @@ export default function ProjectDetailPage() {
                     <td className="px-3 py-2">{r.employeeName}</td>
                     <td className="px-3 py-2 text-[#8A8678]">{r.taskTitle ?? "—"}</td>
                     <td className="px-3 py-2 text-right font-mono">{r.allocatedHours}h</td>
+                    <td className="px-3 py-2 text-right">
+                      <button
+                        onClick={() => handleDeleteResource(r.id, r.employeeName)}
+                        className="p-1.5 rounded text-red-500 hover:bg-red-50 inline-flex"
+                        title="Remove allocation"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

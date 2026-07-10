@@ -3,12 +3,15 @@ import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { prisma } from '@amdox/db';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { ModuleGuard } from '../auth/guards/module.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { RequireModule } from '../auth/decorators/require-module.decorator';
 import { ForecastClientService } from './forecast.service';
 
 @ApiTags('AI Demand Forecasting')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('keycloak'), RolesGuard)
+@RequireModule('forecast')
+@UseGuards(AuthGuard('keycloak'), RolesGuard, ModuleGuard)
 @Controller('forecast')
 export class ForecastController {
   constructor(private readonly forecastService: ForecastClientService) {}

@@ -35,9 +35,8 @@ import { prisma } from '@amdox/db';
 import { CreatePurchaseOrderDto } from '../dto/create-purchase-order.dto';
 import { ReceiveGoodsDto } from '../dto/receive-goods.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
 import { VendorPortalService } from '../vendor-portal/vendor-portal.service';
+import { EmailChannel } from '../../notification/channels/email.channel';
 import { AmdoxLogger } from '../../common/logger/amdox-logger';
 
 @Injectable()
@@ -46,8 +45,8 @@ export class PurchaseService {
 
   constructor(
     private eventEmitter: EventEmitter2,
-    @InjectQueue('scm-events') private scmQueue: Queue,
     private vendorPortalService: VendorPortalService,
+    private emailChannel: EmailChannel,
   ) {}
 
   // --- Purchase Orders ---
@@ -141,6 +140,14 @@ export class PurchaseService {
         totalAmount: Number(updatedPo.totalAmount),
         portalUrl: '/vendor-portal',
         message: `Purchase order ${updatedPo.poNumber} is ready for supplier acknowledgement`,
+      });
+    }
+
+    if (po.vendor?.email) {
+      await this.emailChannel.send({
+        to: po.vendor.email,
+        subject: `PO ${updatedPo.poNumber} approved`,
+        body: `Purchase order ${updatedPo.poNumber} (total ${updatedPo.totalAmount}) has been approved. Please acknowledge via the vendor portal.`,
       });
     }
 
@@ -255,12 +262,13 @@ export class PurchaseService {
       return receipt;
     });
 
-    // 5. Enqueue heavy async task for Finance 3-way match
-    await this.scmQueue.add('goods.received', {
-      tenantId,
-      purchaseOrderId: id,
-      goodsReceiptId: result.id,
-    });
+    // 5. Notify Finance to auto-generate the AP invoice + run the 3-way match.
+    // NOTE: this is dispatched through the synchronous in-process event bus ONLY.
+    // Previously it was ALSO enqueued on the `scm-events` BullMQ queue, so both the
+    // ScmEventsWorker and the ScmFinanceBridgeListener called createInvoiceFromGoodsReceipt
+    // for the same goods receipt. They raced past the "already exists" idempotency check
+    // and created TWO approved AP invoices per receipt (double GL/budget posting). The
+    // queue path has been removed so exactly one invoice is created per goods receipt.
     this.eventEmitter.emit('goods.received', {
       tenantId,
       purchaseOrderId: id,

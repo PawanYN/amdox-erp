@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AuthModule } from '../auth/auth.module';
 import { ProjectController } from './project/project.controller';
 import { ProjectService } from './project/project.service';
 import { ResourceController } from './resource/resource.controller';
@@ -9,11 +10,8 @@ import { LaborCostBridgeListener } from './budget/labor-cost-bridge.listener';
 import { MilestoneOverdueScheduler } from './milestone-overdue.scheduler';
 
 @Module({
-  controllers: [
-    ProjectController,
-    ResourceController,
-    BudgetController
-  ],
+  imports: [AuthModule],
+  controllers: [ProjectController, ResourceController, BudgetController],
   providers: [
     ProjectService,
     ResourceService,
@@ -21,10 +19,6 @@ import { MilestoneOverdueScheduler } from './milestone-overdue.scheduler';
     LaborCostBridgeListener,
     MilestoneOverdueScheduler,
   ],
-  exports: [
-    ProjectService,
-    ResourceService,
-    BudgetService
-  ]
+  exports: [ProjectService, ResourceService, BudgetService],
 })
 export class PmModule {}

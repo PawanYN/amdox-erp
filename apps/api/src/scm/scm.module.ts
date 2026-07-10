@@ -19,16 +19,11 @@ import { RequisitionController } from './requisition/requisition.controller';
 import { RequisitionService } from './requisition/requisition.service';
 import { RequisitionListener } from './requisition/requisition.listener';
 import { VendorPortalModule } from './vendor-portal/vendor-portal.module';
-
-import { BullModule } from '@nestjs/bullmq';
+import { NotificationModule } from '../notification/notification.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [
-    BullModule.registerQueue({
-      name: 'scm-events',
-    }),
-    VendorPortalModule,
-  ],
+  imports: [AuthModule, VendorPortalModule, NotificationModule],
   controllers: [
     VendorController,
     ProductController,

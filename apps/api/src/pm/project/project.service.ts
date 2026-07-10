@@ -5,6 +5,7 @@ import { CreateTaskDto } from '../dto/create-task.dto';
 import { MaterialRequestDto } from '../dto/material-request.dto';
 import { CreateMilestoneDto } from '../dto/create-milestone.dto';
 import { UpdateMilestoneDto } from '../dto/update-milestone.dto';
+import { UpdateTaskDto } from '../dto/update-task.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { TaskStatus } from '@amdox/db';
 
@@ -128,21 +129,30 @@ export class ProjectService {
     };
   }
 
-  async updateTaskStatus(tenantId: string, taskId: string, status: TaskStatus) {
+  async updateTask(tenantId: string, taskId: string, dto: UpdateTaskDto) {
     const task = await prisma.task.findFirst({
       where: { id: taskId, tenantId },
     });
     if (!task) throw new NotFoundException('Task not found');
 
-    // tenant-scope-ok: `task` was just found via a tenantId-scoped findFirst above.
+    const data: Record<string, unknown> = {};
+    if (dto.status) data.status = dto.status;
+    if (dto.title !== undefined) data.title = dto.title.trim();
+    if (dto.startDate) data.startDate = new Date(dto.startDate);
+    if (dto.dueDate) data.dueDate = new Date(dto.dueDate);
+
     return prisma.task.update({
       where: { id: taskId },
-      data: { status },
+      data,
       include: {
         milestone: { select: { id: true, name: true } },
         project: { select: { id: true, name: true } },
       },
     });
+  }
+
+  async updateTaskStatus(tenantId: string, taskId: string, status: TaskStatus) {
+    return this.updateTask(tenantId, taskId, { status });
   }
 
   async listTasks(tenantId: string, projectId?: string) {
@@ -472,5 +482,161 @@ export class ProjectService {
       lineCount: dto.lines.length,
       message: 'Material request submitted to Supply Chain.',
     };
+  }
+
+  /** Read-only product list for PM material requests — no SCM module required. */
+  async listMaterialProducts(tenantId: string) {
+    return prisma.product.findMany({
+      where: { tenantId, deletedAt: null, isActive: true },
+      select: {
+        id: true,
+        sku: true,
+        name: true,
+        unitCost: true,
+      },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  /**
+   * Read-only view of SCM items requested/provided for projects — no SCM module required.
+   * Surfaces PurchaseRequisitions raised via requestMaterial() so PMs can see what SCM
+   * has been asked for and its fulfillment status, without needing SCM module access.
+   */
+  async listMaterialRequests(tenantId: string) {
+    const requisitions = await prisma.purchaseRequisition.findMany({
+      where: { tenantId, projectId: { not: null } },
+      include: {
+        project: { select: { id: true, name: true } },
+        lines: {
+          include: {
+            product: { select: { id: true, sku: true, name: true } },
+          },
+        },
+        purchaseOrders: { select: { id: true, poNumber: true, status: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return requisitions.map((r) => ({
+      id: r.id,
+      project: r.project,
+      reason: r.reason,
+      requestedBy: r.requestedBy,
+      createdAt: r.createdAt,
+      status: r.purchaseOrders[0]?.status ?? 'REQUESTED',
+      purchaseOrders: r.purchaseOrders,
+      lines: r.lines.map((l) => ({
+        id: l.id,
+        product: l.product,
+        quantity: l.quantity,
+        estimatedUnitPrice: l.estimatedUnitPrice,
+      })),
+    }));
+  }
+
+  async closeProject(tenantId: string, projectId: string) {
+    return this.updateProject(tenantId, projectId, { status: 'COMPLETED' });
+  }
+
+  async deleteProject(tenantId: string, projectId: string) {
+    const project = await prisma.project.findFirst({
+      where: { id: projectId, tenantId, deletedAt: null },
+    });
+    if (!project) throw new NotFoundException('Project not found');
+
+    await prisma.$transaction(async (tx) => {
+      const taskIds = (
+        await tx.task.findMany({
+          where: { tenantId, projectId },
+          select: { id: true },
+        })
+      ).map((t) => t.id);
+
+      if (taskIds.length > 0) {
+        await tx.taskDependency.deleteMany({
+          where: {
+            tenantId,
+            OR: [{ dependentTaskId: { in: taskIds } }, { prerequisiteTaskId: { in: taskIds } }],
+          },
+        });
+      }
+
+      await tx.resourceAllocation.deleteMany({ where: { tenantId, projectId } });
+      await tx.task.deleteMany({ where: { tenantId, projectId } });
+      await tx.milestone.deleteMany({ where: { tenantId, projectId } });
+
+      const budgetIds = (
+        await tx.projectBudget.findMany({
+          where: { tenantId, projectId },
+          select: { id: true },
+        })
+      ).map((b) => b.id);
+
+      if (budgetIds.length > 0) {
+        await tx.projectBudgetLine.deleteMany({
+          where: { tenantId, projectBudgetId: { in: budgetIds } },
+        });
+      }
+      await tx.projectBudget.deleteMany({ where: { tenantId, projectId } });
+
+      await tx.purchaseRequisition.updateMany({
+        where: { tenantId, projectId },
+        data: { projectId: null },
+      });
+      await tx.purchaseOrder.updateMany({
+        where: { tenantId, projectId },
+        data: { projectId: null },
+      });
+      await tx.invoice.updateMany({
+        where: { tenantId, projectId },
+        data: { projectId: null },
+      });
+
+      await tx.project.update({
+        where: { id: projectId },
+        data: { deletedAt: new Date(), status: 'CANCELLED' },
+      });
+    });
+
+    this.eventEmitter.emit('project.deleted', { tenantId, projectId });
+    return { deleted: true, projectId };
+  }
+
+  async deleteMilestone(tenantId: string, projectId: string, milestoneId: string) {
+    const existing = await prisma.milestone.findFirst({
+      where: { id: milestoneId, projectId, tenantId },
+    });
+    if (!existing) throw new NotFoundException('Milestone not found');
+
+    await prisma.$transaction([
+      prisma.task.updateMany({
+        where: { tenantId, milestoneId },
+        data: { milestoneId: null },
+      }),
+      prisma.milestone.delete({ where: { id: milestoneId } }),
+    ]);
+
+    return { deleted: true, milestoneId };
+  }
+
+  async deleteTask(tenantId: string, taskId: string) {
+    const task = await prisma.task.findFirst({
+      where: { id: taskId, tenantId },
+    });
+    if (!task) throw new NotFoundException('Task not found');
+
+    await prisma.$transaction(async (tx) => {
+      await tx.resourceAllocation.deleteMany({ where: { tenantId, taskId } });
+      await tx.taskDependency.deleteMany({
+        where: {
+          tenantId,
+          OR: [{ dependentTaskId: taskId }, { prerequisiteTaskId: taskId }],
+        },
+      });
+      await tx.task.delete({ where: { id: taskId } });
+    });
+
+    return { deleted: true, taskId };
   }
 }

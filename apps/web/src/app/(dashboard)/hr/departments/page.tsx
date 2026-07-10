@@ -6,12 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Modal, inputClasses } from "@/components/ui/modal";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { hrApi } from "@/lib/api/hr-api";
+import { MODULE_OPTIONS, defaultModulesForCode, type ErpModule } from "@/lib/erp-modules";
 
 type Department = {
   id: string;
   name: string;
   code: string;
   headId?: string | null;
+  allowedModules?: string[];
 };
 
 export default function DepartmentsPage() {
@@ -20,6 +22,7 @@ export default function DepartmentsPage() {
   const [editing, setEditing] = useState<Department | null>(null);
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
+  const [allowedModules, setAllowedModules] = useState<ErpModule[]>([]);
   const [loading, setLoading] = useState(false);
 
   const load = () => hrApi.getDepartments().then(setDepartments).catch(console.error);
@@ -32,6 +35,7 @@ export default function DepartmentsPage() {
     setEditing(null);
     setName("");
     setCode("");
+    setAllowedModules([]);
     setFormOpen(true);
   }
 
@@ -39,17 +43,36 @@ export default function DepartmentsPage() {
     setEditing(dept);
     setName(dept.name);
     setCode(dept.code);
+    setAllowedModules((dept.allowedModules ?? []) as ErpModule[]);
     setFormOpen(true);
+  }
+
+  function toggleModule(mod: ErpModule) {
+    setAllowedModules((prev) =>
+      prev.includes(mod) ? prev.filter((m) => m !== mod) : [...prev, mod],
+    );
+  }
+
+  function handleCodeChange(next: string) {
+    setCode(next);
+    if (!editing && allowedModules.length === 0) {
+      setAllowedModules(defaultModulesForCode(next));
+    }
   }
 
   async function handleSave() {
     if (!name.trim() || !code.trim()) return;
     setLoading(true);
     try {
+      const payload = {
+        name: name.trim(),
+        code: code.trim(),
+        allowedModules,
+      };
       if (editing) {
-        await hrApi.updateDepartment(editing.id, { name: name.trim(), code: code.trim() });
+        await hrApi.updateDepartment(editing.id, payload);
       } else {
-        await hrApi.createDepartment({ name: name.trim(), code: code.trim() });
+        await hrApi.createDepartment(payload);
       }
       await load();
       setFormOpen(false);
@@ -76,6 +99,16 @@ export default function DepartmentsPage() {
       cell: (d) => <span className="font-mono text-xs text-slate-600">{d.code}</span>,
     },
     { header: "Name", cell: (d) => <span className="font-semibold text-slate-900">{d.name}</span> },
+    {
+      header: "ERP Modules",
+      cell: (d) => (
+        <span className="text-[12px] text-slate-500">
+          {(d.allowedModules ?? []).length > 0
+            ? (d.allowedModules ?? []).join(", ")
+            : defaultModulesForCode(d.code).join(", ") || "—"}
+        </span>
+      ),
+    },
     {
       header: "Actions",
       cell: (d) => (
@@ -105,7 +138,9 @@ export default function DepartmentsPage() {
             <Building2 size={18} className="text-slate-500" />
             Departments
           </h1>
-          <p className="page-subtitle mt-1">Manage organizational departments</p>
+          <p className="page-subtitle mt-1">
+            Manage departments and which ERP modules their employees can access
+          </p>
         </div>
         <Button icon={<Plus size={16} />} onClick={openCreate}>
           New Department
@@ -131,7 +166,7 @@ export default function DepartmentsPage() {
               className={inputClasses}
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Engineering"
+              placeholder="e.g. Project Management"
             />
           </div>
           <div>
@@ -139,9 +174,38 @@ export default function DepartmentsPage() {
             <input
               className={inputClasses}
               value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder="e.g. ENG-001"
+              onChange={(e) => handleCodeChange(e.target.value)}
+              placeholder="e.g. PM, HR, FIN, SCM"
             />
+            <p className="text-[11px] text-slate-500 mt-1">
+              Standard codes (PM, HR, FIN, SCM) auto-suggest module access.
+            </p>
+          </div>
+          <div>
+            <label className="text-[12px] font-medium text-slate-600 block mb-2">
+              Allowed ERP modules
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {MODULE_OPTIONS.map((opt) => (
+                <label
+                  key={opt.id}
+                  className="flex items-start gap-2 rounded-md border border-slate-200 px-3 py-2 cursor-pointer hover:bg-slate-50"
+                >
+                  <input
+                    type="checkbox"
+                    className="mt-0.5"
+                    checked={allowedModules.includes(opt.id)}
+                    onChange={() => toggleModule(opt.id)}
+                  />
+                  <span>
+                    <span className="text-[13px] font-medium text-slate-800 block">
+                      {opt.label}
+                    </span>
+                    <span className="text-[11px] text-slate-500">{opt.description}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => setFormOpen(false)}>

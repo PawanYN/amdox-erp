@@ -21,6 +21,14 @@ import { ThrottlerGuard } from '@nestjs/throttler';
  */
 @Injectable()
 export class UserAwareThrottlerGuard extends ThrottlerGuard {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    // GraphQL uses Apollo's own context — no Express res.header(); skip throttling here.
+    if (context.getType<string>() === 'graphql') {
+      return true;
+    }
+    return super.canActivate(context);
+  }
+
   protected async getTracker(req: Record<string, any>): Promise<string> {
     const authHeader: string | undefined = req.headers?.authorization;
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined;

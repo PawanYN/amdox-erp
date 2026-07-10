@@ -12,7 +12,6 @@ import { api } from '../helpers/client.js';
 import { assertStatus, assertOk, assertHasKey } from '../helpers/assert.js';
 
 suite('Auth & RBAC', () => {
-
   test('GET /auth/me → 401 without token', async () => {
     const res = await fetch(`${api.BASE}/auth/me`);
     assertStatus({ status: res.status }, 401, 'No token → 401 on /auth/me');
@@ -22,8 +21,8 @@ suite('Auth & RBAC', () => {
     if (!api.hasToken()) return;
     const res = await api.get('/auth/me');
     assertOk(res, 'GET /auth/me');
-    assertHasKey(res.data, 'email',     '/auth/me email');
-    assertHasKey(res.data, 'tenantId',  '/auth/me tenantId');
+    assertHasKey(res.data, 'email', '/auth/me email');
+    assertHasKey(res.data, 'tenantId', '/auth/me tenantId');
     assertHasKey(res.data, 'roles', '/auth/me roles');
   });
 
@@ -53,9 +52,7 @@ suite('Auth & RBAC', () => {
     assertOk(accounts);
     // Each account must belong to the authenticated tenant
     const tenantId = me.data.tenantId;
-    const leaking = accounts.data.filter(
-      (a) => a.tenantId && a.tenantId !== tenantId,
-    );
+    const leaking = accounts.data.filter((a) => a.tenantId && a.tenantId !== tenantId);
     if (leaking.length > 0) {
       throw new Error(
         `TENANT ISOLATION BREACH: ${leaking.length} GL accounts belong to different tenant`,
@@ -64,16 +61,15 @@ suite('Auth & RBAC', () => {
   });
 
   test('SuperAdmin-only route returns 403 for non-SuperAdmin', async () => {
-    // /tenant/provision is restricted to SuperAdmin
+    // POST /tenant creates a tenant (TenantController @Post()) — relative to API_BASE (/api/v1)
     if (!api.hasToken()) return;
     const me = await api.get('/auth/me');
     assertOk(me);
     const roles = me.data.roles ?? [];
     if (roles.includes('SuperAdmin')) return; // would pass anyway
-    const res = await api.post('/tenant/provision', { name: 'test', slug: 'test' });
+    const res = await api.post('/tenant', { name: 'test', slug: 'test' });
     if (res.status === 200 || res.status === 201) {
       throw new Error('Non-SuperAdmin was able to provision a tenant — RBAC broken');
     }
   });
-
 });

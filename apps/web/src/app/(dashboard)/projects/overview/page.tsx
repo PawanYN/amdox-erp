@@ -2,9 +2,19 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Package, X, Loader2, FolderKanban, AlertTriangle, CheckCircle } from "lucide-react";
+import {
+  Package,
+  X,
+  Loader2,
+  FolderKanban,
+  AlertTriangle,
+  CheckCircle,
+  Pencil,
+  Trash2,
+  Archive,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
 import { pmApi } from "@/lib/api/pm-api";
-import { scmApi } from "@/lib/api/scm-api";
 
 type ProductOption = { id: string; name: string; sku: string; unitCost: number };
 
@@ -28,11 +38,19 @@ function MaterialRequestDialog({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    scmApi
-      .getProducts()
+    pmApi
+      .getMaterialProducts()
       .then((rows) => {
-        setProducts(rows);
-        if (rows[0]) setProductId(rows[0].id);
+        const mapped = rows.map(
+          (p: { id: string; name: string; sku: string; unitCost?: number | string }) => ({
+            id: p.id,
+            name: p.name,
+            sku: p.sku,
+            unitCost: Number(p.unitCost ?? 0),
+          }),
+        );
+        setProducts(mapped);
+        if (mapped[0]) setProductId(mapped[0].id);
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
@@ -92,8 +110,9 @@ function MaterialRequestDialog({
               <Loader2 size={14} className="animate-spin" /> Loading products…
             </p>
           ) : products.length === 0 ? (
-            <p className="text-[13px] text-red-500">
-              No products in catalog. Add products under SCM first.
+            <p className="text-[13px] text-amber-700 bg-amber-50 border border-amber-100 rounded-md px-3 py-2">
+              No products in the catalog yet. Ask your SCM team to add products under SCM → Products
+              (e.g. Office Table, Laptop Charger), then try again.
             </p>
           ) : (
             <div className="space-y-3">
@@ -175,19 +194,59 @@ type ProjectSummary = {
 };
 
 export default function ProjectsOverviewPage() {
+  const router = useRouter();
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [materialProject, setMaterialProject] = useState<{ id: string; name: string } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [actionId, setActionId] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadProjects = () => {
+    setLoading(true);
     pmApi
       .getProjects()
       .then(setProjects)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadProjects();
   }, []);
+
+  async function handleClose(project: ProjectSummary) {
+    if (!confirm(`Close "${project.name}"? It will be marked COMPLETED but data is kept.`)) return;
+    setActionId(project.id);
+    try {
+      await pmApi.closeProject(project.id);
+      setToast(`Project "${project.name}" closed.`);
+      loadProjects();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Failed to close project.");
+    } finally {
+      setActionId(null);
+    }
+  }
+
+  async function handleDelete(project: ProjectSummary) {
+    if (
+      !confirm(
+        `Permanently delete "${project.name}"?\n\nThis removes all milestones, tasks, budgets, and resource allocations for this project. This cannot be undone.`,
+      )
+    )
+      return;
+    setActionId(project.id);
+    try {
+      await pmApi.deleteProject(project.id);
+      setToast(`Project "${project.name}" deleted.`);
+      loadProjects();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Failed to delete project.");
+    } finally {
+      setActionId(null);
+    }
+  }
 
   if (loading)
     return <p className="text-[13px] text-slate-500 py-8 text-center">Loading projects…</p>;
@@ -264,15 +323,40 @@ export default function ProjectsOverviewPage() {
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                  <button
+                    onClick={() => router.push(`/projects/${p.id}`)}
+                    title="Edit project"
+                    className="inline-flex items-center gap-1 text-[12px] font-medium px-2.5 py-1.5 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
+                  >
+                    <Pencil size={12} /> Edit
+                  </button>
                   {p.status !== "COMPLETED" && p.status !== "CANCELLED" && (
-                    <button
-                      onClick={() => setMaterialProject({ id: p.id, name: p.name })}
-                      className="inline-flex items-center gap-1.5 text-[12px] font-medium px-2.5 py-1.5 rounded-md border border-amber-200 text-amber-700 hover:bg-amber-50 transition-colors"
-                    >
-                      <Package size={12} /> Request materials
-                    </button>
+                    <>
+                      <button
+                        onClick={() => handleClose(p)}
+                        disabled={actionId === p.id}
+                        title="Close project"
+                        className="inline-flex items-center gap-1 text-[12px] font-medium px-2.5 py-1.5 rounded-md border border-emerald-200 text-emerald-700 hover:bg-emerald-50 transition-colors disabled:opacity-50"
+                      >
+                        <Archive size={12} /> Close
+                      </button>
+                      <button
+                        onClick={() => setMaterialProject({ id: p.id, name: p.name })}
+                        className="inline-flex items-center gap-1.5 text-[12px] font-medium px-2.5 py-1.5 rounded-md border border-amber-200 text-amber-700 hover:bg-amber-50 transition-colors"
+                      >
+                        <Package size={12} /> Materials
+                      </button>
+                    </>
                   )}
+                  <button
+                    onClick={() => handleDelete(p)}
+                    disabled={actionId === p.id}
+                    title="Delete project"
+                    className="inline-flex items-center gap-1 text-[12px] font-medium px-2.5 py-1.5 rounded-md border border-red-200 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                  >
+                    <Trash2 size={12} /> Delete
+                  </button>
                   <span
                     className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
                       p.budgetOverrun
