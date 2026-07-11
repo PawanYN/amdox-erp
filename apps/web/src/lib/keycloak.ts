@@ -9,9 +9,9 @@ const getRealm = () => {
 
 const keycloak = isClient
   ? new Keycloak({
-      url: "http://localhost:8180",
+      url: process.env.NEXT_PUBLIC_KEYCLOAK_URL || "http://localhost:8180",
       realm: getRealm(),
-      clientId: "amdox-erp-web",
+      clientId: process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID || "amdox-erp-web",
     })
   : null;
 

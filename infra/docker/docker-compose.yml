@@ -78,7 +78,8 @@ services:
     restart: unless-stopped
     ports:
       - "6379:6379"
-    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --appendonly yes
+    # noeviction: BullMQ (payroll, notifications) loses queued jobs under allkeys-lru
+    command: redis-server --maxmemory 256mb --maxmemory-policy noeviction --appendonly yes
     volumes:
       - redis_data:/data
     healthcheck:
@@ -108,6 +109,9 @@ services:
       KC_HEALTH_ENABLED: "true"
       KC_HOSTNAME_STRICT: "false"
       KC_HTTP_ENABLED: "true"
+      # Trust X-Forwarded-* from the reverse proxy (Caddy) so issued token/redirect
+      # URLs use the public https:// hostname instead of the container's http://.
+      KC_PROXY_HEADERS: xforwarded
     command: start-dev
     depends_on:
       api-db:
