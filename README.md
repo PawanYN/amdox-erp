@@ -213,3 +213,32 @@ npx pnpm --filter api run postman
 ```
 
 This generates a `postman_collection.json` file inside the `apps/api` folder which you can import directly into Postman to test all routes.
+
+---
+
+## Known Deviations from the TDD
+
+The full requirement-by-requirement audit lives in [`docs/TDD-Audit-Report.md`](docs/TDD-Audit-Report.md). These deviations are **deliberate scope decisions**, documented here per the TDD's own Day-1 instruction to "define MVP feature scope and de-scope list":
+
+| Area                 | TDD asked for                             | What we built & why                                                                                                                                                                                                 |
+| -------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| MFA / token rotation | MFA enforced per tenant                   | Delegated to Keycloak realm configuration (supported, not switched on in the demo realm). Realm-per-tenant itself **is** implemented — every tenant gets its own Keycloak realm created programmatically at signup. |
+| 3-way matching       | Line-by-line PO/GR/Invoice match          | Header-level match: invoice total vs. PO total within a 2% tolerance, plus vendor and GR-ownership checks. Line-level matching requires per-line goods-receipt quantities (see roadmap).                            |
+| Goods receipt        | Partial receipts (`PARTIALLY_RECEIVED`)   | Full-order receipt only; the status exists in the schema for the roadmap item.                                                                                                                                      |
+| Multi-currency       | FX conversion on transactions             | Daily ECB rates are fetched and stored per tenant; conversion at posting time is not yet applied. All demo data is single-currency (INR display).                                                                   |
+| Reorder automation   | "Trigger PO draft when stock < threshold" | Raises a **purchase requisition** instead — the more correct procurement document; a human converts it to a PO.                                                                                                     |
+| Audit log storage    | TimescaleDB append-only                   | Regular PostgreSQL table **with SHA-256 hash chaining** — the tamper-evidence requirement is met; the time-series engine was dropped as unnecessary at this scale.                                                  |
+| Notification retries | "Retry up to 3x"                          | 5 attempts with exponential backoff + dead-letter view in Bull Board (exceeds spec).                                                                                                                                |
+| Org chart            | Recursive CTE in Postgres                 | Tree assembled client-side from `managerId` — simpler, fine at demo scale.                                                                                                                                          |
+| Journal entries      | (implied draft→post workflow)             | Entries post directly as balanced, immutable records; corrections are made by counter-entries, as in classical bookkeeping.                                                                                         |
+| Payroll saga         | Compensating transactions on failure      | Implemented as a compensation step: a retried run wipes the failed attempt's payslips before reprocessing (verified by `apps/api/scripts/verify-payroll-retry.ts`).                                                 |
+
+### Not yet implemented (roadmap)
+
+- **Offline / PWA (F-12)** — service-worker caching and sync-on-reconnect
+- **Observability stack** — OpenTelemetry / Prometheus / Grafana / Loki (health endpoints and structured logging exist today)
+- **k6 load-test evidence** for the 2,000-concurrent-user NFR
+- **Leave accrual rules** (leave request/approval workflow works; balances don't accrue)
+- **Forecast accuracy monitoring** (MAPE is computed per prediction but the <12% target isn't alerted on)
+- **Line-level 3-way matching + partial goods receipts** (one schema change unlocks both)
+- **Drag-and-drop dashboard editing** (layouts persist; rearranging is not yet mouse-driven)

@@ -51,9 +51,10 @@ The other two company-wide loops work the same way:
 - The exact four TDD roles exist: **SuperAdmin, TenantAdmin, Manager, Viewer**, enforced by `RolesGuard` on every controller.
 - Tenant isolation: `TenantContextInterceptor` injects `tenantId` via AsyncLocalStorage; **every** Prisma query filters by `tenantId` — and CI has a **custom "Tenant-scoping audit" job** that fails the build if a query is missing the filter. This goes beyond the TDD.
 - Per-tenant **module licensing** (`ModuleGuard` + `erp-modules.ts`) — an extra layer the TDD didn't ask for but that fits the SaaS model.
-- ⚠️ Deviations: **single shared realm** (tenant resolved from the user record) instead of the TDD's "realm-per-tenant"; MFA and refresh-token rotation are delegated to Keycloak configuration rather than demonstrated in-app.
+- ~~⚠️ single shared realm~~ **Correction (11 July, found during deployment):** realm-per-tenant IS implemented — `tenant.service.ts` programmatically creates a dedicated Keycloak realm (named by tenant slug, with realm roles) for every new tenant, and the web login picks the realm from the tenant slug. The TDD's "realm-per-tenant strategy" is met.
+- ⚠️ Remaining deviation: MFA and refresh-token rotation are delegated to Keycloak configuration rather than demonstrated in-app.
 
-  [In simple words: The plan said every client company should get its own separate login space, and extra login security (like OTP codes) should be shown working. Right now all companies share one login space, and the extra security is left to the login server's settings instead of our own code. Each company's data is still kept fully separate, so this is a shortcut — not a data leak.]
+  [In simple words: Each client company really does get its own separate login space — the earlier version of this audit got that wrong. What's still true: extra login security (like OTP codes) is left to the login server's settings instead of being switched on and shown working.]
 
 ### F-02 Financial Ledger — ✅ Implemented (multi-currency half-done)
 
