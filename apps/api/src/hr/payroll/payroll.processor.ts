@@ -44,6 +44,18 @@ export class PayrollProcessor extends WorkerHost {
     AmdoxLogger.hr(`Payroll run started: ${label}`, `runId=${payrollRunId}  tenant=${tenantId}`);
 
     try {
+      // Compensation step (TDD runbook: "revert partial calculations"): a BullMQ
+      // retry re-enters this handler from employee 0, so any payslips written by
+      // a previous failed attempt must be removed first or they would duplicate
+      // and inflate totalNetPay.
+      const stale = await prisma.payslip.deleteMany({ where: { payrollRunId, tenantId } });
+      if (stale.count > 0) {
+        AmdoxLogger.warn(
+          `Removed ${stale.count} payslip(s) from a previous failed attempt`,
+          `runId=${payrollRunId}`,
+        );
+      }
+
       const [taxSlabs, statutory] = await Promise.all([
         prisma.taxSlab.findMany({
           where: { tenantId },
