@@ -20,6 +20,11 @@ export const scmApi = {
     }),
   approvePurchaseOrder: (id: string) =>
     apiClient(`/scm/purchase-orders/${id}/approve`, { method: "PATCH" }),
+  cancelPurchaseOrder: (id: string, reason?: string) =>
+    apiClient(`/scm/purchase-orders/${id}/cancel`, {
+      method: "PATCH",
+      body: JSON.stringify({ reason }),
+    }),
   receiveGoods: (id: string, payload: { warehouseId: string; notes?: string }) =>
     apiClient(`/scm/purchase-orders/${id}/receive`, {
       method: "POST",
@@ -76,6 +81,7 @@ export const scmApi = {
     isActive?: boolean;
   }) => apiClient("/scm/inventory/reorder-rules", { method: "POST", body: JSON.stringify(body) }),
   runReorderAutomation: () => apiClient("/scm/automation/run-reorder", { method: "POST" }),
+  getGoodsReceipts: () => apiClient("/scm/purchase-orders/receipts"),
   issueVendorPortalKey: (vendorId: string) =>
     apiClient(`/scm/vendors/${vendorId}/portal-key`, { method: "POST" }),
 };

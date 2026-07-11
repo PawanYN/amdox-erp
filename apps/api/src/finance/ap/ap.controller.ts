@@ -117,6 +117,27 @@ export class ApController {
   }
 
   /**
+   * Cancels/voids an AP invoice that hasn't been paid yet, so a wrongly-entered
+   * invoice doesn't sit as PENDING_MATCH forever (users previously worked around
+   * it by creating a duplicate).
+   */
+  @Roles('Manager', 'TenantAdmin')
+  @Post(':id/cancel')
+  @ApiOperation({ summary: 'Cancel an unpaid AP invoice' })
+  async cancelInvoice(
+    @Param('id') invoiceId: string,
+    @Req() req: any,
+    @Body('reason') reason?: string,
+  ) {
+    return this.apService.cancelInvoice(
+      req.user.tenantId,
+      invoiceId,
+      reason,
+      req.user.id ?? req.user.sub,
+    );
+  }
+
+  /**
    * Records a single disbursement against an approved AP invoice.
    * Triggers the 'payment.made' domain event for GL posting (Dr AP Payable / Cr Cash).
    */

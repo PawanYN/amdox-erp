@@ -45,7 +45,7 @@ export class VendorController {
     return this.vendorService.update(req.user.tenantId, id, updateVendorDto);
   }
 
-  @Roles('SuperAdmin', 'TenantAdmin')
+  @Roles('SuperAdmin', 'TenantAdmin', 'Manager')
   @Post(':id/portal-key')
   issuePortalKey(@Req() req: any, @Param('id') id: string) {
     return this.vendorPortalService.issuePortalKey(req.user.tenantId, id);

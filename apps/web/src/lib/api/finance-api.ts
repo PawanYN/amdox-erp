@@ -88,6 +88,11 @@ export const financeApi = {
     }),
   approveInvoice: (id: string) =>
     apiClient(`/finance/ap/invoices/${id}/approve`, { method: "POST" }),
+  cancelInvoice: (id: string, reason?: string) =>
+    apiClient(`/finance/ap/invoices/${id}/cancel`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+    }),
   listSalesOrders: () => apiClient("/finance/sales-orders"),
   getSalesOrder: (id: string) => apiClient(`/finance/sales-orders/${id}`),
   createSalesOrder: (body: {

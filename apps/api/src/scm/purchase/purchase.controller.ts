@@ -24,6 +24,12 @@ export class PurchaseController {
   }
 
   @Roles('SuperAdmin', 'TenantAdmin', 'Manager', 'Viewer')
+  @Get('receipts')
+  getGoodsReceipts(@Req() req: any) {
+    return this.purchaseService.getGoodsReceipts(req.user.tenantId);
+  }
+
+  @Roles('SuperAdmin', 'TenantAdmin', 'Manager', 'Viewer')
   @Get()
   getPurchaseOrders(@Req() req: any) {
     return this.purchaseService.getPurchaseOrders(req.user.tenantId);
@@ -41,6 +47,17 @@ export class PurchaseController {
     return this.purchaseService.approvePurchaseOrder(
       req.user.tenantId,
       id,
+      req.user.id ?? req.user.sub,
+    );
+  }
+
+  @Roles('SuperAdmin', 'TenantAdmin', 'Manager')
+  @Patch(':id/cancel')
+  cancelPurchaseOrder(@Req() req: any, @Param('id') id: string, @Body() dto: { reason?: string }) {
+    return this.purchaseService.cancelPurchaseOrder(
+      req.user.tenantId,
+      id,
+      dto?.reason,
       req.user.id ?? req.user.sub,
     );
   }

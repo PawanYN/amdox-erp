@@ -87,6 +87,22 @@ export class PurchaseService {
     });
   }
 
+  async getGoodsReceipts(tenantId: string) {
+    return prisma.goodsReceipt.findMany({
+      where: { tenantId },
+      include: {
+        purchaseOrder: {
+          select: {
+            poNumber: true,
+            totalAmount: true,
+            vendor: { select: { name: true } },
+          },
+        },
+      },
+      orderBy: { receivedAt: 'desc' },
+    });
+  }
+
   async getPurchaseOrders(tenantId: string) {
     return prisma.purchaseOrder.findMany({
       where: { tenantId },
@@ -152,6 +168,44 @@ export class PurchaseService {
     }
 
     return updatedPo;
+  }
+
+  /**
+   * WHAT: Cancels a PO that hasn't been received yet.
+   * WHY: A wrongly-created or duplicate PO previously sat in the list forever —
+   * users worked around it by creating a second one, which is how duplicate
+   * orders start. Received POs can't be cancelled (stock already moved).
+   */
+  async cancelPurchaseOrder(tenantId: string, id: string, reason?: string, actingUserId?: string) {
+    const po = await this.getPurchaseOrder(tenantId, id);
+    if (po.status === 'RECEIVED' || po.status === 'PARTIALLY_RECEIVED' || po.status === 'CLOSED') {
+      throw new BadRequestException(
+        'This purchase order has already received goods and can no longer be cancelled.',
+      );
+    }
+    if (po.status === 'CANCELLED') {
+      throw new BadRequestException('This purchase order is already cancelled.');
+    }
+
+    // tenant-scope-ok: getPurchaseOrder() above throws unless `id` belongs to `tenantId`.
+    const cancelled = await prisma.purchaseOrder.update({
+      where: { id },
+      data: { status: 'CANCELLED' },
+    });
+
+    this.eventEmitter.emit('po.cancelled', {
+      tenantId,
+      poId: id,
+      poNumber: cancelled.poNumber,
+      reason,
+      userId: actingUserId,
+    });
+    AmdoxLogger.scm(
+      `PO cancelled`,
+      `poNumber=${cancelled.poNumber}${reason ? `  reason=${reason}` : ''}`,
+    );
+
+    return cancelled;
   }
 
   // --- Goods Receipt ---
