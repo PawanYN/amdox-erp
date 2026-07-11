@@ -11,7 +11,9 @@
     "postman": "openapi2postmanv2 -s openapi-spec.json -o postman_collection.json -p",
     "verify:p2p": "ts-node scripts/verify-p2p-flow.ts",
     "audit:tenant-scoping": "ts-node scripts/audit-tenant-scoping.ts",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\""
+    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\"",
+    "test": "vitest run",
+    "verify:payroll-retry": "ts-node scripts/verify-payroll-retry.ts"
   },
   "dependencies": {
     "@amdox/db": "workspace:*",
@@ -70,6 +72,7 @@
     "openapi-to-postmanv2": "^6.2.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5",
-    "typescript-eslint": "^8"
+    "typescript-eslint": "^8",
+    "vitest": "^4.1.10"
   }
 }
