@@ -2,6 +2,8 @@
 
 **Audit date:** 11 July 2026 · **Scope:** entire monorepo (`apps/api`, `apps/web`, `apps/ml-service`, `packages/db`, `infra/`, CI) audited line-by-line against the TDD (`docs/Amdox Web.pdf`), covering F-01→F-12, the 28-day plan, the mandated design patterns, and the security framework.
 
+> **STATUS UPDATE — end of 11 July (sprint Day 1):** the app is **live at https://erp.92-4-86-3.sslip.io**, the payroll double-payslip bug is fixed and proven, 22 unit tests + a CI job exist, and the full UX sprint (D1–D10) is done. Findings below are kept as originally written for the record; every resolved one carries a **[FIXED 11 July]** marker. Still open: demo video (Task G), and the post-deadline roadmap (Tasks E, F, observability, PWA).
+
 ---
 
 ## Part 1 — The Concept: One Company at the Center
@@ -106,6 +108,8 @@ The other two company-wide loops work the same way:
 
   [In simple words: This is the most serious bug found. If a salary run crashes halfway (say after paying 300 of 600 employees), the system automatically retries — but it starts again from employee number 1 and does NOT remove the salary slips it already created in the first attempt. Result: some employees get TWO salary slips, and the company's total salary figure comes out wrong. The plan required an "undo half-done work before retrying" mechanism, which was never built. Fix this before trusting payroll.]
 
+  **✅ [FIXED 11 July — Task A]** The processor now deletes the failed attempt's payslips before reprocessing (the compensation step). Proven with a live kill-and-retry test: before the fix, 21 employees → 42 payslips; after, exactly 21 with totals reconciling. Permanent proof script: `pnpm --filter api verify:payroll-retry`.
+
 - ⚠️ Org chart is not the TDD's "recursive CTE in Postgres" — the tree is assembled from `managerId` client-side. Works for demo sizes.
 
   [In simple words: The company organisation chart works fine, but it is built inside the user's browser instead of by the database, which is what the plan asked for. For a small or medium company this is no problem; for a very large company with thousands of employees it may become slow.]
@@ -185,18 +189,20 @@ Helmet (CSP, HSTS etc.), global `ValidationPipe({ whitelist: true })` + class-va
 
   [In simple words: The app currently runs only on the developer's own machine. There is no public website link where anyone can open and use it — and that link alone carries the biggest share of the marks (30%). Also missing: automatic deployment when code changes, monitoring dashboards that show whether the app is healthy or slow, and proof that it can handle heavy traffic (2,000 users at once).]
 
+  **✅ [PARTLY FIXED 11 July — Task B]** The app is now **publicly live at https://erp.92-4-86-3.sslip.io** with real HTTPS (Caddy + Let's Encrypt), verified end-to-end from outside (login → token → all module APIs). Full walkthrough: `docs/learning/PLAT-01-public-deployment-walkthrough.md`. Still open from this bullet: CI deploy stage, observability stack, k6 evidence.
+
 ---
 
 ## Part 3 — Deficiencies, Over-implementations, Wrong Implementations
 
 ### 3.1 Missing (ranked by impact)
 
-1. **Automated tests: zero.** No `.spec.ts`/`.test.ts` anywhere. The TDD demands integration tests (Day 14, Vitest + Supertest), E2E (Playwright), and load tests (Day 21, k6). This is the largest single gap between plan and repo.
-2. **Live demo URL** — 30% of submission weight; everything runs only locally/kind.
+1. **Automated tests: zero.** No `.spec.ts`/`.test.ts` anywhere. The TDD demands integration tests (Day 14, Vitest + Supertest), E2E (Playwright), and load tests (Day 21, k6). This is the largest single gap between plan and repo. **✅ [PARTLY FIXED 11 July — Task C]** 22 unit tests on the money paths + a CI job now exist; integration/E2E/load tests remain open.
+2. **Live demo URL** — 30% of submission weight; everything runs only locally/kind. **✅ [FIXED 11 July — Task B]** Live at https://erp.92-4-86-3.sslip.io.
 3. **F-12 PWA/offline** — entirely absent.
 4. **Observability** (Day 26) — no tracing/metrics/log aggregation; only health endpoints and colored console logs.
 5. **Multi-currency conversion** — rates fetched ✓ but never applied; no FX math on any document or report.
-6. **Payroll saga compensation** — and the concrete retry-duplication bug described under F-04.
+6. **Payroll saga compensation** — and the concrete retry-duplication bug described under F-04. **✅ [FIXED 11 July — Task A]**
 7. **Line-level 3-way matching** + partial goods receipts (quantities per GR line).
 8. **Leave accrual rules**; recursive-CTE org chart; MFA demonstration.
 
@@ -214,18 +220,18 @@ The only mild scope-creep concern: some of this effort (e.g., sales orders, port
 
 ### 3.3 Implemented differently than specified (the "wrongly implemented" check)
 
-| Spec says                                 | Code does                                             | Verdict                                                                                          |
-| ----------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| 3-way match line-by-line qty/price        | Header total within 2% of PO total                    | **Simplified** — control exists but weaker; won't catch a wrong-mix invoice with the right total |
-| Payroll saga w/ compensating transactions | Mark FAILED + BullMQ retry, no compensation           | **Wrong** (retry can duplicate payslips) — fix before demoing failure recovery                   |
-| Reorder triggers "PO draft"               | Raises purchase requisition                           | Semantically fine (arguably more correct)                                                        |
-| Notification retry "up to 3x"             | 5 attempts w/ backoff                                 | Exceeds spec, harmless                                                                           |
-| Org chart via recursive CTE               | Client-side tree from `managerId`                     | Works; not the specified mechanism                                                               |
-| Realm-per-tenant Keycloak                 | Single realm + tenantId isolation                     | Simpler; isolation still enforced at data layer                                                  |
-| Audit log in TimescaleDB                  | Postgres + hash chain                                 | Tamper-evidence kept; time-series engine dropped                                                 |
-| CQRS read models                          | Direct aggregation queries                            | Lightweight-CQRS claim is aspirational                                                           |
-| GR supports partial receipt               | Always full receipt; `PARTIALLY_RECEIVED` unreachable | Dead enum state                                                                                  |
-| Journal entries draft→post                | Created directly as POSTED                            | Simplification; no reversal mechanism                                                            |
+| Spec says                                 | Code does                                                           | Verdict                                                                                          |
+| ----------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| 3-way match line-by-line qty/price        | Header total within 2% of PO total                                  | **Simplified** — control exists but weaker; won't catch a wrong-mix invoice with the right total |
+| Payroll saga w/ compensating transactions | Mark FAILED + BullMQ retry, no compensation                         | ~~**Wrong**~~ **✅ FIXED 11 July** — compensation step wipes stale payslips before retry         |
+| Reorder triggers "PO draft"               | Raises purchase requisition                                         | Semantically fine (arguably more correct)                                                        |
+| Notification retry "up to 3x"             | 5 attempts w/ backoff                                               | Exceeds spec, harmless                                                                           |
+| Org chart via recursive CTE               | Client-side tree from `managerId`                                   | Works; not the specified mechanism                                                               |
+| Realm-per-tenant Keycloak                 | ~~Single realm~~ **Correction:** realm created per tenant at signup | **Meets spec** — audit's original finding was wrong (see F-01)                                   |
+| Audit log in TimescaleDB                  | Postgres + hash chain                                               | Tamper-evidence kept; time-series engine dropped                                                 |
+| CQRS read models                          | Direct aggregation queries                                          | Lightweight-CQRS claim is aspirational                                                           |
+| GR supports partial receipt               | Always full receipt; `PARTIALLY_RECEIVED` unreachable               | Dead enum state                                                                                  |
+| Journal entries draft→post                | Created directly as POSTED                                          | Simplification; no reversal mechanism                                                            |
 
 **Segregation-of-duties check (the user's specific worry):** verified healthy. SCM creates POs and receives goods but **cannot approve or pay invoices** — invoice approval and payment runs live in Finance controllers behind Finance roles; the GL posts only from events. Payment without prior approval is rejected (`Invoice must be APPROVED before payment`). No module bypasses another's authority.
 
@@ -233,38 +239,37 @@ The only mild scope-creep concern: some of this effort (e.g., sales orders, port
 
 ## Part 4 — Scoreboard: Done vs. Remaining
 
-| Requirement                                     | Status                                                 |
-| ----------------------------------------------- | ------------------------------------------------------ |
-| F-01 Multi-tenant auth/SSO                      | ✅ Done (realm-per-tenant + MFA delegated to Keycloak) |
-| F-02 Financial ledger                           | ✅ Done, except multi-currency _conversion_            |
-| F-03 AP/AR automation                           | ✅ Done (matching header-level; OCR mock by default)   |
-| F-04 HR & payroll                               | ✅ Done, except saga compensation + leave accrual      |
-| F-05 SCM & inventory                            | ✅ Done (full-receipt only)                            |
-| F-06 AI forecasting                             | ✅ Done                                                |
-| F-07 Project management                         | ✅ Done                                                |
-| F-08 Business intelligence                      | ✅ Done (builder basic)                                |
-| F-09 Audit & GDPR                               | ✅ Done                                                |
-| F-10 Notifications                              | ✅ Done+                                               |
-| F-11 API gateway & webhooks                     | ✅ Done                                                |
-| F-12 Offline/PWA                                | ❌ Not started                                         |
-| Security hardening                              | ✅ Done                                                |
-| Docker/K8s/Helm/ArgoCD manifests                | ✅ Done                                                |
-| **Automated tests (unit/integration/E2E/load)** | ❌ Not started                                         |
-| **Live deployment URL**                         | ❌ Not started (P0)                                    |
-| **Observability stack**                         | ❌ Not started                                         |
-| Docs (README, ADRs, C4, ERD, API docs)          | ✅ Present                                             |
-| Demo video                                      | ❌ Pending                                             |
+| Requirement                                     | Status                                                            |
+| ----------------------------------------------- | ----------------------------------------------------------------- |
+| F-01 Multi-tenant auth/SSO                      | ✅ Done (realm-per-tenant + MFA delegated to Keycloak)            |
+| F-02 Financial ledger                           | ✅ Done, except multi-currency _conversion_                       |
+| F-03 AP/AR automation                           | ✅ Done (matching header-level; OCR mock by default)              |
+| F-04 HR & payroll                               | ✅ Done (saga compensation **fixed 11 July**; leave accrual open) |
+| F-05 SCM & inventory                            | ✅ Done (full-receipt only)                                       |
+| F-06 AI forecasting                             | ✅ Done                                                           |
+| F-07 Project management                         | ✅ Done                                                           |
+| F-08 Business intelligence                      | ✅ Done (builder basic)                                           |
+| F-09 Audit & GDPR                               | ✅ Done                                                           |
+| F-10 Notifications                              | ✅ Done+                                                          |
+| F-11 API gateway & webhooks                     | ✅ Done                                                           |
+| F-12 Offline/PWA                                | ❌ Not started                                                    |
+| Security hardening                              | ✅ Done                                                           |
+| Docker/K8s/Helm/ArgoCD manifests                | ✅ Done                                                           |
+| **Automated tests (unit/integration/E2E/load)** | 🟡 Unit tests + CI ✅ (11 July); integration/E2E/load open        |
+| **Live deployment URL**                         | ✅ **LIVE 11 July** — https://erp.92-4-86-3.sslip.io              |
+| **Observability stack**                         | ❌ Not started                                                    |
+| Docs (README, ADRs, C4, ERD, API docs)          | ✅ Present                                                        |
+| Demo video                                      | ❌ Pending                                                        |
 
-[In simple words — what each ❌ row above means:
-— **Offline/PWA**: the app cannot work without internet at all; this planned feature was never started.
-— **Automated tests**: there is not a single automated test in the project. Nothing automatically verifies that salary math, accounting entries, or vendor payments still work correctly after every code change — today that is checked only by hand.
-— **Live deployment URL**: there is no public website link to open the product; it runs only on the developer's machine. This link alone is worth the most marks (30%).
+[In simple words — what each remaining ❌/🟡 row above means:
+— **Offline/PWA**: the app cannot work without internet at all; this planned feature was never started (deliberately de-scoped, see README roadmap).
+— **Automated tests**: the salary math, accounting rules, and bill-matching are now automatically verified on every code change (22 tests in CI, added 11 July). Bigger end-to-end and heavy-load tests are still future work.
 — **Observability stack**: there are no monitoring dashboards or automatic alerts. If the live app becomes slow or starts failing, nobody would know until a user complains.
 — **Demo video**: the required 5–7 minute walkthrough video has not been recorded yet.]
 
-**Bottom line:** 11 of 12 functional requirements are genuinely implemented — mostly with real algorithms, not stubs. What's missing is not features but **proof**: tests, a public URL, monitoring, and the demo video — which happen to be the highest-weighted evaluation items (deployment 30%, docs 20%+, reliability 10%).
+**Bottom line (updated 11 July):** 11 of 12 functional requirements are genuinely implemented — mostly with real algorithms, not stubs. The original audit's verdict was "what's missing is proof, not features" — and most of that proof now exists: the app is **publicly deployed with HTTPS**, the one real correctness bug is **fixed and demonstrated**, and the money-path calculations are **guarded by CI-enforced tests**. What remains for full marks: the **demo video** (10%), and the documented roadmap items (PWA, observability, integration/load tests).
 
-**Recommended priority order:** ① fix the payroll-retry duplication bug → ② deploy publicly (PLAT-01) → ③ a slim but real test suite around the money paths (double-entry, 3-way match, payroll math, tenant isolation) → ④ demo video → ⑤ PWA shell + observability if time remains.
+**Original priority order (all but one now done):** ① payroll-retry bug ✅ → ② public deployment ✅ → ③ money-path test suite ✅ → ④ **demo video ← you are here** → ⑤ PWA shell + observability if time remains.
 
 ---
 
@@ -328,29 +333,43 @@ Two genuine blind spots keep it from a perfect score: ⚠️
 
    [In simple words: This is the worst usability spot in the app. To make an uploaded vendor bill auto-match, the Finance user must copy-paste a long computer-generated code for the goods receipt — from where? Nothing on the screen tells them. Type it wrong and the bill silently skips auto-matching. This should be a dropdown list showing "PO-2026-014 — received 3 July — Vendor X" to pick from.]
 
+   **✅ [FIXED 11 July — D1]** It is now exactly that dropdown.
+
 2. ❌ **Buttons are not hidden by role anywhere except Settings.** A Viewer (read-only role) sees Approve, Delete, Pay, and Run Payroll buttons everywhere; clicking produces a backend error popup.
 
    [In simple words: The security is real — the server refuses the action — but the screen lies about it. A read-only user sees every dangerous button, clicks "Approve", and gets a cryptic error. They will think the app is broken. Buttons the user is not allowed to press should be hidden or greyed out.]
+
+   **✅ [FIXED 11 July — D2]** All money-critical pages (invoices, POs, payroll, fiscal periods) now hide write buttons from Viewers via the `useRoles()` hook; a few low-risk CRUD pages remain (pattern ready, listed in Task D2).
 
 3. ⚠️ **Duplicate menu entries pointing at the same data.** "AP Invoices" appears under both Finance _and_ Supply Chain (same list, same API); "AI Forecast" exists both top-level and inside Supply Chain.
 
    [In simple words: The same vendor-bills list is reachable from two different menus under two departments. No double data is created — it is literally the same screen — but a new user can easily believe Finance's invoices and Supply Chain's invoices are different documents, and two people may both "handle" the same bill thinking they own it. One list should live in one place, or the duplicate should be clearly marked as a shortcut.]
 
+   **✅ [FIXED 11 July — D5]** Each screen now lives under exactly one menu.
+
 4. ⚠️ **Receiving goods from the PO screen silently picks the first warehouse.** The proper Goods Receipt screen offers a warehouse dropdown, but the quick "Receive" button on the PO list does not ask — it takes whatever warehouse comes first and stamps the note "Received via web UI".
 
    [In simple words: A company with two warehouses can easily book stock into the wrong one, because the quick-receive button never asks WHERE the goods arrived. The two receiving flows also behave differently, which itself is confusing — same action, different questions asked.]
+
+   **✅ [FIXED 11 July — D6]** Quick-receive now opens a modal asking which warehouse (+ delivery notes).
 
 5. ⚠️ **Feedback is inconsistent: most screens use raw browser popups (`alert`/`confirm`), one screen uses a proper toast, and some errors go nowhere visible.** Marking a notification read, for instance, fails silently into the browser console.
 
    [In simple words: Sometimes the app talks to you with an ugly system popup, sometimes with a nice message, and sometimes not at all — a failed action can look identical to a successful one. Users lose trust fast when they can't tell whether their click worked. One consistent notification style is needed.]
 
+   **✅ [FIXED 11 July — D3]** One shared toast system; all 48 `alert()` popups replaced; silent failures now visible.
+
 6. ⚠️ **Developer language leaks into user-facing messages**, e.g. "No warehouse configured. Seed the database first."
 
    [In simple words: A warehouse clerk does not know what "seed the database" means. Messages like this should say what the user can actually do: "No warehouse exists yet — ask your administrator to create one under Inventory → Warehouses."]
 
+   **✅ [FIXED 11 July — D7]** Messages rewritten in user language.
+
 7. ⚠️ **Currency display is inconsistent** — project budgets show ₹, most Finance screens show bare numbers, and (per Part 2, F-02) exchange rates are never applied.
 
    [In simple words: Some screens say ₹12,000, others just 12000 with no currency at all. In a product that advertises multi-currency support, a user handling a dollar invoice has no idea what currency any number is in.]
+
+   **🟡 [PARTLY FIXED 11 July — D8]** Shared `formatCurrency()` applied to invoice and PO money cells; remaining cells listed for the intern. Actual FX conversion is Task F (post-deadline).
 
 ### 6.4 Create / Update / Delete — will departments hit walls?
 
@@ -373,15 +392,17 @@ Checked per module, from the screens themselves:
 
 [In simple words: If someone creates a purchase order or an invoice with a wrong amount, there is no "edit", no "cancel", no "void" button anywhere. The wrong document just sits there forever, and people work around it by creating a second, correct one — which is exactly how duplicate bills and confusion between departments start. Every money document needs at least a cancel option with a reason field.]
 
+**✅ [FIXED 11 July — D4]** POs and AP invoices now have Cancel buttons with a reason field — POs until goods are received, invoices until they enter the ledger (after which the error explains that a reversal entry is the correct tool).
+
 ### 6.5 Overall user-friendliness verdict (and the TDD's own UI bar)
 
-**Score against the TDD's UI promises:** responsive design ⚠️ partially (the shell — top bar, drawer nav, cards — adapts well to mobile widths; only ~8 of 30+ data tables have horizontal-scroll wrappers, the rest will overflow on a 375px phone); WCAG 2.1 AA accessibility ⚠️ unaudited (icon buttons in the shell have aria-labels; forms and tables were never checked); Lighthouse ≥ 90 ❌ never measured; PWA/offline ❌ absent (Part 2, F-12).
+**Score against the TDD's UI promises:** responsive design ⚠️ partially (the shell — top bar, drawer nav, cards — adapts well to mobile widths; only ~8 of 30+ data tables have horizontal-scroll wrappers, the rest will overflow on a 375px phone) — **✅ [FIXED 11 July — D9]** every table now scrolls horizontally on mobile; WCAG 2.1 AA accessibility ⚠️ unaudited (icon buttons in the shell have aria-labels; forms and tables were never checked); Lighthouse ≥ 90 ❌ never measured; PWA/offline ❌ absent (Part 2, F-12).
 
 **The honest overall picture:** this frontend is **genuinely usable and department-shaped — a strong 7/10 for a working product, held back by finishing details.** The information architecture is right: each department's menu matches their real job, cross-department state actually flows (the no-phone-call test largely passes), the best forms _teach_ the business rules (journal entry balance guard), empty screens tell you what to do next, deletes warn you properly, and there is a global Ctrl+K search. A new employee in any department could learn their daily loop in under an hour.
 
 What separates it from feeling professional is consistency, not capability: browser `alert()` popups next to polished modals, a UUID paste-box in a money workflow, buttons that pretend to be clickable for read-only users, the same list living under two menus, and no way to cancel a wrong PO or invoice. None of these are architectural — each is a screen-level fix — but together they are exactly the kind of rough edges that make first-time users say "it feels unfinished" in the demo that decides 10% of the evaluation ("Presentation & Polish").
 
-**Five cheapest fixes with the highest user impact:** ① replace the GR-ID paste box with a dropdown; ② hide/disable buttons by role; ③ one toast system everywhere, no `alert()`; ④ a Cancel action (with reason) on POs and invoices; ⑤ wrap every data table in a horizontal-scroll container for mobile.
+**Five cheapest fixes with the highest user impact:** ① replace the GR-ID paste box with a dropdown; ② hide/disable buttons by role; ③ one toast system everywhere, no `alert()`; ④ a Cancel action (with reason) on POs and invoices; ⑤ wrap every data table in a horizontal-scroll container for mobile. — **✅ All five done, 11 July (Task D).**
 
 ---
 
@@ -466,8 +487,8 @@ PWA/offline (F-12), observability stack, k6 load test, leave accrual, MAPE monit
 
 ### Where I need you, summarized 🙋
 
-1. **B1 — hosting decision + account + payment + server access** (blocks all of Day 2)
-2. **G2 — recording the demo video with your voice** (blocks submission)
-3. Optional: domain name purchase (B1), and final approval of the demo credentials that go in the README.
+1. ~~B1 — hosting decision~~ ✅ done (ports opened; deployed on the existing VM)
+2. **G2 — recording the demo video with your voice** (the only remaining blocker for submission)
+3. Still useful: the Oracle **trial days-remaining** number, so we know whether the live URL must be migrated to an Always-Free instance before evaluation.
 
 Everything else in Tasks A, C, D, H is 🎓 — hand any checkbox to an intern with this document open and they have the file path, the pattern to copy, and the acceptance check.
