@@ -1,4 +1,5 @@
 "use client";
+import { toast } from "@/components/ui/toast";
 
 import { useEffect, useState } from "react";
 import {
@@ -115,7 +116,7 @@ export default function EmployeesPage() {
       await hrApi.deleteEmployee(emp.id);
       await fetchEmployees();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to deactivate employee.");
+      toast(err instanceof Error ? err.message : "Failed to deactivate employee.", "error");
     }
   }
 
@@ -125,7 +126,7 @@ export default function EmployeesPage() {
       await hrApi.restoreEmployee(emp.id);
       await fetchEmployees();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to reactivate employee.");
+      toast(err instanceof Error ? err.message : "Failed to reactivate employee.", "error");
     }
   }
 
@@ -247,7 +248,7 @@ export default function EmployeesPage() {
       });
       await fetchEmployees();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to save.");
+      toast(err instanceof Error ? err.message : "Failed to save.", "error");
     } finally {
       setLoading(false);
     }
@@ -275,7 +276,7 @@ export default function EmployeesPage() {
       });
       await fetchEmployees();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to update.");
+      toast(err instanceof Error ? err.message : "Failed to update.", "error");
     } finally {
       setLoading(false);
     }

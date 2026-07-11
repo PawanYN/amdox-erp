@@ -1,4 +1,5 @@
 "use client";
+import { toast } from "@/components/ui/toast";
 
 import { useKeycloak } from "@/components/KeycloakProvider";
 import {
@@ -232,7 +233,7 @@ export default function DashboardHome() {
       setClockedIn(true);
       setTodaysClockIn(new Date());
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Failed to clock in");
+      toast(e instanceof Error ? e.message : "Failed to clock in", "error");
     }
   };
 
@@ -243,7 +244,7 @@ export default function DashboardHome() {
       setClockedIn(false);
       setTodaysClockIn(null);
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Failed to clock out");
+      toast(e instanceof Error ? e.message : "Failed to clock out", "error");
     }
   };
 
@@ -284,7 +285,7 @@ export default function DashboardHome() {
       link.remove();
       URL.revokeObjectURL(url);
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Failed to download payslip");
+      toast(e instanceof Error ? e.message : "Failed to download payslip", "error");
     } finally {
       setDownloading(false);
     }

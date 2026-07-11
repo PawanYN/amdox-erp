@@ -1,4 +1,5 @@
 "use client";
+import { toast as notify } from "@/components/ui/toast";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -223,7 +224,7 @@ export default function ProjectsOverviewPage() {
       setToast(`Project "${project.name}" closed.`);
       loadProjects();
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Failed to close project.");
+      notify(e instanceof Error ? e.message : "Failed to close project.", "error");
     } finally {
       setActionId(null);
     }
@@ -242,7 +243,7 @@ export default function ProjectsOverviewPage() {
       setToast(`Project "${project.name}" deleted.`);
       loadProjects();
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Failed to delete project.");
+      notify(e instanceof Error ? e.message : "Failed to delete project.", "error");
     } finally {
       setActionId(null);
     }

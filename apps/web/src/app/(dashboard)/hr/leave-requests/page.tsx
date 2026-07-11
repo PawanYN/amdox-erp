@@ -1,4 +1,5 @@
 "use client";
+import { toast } from "@/components/ui/toast";
 
 import { useState, useEffect } from "react";
 import { CalendarDays } from "lucide-react";
@@ -111,7 +112,7 @@ export default function LeaveRequestsPage() {
 
   async function handleApprove(id: string) {
     if (!profile?.id) {
-      alert("Your employee profile is not loaded. Cannot approve leave.");
+      toast("Your employee profile is not loaded. Cannot approve leave.", "error");
       return;
     }
     try {
@@ -121,20 +122,26 @@ export default function LeaveRequestsPage() {
       });
       setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: "Approved" } : r)));
     } catch (err) {
-      alert(`Error approving leave: ${err instanceof Error ? err.message : "unknown error"}`);
+      toast(
+        `Error approving leave: ${err instanceof Error ? err.message : "unknown error"}`,
+        "error",
+      );
     }
   }
 
   async function handleReject(id: string) {
     if (!profile?.id) {
-      alert("Your employee profile is not loaded. Cannot reject leave.");
+      toast("Your employee profile is not loaded. Cannot reject leave.", "error");
       return;
     }
     try {
       await hrApi.rejectLeaveRequest(id, profile.id);
       setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: "Rejected" } : r)));
     } catch (err) {
-      alert(`Error rejecting leave: ${err instanceof Error ? err.message : "unknown error"}`);
+      toast(
+        `Error rejecting leave: ${err instanceof Error ? err.message : "unknown error"}`,
+        "error",
+      );
     }
   }
 

@@ -196,73 +196,75 @@ export default function ForecastPage() {
 
       {/* SKU table */}
       <div className="shadow-card rounded-xl overflow-hidden">
-        <table className="w-full text-[12px]">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-200">
-              <th className="text-left px-4 py-2.5 text-slate-500 font-medium">SKU / Product</th>
-              <th className="text-left px-4 py-2.5 text-slate-500 font-medium">Model</th>
-              <th className="text-right px-4 py-2.5 text-slate-500 font-medium">MAPE</th>
-              <th className="text-right px-4 py-2.5 text-slate-500 font-medium">Predictions</th>
-              <th className="text-left px-4 py-2.5 text-slate-500 font-medium">Last trained</th>
-              <th className="text-right px-4 py-2.5 text-slate-500 font-medium">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item) => (
-              <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50">
-                <td className="px-4 py-2.5">
-                  <p className="font-medium text-slate-900">{item.name}</p>
-                  <p className="text-[10px] text-slate-500 font-mono">
-                    {item.sku} · {item.category ?? "General"}
-                  </p>
-                </td>
-                <td className="px-4 py-2.5">
-                  {item.modelType ? (
-                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-blue-50 text-blue-700">
-                      {item.modelType}
-                    </span>
-                  ) : (
-                    <span className="text-[11px] text-slate-500">—</span>
-                  )}
-                </td>
-                <td className="px-4 py-2.5 text-right">
-                  <MapeChip score={item.mapeScore} />
-                </td>
-                <td className="px-4 py-2.5 text-right font-mono text-slate-600">
-                  {item.predictionCount > 0 ? (
-                    item.predictionCount
-                  ) : (
-                    <span className="text-slate-500">—</span>
-                  )}
-                </td>
-                <td className="px-4 py-2.5">
-                  <TrainedAtCell trainedAt={item.trainedAt} />
-                </td>
-                <td className="px-4 py-2.5 text-right">
-                  <button
-                    onClick={() => trainOne(item.id)}
-                    disabled={training[item.id] || trainAll}
-                    className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    {training[item.id] ? (
-                      <Loader2 size={9} className="animate-spin" />
+        <div className="overflow-x-auto">
+          <table className="w-full text-[12px]">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200">
+                <th className="text-left px-4 py-2.5 text-slate-500 font-medium">SKU / Product</th>
+                <th className="text-left px-4 py-2.5 text-slate-500 font-medium">Model</th>
+                <th className="text-right px-4 py-2.5 text-slate-500 font-medium">MAPE</th>
+                <th className="text-right px-4 py-2.5 text-slate-500 font-medium">Predictions</th>
+                <th className="text-left px-4 py-2.5 text-slate-500 font-medium">Last trained</th>
+                <th className="text-right px-4 py-2.5 text-slate-500 font-medium">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item) => (
+                <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50">
+                  <td className="px-4 py-2.5">
+                    <p className="font-medium text-slate-900">{item.name}</p>
+                    <p className="text-[10px] text-slate-500 font-mono">
+                      {item.sku} · {item.category ?? "General"}
+                    </p>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    {item.modelType ? (
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-blue-50 text-blue-700">
+                        {item.modelType}
+                      </span>
                     ) : (
-                      <TrendingUp size={9} />
+                      <span className="text-[11px] text-slate-500">—</span>
                     )}
-                    {training[item.id] ? "Training…" : item.trainedAt ? "Re-train" : "Train"}
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {items.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-slate-500 text-[12px]">
-                  No products found.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    <MapeChip score={item.mapeScore} />
+                  </td>
+                  <td className="px-4 py-2.5 text-right font-mono text-slate-600">
+                    {item.predictionCount > 0 ? (
+                      item.predictionCount
+                    ) : (
+                      <span className="text-slate-500">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <TrainedAtCell trainedAt={item.trainedAt} />
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    <button
+                      onClick={() => trainOne(item.id)}
+                      disabled={training[item.id] || trainAll}
+                      className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {training[item.id] ? (
+                        <Loader2 size={9} className="animate-spin" />
+                      ) : (
+                        <TrendingUp size={9} />
+                      )}
+                      {training[item.id] ? "Training…" : item.trainedAt ? "Re-train" : "Train"}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {items.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-10 text-center text-slate-500 text-[12px]">
+                    No products found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

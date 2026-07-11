@@ -1,4 +1,5 @@
 "use client";
+import { toast } from "@/components/ui/toast";
 
 import { useState, useEffect, useCallback } from "react";
 import {
@@ -136,7 +137,7 @@ export default function JournalEntriesPage() {
         ],
       });
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to create journal entry.");
+      toast(err instanceof Error ? err.message : "Failed to create journal entry.", "error");
     } finally {
       setSaving(false);
     }
@@ -223,68 +224,70 @@ export default function JournalEntriesPage() {
           </div>
 
           <div className="rounded-md border border-slate-200 overflow-hidden">
-            <table className="w-full text-[12px]">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="text-left px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                    Account
-                  </th>
-                  <th className="text-right px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                    Debit (₹)
-                  </th>
-                  <th className="text-right px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                    Credit (₹)
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {newEntry.lines.map((line, i) => (
-                  <tr key={i}>
-                    <td className="px-3 py-2">
-                      <select
-                        className="input-base text-[12px] py-1.5"
-                        value={line.accountId}
-                        onChange={(e) => updateLine(i, "accountId", e.target.value)}
-                      >
-                        <option value="">Select account…</option>
-                        {accounts.map((a) => (
-                          <option key={a.id} value={a.id}>
-                            {a.code} — {a.name}
-                          </option>
-                        ))}
-                      </select>
+            <div className="overflow-x-auto">
+              <table className="w-full text-[12px]">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200">
+                    <th className="text-left px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                      Account
+                    </th>
+                    <th className="text-right px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                      Debit (₹)
+                    </th>
+                    <th className="text-right px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                      Credit (₹)
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {newEntry.lines.map((line, i) => (
+                    <tr key={i}>
+                      <td className="px-3 py-2">
+                        <select
+                          className="input-base text-[12px] py-1.5"
+                          value={line.accountId}
+                          onChange={(e) => updateLine(i, "accountId", e.target.value)}
+                        >
+                          <option value="">Select account…</option>
+                          {accounts.map((a) => (
+                            <option key={a.id} value={a.id}>
+                              {a.code} — {a.name}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-3 py-2">
+                        <input
+                          type="number"
+                          min={0}
+                          className="input-base text-[12px] py-1.5 text-right"
+                          value={line.debit}
+                          onChange={(e) => updateLine(i, "debit", e.target.value)}
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <input
+                          type="number"
+                          min={0}
+                          className="input-base text-[12px] py-1.5 text-right"
+                          value={line.credit}
+                          onChange={(e) => updateLine(i, "credit", e.target.value)}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                  <tr className="bg-slate-50 font-semibold text-[12px]">
+                    <td className="px-4 py-2 text-slate-500">Total</td>
+                    <td className="px-4 py-2 text-right font-mono text-slate-800">
+                      {debitTotal.toLocaleString()}
                     </td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="number"
-                        min={0}
-                        className="input-base text-[12px] py-1.5 text-right"
-                        value={line.debit}
-                        onChange={(e) => updateLine(i, "debit", e.target.value)}
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="number"
-                        min={0}
-                        className="input-base text-[12px] py-1.5 text-right"
-                        value={line.credit}
-                        onChange={(e) => updateLine(i, "credit", e.target.value)}
-                      />
+                    <td className="px-4 py-2 text-right font-mono text-slate-800">
+                      {creditTotal.toLocaleString()}
                     </td>
                   </tr>
-                ))}
-                <tr className="bg-slate-50 font-semibold text-[12px]">
-                  <td className="px-4 py-2 text-slate-500">Total</td>
-                  <td className="px-4 py-2 text-right font-mono text-slate-800">
-                    {debitTotal.toLocaleString()}
-                  </td>
-                  <td className="px-4 py-2 text-right font-mono text-slate-800">
-                    {creditTotal.toLocaleString()}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {debitTotal > 0 && !isBalanced && (
@@ -352,43 +355,45 @@ export default function JournalEntriesPage() {
                   </div>
                 </div>
                 <div className="rounded-md border border-slate-100 overflow-hidden">
-                  <table className="w-full text-[12px]">
-                    <thead>
-                      <tr className="bg-slate-50 border-b border-slate-100">
-                        <th className="text-left px-4 py-1.5 text-[10px] font-semibold text-slate-500 uppercase">
-                          Account
-                        </th>
-                        <th className="text-right px-4 py-1.5 text-[10px] font-semibold text-slate-500 uppercase">
-                          Debit
-                        </th>
-                        <th className="text-right px-4 py-1.5 text-[10px] font-semibold text-slate-500 uppercase">
-                          Credit
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50">
-                      {je.lines.map((line, i) => (
-                        <tr key={i}>
-                          <td className="px-4 py-1.5 text-slate-700">{line.accountLabel}</td>
-                          <td className="px-4 py-1.5 text-right font-mono text-slate-800">
-                            {line.debit > 0 ? line.debit.toLocaleString() : "—"}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-[12px]">
+                      <thead>
+                        <tr className="bg-slate-50 border-b border-slate-100">
+                          <th className="text-left px-4 py-1.5 text-[10px] font-semibold text-slate-500 uppercase">
+                            Account
+                          </th>
+                          <th className="text-right px-4 py-1.5 text-[10px] font-semibold text-slate-500 uppercase">
+                            Debit
+                          </th>
+                          <th className="text-right px-4 py-1.5 text-[10px] font-semibold text-slate-500 uppercase">
+                            Credit
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {je.lines.map((line, i) => (
+                          <tr key={i}>
+                            <td className="px-4 py-1.5 text-slate-700">{line.accountLabel}</td>
+                            <td className="px-4 py-1.5 text-right font-mono text-slate-800">
+                              {line.debit > 0 ? line.debit.toLocaleString() : "—"}
+                            </td>
+                            <td className="px-4 py-1.5 text-right font-mono text-slate-800">
+                              {line.credit > 0 ? line.credit.toLocaleString() : "—"}
+                            </td>
+                          </tr>
+                        ))}
+                        <tr className="bg-slate-50 font-semibold">
+                          <td className="px-4 py-1.5 text-slate-500 text-[11px]">Total</td>
+                          <td className="px-4 py-1.5 text-right font-mono text-slate-700">
+                            {dr.toLocaleString()}
                           </td>
-                          <td className="px-4 py-1.5 text-right font-mono text-slate-800">
-                            {line.credit > 0 ? line.credit.toLocaleString() : "—"}
+                          <td className="px-4 py-1.5 text-right font-mono text-slate-700">
+                            {cr.toLocaleString()}
                           </td>
                         </tr>
-                      ))}
-                      <tr className="bg-slate-50 font-semibold">
-                        <td className="px-4 py-1.5 text-slate-500 text-[11px]">Total</td>
-                        <td className="px-4 py-1.5 text-right font-mono text-slate-700">
-                          {dr.toLocaleString()}
-                        </td>
-                        <td className="px-4 py-1.5 text-right font-mono text-slate-700">
-                          {cr.toLocaleString()}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             );

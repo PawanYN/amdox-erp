@@ -1,4 +1,5 @@
 "use client";
+import { toast } from "@/components/ui/toast";
 
 import { useEffect, useState } from "react";
 import { Plus, ArrowLeftRight, Loader2 } from "lucide-react";
@@ -65,7 +66,7 @@ export default function IntercompanyPage() {
     const amt = Number(amount);
     if (!fromAccountId || !toAccountId || !amt || amt <= 0) return;
     if (fromAccountId === toAccountId) {
-      alert("Source and destination accounts must differ.");
+      toast("Source and destination accounts must differ.", "error");
       return;
     }
 
@@ -82,7 +83,7 @@ export default function IntercompanyPage() {
       setDescription("");
       await load();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to create transfer.");
+      toast(err instanceof Error ? err.message : "Failed to create transfer.", "error");
     } finally {
       setSaving(false);
     }

@@ -1,4 +1,5 @@
 "use client";
+import { toast } from "@/components/ui/toast";
 
 import { useEffect, useState } from "react";
 import { Plus, Building2, Pencil, Trash2 } from "lucide-react";
@@ -77,7 +78,7 @@ export default function DepartmentsPage() {
       await load();
       setFormOpen(false);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to save department.");
+      toast(err instanceof Error ? err.message : "Failed to save department.", "error");
     } finally {
       setLoading(false);
     }
@@ -89,7 +90,7 @@ export default function DepartmentsPage() {
       await hrApi.deleteDepartment(dept.id);
       await load();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to delete department.");
+      toast(err instanceof Error ? err.message : "Failed to delete department.", "error");
     }
   }
 

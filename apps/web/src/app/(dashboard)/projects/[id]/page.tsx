@@ -1,4 +1,5 @@
 "use client";
+import { toast } from "@/components/ui/toast";
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -121,7 +122,7 @@ export default function ProjectDetailPage() {
       setEditOpen(false);
       load();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to update project.");
+      toast(err instanceof Error ? err.message : "Failed to update project.", "error");
     } finally {
       setSaving(false);
     }
@@ -133,7 +134,7 @@ export default function ProjectDetailPage() {
       await pmApi.closeProject(projectId);
       load();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to close project.");
+      toast(err instanceof Error ? err.message : "Failed to close project.", "error");
     }
   }
 
@@ -149,7 +150,7 @@ export default function ProjectDetailPage() {
       await pmApi.deleteProject(projectId);
       router.push("/projects/overview");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to delete project.");
+      toast(err instanceof Error ? err.message : "Failed to delete project.", "error");
     }
   }
 
@@ -160,7 +161,7 @@ export default function ProjectDetailPage() {
       setEditingMilestoneId(null);
       load();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to update milestone.");
+      toast(err instanceof Error ? err.message : "Failed to update milestone.", "error");
     }
   }
 
@@ -171,7 +172,7 @@ export default function ProjectDetailPage() {
       await pmApi.deleteMilestone(projectId, milestoneId);
       load();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to delete milestone.");
+      toast(err instanceof Error ? err.message : "Failed to delete milestone.", "error");
     }
   }
 
@@ -182,7 +183,7 @@ export default function ProjectDetailPage() {
       setEditingTaskId(null);
       load();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to update task.");
+      toast(err instanceof Error ? err.message : "Failed to update task.", "error");
     }
   }
 
@@ -192,7 +193,7 @@ export default function ProjectDetailPage() {
       await pmApi.deleteTask(taskId);
       load();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to delete task.");
+      toast(err instanceof Error ? err.message : "Failed to delete task.", "error");
     }
   }
 
@@ -202,7 +203,7 @@ export default function ProjectDetailPage() {
       await pmApi.deleteAllocation(allocationId);
       load();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to remove allocation.");
+      toast(err instanceof Error ? err.message : "Failed to remove allocation.", "error");
     }
   }
 
@@ -423,34 +424,36 @@ export default function ProjectDetailPage() {
           <p className="text-sm text-muted">No allocations.</p>
         ) : (
           <div className="border border-[#E4E2DC] rounded-lg overflow-hidden">
-            <table className="w-full text-[12px]">
-              <thead className="bg-[#FAFAF9]">
-                <tr>
-                  <th className="text-left px-3 py-2 text-[#8A8678]">Person</th>
-                  <th className="text-left px-3 py-2 text-[#8A8678]">Task</th>
-                  <th className="text-right px-3 py-2 text-[#8A8678]">Hours</th>
-                  <th className="text-right px-3 py-2 text-[#8A8678]">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.resources.map((r) => (
-                  <tr key={r.id} className="border-t border-[#F0EEE7]">
-                    <td className="px-3 py-2">{r.employeeName}</td>
-                    <td className="px-3 py-2 text-[#8A8678]">{r.taskTitle ?? "—"}</td>
-                    <td className="px-3 py-2 text-right font-mono">{r.allocatedHours}h</td>
-                    <td className="px-3 py-2 text-right">
-                      <button
-                        onClick={() => handleDeleteResource(r.id, r.employeeName)}
-                        className="p-1.5 rounded text-red-500 hover:bg-red-50 inline-flex"
-                        title="Remove allocation"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-[12px]">
+                <thead className="bg-[#FAFAF9]">
+                  <tr>
+                    <th className="text-left px-3 py-2 text-[#8A8678]">Person</th>
+                    <th className="text-left px-3 py-2 text-[#8A8678]">Task</th>
+                    <th className="text-right px-3 py-2 text-[#8A8678]">Hours</th>
+                    <th className="text-right px-3 py-2 text-[#8A8678]">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {data.resources.map((r) => (
+                    <tr key={r.id} className="border-t border-[#F0EEE7]">
+                      <td className="px-3 py-2">{r.employeeName}</td>
+                      <td className="px-3 py-2 text-[#8A8678]">{r.taskTitle ?? "—"}</td>
+                      <td className="px-3 py-2 text-right font-mono">{r.allocatedHours}h</td>
+                      <td className="px-3 py-2 text-right">
+                        <button
+                          onClick={() => handleDeleteResource(r.id, r.employeeName)}
+                          className="p-1.5 rounded text-red-500 hover:bg-red-50 inline-flex"
+                          title="Remove allocation"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </section>

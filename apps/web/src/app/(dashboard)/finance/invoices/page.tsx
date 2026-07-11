@@ -13,6 +13,7 @@ import {
   CreditCard,
   Play,
   Loader2,
+  Ban,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,12 +22,15 @@ import { StatCard } from "@/components/ui/stat-card";
 import { Modal, inputClasses } from "@/components/ui/modal";
 import { financeApi } from "@/lib/api/finance-api";
 import { scmApi } from "@/lib/api/scm-api";
-import { apiClient } from "@/lib/api/client";
+import { useRoles } from "@/lib/use-roles";
+import { toast } from "@/components/ui/toast";
+import { formatCurrency } from "@/lib/format";
 
 type BackendInvoice = {
   id: string;
   invoiceNumber: string;
   vendorId: string;
+  purchaseOrderId?: string | null;
   issueDate: string;
   dueDate: string;
   totalAmount: string | number;
@@ -35,6 +39,14 @@ type BackendInvoice = {
 };
 
 type Vendor = { id: string; name: string };
+
+type GoodsReceiptOption = {
+  id: string;
+  receivedAt: string;
+  purchaseOrder?: { poNumber?: string; vendor?: { name?: string } } | null;
+};
+
+type PurchaseOrderRef = { id: string; poNumber: string };
 
 type LineDraft = { description: string; quantity: string; unitPrice: string };
 
@@ -45,6 +57,7 @@ const STATUS_TONE: Record<string, "approved" | "pending" | "rejected" | "process
     PARTIALLY_PAID: "approved",
     PENDING_MATCH: "pending",
     OVERDUE: "rejected",
+    CANCELLED: "inactive",
   };
 
 const emptyLine = (): LineDraft => ({ description: "", quantity: "1", unitPrice: "" });
@@ -52,15 +65,20 @@ const emptyLine = (): LineDraft => ({ description: "", quantity: "1", unitPrice:
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<BackendInvoice[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [receipts, setReceipts] = useState<GoodsReceiptOption[]>([]);
+  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrderRef[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isTenantAdmin, setIsTenantAdmin] = useState(false);
+  const { canWrite, isAdmin: isTenantAdmin } = useRoles();
 
   const [uploadOpen, setUploadOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [goodsReceiptId, setGoodsReceiptId] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const [cancelTarget, setCancelTarget] = useState<BackendInvoice | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
 
   const [createOpen, setCreateOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
@@ -100,19 +118,39 @@ export default function InvoicesPage() {
       .getVendors()
       .then(setVendors)
       .catch(() => {});
-    apiClient("/auth/me")
-      .then((me: { roles: string[] }) => {
-        setIsTenantAdmin(me.roles.includes("TenantAdmin") || me.roles.includes("SuperAdmin"));
-      })
-      .catch(() => setIsTenantAdmin(false));
+    scmApi
+      .getGoodsReceipts()
+      .then(setReceipts)
+      .catch(() => {});
+    scmApi
+      .getPurchaseOrders()
+      .then((pos: PurchaseOrderRef[]) => setPurchaseOrders(pos))
+      .catch(() => {});
   }, []);
 
   const handleApprove = async (id: string) => {
     try {
       await financeApi.approveInvoice(id);
+      toast("Invoice approved — GL entry posted.");
       fetchInvoices();
     } catch (err) {
-      console.error("Approval failed", err);
+      toast(err instanceof Error ? err.message : "Approval failed.", "error");
+    }
+  };
+
+  const handleCancelInvoice = async () => {
+    if (!cancelTarget) return;
+    setSaving(true);
+    try {
+      await financeApi.cancelInvoice(cancelTarget.id, cancelReason.trim() || undefined);
+      toast(`Invoice ${cancelTarget.invoiceNumber} cancelled.`);
+      setCancelTarget(null);
+      setCancelReason("");
+      await fetchInvoices();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Failed to cancel invoice.", "error");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -194,7 +232,7 @@ export default function InvoicesPage() {
       setLines([emptyLine()]);
       await fetchInvoices();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to create invoice.");
+      toast(err instanceof Error ? err.message : "Failed to create invoice.", "error");
     } finally {
       setSaving(false);
     }
@@ -215,7 +253,7 @@ export default function InvoicesPage() {
       setBankReference("");
       await fetchInvoices();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to record payment.");
+      toast(err instanceof Error ? err.message : "Failed to record payment.", "error");
     } finally {
       setSaving(false);
     }
@@ -239,7 +277,7 @@ export default function InvoicesPage() {
       setSelectedBatchIds([]);
       await fetchInvoices();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Payment run failed.");
+      toast(err instanceof Error ? err.message : "Payment run failed.", "error");
     } finally {
       setSaving(false);
     }
@@ -277,6 +315,17 @@ export default function InvoicesPage() {
       ),
     },
     {
+      header: "PO",
+      cell: (inv) => {
+        const po = purchaseOrders.find((p) => p.id === inv.purchaseOrderId);
+        return po ? (
+          <span className="font-mono text-[12px] text-slate-600">{po.poNumber}</span>
+        ) : (
+          <span className="text-[12px] text-slate-400">—</span>
+        );
+      },
+    },
+    {
       header: "Issued",
       cell: (inv) => (
         <span className="text-[13px] text-slate-500">
@@ -301,7 +350,7 @@ export default function InvoicesPage() {
       header: "Amount",
       cell: (inv) => (
         <span className="font-mono font-semibold text-slate-900">
-          ₹{Number(inv.totalAmount).toLocaleString()}
+          {formatCurrency(inv.totalAmount)}
         </span>
       ),
     },
@@ -314,15 +363,28 @@ export default function InvoicesPage() {
     {
       header: "Action",
       cell: (inv) =>
-        inv.status === "PENDING_MATCH" ? (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleApprove(inv.id)}
-            icon={<Check size={13} />}
-          >
-            Approve
-          </Button>
+        canWrite && inv.status === "PENDING_MATCH" ? (
+          <div className="flex gap-1.5">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleApprove(inv.id)}
+              icon={<Check size={13} />}
+            >
+              Approve
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setCancelReason("");
+                setCancelTarget(inv);
+              }}
+              icon={<Ban size={13} />}
+            >
+              Cancel
+            </Button>
+          </div>
         ) : null,
     },
   ];
@@ -339,33 +401,35 @@ export default function InvoicesPage() {
             Vendor invoices — upload, create manually, approve, and pay.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2 justify-end">
-          <Button
-            variant="outline"
-            icon={<CreditCard size={14} />}
-            onClick={() => setPaymentOpen(true)}
-          >
-            Record Payment
-          </Button>
-          {isTenantAdmin && (
+        {canWrite && (
+          <div className="flex flex-wrap gap-2 justify-end">
             <Button
               variant="outline"
-              icon={<Play size={14} />}
-              onClick={() => {
-                setBatchResult(null);
-                setBatchOpen(true);
-              }}
+              icon={<CreditCard size={14} />}
+              onClick={() => setPaymentOpen(true)}
             >
-              Payment Run
+              Record Payment
             </Button>
-          )}
-          <Button variant="outline" icon={<Plus size={14} />} onClick={() => setCreateOpen(true)}>
-            Create Invoice
-          </Button>
-          <Button icon={<Upload size={14} />} onClick={openUpload}>
-            Upload Invoice
-          </Button>
-        </div>
+            {isTenantAdmin && (
+              <Button
+                variant="outline"
+                icon={<Play size={14} />}
+                onClick={() => {
+                  setBatchResult(null);
+                  setBatchOpen(true);
+                }}
+              >
+                Payment Run
+              </Button>
+            )}
+            <Button variant="outline" icon={<Plus size={14} />} onClick={() => setCreateOpen(true)}>
+              Create Invoice
+            </Button>
+            <Button icon={<Upload size={14} />} onClick={openUpload}>
+              Upload Invoice
+            </Button>
+          </div>
+        )}
       </div>
 
       {error && <p className="text-[13px] text-red-600">{error}</p>}
@@ -431,14 +495,26 @@ export default function InvoicesPage() {
           </div>
           <div>
             <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
-              Goods Receipt ID (optional)
+              Match against goods receipt (optional)
             </label>
-            <input
+            <select
               className={inputClasses}
               value={goodsReceiptId}
               onChange={(e) => setGoodsReceiptId(e.target.value)}
-              placeholder="Attempt 3-way match against a specific goods receipt"
-            />
+            >
+              <option value="">No match — review manually later</option>
+              {receipts.map((gr) => (
+                <option key={gr.id} value={gr.id}>
+                  {gr.purchaseOrder?.poNumber ?? "PO —"} ·{" "}
+                  {gr.purchaseOrder?.vendor?.name ?? "Unknown vendor"} · received{" "}
+                  {new Date(gr.receivedAt).toLocaleDateString("en-IN")}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-[11px] text-slate-500">
+              Picking the delivery this bill belongs to lets the system verify and approve it
+              automatically (3-way match).
+            </p>
           </div>
           {uploadError && <p className="text-[12px] text-red-600">{uploadError}</p>}
           <div className="flex justify-end gap-2 pt-2">
@@ -677,6 +753,35 @@ export default function InvoicesPage() {
               icon={<Play size={13} />}
             >
               {saving ? "Running…" : `Run (${selectedBatchIds.length})`}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={cancelTarget !== null}
+        onClose={() => setCancelTarget(null)}
+        title={`Cancel invoice ${cancelTarget?.invoiceNumber ?? ""}`}
+        description="The invoice stays in the list as CANCELLED. Only bills not yet in the ledger can be cancelled."
+      >
+        <div className="space-y-3">
+          <div>
+            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+              Reason (optional)
+            </label>
+            <input
+              className={inputClasses}
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              placeholder="e.g. duplicate entry, wrong amount"
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setCancelTarget(null)}>
+              Keep invoice
+            </Button>
+            <Button onClick={handleCancelInvoice} disabled={saving} icon={<Ban size={13} />}>
+              {saving ? "Cancelling…" : "Cancel invoice"}
             </Button>
           </div>
         </div>

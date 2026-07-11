@@ -1,7 +1,8 @@
 "use client";
+import { toast } from "@/components/ui/toast";
 
 import { useState, useEffect, useCallback } from "react";
-import { Truck, ArrowRight, Loader2, Warehouse as WarehouseIcon } from "lucide-react";
+import { Truck, ArrowRight, Loader2, Warehouse as WarehouseIcon, Copy, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { scmApi } from "@/lib/api/scm-api";
 
@@ -15,6 +16,18 @@ const STATUS_TONE: Record<string, "pending" | "approved" | "processed" | "reject
   };
 
 type Warehouse = { id: string; name: string; location?: string };
+
+type GoodsReceipt = {
+  id: string;
+  purchaseOrderId: string;
+  receivedAt: string;
+  notes: string;
+  purchaseOrder?: {
+    poNumber?: string;
+    totalAmount?: number | string;
+    vendor?: { name?: string };
+  };
+};
 
 type PurchaseOrder = {
   id: string;
@@ -30,18 +43,25 @@ type PurchaseOrder = {
 
 export default function GoodsReceiptPage() {
   const [poList, setPoList] = useState<PurchaseOrder[]>([]);
+  const [receipts, setReceipts] = useState<GoodsReceipt[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [warehouseId, setWarehouseId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [receivingId, setReceivingId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [pos, whs] = await Promise.all([scmApi.getPurchaseOrders(), scmApi.getWarehouses()]);
+      const [pos, whs, grs] = await Promise.all([
+        scmApi.getPurchaseOrders(),
+        scmApi.getWarehouses(),
+        scmApi.getGoodsReceipts(),
+      ]);
       setPoList(Array.isArray(pos) ? pos : []);
+      setReceipts(Array.isArray(grs) ? (grs as GoodsReceipt[]) : []);
       const warehouseList = Array.isArray(whs) ? (whs as Warehouse[]) : [];
       setWarehouses(warehouseList);
       setWarehouseId((prev) => prev || warehouseList[0]?.id || "");
@@ -52,6 +72,13 @@ export default function GoodsReceiptPage() {
     }
   }, []);
 
+  const copyId = (id: string) => {
+    navigator.clipboard.writeText(id).then(() => {
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    });
+  };
+
   useEffect(() => {
     load();
   }, [load]);
@@ -60,7 +87,7 @@ export default function GoodsReceiptPage() {
 
   const receive = async (id: string) => {
     if (!warehouseId) {
-      alert("Select a warehouse before receiving goods.");
+      toast("Select a warehouse before receiving goods.", "error");
       return;
     }
     setReceivingId(id);
@@ -200,6 +227,74 @@ export default function GoodsReceiptPage() {
           ))
         )}
       </div>
+
+      {/* Receipt History — shows completed GRs with copy-able IDs */}
+      {receipts.length > 0 && (
+        <div className="mt-6">
+          <h2 className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider mb-2">
+            Receipt History
+          </h2>
+          <div className="rounded-lg border border-slate-200 bg-white overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-[12px]">
+                <thead>
+                  <tr className="border-b border-slate-100 bg-slate-50">
+                    <th className="text-left px-4 py-2 font-medium text-slate-500">GR ID</th>
+                    <th className="text-left px-4 py-2 font-medium text-slate-500">PO Number</th>
+                    <th className="text-left px-4 py-2 font-medium text-slate-500">Vendor</th>
+                    <th className="text-left px-4 py-2 font-medium text-slate-500">Received At</th>
+                    <th className="text-right px-4 py-2 font-medium text-slate-500">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {receipts.map((gr) => (
+                    <tr
+                      key={gr.id}
+                      className="border-b border-slate-100 last:border-0 hover:bg-slate-50"
+                    >
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className="font-mono text-[11px] text-slate-700 bg-slate-100 rounded px-1.5 py-0.5 max-w-[140px] truncate"
+                            title={gr.id}
+                          >
+                            {gr.id.slice(0, 8)}…
+                          </span>
+                          <button
+                            onClick={() => copyId(gr.id)}
+                            title="Copy full GR ID"
+                            className="text-slate-400 hover:text-blue-600 transition-colors"
+                          >
+                            {copiedId === gr.id ? (
+                              <Check size={13} className="text-green-500" />
+                            ) : (
+                              <Copy size={13} />
+                            )}
+                          </button>
+                        </div>
+                      </td>
+                      <td className="px-4 py-2.5 font-mono text-slate-800">
+                        {gr.purchaseOrder?.poNumber ?? gr.purchaseOrderId.slice(0, 8)}
+                      </td>
+                      <td className="px-4 py-2.5 text-slate-700">
+                        {gr.purchaseOrder?.vendor?.name ?? "—"}
+                      </td>
+                      <td className="px-4 py-2.5 text-slate-500">
+                        {new Date(gr.receivedAt).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-mono text-slate-800">
+                        {gr.purchaseOrder?.totalAmount != null
+                          ? `₹${Number(gr.purchaseOrder.totalAmount).toLocaleString()}`
+                          : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

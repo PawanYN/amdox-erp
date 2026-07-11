@@ -1,4 +1,5 @@
 "use client";
+import { toast } from "@/components/ui/toast";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import dynamic from "next/dynamic";
@@ -56,7 +57,7 @@ function WarehouseModal({
       onSaved();
       onClose();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to create warehouse.");
+      toast(err instanceof Error ? err.message : "Failed to create warehouse.", "error");
     } finally {
       setSaving(false);
     }
@@ -140,7 +141,7 @@ function StockMovementModal({
       onSaved();
       onClose();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to record movement.");
+      toast(err instanceof Error ? err.message : "Failed to record movement.", "error");
     } finally {
       setSaving(false);
     }
@@ -263,7 +264,7 @@ function ReorderRuleModal({
       onSaved();
       onClose();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to save reorder rule.");
+      toast(err instanceof Error ? err.message : "Failed to save reorder rule.", "error");
     } finally {
       setSaving(false);
     }
@@ -784,30 +785,32 @@ export default function InventoryPage() {
           </p>
         </div>
         <div className="border border-[#E4E2DC] rounded-lg overflow-hidden">
-          <table className="w-full text-[12px]">
-            <thead>
-              <tr className="bg-[#FAFAF9] border-b border-[#E4E2DC]">
-                <th className="text-left px-3 py-2 text-[#8A8678] font-medium">SKU / Item</th>
-                <th className="text-right px-3 py-2 text-[#8A8678] font-medium">
-                  {selectedWarehouseId ? "Stock (here)" : "Stock (all)"}
-                </th>
-                <th className="text-right px-3 py-2 text-[#8A8678] font-medium">Reorder at</th>
-                <th className="text-right px-3 py-2 text-[#8A8678] font-medium">Unit cost</th>
-                <th className="text-center px-3 py-2 text-[#8A8678] font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {viewItems.map((item) => (
-                <InventoryRow
-                  key={item.sku}
-                  item={item}
-                  onRaisePr={handleRaisePr}
-                  raised={raised}
-                  raising={raising}
-                />
-              ))}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto">
+            <table className="w-full text-[12px]">
+              <thead>
+                <tr className="bg-[#FAFAF9] border-b border-[#E4E2DC]">
+                  <th className="text-left px-3 py-2 text-[#8A8678] font-medium">SKU / Item</th>
+                  <th className="text-right px-3 py-2 text-[#8A8678] font-medium">
+                    {selectedWarehouseId ? "Stock (here)" : "Stock (all)"}
+                  </th>
+                  <th className="text-right px-3 py-2 text-[#8A8678] font-medium">Reorder at</th>
+                  <th className="text-right px-3 py-2 text-[#8A8678] font-medium">Unit cost</th>
+                  <th className="text-center px-3 py-2 text-[#8A8678] font-medium">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {viewItems.map((item) => (
+                  <InventoryRow
+                    key={item.sku}
+                    item={item}
+                    onRaisePr={handleRaisePr}
+                    raised={raised}
+                    raising={raising}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 

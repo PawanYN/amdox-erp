@@ -1,4 +1,5 @@
 "use client";
+import { toast } from "@/components/ui/toast";
 
 import { useState, useEffect } from "react";
 import { BookOpen, Landmark, PieChart, Wallet, Plus, ChevronRight } from "lucide-react";
@@ -119,7 +120,7 @@ export default function ChartOfAccountsPage() {
       await load();
       setFormOpen(false);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to create account.");
+      toast(err instanceof Error ? err.message : "Failed to create account.", "error");
     } finally {
       setSaving(false);
     }
@@ -220,32 +221,34 @@ export default function ChartOfAccountsPage() {
               </button>
 
               {open && (
-                <table className="w-full text-[13px]">
-                  <tbody className="divide-y divide-slate-100">
-                    {group.length === 0 ? (
-                      <tr>
-                        <td colSpan={4} className="px-4 py-3 text-[12px] text-slate-500 italic">
-                          No {type} accounts found.
-                        </td>
-                      </tr>
-                    ) : (
-                      group.map((a) => (
-                        <tr key={a.code} className="hover:bg-slate-50/60 transition-colors">
-                          <td className="px-4 py-2.5 font-mono text-[12px] text-slate-500 w-16">
-                            {a.code}
-                          </td>
-                          <td className="px-4 py-2.5 font-medium text-slate-800">{a.name}</td>
-                          <td className="px-4 py-2.5 text-[12px] text-slate-500 hidden sm:table-cell">
-                            {a.subType.replace(/_/g, " ")}
-                          </td>
-                          <td className="px-4 py-2.5 text-right font-mono text-slate-700">
-                            ₹{a.balance.toLocaleString()}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-[13px]">
+                    <tbody className="divide-y divide-slate-100">
+                      {group.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="px-4 py-3 text-[12px] text-slate-500 italic">
+                            No {type} accounts found.
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                      ) : (
+                        group.map((a) => (
+                          <tr key={a.code} className="hover:bg-slate-50/60 transition-colors">
+                            <td className="px-4 py-2.5 font-mono text-[12px] text-slate-500 w-16">
+                              {a.code}
+                            </td>
+                            <td className="px-4 py-2.5 font-medium text-slate-800">{a.name}</td>
+                            <td className="px-4 py-2.5 text-[12px] text-slate-500 hidden sm:table-cell">
+                              {a.subType.replace(/_/g, " ")}
+                            </td>
+                            <td className="px-4 py-2.5 text-right font-mono text-slate-700">
+                              ₹{a.balance.toLocaleString()}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           );

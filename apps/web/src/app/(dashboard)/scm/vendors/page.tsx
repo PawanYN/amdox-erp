@@ -1,4 +1,5 @@
 "use client";
+import { toast } from "@/components/ui/toast";
 
 import { useState, useEffect } from "react";
 import { Building2, Plus, Users, Briefcase, KeyRound, Pencil, Trash2 } from "lucide-react";
@@ -26,6 +27,11 @@ export default function VendorsPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [saving, setSaving] = useState(false);
+  const [issuingKeyFor, setIssuingKeyFor] = useState<string | null>(null);
+  const [issuedKey, setIssuedKey] = useState<{
+    vendorName: string;
+    accessKey: string;
+  } | null>(null);
 
   const load = () =>
     scmApi
@@ -71,7 +77,7 @@ export default function VendorsPage() {
       await load();
       setFormOpen(false);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to save vendor.");
+      toast(err instanceof Error ? err.message : "Failed to save vendor.", "error");
     } finally {
       setSaving(false);
     }
@@ -83,22 +89,38 @@ export default function VendorsPage() {
       await scmApi.deleteVendor(vendor.id);
       await load();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to delete vendor.");
+      toast(err instanceof Error ? err.message : "Failed to delete vendor.", "error");
     }
   }
 
   const handleIssuePortalKey = async (vendor: BackendVendor) => {
     if (!vendor.email) {
-      alert("Add an email to this vendor before issuing a portal key.");
+      toast("Add an email to this vendor before issuing a portal key.", "error");
       return;
     }
+    setIssuingKeyFor(vendor.id);
     try {
-      const result = await scmApi.issueVendorPortalKey(vendor.id);
-      alert(
-        `Portal key for ${vendor.name}:\n\n${result.accessKey}\n\nShare this with the supplier. Login at /vendor-portal`,
-      );
+      const result = (await scmApi.issueVendorPortalKey(vendor.id)) as {
+        accessKey?: string;
+        vendorName?: string;
+      };
+      if (!result.accessKey) {
+        throw new Error("Server did not return an access key.");
+      }
+      setIssuedKey({
+        vendorName: result.vendorName || vendor.name,
+        accessKey: result.accessKey,
+      });
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to issue portal key");
+      const message = err instanceof Error ? err.message : "Failed to issue portal key";
+      toast(
+        message.includes("403") || message.toLowerCase().includes("forbidden")
+          ? "Permission denied — your role cannot issue portal keys. Try logging in as Tenant Admin."
+          : message,
+        "error",
+      );
+    } finally {
+      setIssuingKeyFor(null);
     }
   };
 
@@ -133,10 +155,14 @@ export default function VendorsPage() {
       header: "Portal",
       cell: (v) => (
         <button
+          type="button"
           onClick={() => handleIssuePortalKey(v)}
-          className="inline-flex items-center gap-1.5 text-[12px] font-medium text-blue-600 hover:text-blue-700 hover:underline"
+          disabled={!v.email || issuingKeyFor === v.id}
+          className="inline-flex items-center gap-1.5 text-[12px] font-medium text-blue-600 hover:text-blue-700 hover:underline disabled:opacity-50 disabled:cursor-not-allowed disabled:no-underline"
+          title={v.email ? "Issue supplier portal access key" : "Add vendor email first"}
         >
-          <KeyRound size={13} /> Issue key
+          <KeyRound size={13} />
+          {issuingKeyFor === v.id ? "Issuing…" : "Issue key"}
         </button>
       ),
     },
@@ -245,6 +271,39 @@ export default function VendorsPage() {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      <Modal
+        open={Boolean(issuedKey)}
+        onClose={() => setIssuedKey(null)}
+        title="Supplier portal key"
+      >
+        {issuedKey && (
+          <div className="space-y-4">
+            <p className="text-sm text-slate-600">
+              Key for <span className="font-semibold text-slate-900">{issuedKey.vendorName}</span>.
+              Copy it now — it is shown only once.
+            </p>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 font-mono text-sm text-slate-900 break-all select-all">
+              {issuedKey.accessKey}
+            </div>
+            <p className="text-xs text-slate-500">
+              Supplier login: <span className="font-medium">/vendor-portal</span> · tenant slug{" "}
+              <span className="font-medium">company-a</span> · vendor email · this key
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  void navigator.clipboard.writeText(issuedKey.accessKey);
+                }}
+              >
+                Copy key
+              </Button>
+              <Button onClick={() => setIssuedKey(null)}>Done</Button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

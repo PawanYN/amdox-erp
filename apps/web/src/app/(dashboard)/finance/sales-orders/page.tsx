@@ -1,4 +1,5 @@
 "use client";
+import { toast } from "@/components/ui/toast";
 
 import { useEffect, useState } from "react";
 import { Plus, ShoppingCart, FileText, Loader2 } from "lucide-react";
@@ -85,7 +86,7 @@ export default function SalesOrdersPage() {
 
   async function handleCreate() {
     if (!customerId) {
-      alert("Select a customer.");
+      toast("Select a customer.", "error");
       return;
     }
     const parsed = lines
@@ -96,7 +97,7 @@ export default function SalesOrdersPage() {
       }))
       .filter((l) => l.description && l.quantity > 0 && l.unitPrice > 0);
     if (parsed.length === 0) {
-      alert("Add at least one valid line item.");
+      toast("Add at least one valid line item.", "error");
       return;
     }
 
@@ -107,7 +108,7 @@ export default function SalesOrdersPage() {
       setLines([emptyLine()]);
       await load();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to create sales order.");
+      toast(err instanceof Error ? err.message : "Failed to create sales order.", "error");
     } finally {
       setSaving(false);
     }
@@ -119,7 +120,7 @@ export default function SalesOrdersPage() {
       await financeApi.createInvoiceFromOrder(id);
       await load();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to generate invoice.");
+      toast(err instanceof Error ? err.message : "Failed to generate invoice.", "error");
     } finally {
       setInvoicingId(null);
     }

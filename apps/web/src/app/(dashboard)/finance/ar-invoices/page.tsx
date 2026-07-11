@@ -1,4 +1,5 @@
 "use client";
+import { toast } from "@/components/ui/toast";
 
 import { useEffect, useState } from "react";
 import { Plus, TrendingUp, CreditCard, Loader2 } from "lucide-react";
@@ -78,7 +79,7 @@ export default function ArInvoicesPage() {
         cid = created.id;
       }
       if (!cid) {
-        alert("Select or enter a customer.");
+        toast("Select or enter a customer.", "error");
         return;
       }
       await financeApi.createArInvoice({
@@ -104,7 +105,7 @@ export default function ArInvoicesPage() {
       setNewCustomerName("");
       await load();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to create invoice.");
+      toast(err instanceof Error ? err.message : "Failed to create invoice.", "error");
     } finally {
       setSaving(false);
     }
@@ -125,7 +126,7 @@ export default function ArInvoicesPage() {
       setBankReference("");
       await load();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to record payment.");
+      toast(err instanceof Error ? err.message : "Failed to record payment.", "error");
     } finally {
       setSaving(false);
     }

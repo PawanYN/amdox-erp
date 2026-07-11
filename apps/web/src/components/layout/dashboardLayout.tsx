@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import keycloak from "../../lib/keycloak";
 import { useKeycloak } from "../KeycloakProvider";
 import { GlobalSearch, useGlobalSearchShortcut } from "./global-search";
+import { ToastHost } from "../ui/toast";
 import { notificationApi } from "../../lib/api/notification-api";
 import { apiClient } from "../../lib/api/client";
 import { isModuleAllowed } from "../../lib/erp-modules";
@@ -96,8 +97,6 @@ const NAV: NavSection[] = [
       { id: "/scm/inventory", label: "Inventory" },
       { id: "/scm/purchase-orders", label: "Purchase Orders" },
       { id: "/scm/goods-receipt", label: "Goods Receipt" },
-      { id: "/scm/invoices", label: "AP Invoices" },
-      { id: "/scm/forecast", label: "AI Forecast" },
     ],
   },
   {
@@ -113,7 +112,7 @@ const NAV: NavSection[] = [
     ],
   },
   { id: "/notifications", icon: Bell, label: "Notifications", leaf: true },
-  { id: "/settings", icon: Settings, label: "Settings", leaf: true },
+  { id: "/settings", icon: Settings, label: "Settings, Audit & GDPR", leaf: true },
 ];
 
 function TopBar({
@@ -465,6 +464,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </main>
       </div>
       <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <ToastHost />
     </div>
   );
 }

@@ -1,4 +1,5 @@
 "use client";
+import { toast } from "@/components/ui/toast";
 
 import { useEffect, useState, useCallback } from "react";
 import { Plus, X, Users, BarChart2, Loader2, Trash2, Package } from "lucide-react";
@@ -323,7 +324,7 @@ export default function ProjectsResourcesPage() {
       await pmApi.deleteAllocation(id);
       await load();
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Failed to remove allocation");
+      toast(e instanceof Error ? e.message : "Failed to remove allocation", "error");
     }
   }
 
@@ -389,157 +390,169 @@ export default function ProjectsResourcesPage() {
 
       {tab === "allocations" && (
         <div className="border border-slate-200 rounded-lg overflow-hidden shadow-card">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <th className={thClass}>Person</th>
-                <th className={thClass}>Project</th>
-                <th className={thClass}>Task</th>
-                <th className={`${thClass} text-right`}>Hours</th>
-                <th className={thClass}>Period</th>
-                <th className={`${thClass} text-right`}>Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {allocations.length === 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-slate-500 text-center text-sm">
-                    No allocations yet. Click &quot;Allocate resource&quot; to assign an employee to
-                    a project task.
-                  </td>
+                  <th className={thClass}>Person</th>
+                  <th className={thClass}>Project</th>
+                  <th className={thClass}>Task</th>
+                  <th className={`${thClass} text-right`}>Hours</th>
+                  <th className={thClass}>Period</th>
+                  <th className={`${thClass} text-right`}>Actions</th>
                 </tr>
-              ) : (
-                allocations.map((a) => (
-                  <tr key={a.id} className="hover:bg-slate-50/60 transition-colors">
-                    <td className={`${tdClass} font-semibold text-slate-900`}>{a.employeeName}</td>
-                    <td className={tdClass}>{a.project.name}</td>
-                    <td className={`${tdClass} text-slate-500`}>{a.task?.title ?? "—"}</td>
-                    <td className={`${tdClass} text-right font-mono`}>{a.allocatedHours}h</td>
-                    <td className={`${tdClass} text-[12px] text-slate-500`}>
-                      {new Date(a.startDate).toLocaleDateString()}
-                      {a.endDate ? ` → ${new Date(a.endDate).toLocaleDateString()}` : " →"}
-                    </td>
-                    <td className={`${tdClass} text-right`}>
-                      <button
-                        onClick={() => handleDeleteAllocation(a.id, a.employeeName ?? "employee")}
-                        className="p-1.5 rounded-md text-red-500 hover:bg-red-50 inline-flex"
-                        title="Remove allocation"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {allocations.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-8 text-slate-500 text-center text-sm">
+                      No allocations yet. Click &quot;Allocate resource&quot; to assign an employee
+                      to a project task.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  allocations.map((a) => (
+                    <tr key={a.id} className="hover:bg-slate-50/60 transition-colors">
+                      <td className={`${tdClass} font-semibold text-slate-900`}>
+                        {a.employeeName}
+                      </td>
+                      <td className={tdClass}>{a.project.name}</td>
+                      <td className={`${tdClass} text-slate-500`}>{a.task?.title ?? "—"}</td>
+                      <td className={`${tdClass} text-right font-mono`}>{a.allocatedHours}h</td>
+                      <td className={`${tdClass} text-[12px] text-slate-500`}>
+                        {new Date(a.startDate).toLocaleDateString()}
+                        {a.endDate ? ` → ${new Date(a.endDate).toLocaleDateString()}` : " →"}
+                      </td>
+                      <td className={`${tdClass} text-right`}>
+                        <button
+                          onClick={() => handleDeleteAllocation(a.id, a.employeeName ?? "employee")}
+                          className="p-1.5 rounded-md text-red-500 hover:bg-red-50 inline-flex"
+                          title="Remove allocation"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
       {tab === "heatmap" && (
         <div className="border border-slate-200 rounded-lg overflow-hidden shadow-card">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <th className={thClass}>Person</th>
-                <th className={`${thClass} text-right`}>Hours</th>
-                <th className={`${thClass} text-right`}>Utilisation</th>
-                <th className={`${thClass} text-right`}>Projects</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {heatmap.length === 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-slate-500 text-center">
-                    No resource allocations yet.
-                  </td>
+                  <th className={thClass}>Person</th>
+                  <th className={`${thClass} text-right`}>Hours</th>
+                  <th className={`${thClass} text-right`}>Utilisation</th>
+                  <th className={`${thClass} text-right`}>Projects</th>
                 </tr>
-              ) : (
-                heatmap.map((p) => (
-                  <tr key={p.employeeId} className="hover:bg-slate-50/60 transition-colors">
-                    <td className={`${tdClass} font-semibold text-slate-900`}>{p.name}</td>
-                    <td className={`${tdClass} text-right font-mono`}>{p.totalAllocatedHours}h</td>
-                    <td className={tdClass}>
-                      <div className="flex items-center justify-end gap-2">
-                        <div className="w-20 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full ${p.isOverAllocated ? "bg-red-500" : "bg-emerald-500"}`}
-                            style={{ width: `${Math.min(p.utilisationPct, 100)}%` }}
-                          />
-                        </div>
-                        <span
-                          className={`text-[12px] font-mono font-semibold w-10 text-right ${p.isOverAllocated ? "text-red-600" : "text-emerald-700"}`}
-                        >
-                          {p.utilisationPct}%
-                        </span>
-                      </div>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {heatmap.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-8 text-slate-500 text-center">
+                      No resource allocations yet.
                     </td>
-                    <td className={`${tdClass} text-right`}>{p.projectCount}</td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  heatmap.map((p) => (
+                    <tr key={p.employeeId} className="hover:bg-slate-50/60 transition-colors">
+                      <td className={`${tdClass} font-semibold text-slate-900`}>{p.name}</td>
+                      <td className={`${tdClass} text-right font-mono`}>
+                        {p.totalAllocatedHours}h
+                      </td>
+                      <td className={tdClass}>
+                        <div className="flex items-center justify-end gap-2">
+                          <div className="w-20 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${p.isOverAllocated ? "bg-red-500" : "bg-emerald-500"}`}
+                              style={{ width: `${Math.min(p.utilisationPct, 100)}%` }}
+                            />
+                          </div>
+                          <span
+                            className={`text-[12px] font-mono font-semibold w-10 text-right ${p.isOverAllocated ? "text-red-600" : "text-emerald-700"}`}
+                          >
+                            {p.utilisationPct}%
+                          </span>
+                        </div>
+                      </td>
+                      <td className={`${tdClass} text-right`}>{p.projectCount}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
       {tab === "items" && (
         <div className="border border-slate-200 rounded-lg overflow-hidden shadow-card">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <th className={thClass}>Project</th>
-                <th className={thClass}>Item</th>
-                <th className={`${thClass} text-right`}>Quantity</th>
-                <th className={`${thClass} text-right`}>Est. unit price</th>
-                <th className={thClass}>Status</th>
-                <th className={thClass}>Requested</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {materialRequests.length === 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-slate-500 text-center text-sm">
-                    No items requested from Supply Chain Management yet.
-                  </td>
+                  <th className={thClass}>Project</th>
+                  <th className={thClass}>Item</th>
+                  <th className={`${thClass} text-right`}>Quantity</th>
+                  <th className={`${thClass} text-right`}>Est. unit price</th>
+                  <th className={thClass}>Status</th>
+                  <th className={thClass}>Requested</th>
                 </tr>
-              ) : (
-                materialRequests.flatMap((r) =>
-                  r.lines.map((line) => (
-                    <tr key={line.id} className="hover:bg-slate-50/60 transition-colors">
-                      <td className={`${tdClass} font-semibold text-slate-900`}>
-                        {r.project?.name ?? "—"}
-                      </td>
-                      <td className={tdClass}>
-                        <span className="font-mono text-[12px] text-slate-500 mr-1.5">
-                          {line.product.sku}
-                        </span>
-                        {line.product.name}
-                      </td>
-                      <td className={`${tdClass} text-right font-mono`}>{Number(line.quantity)}</td>
-                      <td className={`${tdClass} text-right font-mono`}>
-                        {line.estimatedUnitPrice != null
-                          ? Number(line.estimatedUnitPrice).toFixed(2)
-                          : "—"}
-                      </td>
-                      <td className={tdClass}>
-                        <span
-                          className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
-                            materialStatusStyle[r.status] ?? "bg-slate-100 text-slate-600"
-                          }`}
-                        >
-                          {r.status.replace(/_/g, " ")}
-                        </span>
-                      </td>
-                      <td className={`${tdClass} text-[12px] text-slate-500`}>
-                        {new Date(r.createdAt).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  )),
-                )
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {materialRequests.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-8 text-slate-500 text-center text-sm">
+                      No items requested from Supply Chain Management yet.
+                    </td>
+                  </tr>
+                ) : (
+                  materialRequests.flatMap((r) =>
+                    r.lines.map((line) => (
+                      <tr key={line.id} className="hover:bg-slate-50/60 transition-colors">
+                        <td className={`${tdClass} font-semibold text-slate-900`}>
+                          {r.project?.name ?? "—"}
+                        </td>
+                        <td className={tdClass}>
+                          <span className="font-mono text-[12px] text-slate-500 mr-1.5">
+                            {line.product.sku}
+                          </span>
+                          {line.product.name}
+                        </td>
+                        <td className={`${tdClass} text-right font-mono`}>
+                          {Number(line.quantity)}
+                        </td>
+                        <td className={`${tdClass} text-right font-mono`}>
+                          {line.estimatedUnitPrice != null
+                            ? Number(line.estimatedUnitPrice).toFixed(2)
+                            : "—"}
+                        </td>
+                        <td className={tdClass}>
+                          <span
+                            className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
+                              materialStatusStyle[r.status] ?? "bg-slate-100 text-slate-600"
+                            }`}
+                          >
+                            {r.status.replace(/_/g, " ")}
+                          </span>
+                        </td>
+                        <td className={`${tdClass} text-[12px] text-slate-500`}>
+                          {new Date(r.createdAt).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    )),
+                  )
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
