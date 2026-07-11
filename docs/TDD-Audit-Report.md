@@ -456,17 +456,9 @@ Covers: F-02 "rates never consumed" ❌. Needs a decision on base currency per t
 - [ ] 🙋 **G2.** **Pawan records:** screen + voice, multi-role (log in as PM, then SCM, then Finance — this demonstrates RBAC for free). Upload YouTube-unlisted.
 - [ ] 🎓 **G3.** README final pass: live URL, demo credentials, video link, architecture diagram screenshot, and a short **"Known deviations from the TDD"** section — copy the ✔️ items from Task H below. Being upfront about deviations reads as engineering maturity, not weakness.
 
-### TASK H — Accepted deviations: document, don't fix ✔️ _(30 minutes of README writing, intern-doable)_
+### TASK H — Accepted deviations: document, don't fix ✔️ — ✅ _Done 11 July_
 
-These flags need **no code** — the audit judged them acceptable. One paragraph each in the README:
-
-- Single Keycloak realm instead of realm-per-tenant (isolation enforced at data layer + CI audit) — F-01 ⚠️
-- MFA delegated to Keycloak configuration — F-01 ⚠️
-- Reorder raises a requisition, not a PO draft (better practice) — F-05 ⚠️
-- Audit log in Postgres with hash chaining instead of TimescaleDB — F-09 ⚠️
-- Notification retries 5x vs. spec'd 3x (exceeds spec) — F-10
-- Org chart built client-side (fine at demo scale) — F-04 ⚠️
-- Journal entries post directly (no draft stage); reversal = manual counter-entry — F-02 ⚠️
+A **"Known Deviations from the TDD"** table + roadmap list now lives in `README.md`, covering: MFA delegated to Keycloak config (F-01), header-level 3-way matching (F-03), full-receipt-only GR (F-05), FX rates fetched but unconverted (F-02), requisition-not-PO-draft reorder (F-05), Postgres+hash-chain audit log (F-09), 5x notification retries (F-10), client-side org chart (F-04), direct-posted journal entries (F-02), and the payroll compensation approach. **Bonus correction:** the audit's "single shared realm" finding was wrong — `tenant.service.ts` creates a dedicated Keycloak realm per tenant at signup, so the TDD's realm-per-tenant strategy is actually met (F-01 section updated above).
 
 ### Deliberately dropped for the 3-day window ⏳
 
