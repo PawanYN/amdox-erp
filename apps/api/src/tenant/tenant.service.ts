@@ -30,6 +30,22 @@ export class TenantService implements OnModuleInit, OnModuleDestroy {
     return { exists: !!tenant };
   }
 
+  /**
+   * Redirect URIs for each new tenant realm's web client: localhost for dev
+   * plus every origin in FRONTEND_URL (comma-separated — the same env the
+   * CORS allowlist uses). Without this, tenants created on a deployed
+   * instance get a realm that rejects the public URL with
+   * "Invalid parameter: redirect_uri" at first login.
+   */
+  private static allowedRedirectUris(): string[] {
+    const uris = ['http://localhost:3000/*', 'http://localhost:3001/*'];
+    for (const origin of (process.env.FRONTEND_URL || '').split(',')) {
+      const trimmed = origin.trim().replace(/\/+$/, '');
+      if (trimmed && !uris.includes(`${trimmed}/*`)) uris.push(`${trimmed}/*`);
+    }
+    return uris;
+  }
+
   async onModuleInit() {
     this.kcAdminClient = new KcAdminClient({
       baseUrl: process.env.KEYCLOAK_BASE_URL || 'http://localhost:8180',
@@ -100,7 +116,7 @@ export class TenantService implements OnModuleInit, OnModuleDestroy {
         secret: randomUUID(), // unique per tenant — was a hardcoded shared literal committed to git
         standardFlowEnabled: true,
         directAccessGrantsEnabled: true,
-        redirectUris: ['http://localhost:3000/*', 'http://localhost:3001/*'],
+        redirectUris: TenantService.allowedRedirectUris(),
         webOrigins: ['+'],
       });
 
@@ -111,6 +127,11 @@ export class TenantService implements OnModuleInit, OnModuleDestroy {
         email: adminEmail,
         enabled: true,
         emailVerified: true,
+        // Keycloak 25 treats a missing name as an incomplete profile
+        // ("Account is not fully set up") and blocks logins / forces an
+        // update-profile page — so give the admin a real name up front.
+        firstName: name,
+        lastName: 'Admin',
       });
       kcUserId = kcUser.id;
 
