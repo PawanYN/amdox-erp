@@ -127,4 +127,19 @@ export class TenantController {
     const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] || 'default-tenant-id';
     return this.tenantService.provisionKcRoles(tenantId);
   }
+
+  /**
+   * POST /tenant/provision-auto-link
+   * One-time idempotent migration: creates the "auto-link" first-broker-login
+   * flow and switches existing identity providers to it (with trustEmail), so
+   * SSO/social logins for already-provisioned emails link instead of blocking.
+   * Call this once for any tenant whose IdPs were added before this fix.
+   */
+  @Post('provision-auto-link')
+  @UseGuards(AuthGuard('keycloak'), RolesGuard)
+  @Roles('SuperAdmin', 'TenantAdmin')
+  async provisionAutoLink(@Req() req: any) {
+    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] || 'default-tenant-id';
+    return this.tenantService.provisionAutoLink(tenantId);
+  }
 }

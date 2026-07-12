@@ -147,6 +147,9 @@ export class TenantService implements OnModuleInit, OnModuleDestroy {
         await this.kcAdminClient.roles.create({ realm: slug, name: roleName });
       }
 
+      // First-login flow used by identity providers added later (Google/SSO)
+      await this.ensureAutoLinkFlowForRealm(slug);
+
       // Assign TenantAdmin realm role to the provisioned admin user
       const kcAdminRole = await this.kcAdminClient.roles.findOneByName({
         realm: slug,
@@ -562,11 +565,65 @@ export class TenantService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  /**
+   * First-broker-login flow that links an incoming IdP identity (e.g. Google)
+   * to an existing Keycloak user with the same verified email instead of
+   * stopping at Keycloak's "Account already exists" confirmation page.
+   * Employees are provisioned with a password account first, so without this
+   * every social/SSO login for a known email dead-ends.
+   */
+  private static readonly AUTO_LINK_FLOW_ALIAS = 'auto-link';
+
+  /** Idempotent: safe to call on realms that already have the flow. */
+  async ensureAutoLinkFlowForRealm(realm: string) {
+    const flows = await this.kcAdminClient.authenticationManagement.getFlows({ realm });
+    if (flows.some((f) => f.alias === TenantService.AUTO_LINK_FLOW_ALIAS)) return;
+
+    await this.kcAdminClient.authenticationManagement.createFlow({
+      realm,
+      alias: TenantService.AUTO_LINK_FLOW_ALIAS,
+      description:
+        'First broker login without the confirm-link screen: new emails create a user, known emails auto-link. Only for IdPs that verify email ownership (trustEmail).',
+      providerId: 'basic-flow',
+      topLevel: true,
+      builtIn: false,
+    });
+
+    // Either execution completes the flow: unknown email → create user,
+    // known email → link the IdP identity to that user.
+    for (const provider of ['idp-create-user-if-unique', 'idp-auto-link']) {
+      await this.kcAdminClient.authenticationManagement.addExecutionToFlow({
+        realm,
+        flow: TenantService.AUTO_LINK_FLOW_ALIAS,
+        provider,
+      });
+    }
+    const executions = await this.kcAdminClient.authenticationManagement.getExecutions({
+      realm,
+      flow: TenantService.AUTO_LINK_FLOW_ALIAS,
+    });
+    for (const execution of executions) {
+      await this.kcAdminClient.authenticationManagement.updateExecution(
+        { realm, flow: TenantService.AUTO_LINK_FLOW_ALIAS },
+        { ...execution, requirement: 'ALTERNATIVE' },
+      );
+    }
+    AmdoxLogger.tenant(`Auto-link first-login flow created`, `realm=${realm}`);
+  }
+
   async createIdentityProvider(tenantId: string, provider: any) {
     const tenant = await this.getTenant(tenantId);
     await this.verifyRealmExists(tenant.slug);
     try {
-      await this.kcAdminClient.identityProviders.create({ realm: tenant.slug, ...provider });
+      await this.ensureAutoLinkFlowForRealm(tenant.slug);
+      await this.kcAdminClient.identityProviders.create({
+        realm: tenant.slug,
+        // Defaults (overridable per request): trust the IdP's verified email and
+        // auto-link to an existing account instead of blocking on first login.
+        trustEmail: true,
+        firstBrokerLoginFlowAlias: TenantService.AUTO_LINK_FLOW_ALIAS,
+        ...provider,
+      });
       return { success: true };
     } catch (error) {
       AmdoxLogger.error(
@@ -657,5 +714,50 @@ export class TenantService implements OnModuleInit, OnModuleDestroy {
 
     AmdoxLogger.success(`KC realm roles provisioned for tenant: ${tenant.slug}`);
     return { success: true, tenant: tenant.slug, admins: adminUsers.map((u) => u.user.email) };
+  }
+
+  /**
+   * One-time migration for realms created before the auto-link flow existed:
+   * creates the flow and switches every already-configured identity provider
+   * to it (with trustEmail), so first logins link instead of blocking.
+   * Idempotent — safe to call repeatedly.
+   */
+  async provisionAutoLink(tenantId: string) {
+    const tenant = await this.getTenant(tenantId);
+    await this.verifyRealmExists(tenant.slug);
+    try {
+      await this.ensureAutoLinkFlowForRealm(tenant.slug);
+
+      const idps = await this.kcAdminClient.identityProviders.find({ realm: tenant.slug });
+      const updated: string[] = [];
+      for (const idp of idps) {
+        if (
+          idp.trustEmail === true &&
+          idp.firstBrokerLoginFlowAlias === TenantService.AUTO_LINK_FLOW_ALIAS
+        )
+          continue;
+        await this.kcAdminClient.identityProviders.update(
+          { realm: tenant.slug, alias: idp.alias! },
+          {
+            ...idp,
+            trustEmail: true,
+            firstBrokerLoginFlowAlias: TenantService.AUTO_LINK_FLOW_ALIAS,
+          },
+        );
+        updated.push(idp.alias!);
+      }
+
+      AmdoxLogger.success(
+        `Auto-link provisioned for tenant: ${tenant.slug}` +
+          (updated.length ? ` (updated IdPs: ${updated.join(', ')})` : ''),
+      );
+      return { success: true, tenant: tenant.slug, updatedProviders: updated };
+    } catch (error) {
+      AmdoxLogger.error(
+        `Failed to provision auto-link for ${tenant.slug}`,
+        (error as Error).message,
+      );
+      throw new InternalServerErrorException('Failed to provision auto-link flow');
+    }
   }
 }
