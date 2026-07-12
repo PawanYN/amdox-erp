@@ -84,7 +84,10 @@ services:
       - '3300:3000'
     environment:
       GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: amdox
+      # Only used on FIRST init (afterwards the password lives in grafana-data);
+      # publicly exposed via Caddy at grafana.92-4-86-3.sslip.io, so keep it strong.
+      GF_SECURITY_ADMIN_PASSWORD: 'Amdox-Obs-2026!'
+      GF_SERVER_ROOT_URL: https://grafana.92-4-86-3.sslip.io
       GF_USERS_ALLOW_SIGN_UP: 'false'
       # Alert emails go to the app stack's Mailpit — a real, inspectable delivery
       # without a paid PagerDuty/OpsGenie account (swap SMTP for production).
