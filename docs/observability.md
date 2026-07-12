@@ -63,6 +63,17 @@ Honest scope notes: `amdox-web` ships logs only (its work lands on the traced AP
   pm2 + docker logs ──► Promtail ─────────────────────► Loki  ─────┘
 ```
 
+## Public URLs (hosted, like the main app)
+
+| Service                                       | URL                                    | Login                     |
+| --------------------------------------------- | -------------------------------------- | ------------------------- |
+| **Grafana** (dashboard, logs, traces, alerts) | **https://grafana.92-4-86-3.sslip.io** | admin / `Amdox-Obs-2026!` |
+| **Mailpit** (alert-email inbox)               | **https://mailpit.92-4-86-3.sslip.io** | amdox / `Amdox-Obs-2026!` |
+
+Both serve over HTTPS via Caddy (`/etc/caddy/Caddyfile` on the VM). Verified from outside, including the negative cases: Mailpit refuses entry without the password, and Grafana rejects the old weak password (hardened from `amdox` to `Amdox-Obs-2026!` when it went public).
+
+**What stayed private on purpose:** Prometheus, Loki, Tempo, and the raw `:9464` metrics port have **no login of their own**, so exposing them would hand logs and metrics to anyone. Nothing is lost — Grafana proxies all three, so their data is fully visible inside Grafana's authenticated UI (Explore → Loki / Tempo, dashboards → Prometheus).
+
 ## What you now have, point by point
 
 **1) Observation dashboard** — Grafana at **https://grafana.92-4-86-3.sslip.io** (login: admin / `Amdox-Obs-2026!`). Inside it, the dashboard **"Amdox API — Golden Signals"** (folder _Amdox_) with 7 live panels: request rate, 5xx error %, p50/p95 latency with the 300ms SLA line, host CPU %, host memory %, event-loop utilization, and a live API-logs panel at the bottom.
