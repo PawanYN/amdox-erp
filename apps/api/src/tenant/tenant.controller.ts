@@ -114,6 +114,29 @@ export class TenantController {
     return this.tenantService.getAuthenticationFlows(tenantId);
   }
 
+  @Get('mfa')
+  @UseGuards(AuthGuard('keycloak'), RolesGuard)
+  @Roles('SuperAdmin', 'TenantAdmin')
+  async getMfaEnforcement(@Req() req: any) {
+    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] || 'default-tenant-id';
+    return this.tenantService.getMfaEnforcement(tenantId);
+  }
+
+  /**
+   * PUT /tenant/mfa  { enforced: boolean }
+   * Per-tenant MFA enforcement (F-01). Enabling flags every user without an
+   * authenticator to set one up at next login and prompts for OTP on both
+   * password and SSO/social logins. Disabling stops requiring setup; users
+   * who already have an authenticator keep using it.
+   */
+  @Put('mfa')
+  @UseGuards(AuthGuard('keycloak'), RolesGuard)
+  @Roles('SuperAdmin', 'TenantAdmin')
+  async setMfaEnforcement(@Req() req: any, @Body() body: { enforced: boolean }) {
+    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] || 'default-tenant-id';
+    return this.tenantService.setMfaEnforcement(tenantId, body?.enforced === true);
+  }
+
   /**
    * POST /tenant/provision-kc-roles
    * One-time idempotent migration: creates Keycloak realm roles and assigns them

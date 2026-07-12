@@ -32,4 +32,10 @@ export const tenantApi = {
   deleteIdentityProvider: (alias: string) =>
     apiClient(`/tenant/identity-providers/${alias}`, { method: "DELETE" }),
   getAuthenticationFlows: () => apiClient("/tenant/authentication-flows"),
+  getMfaEnforcement: () => apiClient("/tenant/mfa") as Promise<{ enforced: boolean }>,
+  setMfaEnforcement: (enforced: boolean) =>
+    apiClient("/tenant/mfa", {
+      method: "PUT",
+      body: JSON.stringify({ enforced }),
+    }) as Promise<{ success: boolean; enforced: boolean; usersFlagged: number }>,
 };

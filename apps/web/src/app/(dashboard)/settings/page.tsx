@@ -239,6 +239,8 @@ export default function SettingsPage() {
   const [requiredActions, setRequiredActions] = useState<RequiredAction[]>([]);
   const [authFlows, setAuthFlows] = useState<AuthFlow[]>([]);
   const [identityProviders, setIdentityProviders] = useState<ExistingIdp[]>([]);
+  const [mfaEnforced, setMfaEnforced] = useState(false);
+  const [mfaSaving, setMfaSaving] = useState(false);
 
   const tabs = [
     { id: "general", label: "General", icon: Building2 },
@@ -296,6 +298,11 @@ export default function SettingsPage() {
       } catch {
         /* ignore */
       }
+      try {
+        setMfaEnforced((await tenantApi.getMfaEnforcement()).enforced);
+      } catch {
+        /* ignore */
+      }
     }
 
     setLoading(false);
@@ -328,6 +335,25 @@ export default function SettingsPage() {
       setErrorMsg("Connection failure while updating settings.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleMfa = async (enforced: boolean) => {
+    setMfaSaving(true);
+    setSuccessMsg(null);
+    setErrorMsg(null);
+    try {
+      const result = await tenantApi.setMfaEnforcement(enforced);
+      setMfaEnforced(result.enforced);
+      setSuccessMsg(
+        result.enforced
+          ? `MFA enforcement enabled — ${result.usersFlagged} user(s) will set up an authenticator at next login.`
+          : "MFA enforcement disabled. Users with an authenticator keep using it.",
+      );
+    } catch {
+      setErrorMsg("Connection failure while updating MFA enforcement.");
+    } finally {
+      setMfaSaving(false);
     }
   };
 
@@ -1245,6 +1271,36 @@ export default function SettingsPage() {
           {activeTab === "auth" && !isAdmin && <AdminRequired />}
           {activeTab === "auth" && isAdmin && (
             <div className="space-y-6">
+              <div>
+                <h2 className="text-sm font-semibold text-gray-900 pb-2 border-b">
+                  Multi-Factor Authentication (MFA)
+                </h2>
+                <div className="mt-4 flex items-center justify-between p-4 border border-gray-200 rounded-lg bg-gray-50/30">
+                  <div className="pr-6">
+                    <h4 className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                      <ShieldCheck size={14} className="text-blue-600" />
+                      Enforce MFA for all users
+                    </h4>
+                    <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">
+                      Every user must set up an authenticator app (QR code shown at next login) and
+                      enter a 6-digit code when signing in — on password logins and Google/SSO
+                      logins alike. Disabling stops requiring setup; users who already have an
+                      authenticator keep using it.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {mfaSaving && <Loader2 size={14} className="animate-spin text-slate-400" />}
+                    <input
+                      type="checkbox"
+                      checked={mfaEnforced}
+                      disabled={mfaSaving}
+                      onChange={(e) => handleToggleMfa(e.target.checked)}
+                      className="w-4 h-4 text-blue-700 focus:ring-[#1E3A5F]"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <h2 className="text-sm font-semibold text-gray-900 pb-2 border-b">
                   Required Authentication Actions

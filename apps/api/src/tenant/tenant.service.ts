@@ -611,17 +611,168 @@ export class TenantService implements OnModuleInit, OnModuleDestroy {
     AmdoxLogger.tenant(`Auto-link first-login flow created`, `realm=${realm}`);
   }
 
+  /**
+   * Post-broker-login flow: asks for the OTP code on SSO/social logins when the
+   * user has an authenticator configured. Without it, only password logins pass
+   * through the browser flow's conditional OTP — brokered logins would skip MFA.
+   */
+  private static readonly POST_BROKER_MFA_FLOW_ALIAS = 'post-broker-mfa';
+
+  /** Idempotent: safe to call on realms that already have the flow. */
+  private async ensurePostBrokerMfaFlowForRealm(realm: string) {
+    const flows = await this.kcAdminClient.authenticationManagement.getFlows({ realm });
+    if (flows.some((f) => f.alias === TenantService.POST_BROKER_MFA_FLOW_ALIAS)) return;
+
+    const subflowAlias = 'post-broker-mfa-conditional-otp';
+    await this.kcAdminClient.authenticationManagement.createFlow({
+      realm,
+      alias: TenantService.POST_BROKER_MFA_FLOW_ALIAS,
+      description: 'Prompt for OTP after identity-provider login when the user has one configured',
+      providerId: 'basic-flow',
+      topLevel: true,
+      builtIn: false,
+    });
+    await this.kcAdminClient.authenticationManagement.addFlowToFlow({
+      realm,
+      flow: TenantService.POST_BROKER_MFA_FLOW_ALIAS,
+      alias: subflowAlias,
+      type: 'basic-flow',
+      provider: 'registration-page-form',
+      description: 'OTP form, skipped for users without an authenticator',
+    });
+    for (const provider of ['conditional-user-configured', 'auth-otp-form']) {
+      await this.kcAdminClient.authenticationManagement.addExecutionToFlow({
+        realm,
+        flow: subflowAlias,
+        provider,
+      });
+    }
+    // Nested executions are all updated through the top-level flow's alias.
+    const executions = await this.kcAdminClient.authenticationManagement.getExecutions({
+      realm,
+      flow: TenantService.POST_BROKER_MFA_FLOW_ALIAS,
+    });
+    for (const execution of executions) {
+      const requirement = execution.displayName === subflowAlias ? 'CONDITIONAL' : 'REQUIRED';
+      await this.kcAdminClient.authenticationManagement.updateExecution(
+        { realm, flow: TenantService.POST_BROKER_MFA_FLOW_ALIAS },
+        { ...execution, requirement },
+      );
+    }
+    AmdoxLogger.tenant(`Post-broker MFA flow created`, `realm=${realm}`);
+  }
+
+  async getMfaEnforcement(tenantId: string) {
+    const tenant = await this.getTenant(tenantId);
+    await this.verifyRealmExists(tenant.slug);
+    try {
+      const actions = await this.kcAdminClient.authenticationManagement.getRequiredActions({
+        realm: tenant.slug,
+      } as any);
+      const totp = actions.find((a) => a.alias === 'CONFIGURE_TOTP');
+      return { enforced: !!(totp?.enabled && totp?.defaultAction) };
+    } catch (error) {
+      AmdoxLogger.error(
+        `Failed to read MFA enforcement for ${tenant.slug}`,
+        (error as Error).message,
+      );
+      throw new InternalServerErrorException('Failed to read MFA enforcement');
+    }
+  }
+
+  /**
+   * Per-tenant MFA enforcement (PDF F-01: "MFA enforced per tenant").
+   * Enabling: every user without an authenticator must set one up at next
+   * login (new users included), and OTP is asked on both password and
+   * SSO/social logins. Disabling: stops requiring setup but keeps existing
+   * authenticators working — users who have OTP are still asked for it.
+   */
+  async setMfaEnforcement(tenantId: string, enforced: boolean) {
+    const tenant = await this.getTenant(tenantId);
+    await this.verifyRealmExists(tenant.slug);
+    const realm = tenant.slug;
+    try {
+      // 1. CONFIGURE_TOTP as a realm default action → new users must set up OTP
+      const actions = await this.kcAdminClient.authenticationManagement.getRequiredActions({
+        realm,
+      } as any);
+      const totp = actions.find((a) => a.alias === 'CONFIGURE_TOTP');
+      if (!totp) throw new Error('CONFIGURE_TOTP required action missing in realm');
+      await this.kcAdminClient.authenticationManagement.updateRequiredAction(
+        { realm, alias: 'CONFIGURE_TOTP' },
+        { ...totp, enabled: true, defaultAction: enforced },
+      );
+
+      // 2. OTP prompt on brokered logins (Google/SSO) via post-broker-login flow
+      if (enforced) await this.ensurePostBrokerMfaFlowForRealm(realm);
+      const idps = await this.kcAdminClient.identityProviders.find({ realm });
+      for (const idp of idps) {
+        await this.kcAdminClient.identityProviders.update(
+          { realm, alias: idp.alias! },
+          {
+            ...idp,
+            postBrokerLoginFlowAlias: enforced ? TenantService.POST_BROKER_MFA_FLOW_ALIAS : '',
+          },
+        );
+      }
+
+      // 3. Existing users: add (or withdraw) the pending OTP-setup requirement.
+      //    Users who already completed OTP setup are never touched.
+      let usersFlagged = 0;
+      const pageSize = 100;
+      for (let first = 0; ; first += pageSize) {
+        const users = await this.kcAdminClient.users.find({ realm, first, max: pageSize });
+        for (const user of users) {
+          const pending = user.requiredActions ?? [];
+          if (enforced) {
+            if (pending.includes('CONFIGURE_TOTP')) continue;
+            const credentials = await this.kcAdminClient.users.getCredentials({
+              realm,
+              id: user.id!,
+            });
+            if (credentials.some((c) => c.type === 'otp')) continue;
+            await this.kcAdminClient.users.update(
+              { realm, id: user.id! },
+              { requiredActions: [...pending, 'CONFIGURE_TOTP'] },
+            );
+            usersFlagged++;
+          } else if (pending.includes('CONFIGURE_TOTP')) {
+            await this.kcAdminClient.users.update(
+              { realm, id: user.id! },
+              { requiredActions: pending.filter((a) => a !== 'CONFIGURE_TOTP') },
+            );
+          }
+        }
+        if (users.length < pageSize) break;
+      }
+
+      AmdoxLogger.tenant(
+        `MFA enforcement ${enforced ? 'ENABLED' : 'DISABLED'}`,
+        `realm=${realm}  usersFlagged=${usersFlagged}`,
+      );
+      return { success: true, enforced, usersFlagged };
+    } catch (error) {
+      AmdoxLogger.error(`Failed to set MFA enforcement for ${realm}`, (error as Error).message);
+      throw new InternalServerErrorException('Failed to update MFA enforcement');
+    }
+  }
+
   async createIdentityProvider(tenantId: string, provider: any) {
     const tenant = await this.getTenant(tenantId);
     await this.verifyRealmExists(tenant.slug);
     try {
       await this.ensureAutoLinkFlowForRealm(tenant.slug);
+      // If MFA is enforced for this tenant, new IdPs must also prompt for OTP
+      const { enforced: mfaEnforced } = await this.getMfaEnforcement(tenantId);
       await this.kcAdminClient.identityProviders.create({
         realm: tenant.slug,
         // Defaults (overridable per request): trust the IdP's verified email and
         // auto-link to an existing account instead of blocking on first login.
         trustEmail: true,
         firstBrokerLoginFlowAlias: TenantService.AUTO_LINK_FLOW_ALIAS,
+        ...(mfaEnforced
+          ? { postBrokerLoginFlowAlias: TenantService.POST_BROKER_MFA_FLOW_ALIAS }
+          : {}),
         ...provider,
       });
       return { success: true };
