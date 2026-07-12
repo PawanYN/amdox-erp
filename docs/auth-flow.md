@@ -37,17 +37,17 @@ Here's the full auth flow as the PDF envisions it, drawn as a tree. Read it top 
         │                        └─────┬───────────────┬─────┘
         │                             YES              NO
         │                              │               │
-        │                    LINK to that account   create new
-        │                    (⚠ this is the step    account
-        │                     that blocked you —    │
-        │                     Option 2 fixes it)    │
+        │                    LINK automatically     create new
+        │                    ✅ built (auto-link    account
+        │                     flow + trustEmail,    │
+        │                     silent for the user)  │
         │                              │            │
         └──────────────┬───────────────┴────────────┘
                        │
               ┌────────┴────────┐
-              │ Is MFA enabled  │      ← per tenant (promised in F-01,
-              │ for this tenant?│         not built yet ❌)
-              └───┬─────────┬───┘
+              │ Is MFA enforced │      ✅ built — per-tenant toggle in
+              │ for this tenant?│      Settings → Authentication
+              └───┬─────────┬───┘      ("Enforce MFA for all users")
                  YES        NO ──────────────────┐
                   │                              │
         ┌─────────┴──────────┐                   │
@@ -64,6 +64,9 @@ Here's the full auth flow as the PDF envisions it, drawn as a tree. Read it top 
                    │                             │
          enter 6-digit code                      │
          from the phone app                      │
+         (asked on BOTH doors: password          │
+          via browser flow, Google/SSO           │
+          via post-broker-mfa flow) ✅           │
                    │                             │
           ┌────────┴────────┐                    │
           │  Code correct?  │                    │
@@ -97,7 +100,9 @@ Here's the full auth flow as the PDF envisions it, drawn as a tree. Read it top 
 
 The key insight from the tree: **paths A, B, C are just three different ways to prove "who you are." Everything after the merge point is identical** — same account, same MFA check, same tokens, same role checks. That's why one person can have both password _and_ Google login: they're two branches leading into the same trunk.
 
-And the two ❌ gaps we found sit at exact spots in this tree: the **link step** (blocked today, our Option 2 fix) and the **MFA diamond** (promised, not enforced yet).
+~~And the two ❌ gaps we found sit at exact spots in this tree: the **link step** (blocked today, our Option 2 fix) and the **MFA diamond** (promised, not enforced yet).~~
+
+**Update (2026-07-12): both gaps are closed.** The link step auto-links silently (commit `fc8c210`, verified with a real Google login), and MFA is a per-tenant enforcement toggle in Settings → Authentication covering both password and SSO logins (commit `ad4349c`). Still untested against a _real_ external company IdP (actual Azure AD / Google Workspace) — the plumbing is there; see the testing guide below.
 
 ## How to test the Google Workspace SSO path
 
@@ -131,7 +136,7 @@ Needs a domain you own + a 14-day free Workspace trial. Set up the ERP as an app
 
 **The one tricky part:** there are two doors into the account — the password door and the "company login" door (the fake-workspace test). MFA switched on the wrong way only guards the **password door**. The "Configure OTP" required action guards **both doors**. So the full test is: log in with password → asked for code ✅ → log in through fake workspace → asked for code ✅. If both ask, MFA covers the whole tree.
 
-**Honest note:** the ERP's Settings page switches only make MFA _available_ — they don't _force_ it. Forcing it per tenant (what the PDF promised) isn't built yet; today you test inside Keycloak's own admin panel. Building the "force it per tenant" button into Settings is one of the known gaps.
+**Update (2026-07-12):** per-tenant enforcement is now built — Settings → Authentication → **"Enforce MFA for all users"**. Enabling it makes every user set up an authenticator at next login and asks for the code on both password and Google/SSO logins; no Keycloak admin panel needed. The per-user steps above remain useful for testing a single account without affecting the whole tenant.
 
 ## What the PDF says about MFA
 
