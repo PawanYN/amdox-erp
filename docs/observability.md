@@ -62,3 +62,27 @@ Honest scope notes: `amdox-web` ships logs only (its work lands on the traced AP
                                          10% success)              │
   pm2 + docker logs ──► Promtail ─────────────────────► Loki  ─────┘
 ```
+
+## What you now have, point by point
+
+**1) Observation dashboard** — Grafana at `http://localhost:3300` (login: admin / amdox). Inside it, the dashboard **"Amdox API — Golden Signals"** (folder _Amdox_) with 7 live panels: request rate, 5xx error %, p50/p95 latency with the 300ms SLA line, host CPU %, host memory %, event-loop utilization, and a live API-logs panel at the bottom.
+
+**2) Logs search (all services in one place)** — Grafana → Explore → Loki. Query `{job="pm2"}` for api/web logs, `{job="docker"}` for Keycloak/Postgres/Redis/ml-service logs. Filter by text, time range, and filename.
+
+**3) Trace viewer (journey of one request)** — Grafana → Explore → Tempo → Search. Pick service `amdox-api` or `amdox-ml-service`, click any trace, and see the full request journey with per-step timings (HTTP → express → Redis → DB).
+
+**4) Raw metrics endpoint** — `http://localhost:9464/metrics` on the VM. What the API itself publishes (every request counted and timed, plus Node.js internals). Prometheus reads it every 15s.
+
+**5) Prometheus query console** — `http://localhost:9090`. Ad-hoc queries against all stored numbers (the Targets page shows the 4 things being watched, all "up").
+
+**6) Two alarms, armed** — if 5xx errors exceed 5% for 5 minutes, or p95 latency exceeds 300ms for 5 minutes → an email fires automatically.
+
+**7) Alert inbox** — Mailpit at `http://localhost:8025`. That's where the alarm emails land (a test email from the verification run is already in there).
+
+**8) Storage rules working silently** — every errored request's trace is kept, only 1-in-10 successful ones; traces auto-delete after 7 days.
+
+**9) One switch to run it** — `docker compose -f infra/observability/docker-compose.observability.yml up -d` / `down`. The app runs fine with the stack off.
+
+**Note:** all of these are localhost-only on the VM (deliberately not public). From a laptop: `ssh -L 3300:localhost:3300 -L 8025:localhost:8025 -L 9090:localhost:9090 <vm>` then open the same URLs locally.
+
+The two best things to try first: open the dashboard (#1) and click around the live charts, then pull up one trace (#3) — seeing a single request's anatomy is the "aha" moment of the whole stack.
