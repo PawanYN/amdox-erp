@@ -1,0 +1,32 @@
+server:
+  http_listen_port: 9080
+
+positions:
+  filename: /positions/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # pm2-managed processes on the host: amdox-api, amdox-web
+  - job_name: pm2
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: pm2
+          __path__: /var/log/pm2/*.log
+
+  # Every docker container (Keycloak, Postgres, Redis, ml-service, …)
+  - job_name: docker
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: docker
+          __path__: /var/lib/docker/containers/*/*-json.log
+    pipeline_stages:
+      # docker json-file wraps each line as {"log":"...","stream":...} — unwrap it
+      - json:
+          expressions:
+            output: log
+      - output:
+          source: output

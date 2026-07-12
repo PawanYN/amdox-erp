@@ -24,6 +24,8 @@ import { AuthModule } from './auth/auth.module';
 import { NotificationModule } from './notification/notification.module';
 import { BiModule } from './bi/bi.module';
 import { ForecastModule } from './forecast/forecast.module';
+import { SearchModule } from './search/search.module';
+import { AppGraphqlModule } from './graphql/graphql.module';
 
 import { LoggerModule } from 'nestjs-pino';
 
@@ -89,6 +91,8 @@ import { LoggerModule } from 'nestjs-pino';
     NotificationModule,
     BiModule,
     ForecastModule,
+    SearchModule,
+    AppGraphqlModule,
   ],
   controllers: [AppController],
   providers: [

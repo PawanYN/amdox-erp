@@ -35,9 +35,8 @@ import { prisma } from '@amdox/db';
 import { CreatePurchaseOrderDto } from '../dto/create-purchase-order.dto';
 import { ReceiveGoodsDto } from '../dto/receive-goods.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
 import { VendorPortalService } from '../vendor-portal/vendor-portal.service';
+import { EmailChannel } from '../../notification/channels/email.channel';
 import { AmdoxLogger } from '../../common/logger/amdox-logger';
 
 @Injectable()
@@ -46,8 +45,8 @@ export class PurchaseService {
 
   constructor(
     private eventEmitter: EventEmitter2,
-    @InjectQueue('scm-events') private scmQueue: Queue,
     private vendorPortalService: VendorPortalService,
+    private emailChannel: EmailChannel,
   ) {}
 
   // --- Purchase Orders ---
@@ -85,6 +84,22 @@ export class PurchaseService {
         },
       },
       include: { lines: true },
+    });
+  }
+
+  async getGoodsReceipts(tenantId: string) {
+    return prisma.goodsReceipt.findMany({
+      where: { tenantId },
+      include: {
+        purchaseOrder: {
+          select: {
+            poNumber: true,
+            totalAmount: true,
+            vendor: { select: { name: true } },
+          },
+        },
+      },
+      orderBy: { receivedAt: 'desc' },
     });
   }
 
@@ -144,7 +159,53 @@ export class PurchaseService {
       });
     }
 
+    if (po.vendor?.email) {
+      await this.emailChannel.send({
+        to: po.vendor.email,
+        subject: `PO ${updatedPo.poNumber} approved`,
+        body: `Purchase order ${updatedPo.poNumber} (total ${updatedPo.totalAmount}) has been approved. Please acknowledge via the vendor portal.`,
+      });
+    }
+
     return updatedPo;
+  }
+
+  /**
+   * WHAT: Cancels a PO that hasn't been received yet.
+   * WHY: A wrongly-created or duplicate PO previously sat in the list forever —
+   * users worked around it by creating a second one, which is how duplicate
+   * orders start. Received POs can't be cancelled (stock already moved).
+   */
+  async cancelPurchaseOrder(tenantId: string, id: string, reason?: string, actingUserId?: string) {
+    const po = await this.getPurchaseOrder(tenantId, id);
+    if (po.status === 'RECEIVED' || po.status === 'PARTIALLY_RECEIVED' || po.status === 'CLOSED') {
+      throw new BadRequestException(
+        'This purchase order has already received goods and can no longer be cancelled.',
+      );
+    }
+    if (po.status === 'CANCELLED') {
+      throw new BadRequestException('This purchase order is already cancelled.');
+    }
+
+    // tenant-scope-ok: getPurchaseOrder() above throws unless `id` belongs to `tenantId`.
+    const cancelled = await prisma.purchaseOrder.update({
+      where: { id },
+      data: { status: 'CANCELLED' },
+    });
+
+    this.eventEmitter.emit('po.cancelled', {
+      tenantId,
+      poId: id,
+      poNumber: cancelled.poNumber,
+      reason,
+      userId: actingUserId,
+    });
+    AmdoxLogger.scm(
+      `PO cancelled`,
+      `poNumber=${cancelled.poNumber}${reason ? `  reason=${reason}` : ''}`,
+    );
+
+    return cancelled;
   }
 
   // --- Goods Receipt ---
@@ -255,12 +316,13 @@ export class PurchaseService {
       return receipt;
     });
 
-    // 5. Enqueue heavy async task for Finance 3-way match
-    await this.scmQueue.add('goods.received', {
-      tenantId,
-      purchaseOrderId: id,
-      goodsReceiptId: result.id,
-    });
+    // 5. Notify Finance to auto-generate the AP invoice + run the 3-way match.
+    // NOTE: this is dispatched through the synchronous in-process event bus ONLY.
+    // Previously it was ALSO enqueued on the `scm-events` BullMQ queue, so both the
+    // ScmEventsWorker and the ScmFinanceBridgeListener called createInvoiceFromGoodsReceipt
+    // for the same goods receipt. They raced past the "already exists" idempotency check
+    // and created TWO approved AP invoices per receipt (double GL/budget posting). The
+    // queue path has been removed so exactly one invoice is created per goods receipt.
     this.eventEmitter.emit('goods.received', {
       tenantId,
       purchaseOrderId: id,

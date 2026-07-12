@@ -102,34 +102,38 @@ function BudgetCard({ b }: { b: Budget }) {
               entries here.
             </p>
           ) : (
-            <table className="w-full text-[12px]">
-              <thead>
-                <tr className="text-slate-500">
-                  <th className="text-left pb-1.5 font-medium">Description</th>
-                  <th className="text-left pb-1.5 font-medium">Source</th>
-                  <th className="text-right pb-1.5 font-medium">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lines.map((line) => (
-                  <tr key={line.id} className="border-t border-slate-100">
-                    <td className="py-1.5 text-slate-700">{line.description}</td>
-                    <td className="py-1.5 text-slate-500 font-mono">{line.sourceModule ?? "—"}</td>
-                    <td className="py-1.5 text-right font-mono text-slate-900">
-                      ₹{Number(line.amount).toLocaleString()}
+            <div className="overflow-x-auto">
+              <table className="w-full text-[12px]">
+                <thead>
+                  <tr className="text-slate-500">
+                    <th className="text-left pb-1.5 font-medium">Description</th>
+                    <th className="text-left pb-1.5 font-medium">Source</th>
+                    <th className="text-right pb-1.5 font-medium">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lines.map((line) => (
+                    <tr key={line.id} className="border-t border-slate-100">
+                      <td className="py-1.5 text-slate-700">{line.description}</td>
+                      <td className="py-1.5 text-slate-500 font-mono">
+                        {line.sourceModule ?? "—"}
+                      </td>
+                      <td className="py-1.5 text-right font-mono text-slate-900">
+                        ₹{Number(line.amount).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                  <tr className="border-t border-slate-200">
+                    <td colSpan={2} className="pt-2 font-semibold text-slate-700">
+                      Total actual
+                    </td>
+                    <td className="pt-2 text-right font-mono font-semibold text-slate-900">
+                      ₹{b.actualAmount.toLocaleString()}
                     </td>
                   </tr>
-                ))}
-                <tr className="border-t border-slate-200">
-                  <td colSpan={2} className="pt-2 font-semibold text-slate-700">
-                    Total actual
-                  </td>
-                  <td className="pt-2 text-right font-mono font-semibold text-slate-900">
-                    ₹{b.actualAmount.toLocaleString()}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}

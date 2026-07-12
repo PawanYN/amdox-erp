@@ -1,0 +1,23 @@
+# Alert destination. MVP: email into the app stack's Mailpit (host:1025 via
+# Grafana's SMTP settings) so deliveries are real and inspectable at :8025.
+# Production swap: replace with a `pagerduty` or `opsgenie` receiver — only
+# the integration key changes, the rules stay identical.
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: ops-email
+    receivers:
+      - uid: ops-email-receiver
+        type: email
+        settings:
+          addresses: ops@amdox.local
+          subject: '[AMDOX ALERT] {{ .CommonLabels.alertname }}'
+
+policies:
+  - orgId: 1
+    receiver: ops-email
+    group_by: ['grafana_folder', 'alertname']
+    group_wait: 30s
+    group_interval: 2m
+    repeat_interval: 4h

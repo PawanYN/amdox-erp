@@ -4,6 +4,7 @@ import { Logger } from '@nestjs/common';
 import { prisma, NotificationChannel, NotificationDeliveryStatus } from '@amdox/db';
 import { WebhookChannel } from './channels/webhook.channel';
 import { EmailChannel } from './channels/email.channel';
+import { SmsChannel } from './channels/sms.channel';
 import { DispatchJobData } from './notification.service';
 
 /**
@@ -19,6 +20,7 @@ export class NotificationDispatchProcessor extends WorkerHost {
   constructor(
     private readonly webhookChannel: WebhookChannel,
     private readonly emailChannel: EmailChannel,
+    private readonly smsChannel: SmsChannel,
   ) {
     super();
   }
@@ -30,7 +32,9 @@ export class NotificationDispatchProcessor extends WorkerHost {
       const delivered =
         channel === NotificationChannel.WEBHOOK
           ? await this.dispatchWebhook(tenantId, eventType, title, body, userId)
-          : await this.dispatchEmail(tenantId, userId, title, body);
+          : channel === NotificationChannel.EMAIL
+            ? await this.dispatchEmail(tenantId, userId, title, body)
+            : await this.dispatchSms(tenantId, userId, title, body);
 
       if (delivered === 'not-applicable') {
         // Whatever made this eligible at enqueue time (webhookUrl, user email) is
@@ -119,6 +123,29 @@ export class NotificationDispatchProcessor extends WorkerHost {
     const result = await this.emailChannel.send({
       to: user.email,
       subject: title,
+      body: body ?? title,
+    });
+    return result.delivered;
+  }
+
+  private async dispatchSms(
+    tenantId: string,
+    userId: string | undefined,
+    title: string,
+    body: string | undefined,
+  ): Promise<boolean | 'not-applicable'> {
+    if (!userId) return 'not-applicable';
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { settings: true },
+    });
+    const settings = tenant?.settings as Record<string, unknown> | null;
+    const phones = settings?.userPhones as Record<string, string> | undefined;
+    const phone = phones?.[userId] ?? (process.env.SMS_DEFAULT_PHONE as string | undefined);
+    if (!phone) return 'not-applicable';
+
+    const result = await this.smsChannel.send({
+      to: phone,
       body: body ?? title,
     });
     return result.delivered;

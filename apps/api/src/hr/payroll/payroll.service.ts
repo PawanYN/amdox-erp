@@ -28,6 +28,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { PayslipGenerator } from './payslip-generator';
 import { StorageService } from '../../common/storage/storage.service';
+import { legacyPayslipAmounts } from './payroll-deductions';
 
 @Injectable()
 export class PayrollService {
@@ -95,6 +96,39 @@ export class PayrollService {
     }));
   }
 
+  /**
+   * WHAT: Returns a single employee's own payslip for a period, or null if none exists.
+   * WHY: The Home page's personal "Pay" view must never expose co-workers' salary
+   * data — unlike `findPayrollByPeriod` (org-wide, for the HR payroll screen), this
+   * is scoped server-side to exactly one employeeId.
+   */
+  async findMyPayslip(tenantId: string, employeeId: string, payPeriod: string) {
+    const period = this.normalizePayPeriod(payPeriod);
+
+    const payslip = await prisma.payslip.findFirst({
+      where: {
+        tenantId,
+        employeeId,
+        payrollRun: { periodLabel: period.label },
+      },
+      include: { employee: true, payrollRun: true },
+    });
+
+    if (!payslip) return null;
+
+    return {
+      id: payslip.id,
+      employeeId: payslip.employeeId,
+      employeeName: payslip.employee.fullName,
+      payPeriod: payslip.payrollRun.periodLabel,
+      grossPay: Number(payslip.grossPay),
+      deductions: Number(payslip.deductions),
+      netPay: Number(payslip.netPay),
+      status: payslip.pdfUrl ? 'Processed' : 'Pending',
+      payslipUrl: payslip.pdfUrl,
+    };
+  }
+
   async getPayrollRun(tenantId: string, payrollRunId: string) {
     const payrollRun = await prisma.payrollRun.findFirst({
       where: { id: payrollRunId, tenantId },
@@ -134,13 +168,18 @@ export class PayrollService {
     }));
   }
 
-  async getPayslipPdf(tenantId: string, payslipId: string) {
+  async getPayslipPdf(tenantId: string, payslipId: string, restrictToEmployeeId?: string) {
     const payslip = await prisma.payslip.findFirst({
       where: { id: payslipId, tenantId },
       include: { employee: true, payrollRun: true },
     });
 
     if (!payslip) {
+      throw new NotFoundException('Payslip not found');
+    }
+
+    // Plain employees may only download their own payslip, never a co-worker's.
+    if (restrictToEmployeeId && payslip.employeeId !== restrictToEmployeeId) {
       throw new NotFoundException('Payslip not found');
     }
 
@@ -157,11 +196,11 @@ export class PayrollService {
       const pdfBuffer = await this.payslipGenerator.generatePdfBuffer(
         payslip.employee.fullName,
         payslip.payrollRun.periodLabel,
-        {
-          grossPay: Number(payslip.grossPay),
-          deductions: Number(payslip.deductions),
-          netPay: Number(payslip.netPay),
-        },
+        legacyPayslipAmounts(
+          Number(payslip.grossPay),
+          Number(payslip.deductions),
+          Number(payslip.netPay),
+        ),
       );
       await this.storageService.upload(documentKey, pdfBuffer, 'application/pdf');
       await prisma.payslip.update({ where: { id: payslip.id }, data: { pdfUrl: documentKey } });

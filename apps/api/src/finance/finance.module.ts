@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
+import { AuthModule } from '../auth/auth.module';
 import { ApController } from './ap/ap.controller';
 import { ApService } from './ap/ap.service';
 import { InvoiceMatchingService } from './ap/invoice-matching.service';
@@ -13,22 +14,17 @@ import { GlService } from './gl/gl.service';
 import { FxRateService } from './fx/fx-rate.service';
 import { OutboxProcessor } from './automation/outbox.processor';
 
-import { ScmEventsWorker } from './ap/scm-events.worker';
 import { PmCostBridgeListener } from './pm-cost-bridge.listener';
 import { ScmFinanceBridgeListener } from './scm-finance-bridge.listener';
 
 @Module({
   imports: [
+    AuthModule,
     BullModule.registerQueue({
       name: 'finance-outbox',
     }),
   ],
-  controllers: [
-    ApController,
-    ArController,
-    SalesOrderController,
-    GlController
-  ],
+  controllers: [ApController, ArController, SalesOrderController, GlController],
   providers: [
     ApService,
     InvoiceMatchingService,
@@ -38,13 +34,9 @@ import { ScmFinanceBridgeListener } from './scm-finance-bridge.listener';
     GlService,
     FxRateService,
     OutboxProcessor,
-    ScmEventsWorker,
     PmCostBridgeListener,
     ScmFinanceBridgeListener,
   ],
-  exports: [
-    FxRateService,
-    ApService,
-  ]
+  exports: [FxRateService, ApService],
 })
 export class FinanceModule {}

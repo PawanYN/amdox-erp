@@ -10,6 +10,13 @@ import {
   type VendorPortalSession,
 } from "@/lib/api/vendor-portal-api";
 
+type VendorProfile = {
+  id: string;
+  name: string;
+  email: string;
+  portalKeyIssuedAt: string | null;
+};
+
 type PurchaseOrder = {
   id: string;
   poNumber: string;
@@ -31,6 +38,7 @@ const inputClass =
 
 export default function VendorPortalPage() {
   const [session, setSession] = useState<VendorPortalSession | null>(null);
+  const [profile, setProfile] = useState<VendorProfile | null>(null);
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,9 +55,11 @@ export default function VendorPortalPage() {
   useEffect(() => {
     if (!session) return;
     setLoading(true);
-    vendorPortalApi
-      .getPurchaseOrders(session)
-      .then(setOrders)
+    Promise.all([vendorPortalApi.getPurchaseOrders(session), vendorPortalApi.getProfile(session)])
+      .then(([ordersData, profileData]) => {
+        setOrders(ordersData);
+        setProfile(profileData);
+      })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, [session]);
@@ -76,6 +86,7 @@ export default function VendorPortalPage() {
   const handleLogout = () => {
     clearVendorPortalSession();
     setSession(null);
+    setProfile(null);
     setOrders([]);
   };
 
@@ -171,8 +182,24 @@ export default function VendorPortalPage() {
           <div>
             <h1 className="text-xl font-semibold text-slate-900">Supplier Portal</h1>
             <p className="text-sm text-slate-500 mt-0.5">
-              {session.vendorName} · {session.tenantName}
+              {profile?.name ?? session.vendorName} · {session.tenantName}
             </p>
+            {profile && (
+              <p className="text-xs text-slate-500 mt-1">
+                <a
+                  href={`mailto:${profile.email}`}
+                  className="hover:text-slate-700 transition-colors"
+                >
+                  {profile.email}
+                </a>
+                {profile.portalKeyIssuedAt && (
+                  <>
+                    {" "}
+                    · Portal key issued {new Date(profile.portalKeyIssuedAt).toLocaleDateString()}
+                  </>
+                )}
+              </p>
+            )}
           </div>
           <button
             onClick={handleLogout}

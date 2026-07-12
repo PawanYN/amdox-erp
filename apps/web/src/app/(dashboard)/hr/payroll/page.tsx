@@ -1,4 +1,6 @@
 "use client";
+import { useRoles } from "@/lib/use-roles";
+import { toast } from "@/components/ui/toast";
 
 import { useState, useEffect } from "react";
 import {
@@ -30,6 +32,7 @@ function defaultPeriod(): string {
 }
 
 export default function PayrollPage() {
+  const { canWrite } = useRoles();
   const { token } = useKeycloak();
   const [period, setPeriod] = useState(defaultPeriod);
   const [records, setRecords] = useState<PayrollRecord[]>([]);
@@ -61,7 +64,7 @@ export default function PayrollPage() {
       await hrApi.runPayroll(period);
       await fetchPayroll();
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Failed to run payroll");
+      toast(e instanceof Error ? e.message : "Failed to run payroll", "error");
     } finally {
       setIsRunning(false);
     }
@@ -164,13 +167,15 @@ export default function PayrollPage() {
           >
             Refresh
           </Button>
-          <Button
-            icon={isRunning ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
-            onClick={handleRunPayroll}
-            disabled={isRunning}
-          >
-            {isRunning ? "Queuing payroll…" : `Run Payroll — ${period}`}
-          </Button>
+          {canWrite && (
+            <Button
+              icon={isRunning ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
+              onClick={handleRunPayroll}
+              disabled={isRunning}
+            >
+              {isRunning ? "Queuing payroll…" : `Run Payroll — ${period}`}
+            </Button>
+          )}
         </div>
       </div>
 

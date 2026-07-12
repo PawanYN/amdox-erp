@@ -1,0 +1,115 @@
+# Observability stack (Day 26 / PLAT-05) — runs alongside infra/docker's app stack.
+#
+#   amdox-api (pm2, host) ── metrics :9464 ──► prometheus ──┐
+#            └── traces OTLP :4318 ──► otel-collector ──► tempo ──┼──► grafana :3300
+#   pm2 + docker logs ──► promtail ──► loki ──────────────────────┘
+#
+# Grafana:    http://localhost:3300  (admin / amdox)
+# Prometheus: http://localhost:9090
+# Loki API:   http://localhost:3110
+# Alert emails land in the existing Mailpit (http://localhost:8025) via host:1025.
+name: amdox-observability
+
+services:
+  otel-collector:
+    container_name: amdox-otel-collector
+    image: otel/opentelemetry-collector-contrib:0.104.0
+    command: ['--config=/etc/otelcol/config.yaml']
+    volumes:
+      - ./otel-collector.yml:/etc/otelcol/config.yaml:ro
+    ports:
+      - '4317:4317' # OTLP gRPC
+      - '4318:4318' # OTLP HTTP (the pm2-hosted API exports here)
+    networks:
+      - default
+      - app-net # so in-docker services (ml-service) can reach it by name
+    depends_on:
+      - tempo
+    restart: unless-stopped
+
+  tempo:
+    container_name: amdox-tempo
+    image: grafana/tempo:2.5.0
+    user: '0' # named volume starts root-owned; tempo's default uid can't write it
+    command: ['-config.file=/etc/tempo.yaml']
+    volumes:
+      - ./tempo.yml:/etc/tempo.yaml:ro
+      - tempo-data:/var/tempo
+    restart: unless-stopped
+
+  prometheus:
+    container_name: amdox-prometheus
+    image: prom/prometheus:v2.53.0
+    command: ['--config.file=/etc/prometheus/prometheus.yml']
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - '9090:9090'
+    extra_hosts:
+      - 'host.docker.internal:host-gateway' # to scrape the pm2-hosted API on :9464
+    restart: unless-stopped
+
+  node-exporter:
+    container_name: amdox-node-exporter
+    image: prom/node-exporter:v1.8.1
+    command: ['--path.rootfs=/host']
+    pid: host
+    volumes:
+      - '/:/host:ro,rslave'
+    restart: unless-stopped
+
+  loki:
+    container_name: amdox-loki
+    image: grafana/loki:3.0.0 # ships a filesystem-storage default config
+    ports:
+      - '3110:3100' # host 3100 is taken by amdox-web
+    restart: unless-stopped
+
+  promtail:
+    container_name: amdox-promtail
+    image: grafana/promtail:3.0.0
+    command: ['-config.file=/etc/promtail/config.yml']
+    volumes:
+      - ./promtail.yml:/etc/promtail/config.yml:ro
+      - /home/ubuntu/.pm2/logs:/var/log/pm2:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - promtail-positions:/positions
+    restart: unless-stopped
+
+  grafana:
+    container_name: amdox-grafana
+    image: grafana/grafana:11.1.0
+    ports:
+      - '3300:3000'
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      # Only used on FIRST init (afterwards the password lives in grafana-data);
+      # publicly exposed via Caddy at grafana.92-4-86-3.sslip.io, so keep it strong.
+      GF_SECURITY_ADMIN_PASSWORD: 'Amdox-Obs-2026!'
+      GF_SERVER_ROOT_URL: https://grafana.92-4-86-3.sslip.io
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      # Alert emails go to the app stack's Mailpit — a real, inspectable delivery
+      # without a paid PagerDuty/OpsGenie account (swap SMTP for production).
+      GF_SMTP_ENABLED: 'true'
+      GF_SMTP_HOST: host.docker.internal:1025
+      GF_SMTP_FROM_ADDRESS: grafana-alerts@amdox.local
+      GF_SMTP_SKIP_VERIFY: 'true'
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    restart: unless-stopped
+
+volumes:
+  tempo-data:
+  prometheus-data:
+  grafana-data:
+  promtail-positions:
+
+networks:
+  app-net:
+    external: true
+    name: docker_amdox-network # the infra/docker app stack's network

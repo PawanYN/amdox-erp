@@ -1,12 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus, CheckCircle2, Loader2, KeyRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { tenantApi } from "@/lib/api/tenant-api";
+import { markAuthReady } from "@/lib/auth";
 
 export default function CreateTenantPage() {
   const router = useRouter();
+
+  // Public page — no KeycloakProvider, but apiClient waits for auth init.
+  useEffect(() => {
+    markAuthReady();
+  }, []);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);

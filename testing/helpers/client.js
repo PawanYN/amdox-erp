@@ -3,18 +3,25 @@
  * Wraps fetch with base URL, auth token, and JSON helpers.
  *
  * Set env vars before running:
- *   API_BASE=http://localhost:3001   (default)
- *   TEST_TOKEN=<JWT from Keycloak>   (optional — tests without token still verify 401/403)
+ *   API_BASE=http://localhost:3001/api/v1   (default — versioned REST)
+ *   HEALTH_BASE=http://localhost:3001       (default — health is outside /api/v1)
+ *   TEST_TOKEN=<JWT from Keycloak>          (optional — tests without token still verify 401/403)
  */
 
-const BASE = process.env.API_BASE || 'http://localhost:3001';
+const BASE = process.env.API_BASE || 'http://localhost:3001/api/v1';
+const HEALTH_BASE =
+  process.env.HEALTH_BASE || BASE.replace(/\/api\/v1\/?$/, '') || 'http://localhost:3001';
 const TOKEN = process.env.TEST_TOKEN || null;
+
+function resolveBase(path) {
+  return path.startsWith('/health') ? HEALTH_BASE : BASE;
+}
 
 async function request(method, path, body) {
   const headers = { 'Content-Type': 'application/json' };
   if (TOKEN) headers['Authorization'] = `Bearer ${TOKEN}`;
 
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await fetch(`${resolveBase(path)}${path}`, {
     method,
     headers,
     body: body ? JSON.stringify(body) : undefined,
@@ -23,7 +30,11 @@ async function request(method, path, body) {
   let data = null;
   const ct = res.headers.get('content-type') || '';
   if (ct.includes('application/json')) {
-    try { data = await res.json(); } catch { data = null; }
+    try {
+      data = await res.json();
+    } catch {
+      data = null;
+    }
   } else {
     data = await res.text().catch(() => null);
   }
@@ -32,12 +43,13 @@ async function request(method, path, body) {
 }
 
 export const api = {
-  get:    (path)         => request('GET',    path),
-  post:   (path, body)   => request('POST',   path, body),
-  patch:  (path, body)   => request('PATCH',  path, body),
-  put:    (path, body)   => request('PUT',    path, body),
-  delete: (path)         => request('DELETE', path),
+  get: (path) => request('GET', path),
+  post: (path, body) => request('POST', path, body),
+  patch: (path, body) => request('PATCH', path, body),
+  put: (path, body) => request('PUT', path, body),
+  delete: (path) => request('DELETE', path),
   BASE,
+  HEALTH_BASE,
   TOKEN,
   hasToken: () => !!TOKEN,
 };

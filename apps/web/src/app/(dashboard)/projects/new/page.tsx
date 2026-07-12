@@ -13,7 +13,6 @@ import {
   X,
   Loader2,
 } from "lucide-react";
-import { hrApi } from "@/lib/api/hr-api";
 import { pmApi } from "@/lib/api/pm-api";
 import { useKeycloak } from "@/components/KeycloakProvider";
 
@@ -469,7 +468,7 @@ export default function ProjectCreationFlow() {
     setEmployeesLoading(true);
     setEmployeesError(null);
 
-    Promise.all([hrApi.getEmployees(), pmApi.getResourceHeatmap()])
+    Promise.all([pmApi.getAllocatableEmployees(), pmApi.getResourceHeatmap()])
       .then(([employeeRows, heatmap]) => {
         const loadByEmployee = new Map(
           heatmap.map((h: { employeeId: string; utilisationPct: number }) => [
@@ -478,13 +477,19 @@ export default function ProjectCreationFlow() {
           ]),
         );
         const options: EmployeeOption[] = employeeRows
-          .filter((emp: { status?: string }) => emp.status !== "TERMINATED")
-          .map((emp: { id: string; fullName: string; department?: { name: string } | null }) => ({
-            id: emp.id,
-            name: emp.fullName,
-            role: emp.department?.name || "Employee",
-            currentLoad: loadByEmployee.get(emp.id) ?? 0,
-          }))
+          .map(
+            (emp: {
+              id: string;
+              fullName: string;
+              designation?: string | null;
+              department?: { name: string } | null;
+            }) => ({
+              id: emp.id,
+              name: emp.fullName,
+              role: emp.designation || emp.department?.name || "Employee",
+              currentLoad: loadByEmployee.get(emp.id) ?? 0,
+            }),
+          )
           .sort((a: EmployeeOption, b: EmployeeOption) => a.name.localeCompare(b.name));
         setEmployees(options);
       })

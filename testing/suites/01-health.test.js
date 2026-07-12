@@ -9,7 +9,6 @@ import { api } from '../helpers/client.js';
 import { assertStatus, assertHasKey, assertEquals } from '../helpers/assert.js';
 
 suite('Health & API Gateway', () => {
-
   test('GET /health/live → 200 OK', async () => {
     const res = await api.get('/health/live');
     assertStatus(res, 200, 'GET /health/live');
@@ -29,7 +28,7 @@ suite('Health & API Gateway', () => {
   test('API base URL is reachable', async () => {
     const res = await api.get('/health/live');
     if (res.status === 0 || res.status === undefined) {
-      throw new Error(`Cannot reach ${api.BASE} — is the API server running?`);
+      throw new Error(`Cannot reach ${api.HEALTH_BASE} — is the API server running?`);
     }
   });
 
@@ -46,5 +45,4 @@ suite('Health & API Gateway', () => {
     const res = await api.get('/this-route-does-not-exist-xyz');
     assertStatus(res, 404, 'Unknown route 404');
   });
-
 });

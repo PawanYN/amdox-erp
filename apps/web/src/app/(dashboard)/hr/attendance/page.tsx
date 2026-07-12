@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Clock as ClockIcon, Timer, TrendingUp, Calendar } from "lucide-react";
+import { Clock as ClockIcon } from "lucide-react";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { useKeycloak } from "@/components/KeycloakProvider";
 import { hrApi } from "@/lib/api/hr-api";
@@ -36,31 +36,32 @@ export default function AttendancePage() {
   const { token } = useKeycloak();
   const [records, setRecords] = useState<AttendanceRow[]>([]);
 
+  const fetchAttendance = async () => {
+    try {
+      const data: RawAttendance[] = await hrApi.getAllAttendance();
+      const formatted = data.map((rec) => {
+        const cIn = new Date(rec.clockIn);
+        const cOut = rec.clockOut ? new Date(rec.clockOut) : null;
+        return {
+          id: rec.id,
+          employeeName: rec.employee?.fullName || "Unknown",
+          date: cIn.toISOString().slice(0, 10),
+          clockIn: formatTime(cIn),
+          clockOut: cOut ? formatTime(cOut) : null,
+          totalHours: cOut
+            ? Math.round(((cOut.getTime() - cIn.getTime()) / (1000 * 60 * 60)) * 10) / 10
+            : null,
+          overtimeHours: rec.overtimeMins ? Math.round((rec.overtimeMins / 60) * 10) / 10 : null,
+        };
+      });
+      setRecords(formatted);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     if (!token) return;
-    const fetchAttendance = async () => {
-      try {
-        const data: RawAttendance[] = await hrApi.getAllAttendance();
-        const formatted = data.map((rec) => {
-          const cIn = new Date(rec.clockIn);
-          const cOut = rec.clockOut ? new Date(rec.clockOut) : null;
-          return {
-            id: rec.id,
-            employeeName: rec.employee?.fullName || "Unknown",
-            date: cIn.toISOString().slice(0, 10),
-            clockIn: formatTime(cIn),
-            clockOut: cOut ? formatTime(cOut) : null,
-            totalHours: cOut
-              ? Math.round(((cOut.getTime() - cIn.getTime()) / (1000 * 60 * 60)) * 10) / 10
-              : null,
-            overtimeHours: rec.overtimeMins ? Math.round((rec.overtimeMins / 60) * 10) / 10 : null,
-          };
-        });
-        setRecords(formatted);
-      } catch (err) {
-        console.error(err);
-      }
-    };
     fetchAttendance();
   }, [token]);
 
@@ -130,7 +131,9 @@ export default function AttendancePage() {
           <ClockIcon size={18} className="text-slate-500" />
           Attendance
         </h1>
-        <p className="page-subtitle mt-1">Clock-in/out records and overtime tracking</p>
+        <p className="page-subtitle mt-1">
+          Organization-wide attendance records and overtime tracking
+        </p>
       </div>
 
       <div className="grid grid-cols-3 gap-4">

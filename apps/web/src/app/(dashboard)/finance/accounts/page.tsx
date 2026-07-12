@@ -1,4 +1,5 @@
 "use client";
+import { toast } from "@/components/ui/toast";
 
 import { useState, useEffect } from "react";
 import { BookOpen, Landmark, PieChart, Wallet, Plus, ChevronRight } from "lucide-react";
@@ -6,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/ui/stat-card";
 import { Modal, inputClasses } from "@/components/ui/modal";
-import { financeApi } from "@/lib/api/finance-api";
+import { financeApi, type AccountBalance } from "@/lib/api/finance-api";
 
 const TYPE_META: Record<string, { label: string; color: string; bg: string; border: string }> = {
   asset: { label: "Asset", color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-100" },
@@ -47,10 +48,18 @@ type Account = {
 const ACCOUNT_TYPES = ["asset", "liability", "equity", "revenue", "expense"] as const;
 
 type RawAccount = {
+  id: string;
   code: string;
   name: string;
   type: string;
 };
+
+/** Credit-normal account types: display balance as credit − debit so KPIs stay positive. */
+const CREDIT_NORMAL = new Set(["liability", "equity", "revenue"]);
+
+function displayBalance(type: Account["type"], rawDebitMinusCredit: number): number {
+  return CREDIT_NORMAL.has(type) ? -rawDebitMinusCredit : rawDebitMinusCredit;
+}
 
 export default function ChartOfAccountsPage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -71,19 +80,24 @@ export default function ChartOfAccountsPage() {
   const [saving, setSaving] = useState(false);
 
   const load = () =>
-    financeApi
-      .getAccounts()
-      .then((rows: RawAccount[]) =>
+    Promise.all([financeApi.getAccounts(), financeApi.getAccountBalances()])
+      .then(([rows, balances]: [RawAccount[], AccountBalance[]]) => {
+        const byId = new Map(balances.map((b) => [b.accountId, b.balance]));
+        const byCode = new Map(balances.map((b) => [b.code, b.balance]));
         setAccounts(
-          rows.map((a) => ({
-            code: a.code,
-            name: a.name,
-            type: String(a.type).toLowerCase() as Account["type"],
-            subType: a.type,
-            balance: 0,
-          })),
-        ),
-      )
+          rows.map((a) => {
+            const acctType = String(a.type).toLowerCase() as Account["type"];
+            const raw = byId.get(a.id) ?? byCode.get(a.code) ?? 0;
+            return {
+              code: a.code,
+              name: a.name,
+              type: acctType,
+              subType: a.type,
+              balance: displayBalance(acctType, raw),
+            };
+          }),
+        );
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
 
@@ -106,7 +120,7 @@ export default function ChartOfAccountsPage() {
       await load();
       setFormOpen(false);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to create account.");
+      toast(err instanceof Error ? err.message : "Failed to create account.", "error");
     } finally {
       setSaving(false);
     }
@@ -207,32 +221,34 @@ export default function ChartOfAccountsPage() {
               </button>
 
               {open && (
-                <table className="w-full text-[13px]">
-                  <tbody className="divide-y divide-slate-100">
-                    {group.length === 0 ? (
-                      <tr>
-                        <td colSpan={4} className="px-4 py-3 text-[12px] text-slate-500 italic">
-                          No {type} accounts found.
-                        </td>
-                      </tr>
-                    ) : (
-                      group.map((a) => (
-                        <tr key={a.code} className="hover:bg-slate-50/60 transition-colors">
-                          <td className="px-4 py-2.5 font-mono text-[12px] text-slate-500 w-16">
-                            {a.code}
-                          </td>
-                          <td className="px-4 py-2.5 font-medium text-slate-800">{a.name}</td>
-                          <td className="px-4 py-2.5 text-[12px] text-slate-500 hidden sm:table-cell">
-                            {a.subType.replace(/_/g, " ")}
-                          </td>
-                          <td className="px-4 py-2.5 text-right font-mono text-slate-700">
-                            ₹{a.balance.toLocaleString()}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-[13px]">
+                    <tbody className="divide-y divide-slate-100">
+                      {group.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="px-4 py-3 text-[12px] text-slate-500 italic">
+                            No {type} accounts found.
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                      ) : (
+                        group.map((a) => (
+                          <tr key={a.code} className="hover:bg-slate-50/60 transition-colors">
+                            <td className="px-4 py-2.5 font-mono text-[12px] text-slate-500 w-16">
+                              {a.code}
+                            </td>
+                            <td className="px-4 py-2.5 font-medium text-slate-800">{a.name}</td>
+                            <td className="px-4 py-2.5 text-[12px] text-slate-500 hidden sm:table-cell">
+                              {a.subType.replace(/_/g, " ")}
+                            </td>
+                            <td className="px-4 py-2.5 text-right font-mono text-slate-700">
+                              ₹{a.balance.toLocaleString()}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           );

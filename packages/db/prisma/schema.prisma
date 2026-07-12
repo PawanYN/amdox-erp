@@ -658,6 +658,8 @@ model Department {
   parentId  String?
   parent    Department? @relation("DeptHierarchy", fields: [parentId], references: [id])
   children  Department[] @relation("DeptHierarchy")
+  /// ERP sidebar/API modules granted to employees in this department (e.g. finance, hr, scm, projects)
+  allowedModules String[] @default([])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   deletedAt DateTime?
@@ -675,6 +677,7 @@ model Employee {
   userId           String?
   fullName         String
   email            String
+  designation      String?
   departmentId     String?
   department       Department?      @relation(fields: [departmentId], references: [id])
   managerId        String?
@@ -682,6 +685,8 @@ model Employee {
   directReports    Employee[]       @relation("ReportingHierarchy")
   status           EmploymentStatus @default(ACTIVE)
   hireDate         DateTime
+  // When non-empty, overrides department allowedModules for ERP sidebar access.
+  allowedModules   String[]         @default([])
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
   deletedAt        DateTime?

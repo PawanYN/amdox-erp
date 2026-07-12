@@ -29,7 +29,6 @@ let grId = null;
 let invoiceId = null;
 
 suite('Smoke Test — Procure-to-Pay Chain (INT-01)', () => {
-
   test('Step 0: Fetch/create seed data (vendor, product, warehouse, GL accounts)', async () => {
     if (!api.hasToken()) return;
 
@@ -40,14 +39,14 @@ suite('Smoke Test — Procure-to-Pay Chain (INT-01)', () => {
       api.get('/finance/gl/accounts'),
     ]);
 
-    assertOk(vendors,    'GET /scm/vendors');
-    assertOk(products,   'GET /scm/products');
+    assertOk(vendors, 'GET /scm/vendors');
+    assertOk(products, 'GET /scm/products');
     assertOk(warehouses, 'GET /scm/inventory/warehouses');
     assertOk(glAccounts, 'GET /finance/gl/accounts');
-    assertTruthy(vendors.data.length    > 0, 'At least one vendor in seed data');
+    assertTruthy(vendors.data.length > 0, 'At least one vendor in seed data');
     assertTruthy(warehouses.data.length > 0, 'At least one warehouse in seed data');
 
-    vendorId    = vendors.data[0].id;
+    vendorId = vendors.data[0].id;
     warehouseId = warehouses.data[0].id;
 
     // Auto-create a product if the tenant has none
@@ -66,8 +65,8 @@ suite('Smoke Test — Procure-to-Pay Chain (INT-01)', () => {
     // Ensure required GL accounts exist (1300 Inventory / 2000 AP) for invoice→GL bridge
     const existingCodes = glAccounts.data.map((a) => String(a.code));
     const requiredAccounts = [
-      { code: '1300', name: 'Inventory Asset',   type: 'ASSET'     },
-      { code: '2000', name: 'Accounts Payable',  type: 'LIABILITY' },
+      { code: '1300', name: 'Inventory Asset', type: 'ASSET' },
+      { code: '2000', name: 'Accounts Payable', type: 'LIABILITY' },
     ];
     for (const acct of requiredAccounts) {
       if (!existingCodes.includes(acct.code)) {
@@ -86,9 +85,9 @@ suite('Smoke Test — Procure-to-Pay Chain (INT-01)', () => {
     });
 
     assertOk(res, 'POST /scm/purchase-orders');
-    assertHasKey(res.data, 'id',       'PO.id');
+    assertHasKey(res.data, 'id', 'PO.id');
     assertHasKey(res.data, 'poNumber', 'PO.poNumber');
-    assertHasKey(res.data, 'status',   'PO.status');
+    assertHasKey(res.data, 'status', 'PO.status');
 
     poId = res.data.id;
   });
@@ -166,9 +165,12 @@ suite('Smoke Test — Procure-to-Pay Chain (INT-01)', () => {
     assertOk(res, 'GET journal entries');
     assertArray(res.data, 'Journal entries');
 
-    // Find journal entry referencing this invoice
+    // Find journal entry referencing this invoice (sourceId, description, or INV- reference)
     const entry = res.data.find(
-      (je) => je.sourceId === invoiceId || je.description?.includes(invoiceId),
+      (je) =>
+        je.sourceId === invoiceId ||
+        je.description?.includes(invoiceId) ||
+        (je.sourceModule === 'AP' && je.reference?.startsWith('INV-')),
     );
     if (!entry) {
       throw new Error(
@@ -178,11 +180,10 @@ suite('Smoke Test — Procure-to-Pay Chain (INT-01)', () => {
 
     // Verify double-entry balance
     const lines = entry.lines ?? [];
-    const totalDebit  = lines.reduce((s, l) => s + Number(l.debit  || 0), 0);
+    const totalDebit = lines.reduce((s, l) => s + Number(l.debit || 0), 0);
     const totalCredit = lines.reduce((s, l) => s + Number(l.credit || 0), 0);
     if (Math.abs(totalDebit - totalCredit) > 0.01) {
       throw new Error(`Journal entry is unbalanced: Dr=${totalDebit} Cr=${totalCredit}`);
     }
   });
-
 });

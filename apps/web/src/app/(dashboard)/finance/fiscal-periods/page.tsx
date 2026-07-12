@@ -1,4 +1,6 @@
 "use client";
+import { useRoles } from "@/lib/use-roles";
+import { toast } from "@/components/ui/toast";
 
 import { useEffect, useState } from "react";
 import { Calendar, Lock, Plus, Loader2 } from "lucide-react";
@@ -16,6 +18,7 @@ type FiscalPeriod = {
 };
 
 export default function FiscalPeriodsPage() {
+  const { canWrite } = useRoles();
   const [periods, setPeriods] = useState<FiscalPeriod[]>([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
@@ -46,7 +49,7 @@ export default function FiscalPeriodsPage() {
       setEndDate("");
       await load();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to open period.");
+      toast(err instanceof Error ? err.message : "Failed to open period.", "error");
     } finally {
       setSaving(false);
     }
@@ -58,7 +61,7 @@ export default function FiscalPeriodsPage() {
       await financeApi.closeFiscalPeriod(id);
       await load();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to close period.");
+      toast(err instanceof Error ? err.message : "Failed to close period.", "error");
     }
   }
 
@@ -94,7 +97,7 @@ export default function FiscalPeriodsPage() {
     {
       header: "Action",
       cell: (p) =>
-        !p.isLocked ? (
+        canWrite && !p.isLocked ? (
           <button
             onClick={() => handleClose(p.id, p.name)}
             className="inline-flex items-center gap-1.5 text-[12px] font-medium px-2.5 py-1 rounded-md border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
@@ -117,9 +120,11 @@ export default function FiscalPeriodsPage() {
           </h1>
           <p className="page-subtitle mt-1">Open and close accounting periods</p>
         </div>
-        <Button icon={<Plus size={16} />} onClick={() => setFormOpen(true)}>
-          Open Period
-        </Button>
+        {canWrite && (
+          <Button icon={<Plus size={16} />} onClick={() => setFormOpen(true)}>
+            Open Period
+          </Button>
+        )}
       </div>
 
       {loading ? (

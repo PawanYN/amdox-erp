@@ -1,4 +1,5 @@
 "use client";
+import { toast } from "@/components/ui/toast";
 
 import { useState, useEffect } from "react";
 import { Package, Plus, Boxes, Pencil, Trash2 } from "lucide-react";
@@ -82,7 +83,7 @@ export default function ProductsPage() {
       await load();
       setFormOpen(false);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to save product.");
+      toast(err instanceof Error ? err.message : "Failed to save product.", "error");
     } finally {
       setSaving(false);
     }
@@ -94,7 +95,7 @@ export default function ProductsPage() {
       await scmApi.deleteProduct(product.id);
       await load();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to delete product.");
+      toast(err instanceof Error ? err.message : "Failed to delete product.", "error");
     }
   }
 

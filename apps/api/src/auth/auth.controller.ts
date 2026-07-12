@@ -1,31 +1,57 @@
-/**
- * CONTROLLER: auth.controller.ts
- *
- * This file acts as the "Traffic Cop". It receives incoming HTTP requests (like GET or POST)
- * from the frontend, reads the URL, and forwards the work to the correct Service file.
- * DO NOT put heavy database logic here!
- */
-import { Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { prisma } from '@amdox/db';
 import { RedisService } from '../common/redis/redis.service';
+import { AccessService } from './access.service';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly redisService: RedisService) {}
+  constructor(
+    private readonly redisService: RedisService,
+    private readonly accessService: AccessService,
+  ) {}
+
+  /**
+   * Home-realm discovery for email-first login (public, pre-auth).
+   * Given an email, returns the tenant(s) it belongs to so the login page
+   * can route the user to the right Keycloak realm without asking for a
+   * company slug. Multiple tenants → the UI shows a company picker.
+   */
+  @Post('discover')
+  async discover(@Body('email') email?: string) {
+    const normalized = (email ?? '').trim().toLowerCase();
+    if (!normalized || !normalized.includes('@') || normalized.length > 320) {
+      throw new BadRequestException('A valid email is required.');
+    }
+
+    // tenant-scope-ok: this IS the pre-auth lookup that determines which
+    // tenant(s) an email belongs to — there is no tenant context yet.
+    const users = await prisma.user.findMany({
+      where: { email: normalized, isActive: true },
+      select: { tenant: { select: { slug: true, name: true, isActive: true } } },
+    });
+
+    const seen = new Set<string>();
+    const tenants = users
+      .map((u) => u.tenant)
+      .filter((t) => t?.isActive && !seen.has(t.slug) && seen.add(t.slug))
+      .map((t) => ({ slug: t.slug, name: t.name }));
+
+    return { tenants };
+  }
 
   @UseGuards(AuthGuard('keycloak'))
   @Get('me')
   async me(@Req() req: any) {
     const user = req.user;
-    // Normalize role names the same way RolesGuard does (strip spaces)
-    const roles: string[] = (user?.userRoles ?? []).map((ur: any) =>
-      ur.role.name.replace(/\s+/g, ''),
-    );
+    const access = await this.accessService.resolveForUser(user);
     return {
       email: user?.email,
       fullName: user?.fullName,
       tenantId: user?.tenantId,
-      roles,
+      roles: access.roles,
+      modules: access.modules,
+      department: access.department,
     };
   }
 

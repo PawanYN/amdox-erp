@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, Check, Flag, Loader2, Plus } from "lucide-react";
+import { AlertTriangle, Check, Flag, Loader2, Plus, Pencil, Trash2 } from "lucide-react";
 import { pmApi } from "@/lib/api/pm-api";
 
 type ProjectOption = { id: string; name: string };
@@ -23,6 +23,10 @@ function formatDate(d: string) {
   });
 }
 
+function toDateInputValue(d: string) {
+  return d.slice(0, 10);
+}
+
 export default function ProjectsMilestonesPage() {
   const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [projectId, setProjectId] = useState("");
@@ -33,6 +37,9 @@ export default function ProjectsMilestonesPage() {
   const [newName, setNewName] = useState("");
   const [newDue, setNewDue] = useState("");
   const [creating, setCreating] = useState(false);
+  const [savingDueId, setSavingDueId] = useState<string | null>(null);
+  const [editingNameId, setEditingNameId] = useState<string | null>(null);
+  const [nameEdit, setNameEdit] = useState("");
 
   useEffect(() => {
     pmApi
@@ -75,6 +82,20 @@ export default function ProjectsMilestonesPage() {
     }
   };
 
+  const handleDueDateChange = async (milestoneId: string, dueDate: string) => {
+    if (!projectId || !dueDate) return;
+    setSavingDueId(milestoneId);
+    setError(null);
+    try {
+      await pmApi.updateMilestone(projectId, milestoneId, { dueDate });
+      loadMilestones(projectId);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to update due date");
+    } finally {
+      setSavingDueId(null);
+    }
+  };
+
   const handleAchieve = async (milestoneId: string) => {
     if (!projectId) return;
     try {
@@ -82,6 +103,33 @@ export default function ProjectsMilestonesPage() {
       loadMilestones(projectId);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to mark achieved");
+    }
+  };
+
+  const handleSaveName = async (milestoneId: string) => {
+    if (!projectId || !nameEdit.trim()) return;
+    try {
+      await pmApi.updateMilestone(projectId, milestoneId, { name: nameEdit.trim() });
+      setEditingNameId(null);
+      loadMilestones(projectId);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to update name");
+    }
+  };
+
+  const handleDelete = async (milestoneId: string, name: string) => {
+    if (!projectId) return;
+    if (
+      !confirm(
+        `Delete milestone "${name}"? Tasks stay on the project but lose this milestone link.`,
+      )
+    )
+      return;
+    try {
+      await pmApi.deleteMilestone(projectId, milestoneId);
+      loadMilestones(projectId);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to delete milestone");
     }
   };
 
@@ -192,14 +240,55 @@ export default function ProjectsMilestonesPage() {
                     }`}
                   />
                   <div>
-                    <p
-                      className={`text-sm font-semibold ${m.isAchieved ? "text-slate-500 line-through" : "text-slate-900"}`}
-                    >
-                      {m.name}
-                    </p>
-                    <p className="text-[12px] text-slate-500 mt-0.5">
-                      Due {formatDate(m.dueDate)} · {m.taskCount} task{m.taskCount === 1 ? "" : "s"}
-                    </p>
+                    {editingNameId === m.id ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          className={`${inputClass} text-sm py-1`}
+                          value={nameEdit}
+                          onChange={(e) => setNameEdit(e.target.value)}
+                        />
+                        <button
+                          onClick={() => handleSaveName(m.id)}
+                          className="text-[12px] font-medium px-2 py-1 rounded-md bg-blue-600 text-white"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={() => setEditingNameId(null)}
+                          className="text-[12px] px-2 py-1 rounded-md border border-slate-200"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <p
+                        className={`text-sm font-semibold ${m.isAchieved ? "text-slate-500 line-through" : "text-slate-900"}`}
+                      >
+                        {m.name}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                      {!m.isAchieved ? (
+                        <label className="flex items-center gap-1.5 text-[12px] text-slate-500">
+                          <span>Due</span>
+                          <input
+                            type="date"
+                            className={`${inputClass} w-auto py-1 px-2 text-[12px]`}
+                            value={toDateInputValue(m.dueDate)}
+                            disabled={savingDueId === m.id}
+                            onChange={(e) => handleDueDateChange(m.id, e.target.value)}
+                          />
+                          {savingDueId === m.id && (
+                            <Loader2 size={12} className="animate-spin text-slate-400" />
+                          )}
+                        </label>
+                      ) : (
+                        <p className="text-[12px] text-slate-500">Due {formatDate(m.dueDate)}</p>
+                      )}
+                      <span className="text-[12px] text-slate-500">
+                        · {m.taskCount} task{m.taskCount === 1 ? "" : "s"}
+                      </span>
+                    </div>
                     {m.isOverdue && (
                       <p className="text-[11px] text-red-600 mt-1 flex items-center gap-1">
                         <AlertTriangle size={12} /> Overdue — action required
@@ -218,6 +307,27 @@ export default function ProjectsMilestonesPage() {
                   <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">
                     Achieved
                   </span>
+                )}
+                {editingNameId !== m.id && (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => {
+                        setEditingNameId(m.id);
+                        setNameEdit(m.name);
+                      }}
+                      className="p-1.5 rounded-md text-slate-500 hover:bg-slate-100"
+                      title="Edit name"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(m.id, m.name)}
+                      className="p-1.5 rounded-md text-red-500 hover:bg-red-50"
+                      title="Delete milestone"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 )}
               </div>
             </div>

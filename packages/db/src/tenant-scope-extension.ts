@@ -18,7 +18,16 @@ export const tenantScopeExtension = {
           if (tenantId) {
             const anyArgs = args as any;
             if (operation === 'create' || operation === 'createMany') {
-              anyArgs.data = { ...anyArgs.data, tenantId };
+              // createMany `data` is an array — spreading it into `{ ...data, tenantId }`
+              // turns indices into object keys and breaks Prisma validation.
+              if (operation === 'createMany' && Array.isArray(anyArgs.data)) {
+                anyArgs.data = anyArgs.data.map((row: Record<string, unknown>) => ({
+                  ...row,
+                  tenantId,
+                }));
+              } else {
+                anyArgs.data = { ...anyArgs.data, tenantId };
+              }
             } else if (
               operation === 'findUnique' ||
               operation === 'findFirst' ||

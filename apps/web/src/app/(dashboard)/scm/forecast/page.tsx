@@ -231,67 +231,69 @@ export default function ForecastPage() {
 
       {/* SKU table */}
       <div className="rounded-lg border border-[#E4E2DC] overflow-hidden">
-        <table className="w-full text-[12px]">
-          <thead>
-            <tr className="bg-[#FAFAF9] border-b border-[#E4E2DC]">
-              <th className="text-left px-3 py-2 text-[#8A8678] font-medium">SKU / Product</th>
-              <th className="text-left px-3 py-2 text-[#8A8678] font-medium">Model</th>
-              <th className="text-right px-3 py-2 text-[#8A8678] font-medium">MAPE</th>
-              <th className="text-right px-3 py-2 text-[#8A8678] font-medium">Predictions</th>
-              <th className="text-left px-3 py-2 text-[#8A8678] font-medium">Last trained</th>
-              <th className="text-right px-3 py-2 text-[#8A8678] font-medium">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item) => (
-              <tr key={item.id} className="border-b border-[#F0EEE7] hover:bg-[#FAFAF9]">
-                <td className="px-3 py-2">
-                  <p className="font-medium text-[#14171F]">{item.name}</p>
-                  <p className="text-[10px] text-[#8A8678] font-mono">
-                    {item.sku} · {item.category ?? "General"}
-                  </p>
-                </td>
-                <td className="px-3 py-2">
-                  <ModelBadge type={item.modelType} />
-                </td>
-                <td className="px-3 py-2 text-right">
-                  <MapeChip score={item.mapeScore} />
-                </td>
-                <td className="px-3 py-2 text-right font-mono text-[#4A4740]">
-                  {item.predictionCount > 0 ? (
-                    item.predictionCount
-                  ) : (
-                    <span className="text-[#8A8678]">—</span>
-                  )}
-                </td>
-                <td className="px-3 py-2">
-                  <TrainedAtCell trainedAt={item.trainedAt} />
-                </td>
-                <td className="px-3 py-2 text-right">
-                  <button
-                    onClick={() => trainOne(item.id)}
-                    disabled={training[item.id] || trainAll}
-                    className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md bg-[#1E3A5F] text-white disabled:opacity-50"
-                  >
-                    {training[item.id] ? (
-                      <Loader2 size={9} className="animate-spin" />
+        <div className="overflow-x-auto">
+          <table className="w-full text-[12px]">
+            <thead>
+              <tr className="bg-[#FAFAF9] border-b border-[#E4E2DC]">
+                <th className="text-left px-3 py-2 text-[#8A8678] font-medium">SKU / Product</th>
+                <th className="text-left px-3 py-2 text-[#8A8678] font-medium">Model</th>
+                <th className="text-right px-3 py-2 text-[#8A8678] font-medium">MAPE</th>
+                <th className="text-right px-3 py-2 text-[#8A8678] font-medium">Predictions</th>
+                <th className="text-left px-3 py-2 text-[#8A8678] font-medium">Last trained</th>
+                <th className="text-right px-3 py-2 text-[#8A8678] font-medium">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item) => (
+                <tr key={item.id} className="border-b border-[#F0EEE7] hover:bg-[#FAFAF9]">
+                  <td className="px-3 py-2">
+                    <p className="font-medium text-[#14171F]">{item.name}</p>
+                    <p className="text-[10px] text-[#8A8678] font-mono">
+                      {item.sku} · {item.category ?? "General"}
+                    </p>
+                  </td>
+                  <td className="px-3 py-2">
+                    <ModelBadge type={item.modelType} />
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    <MapeChip score={item.mapeScore} />
+                  </td>
+                  <td className="px-3 py-2 text-right font-mono text-[#4A4740]">
+                    {item.predictionCount > 0 ? (
+                      item.predictionCount
                     ) : (
-                      <TrendingUp size={9} />
+                      <span className="text-[#8A8678]">—</span>
                     )}
-                    {training[item.id] ? "Training…" : item.trainedAt ? "Re-train" : "Train"}
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {items.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-3 py-8 text-center text-[#8A8678] text-[12px]">
-                  No products found.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                  </td>
+                  <td className="px-3 py-2">
+                    <TrainedAtCell trainedAt={item.trainedAt} />
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    <button
+                      onClick={() => trainOne(item.id)}
+                      disabled={training[item.id] || trainAll}
+                      className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md bg-[#1E3A5F] text-white disabled:opacity-50"
+                    >
+                      {training[item.id] ? (
+                        <Loader2 size={9} className="animate-spin" />
+                      ) : (
+                        <TrendingUp size={9} />
+                      )}
+                      {training[item.id] ? "Training…" : item.trainedAt ? "Re-train" : "Train"}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {items.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-3 py-8 text-center text-[#8A8678] text-[12px]">
+                    No products found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

@@ -12,6 +12,33 @@ from pydantic import BaseModel
 
 app = FastAPI(title="Amdox ML Service", version="1.0")
 
+# OpenTelemetry traces (Day 26 / PLAT-05) → OTel Collector → Tempo. Wrapped so
+# a missing collector or missing packages can never take the service down.
+if os.environ.get("OTEL_DISABLED") != "true":
+    try:
+        from opentelemetry import trace
+        from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+        from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+        from opentelemetry.sdk.resources import Resource
+        from opentelemetry.sdk.trace import TracerProvider
+        from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
+        _provider = TracerProvider(resource=Resource.create({"service.name": "amdox-ml-service"}))
+        _provider.add_span_processor(
+            BatchSpanProcessor(
+                OTLPSpanExporter(
+                    endpoint=os.environ.get(
+                        "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
+                        "http://localhost:4318/v1/traces",
+                    )
+                )
+            )
+        )
+        trace.set_tracer_provider(_provider)
+        FastAPIInstrumentor.instrument_app(app, tracer_provider=_provider)
+    except Exception as exc:  # noqa: BLE001
+        print(f"[otel] instrumentation disabled: {exc}")
+
 # Simple file-based model registry (MLflow alternative — see PDF Day 15-16 spec,
 # which explicitly allows "MLflow (or simple file-based versioning)"). Each
 # training run writes a new version directory per SKU with its artifact + metadata,

@@ -10,10 +10,17 @@ import { Request, Response } from 'express';
  * Raw (non-HttpException) errors are never sent to the client as-is in
  * production, since they can leak internal details (DB driver messages, stack
  * traces, file paths).
+ *
+ * GraphQL requests are skipped — Apollo formats those errors itself and the
+ * Express `response` object is not available in that execution context.
  */
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
+    if (host.getType<string>() === 'graphql') {
+      throw exception;
+    }
+
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();

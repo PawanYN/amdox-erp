@@ -2,7 +2,9 @@ import { Controller, Post, Body, Get, UseGuards, Req } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { RolesGuard } from '../../auth/guards/roles.guard';
+import { ModuleGuard } from '../../auth/guards/module.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
+import { RequireModule } from '../../auth/decorators/require-module.decorator';
 import { ArService } from './ar.service';
 import { CreateInvoiceDto } from '../dto/create-invoice.dto';
 import { RecordPaymentDto } from '../dto/record-payment.dto';
@@ -13,7 +15,8 @@ import { RecordPaymentDto } from '../dto/record-payment.dto';
  */
 @ApiTags('Accounts Receivable')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('keycloak'), RolesGuard)
+@RequireModule('finance')
+@UseGuards(AuthGuard('keycloak'), RolesGuard, ModuleGuard)
 @Controller('finance/ar')
 export class ArController {
   constructor(private readonly arService: ArService) {}
@@ -35,11 +38,7 @@ export class ArController {
   @Roles('Manager', 'TenantAdmin')
   @Post('customers')
   @ApiOperation({ summary: 'Create a customer' })
-  async createCustomer(
-    @Req() req: any,
-    @Body('name') name: string,
-    @Body('email') email?: string,
-  ) {
+  async createCustomer(@Req() req: any, @Body('name') name: string, @Body('email') email?: string) {
     return this.arService.createCustomer(req.user.tenantId, name, email);
   }
 
@@ -49,10 +48,7 @@ export class ArController {
   @Roles('Manager', 'TenantAdmin')
   @Post('invoices')
   @ApiOperation({ summary: 'Create a new AR Invoice' })
-  async createInvoice(
-    @Req() req: any, 
-    @Body() createInvoiceDto: CreateInvoiceDto
-  ) {
+  async createInvoice(@Req() req: any, @Body() createInvoiceDto: CreateInvoiceDto) {
     return this.arService.createInvoice(req.user.tenantId, createInvoiceDto);
   }
 
@@ -62,10 +58,7 @@ export class ArController {
   @Roles('Manager', 'TenantAdmin', 'SuperAdmin')
   @Post('payments')
   @ApiOperation({ summary: 'Record a payment against an AR invoice' })
-  async recordPayment(
-    @Req() req: any,
-    @Body() recordPaymentDto: RecordPaymentDto
-  ) {
+  async recordPayment(@Req() req: any, @Body() recordPaymentDto: RecordPaymentDto) {
     return this.arService.recordPayment(req.user.tenantId, recordPaymentDto);
   }
 
@@ -75,9 +68,7 @@ export class ArController {
   @Roles('Manager', 'TenantAdmin', 'SuperAdmin')
   @Get('aging-report')
   @ApiOperation({ summary: 'Retrieve AR Aging Report' })
-  async getAgingReport(
-    @Req() req: any
-  ) {
+  async getAgingReport(@Req() req: any) {
     return this.arService.getAgingReport(req.user.tenantId);
   }
 }

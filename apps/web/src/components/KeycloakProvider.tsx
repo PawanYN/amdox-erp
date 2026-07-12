@@ -10,6 +10,7 @@ import {
   ReactNode,
 } from "react";
 import keycloak from "../lib/keycloak";
+import { markAuthReady } from "../lib/auth";
 
 interface KeycloakContextType {
   initialized: boolean;
@@ -78,6 +79,7 @@ export function KeycloakProvider({
 
     if (!keycloak) {
       setInitialized(true);
+      markAuthReady();
       return;
     }
 
@@ -116,6 +118,7 @@ export function KeycloakProvider({
         setAuthenticated(auth);
         if (auth) syncToken();
         setInitialized(true);
+        markAuthReady();
         if (auth && hasOAuthCallback()) {
           window.history.replaceState({}, document.title, window.location.pathname);
         }
@@ -126,6 +129,7 @@ export function KeycloakProvider({
       .catch((err) => {
         console.error("Keycloak initialization failed", err);
         setInitialized(true);
+        markAuthReady();
       });
 
     const interval = setInterval(refreshToken, REFRESH_CHECK_INTERVAL_MS);

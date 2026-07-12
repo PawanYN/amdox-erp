@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, Patch, Param, Req, UseGuards } from '@nestjs/common';
 import { LeaveService } from './leave.service';
 import { CreateLeaveDto } from '../dto/create-leave.dto';
-import { ApproveLeaveDto } from '../dto/approve-leave.dto';
+import { ApproveLeaveDto, LeaveStatus } from '../dto/approve-leave.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
@@ -40,12 +40,45 @@ export class LeaveController {
 
   @Roles('Manager', 'TenantAdmin', 'Tenant Admin', 'SuperAdmin')
   @Patch(':id/approve')
-  approveOrReject(@Req() req: any, @Param('id') id: string, @Body() approveLeaveDto: ApproveLeaveDto) {
+  approveOrReject(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() approveLeaveDto: ApproveLeaveDto,
+  ) {
     const roles = req.user?.roles || [];
-    const isTenantAdmin = roles.includes('TenantAdmin') || roles.includes('Tenant Admin') || roles.includes('SuperAdmin');
-    
-    console.log(`[LeaveController] Approving leave ${id}. User roles:`, roles, `| isTenantAdmin:`, isTenantAdmin);
-    
+    const isTenantAdmin =
+      roles.includes('TenantAdmin') ||
+      roles.includes('Tenant Admin') ||
+      roles.includes('SuperAdmin');
+
+    console.log(
+      `[LeaveController] Approving leave ${id}. User roles:`,
+      roles,
+      `| isTenantAdmin:`,
+      isTenantAdmin,
+    );
+
     return this.leaveService.approveOrReject(req.user.tenantId, id, approveLeaveDto, isTenantAdmin);
+  }
+
+  /** Thin alias — same service path as approve with status forced to rejected. */
+  @Roles('Manager', 'TenantAdmin', 'Tenant Admin', 'SuperAdmin')
+  @Patch(':id/reject')
+  reject(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body('managerEmployeeId') managerEmployeeId: string,
+  ) {
+    const roles = req.user?.roles || [];
+    const isTenantAdmin =
+      roles.includes('TenantAdmin') ||
+      roles.includes('Tenant Admin') ||
+      roles.includes('SuperAdmin');
+    return this.leaveService.approveOrReject(
+      req.user.tenantId,
+      id,
+      { status: LeaveStatus.REJECTED, managerEmployeeId },
+      isTenantAdmin,
+    );
   }
 }

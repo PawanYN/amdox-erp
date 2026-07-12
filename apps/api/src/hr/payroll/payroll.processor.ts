@@ -9,7 +9,8 @@
  *
  * HOW IT IS IMPLEMENTED (10k SCALE):
  * - It fetches employees in chunks (e.g., 500 at a time) using Prisma `take` and `skip`.
- * - For each employee, it looks up their dynamic `TaxSlab` (instead of a hardcoded 12%).
+ * - For each employee, it applies statutory deductions (PF, ESI, PT, LWF) from the
+ *   tenant's Statutory Compliance config, plus income tax (TDS) from tax slabs.
  * - It calls `PayslipGenerator` (pdfkit) to generate the PDF buffer.
  * - This prevents the Node server from crashing out of memory when processing
  *   large enterprise workforces.
@@ -23,6 +24,8 @@ import { AmdoxLogger } from '../../common/logger/amdox-logger';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PayslipGenerator } from './payslip-generator';
 import { StorageService } from '../../common/storage/storage.service';
+import { ComplianceService } from '../compliance/compliance.service';
+import { calculatePayrollAmounts, resolveTaxSlabRate } from './payroll-deductions';
 
 @Processor('payroll')
 export class PayrollProcessor extends WorkerHost {
@@ -31,6 +34,7 @@ export class PayrollProcessor extends WorkerHost {
     private readonly payslipGenerator: PayslipGenerator,
     private readonly eventEmitter: EventEmitter2,
     private readonly storageService: StorageService,
+    private readonly complianceService: ComplianceService,
   ) {
     super();
   }
@@ -40,20 +44,25 @@ export class PayrollProcessor extends WorkerHost {
     AmdoxLogger.hr(`Payroll run started: ${label}`, `runId=${payrollRunId}  tenant=${tenantId}`);
 
     try {
-      // 1. Fetch dynamic tax slabs for this tenant
-      const taxSlabs = await prisma.taxSlab.findMany({
-        where: { tenantId },
-        orderBy: { minSalary: 'asc' },
-      });
-
-      // Simple fallback if no slabs exist for this tenant
-      const getDeductionRate = (salary: number) => {
-        if (taxSlabs.length === 0) return 0.12; // Fallback to 12%
-        const slab = taxSlabs.find(
-          (s) => salary >= Number(s.minSalary) && (!s.maxSalary || salary <= Number(s.maxSalary)),
+      // Compensation step (TDD runbook: "revert partial calculations"): a BullMQ
+      // retry re-enters this handler from employee 0, so any payslips written by
+      // a previous failed attempt must be removed first or they would duplicate
+      // and inflate totalNetPay.
+      const stale = await prisma.payslip.deleteMany({ where: { payrollRunId, tenantId } });
+      if (stale.count > 0) {
+        AmdoxLogger.warn(
+          `Removed ${stale.count} payslip(s) from a previous failed attempt`,
+          `runId=${payrollRunId}`,
         );
-        return slab ? Number(slab.rate) : 0.12;
-      };
+      }
+
+      const [taxSlabs, statutory] = await Promise.all([
+        prisma.taxSlab.findMany({
+          where: { tenantId },
+          orderBy: { minSalary: 'asc' },
+        }),
+        this.complianceService.getStatutoryCompliance(tenantId),
+      ]);
 
       const CHUNK_SIZE = 500;
       let skip = 0;
@@ -105,29 +114,25 @@ export class PayrollProcessor extends WorkerHost {
           );
           const overtimeHours = overtimeMins / 60;
 
-          // Financial math
           const salary = Number(contract.salary);
           const monthlyHours = 160;
           const hourlyRate = salary / monthlyHours;
           const overtimePay = overtimeHours * hourlyRate * 1.5;
-          const grossPay = Number((salary + overtimePay).toFixed(4));
 
-          const deductionRate = getDeductionRate(salary);
-          const deductions = Number((grossPay * deductionRate).toFixed(4));
-          const netPay = Number((grossPay - deductions).toFixed(4));
+          const taxSlabRate = resolveTaxSlabRate(salary, taxSlabs);
+          const amounts = calculatePayrollAmounts({
+            baseSalary: salary,
+            overtimePay,
+            statutory,
+            taxSlabRate,
+          });
 
-          totalNetPaySum += netPay;
+          totalNetPaySum += amounts.netPay;
 
-          // Generate the PDF now so a broken payslip template fails the run early, rather
-          // than silently at download time, and persist it to object storage (MinIO in
-          // dev/kind, real S3/R2 in production — StorageService) so the download endpoint
-          // can serve the stored file instead of regenerating it every time. Keyed by
-          // payrollRunId+employeeId, both known before the batch insert below assigns
-          // each Payslip row its own id.
           const pdfBuffer = await this.payslipGenerator.generatePdfBuffer(
             employee.fullName,
             label,
-            { grossPay, deductions, netPay },
+            amounts,
           );
           const documentKey = `payslips/${tenantId}/${payrollRunId}/${employee.id}.pdf`;
           await this.storageService.upload(documentKey, pdfBuffer, 'application/pdf');
@@ -136,9 +141,9 @@ export class PayrollProcessor extends WorkerHost {
             tenantId,
             payrollRunId,
             employeeId: employee.id,
-            grossPay,
-            deductions,
-            netPay,
+            grossPay: amounts.grossPay,
+            deductions: amounts.totalEmployeeDeductions,
+            netPay: amounts.netPay,
             pdfUrl: documentKey,
           });
         }

@@ -91,12 +91,23 @@ export class LeaveService {
 
     const targetStatus = approveLeaveDto.status.toUpperCase() as LeaveStatus;
 
+    const approver = await prisma.employee.findFirst({
+      where: {
+        id: approveLeaveDto.managerEmployeeId,
+        tenantId,
+        deletedAt: null,
+      },
+      include: { department: true },
+    });
+    const isHrApprover = approver?.department?.code === 'HR';
+
     // Delegate business rule enforcement to the State Machine
     this.leaveStateMachine.validateTransition(
       leave,
       targetStatus,
       approveLeaveDto.managerEmployeeId,
       isTenantAdmin,
+      isHrApprover,
     );
 
     // tenant-scope-ok: `leave` was verified against `tenantId` above.

@@ -736,7 +736,13 @@ export function BiWorkspace() {
           const data = await biApi.getWidgetData(w.id, filterParams);
           if (!cancelled) setWidgetDataMap((prev) => ({ ...prev, [w.id]: data }));
         } catch {
-          /* widget data optional */
+          const source = (w.config?.dataSource || "ar_aging") as BiDataSource;
+          try {
+            const data = await biApi.getDataBySource(source, filterParams);
+            if (!cancelled) setWidgetDataMap((prev) => ({ ...prev, [w.id]: data }));
+          } catch {
+            /* widget data optional */
+          }
         }
       }
     })();

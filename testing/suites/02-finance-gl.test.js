@@ -11,11 +11,14 @@
 import { suite, test, skip } from '../helpers/runner.js';
 import { api } from '../helpers/client.js';
 import {
-  assertStatus, assertOk, assertArray, assertHasKey, assertTruthy,
+  assertStatus,
+  assertOk,
+  assertArray,
+  assertHasKey,
+  assertTruthy,
 } from '../helpers/assert.js';
 
 suite('Finance — General Ledger', () => {
-
   test('GET /finance/gl/accounts → 401 without token', async () => {
     const res = await fetch(`${api.BASE}/finance/gl/accounts`);
     assertStatus({ status: res.status }, 401, 'No token → 401');
@@ -32,10 +35,24 @@ suite('Finance — General Ledger', () => {
     if (!api.hasToken()) return;
     const res = await api.get('/finance/gl/accounts');
     assertOk(res);
-    if (res.data.length === 0) return; // no accounts seeded for this tenant — skip structural check
-    const codes = res.data.map((a) => a.code);
-    for (const code of [1000, 2000, 4000]) {
-      if (!codes.includes(code) && !codes.includes(String(code))) {
+
+    const requiredAccounts = [
+      { code: '1000', name: 'Cash', type: 'ASSET' },
+      { code: '2000', name: 'Accounts Payable', type: 'LIABILITY' },
+      { code: '4000', name: 'Sales Revenue', type: 'REVENUE' },
+    ];
+
+    let codes = res.data.map((a) => String(a.code));
+    for (const acct of requiredAccounts) {
+      if (!codes.includes(acct.code)) {
+        const created = await api.post('/finance/gl/accounts', acct);
+        assertOk(created, `POST /finance/gl/accounts (auto-create ${acct.code})`);
+        codes = [...codes, acct.code];
+      }
+    }
+
+    for (const code of ['1000', '2000', '4000']) {
+      if (!codes.includes(code)) {
         throw new Error(`GL account code ${code} missing from chart of accounts`);
       }
     }
@@ -77,5 +94,4 @@ suite('Finance — General Ledger', () => {
     const res = await api.get('/finance/ar/aging-report');
     assertOk(res, 'Aging report');
   });
-
 });

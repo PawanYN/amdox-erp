@@ -3,7 +3,7 @@
 # Multi-stage build for the Next.js frontend (apps/web) out of the pnpm/turbo
 # monorepo. Build context must be the repo root, e.g.:
 #   docker build -f infra/docker/Dockerfile.web \
-#     --build-arg NEXT_PUBLIC_API_URL=https://api.example.com \
+#     --build-arg NEXT_PUBLIC_API_URL=https://api.example.com/api/v1 \
 #     --build-arg NEXT_PUBLIC_KEYCLOAK_URL=https://auth.example.com \
 #     --build-arg NEXT_PUBLIC_KEYCLOAK_CLIENT_ID=amdox-erp-web \
 #     -t amdox-web .
@@ -30,7 +30,7 @@ COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=pruner /app/tsconfig.json ./tsconfig.json
 RUN pnpm install --frozen-lockfile
 
-ARG NEXT_PUBLIC_API_URL=http://localhost:3001
+ARG NEXT_PUBLIC_API_URL=http://localhost:3001/api/v1
 ARG NEXT_PUBLIC_KEYCLOAK_URL=http://localhost:8180
 ARG NEXT_PUBLIC_KEYCLOAK_CLIENT_ID=amdox-erp-web
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL

@@ -15,7 +15,9 @@ import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { RolesGuard } from '../../auth/guards/roles.guard';
+import { ModuleGuard } from '../../auth/guards/module.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
+import { RequireModule } from '../../auth/decorators/require-module.decorator';
 import { ApService } from './ap.service';
 import { CreateInvoiceDto } from '../dto/create-invoice.dto';
 import { RecordPaymentDto } from '../dto/record-payment.dto';
@@ -27,7 +29,8 @@ import { RunPaymentBatchDto } from '../dto/run-payment-batch.dto';
  */
 @ApiTags('Accounts Payable')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('keycloak'), RolesGuard)
+@RequireModule('finance')
+@UseGuards(AuthGuard('keycloak'), RolesGuard, ModuleGuard)
 @Controller('finance/ap/invoices')
 export class ApController {
   constructor(private readonly apService: ApService) {}
@@ -109,6 +112,27 @@ export class ApController {
     return this.apService.manuallyApproveInvoice(
       req.user.tenantId,
       invoiceId,
+      req.user.id ?? req.user.sub,
+    );
+  }
+
+  /**
+   * Cancels/voids an AP invoice that hasn't been paid yet, so a wrongly-entered
+   * invoice doesn't sit as PENDING_MATCH forever (users previously worked around
+   * it by creating a duplicate).
+   */
+  @Roles('Manager', 'TenantAdmin')
+  @Post(':id/cancel')
+  @ApiOperation({ summary: 'Cancel an unpaid AP invoice' })
+  async cancelInvoice(
+    @Param('id') invoiceId: string,
+    @Req() req: any,
+    @Body('reason') reason?: string,
+  ) {
+    return this.apService.cancelInvoice(
+      req.user.tenantId,
+      invoiceId,
+      reason,
       req.user.id ?? req.user.sub,
     );
   }

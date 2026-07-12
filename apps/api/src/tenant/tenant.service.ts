@@ -30,6 +30,22 @@ export class TenantService implements OnModuleInit, OnModuleDestroy {
     return { exists: !!tenant };
   }
 
+  /**
+   * Redirect URIs for each new tenant realm's web client: localhost for dev
+   * plus every origin in FRONTEND_URL (comma-separated — the same env the
+   * CORS allowlist uses). Without this, tenants created on a deployed
+   * instance get a realm that rejects the public URL with
+   * "Invalid parameter: redirect_uri" at first login.
+   */
+  private static allowedRedirectUris(): string[] {
+    const uris = ['http://localhost:3000/*', 'http://localhost:3001/*'];
+    for (const origin of (process.env.FRONTEND_URL || '').split(',')) {
+      const trimmed = origin.trim().replace(/\/+$/, '');
+      if (trimmed && !uris.includes(`${trimmed}/*`)) uris.push(`${trimmed}/*`);
+    }
+    return uris;
+  }
+
   async onModuleInit() {
     this.kcAdminClient = new KcAdminClient({
       baseUrl: process.env.KEYCLOAK_BASE_URL || 'http://localhost:8180',
@@ -100,7 +116,7 @@ export class TenantService implements OnModuleInit, OnModuleDestroy {
         secret: randomUUID(), // unique per tenant — was a hardcoded shared literal committed to git
         standardFlowEnabled: true,
         directAccessGrantsEnabled: true,
-        redirectUris: ['http://localhost:3000/*', 'http://localhost:3001/*'],
+        redirectUris: TenantService.allowedRedirectUris(),
         webOrigins: ['+'],
       });
 
@@ -111,6 +127,11 @@ export class TenantService implements OnModuleInit, OnModuleDestroy {
         email: adminEmail,
         enabled: true,
         emailVerified: true,
+        // Keycloak 25 treats a missing name as an incomplete profile
+        // ("Account is not fully set up") and blocks logins / forces an
+        // update-profile page — so give the admin a real name up front.
+        firstName: name,
+        lastName: 'Admin',
       });
       kcUserId = kcUser.id;
 
@@ -125,6 +146,9 @@ export class TenantService implements OnModuleInit, OnModuleDestroy {
       for (const roleName of ['TenantAdmin', 'Manager', 'Viewer', 'Employee']) {
         await this.kcAdminClient.roles.create({ realm: slug, name: roleName });
       }
+
+      // First-login flow used by identity providers added later (Google/SSO)
+      await this.ensureAutoLinkFlowForRealm(slug);
 
       // Assign TenantAdmin realm role to the provisioned admin user
       const kcAdminRole = await this.kcAdminClient.roles.findOneByName({
@@ -211,7 +235,102 @@ export class TenantService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async provisionEmployeeUser(tenantId: string, email: string, fullName: string) {
+  private static readonly ERP_ROLE_TO_SYSTEM: Record<
+    string,
+    'TENANT_ADMIN' | 'MANAGER' | 'VIEWER' | 'EMPLOYEE'
+  > = {
+    TenantAdmin: 'TENANT_ADMIN',
+    Manager: 'MANAGER',
+    Viewer: 'VIEWER',
+    Employee: 'EMPLOYEE',
+  };
+
+  private static readonly ALL_ERP_REALM_ROLES = ['TenantAdmin', 'Manager', 'Viewer', 'Employee'];
+
+  async assignUserRole(
+    tenantId: string,
+    userId: string,
+    roleName: 'TenantAdmin' | 'Manager' | 'Viewer' | 'Employee',
+  ) {
+    const tenant = await this.getTenant(tenantId);
+    const systemRole = TenantService.ERP_ROLE_TO_SYSTEM[roleName];
+    if (!systemRole) {
+      throw new InternalServerErrorException(`Unknown ERP role: ${roleName}`);
+    }
+
+    const role = await prisma.role.findFirst({
+      where: { tenantId: tenant.id, systemRole },
+    });
+    if (!role) {
+      throw new InternalServerErrorException(`Role ${roleName} not found for tenant`);
+    }
+
+    const user = await prisma.user.findFirst({
+      where: { id: userId, tenantId: tenant.id },
+    });
+    if (!user) {
+      throw new InternalServerErrorException('User not found for role assignment');
+    }
+
+    await prisma.userRole.deleteMany({
+      where: { userId, tenantId: tenant.id },
+    });
+    await prisma.userRole.create({
+      data: {
+        tenantId: tenant.id,
+        userId,
+        roleId: role.id,
+      },
+    });
+    AmdoxLogger.tenant(`Role assigned: ${role.name}`, `userId=${userId}`);
+
+    if (user.ssoSubject) {
+      await this.provisionKcRoles(tenantId);
+      for (const realmRoleName of TenantService.ALL_ERP_REALM_ROLES) {
+        if (realmRoleName === roleName) continue;
+        try {
+          const existing = await this.kcAdminClient.roles.findOneByName({
+            realm: tenant.slug,
+            name: realmRoleName,
+          });
+          if (existing?.id) {
+            await this.kcAdminClient.users.delRealmRoleMappings({
+              realm: tenant.slug,
+              id: user.ssoSubject,
+              roles: [{ id: existing.id, name: existing.name! }],
+            });
+          }
+        } catch {
+          // Role mapping may not exist — ignore
+        }
+      }
+
+      const kcRole = await this.kcAdminClient.roles.findOneByName({
+        realm: tenant.slug,
+        name: roleName,
+      });
+      if (kcRole?.id) {
+        try {
+          await this.kcAdminClient.users.addRealmRoleMappings({
+            realm: tenant.slug,
+            id: user.ssoSubject,
+            roles: [{ id: kcRole.id, name: kcRole.name! }],
+          });
+        } catch {
+          // Already assigned — ignore
+        }
+      }
+    }
+
+    return { userId, roleName };
+  }
+
+  async provisionEmployeeUser(
+    tenantId: string,
+    email: string,
+    fullName: string,
+    roleName: 'TenantAdmin' | 'Manager' | 'Viewer' | 'Employee' = 'Employee',
+  ) {
     const tenant = await this.getTenant(tenantId);
 
     // Generate a temporary password
@@ -219,6 +338,8 @@ export class TenantService implements OnModuleInit, OnModuleDestroy {
 
     let kcUserId: string | undefined;
     try {
+      await this.provisionKcRoles(tenantId);
+
       // 1. Create User in Keycloak
       const kcUser = await this.kcAdminClient.users.create({
         realm: tenant.slug,
@@ -240,18 +361,25 @@ export class TenantService implements OnModuleInit, OnModuleDestroy {
 
       AmdoxLogger.tenant(`KC user provisioned: ${email}`, `kcUserId=${kcUserId}`);
       AmdoxLogger.hr(`NEW EMPLOYEE LOGIN  email=${email}`, `tempPassword=${tempPassword}`);
+      // Dev-only: loud credential log for flow testing (remove before production)
+      console.log(
+        '\n\x1b[1;93m════════════════════════════════════════════════════════════\x1b[0m',
+      );
+      console.log('\x1b[1;92m  EMPLOYEE LOGIN CREDENTIALS (save this — not shown again)\x1b[0m');
+      console.log(`  Tenant:   \x1b[1;96m${tenant.slug}\x1b[0m`);
+      console.log(`  Email:    \x1b[1;96m${email}\x1b[0m`);
+      console.log(`  Password: \x1b[1;93m${tempPassword}\x1b[0m`);
+      console.log(`  ERP Role: \x1b[1;96m${roleName}\x1b[0m`);
+      console.log(
+        '\x1b[1;93m════════════════════════════════════════════════════════════\x1b[0m\n',
+      );
     } catch (error) {
       AmdoxLogger.critical('KC user provisioning failed for employee', (error as Error).message);
       throw new InternalServerErrorException('Failed to create Keycloak user');
     }
 
-    // 4. Create User in Prisma
+    // 3. Create User in Prisma and assign ERP role
     try {
-      // Find the Employee role ID for this tenant
-      const employeeRole = await prisma.role.findFirst({
-        where: { tenantId: tenant.id, systemRole: 'EMPLOYEE' },
-      });
-
       const newUser = await prisma.user.create({
         data: {
           tenantId: tenant.id,
@@ -262,16 +390,7 @@ export class TenantService implements OnModuleInit, OnModuleDestroy {
       });
       AmdoxLogger.tenant(`DB user created: ${email}`, `userId=${newUser.id}`);
 
-      if (employeeRole) {
-        await prisma.userRole.create({
-          data: {
-            tenantId: tenant.id,
-            userId: newUser.id,
-            roleId: employeeRole.id,
-          },
-        });
-        AmdoxLogger.tenant(`Role assigned: ${employeeRole.name}`, `userId=${newUser.id}`);
-      }
+      await this.assignUserRole(tenant.id, newUser.id, roleName);
 
       return newUser.id;
     } catch (error: any) {
@@ -446,11 +565,216 @@ export class TenantService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  /**
+   * First-broker-login flow that links an incoming IdP identity (e.g. Google)
+   * to an existing Keycloak user with the same verified email instead of
+   * stopping at Keycloak's "Account already exists" confirmation page.
+   * Employees are provisioned with a password account first, so without this
+   * every social/SSO login for a known email dead-ends.
+   */
+  private static readonly AUTO_LINK_FLOW_ALIAS = 'auto-link';
+
+  /** Idempotent: safe to call on realms that already have the flow. */
+  async ensureAutoLinkFlowForRealm(realm: string) {
+    const flows = await this.kcAdminClient.authenticationManagement.getFlows({ realm });
+    if (flows.some((f) => f.alias === TenantService.AUTO_LINK_FLOW_ALIAS)) return;
+
+    await this.kcAdminClient.authenticationManagement.createFlow({
+      realm,
+      alias: TenantService.AUTO_LINK_FLOW_ALIAS,
+      description:
+        'First broker login without the confirm-link screen: new emails create a user, known emails auto-link. Only for IdPs that verify email ownership (trustEmail).',
+      providerId: 'basic-flow',
+      topLevel: true,
+      builtIn: false,
+    });
+
+    // Either execution completes the flow: unknown email → create user,
+    // known email → link the IdP identity to that user.
+    for (const provider of ['idp-create-user-if-unique', 'idp-auto-link']) {
+      await this.kcAdminClient.authenticationManagement.addExecutionToFlow({
+        realm,
+        flow: TenantService.AUTO_LINK_FLOW_ALIAS,
+        provider,
+      });
+    }
+    const executions = await this.kcAdminClient.authenticationManagement.getExecutions({
+      realm,
+      flow: TenantService.AUTO_LINK_FLOW_ALIAS,
+    });
+    for (const execution of executions) {
+      await this.kcAdminClient.authenticationManagement.updateExecution(
+        { realm, flow: TenantService.AUTO_LINK_FLOW_ALIAS },
+        { ...execution, requirement: 'ALTERNATIVE' },
+      );
+    }
+    AmdoxLogger.tenant(`Auto-link first-login flow created`, `realm=${realm}`);
+  }
+
+  /**
+   * Post-broker-login flow: asks for the OTP code on SSO/social logins when the
+   * user has an authenticator configured. Without it, only password logins pass
+   * through the browser flow's conditional OTP — brokered logins would skip MFA.
+   */
+  private static readonly POST_BROKER_MFA_FLOW_ALIAS = 'post-broker-mfa';
+
+  /** Idempotent: safe to call on realms that already have the flow. */
+  private async ensurePostBrokerMfaFlowForRealm(realm: string) {
+    const flows = await this.kcAdminClient.authenticationManagement.getFlows({ realm });
+    if (flows.some((f) => f.alias === TenantService.POST_BROKER_MFA_FLOW_ALIAS)) return;
+
+    const subflowAlias = 'post-broker-mfa-conditional-otp';
+    await this.kcAdminClient.authenticationManagement.createFlow({
+      realm,
+      alias: TenantService.POST_BROKER_MFA_FLOW_ALIAS,
+      description: 'Prompt for OTP after identity-provider login when the user has one configured',
+      providerId: 'basic-flow',
+      topLevel: true,
+      builtIn: false,
+    });
+    await this.kcAdminClient.authenticationManagement.addFlowToFlow({
+      realm,
+      flow: TenantService.POST_BROKER_MFA_FLOW_ALIAS,
+      alias: subflowAlias,
+      type: 'basic-flow',
+      provider: 'registration-page-form',
+      description: 'OTP form, skipped for users without an authenticator',
+    });
+    for (const provider of ['conditional-user-configured', 'auth-otp-form']) {
+      await this.kcAdminClient.authenticationManagement.addExecutionToFlow({
+        realm,
+        flow: subflowAlias,
+        provider,
+      });
+    }
+    // Nested executions are all updated through the top-level flow's alias.
+    const executions = await this.kcAdminClient.authenticationManagement.getExecutions({
+      realm,
+      flow: TenantService.POST_BROKER_MFA_FLOW_ALIAS,
+    });
+    for (const execution of executions) {
+      const requirement = execution.displayName === subflowAlias ? 'CONDITIONAL' : 'REQUIRED';
+      await this.kcAdminClient.authenticationManagement.updateExecution(
+        { realm, flow: TenantService.POST_BROKER_MFA_FLOW_ALIAS },
+        { ...execution, requirement },
+      );
+    }
+    AmdoxLogger.tenant(`Post-broker MFA flow created`, `realm=${realm}`);
+  }
+
+  async getMfaEnforcement(tenantId: string) {
+    const tenant = await this.getTenant(tenantId);
+    await this.verifyRealmExists(tenant.slug);
+    try {
+      const actions = await this.kcAdminClient.authenticationManagement.getRequiredActions({
+        realm: tenant.slug,
+      } as any);
+      const totp = actions.find((a) => a.alias === 'CONFIGURE_TOTP');
+      return { enforced: !!(totp?.enabled && totp?.defaultAction) };
+    } catch (error) {
+      AmdoxLogger.error(
+        `Failed to read MFA enforcement for ${tenant.slug}`,
+        (error as Error).message,
+      );
+      throw new InternalServerErrorException('Failed to read MFA enforcement');
+    }
+  }
+
+  /**
+   * Per-tenant MFA enforcement (PDF F-01: "MFA enforced per tenant").
+   * Enabling: every user without an authenticator must set one up at next
+   * login (new users included), and OTP is asked on both password and
+   * SSO/social logins. Disabling: stops requiring setup but keeps existing
+   * authenticators working — users who have OTP are still asked for it.
+   */
+  async setMfaEnforcement(tenantId: string, enforced: boolean) {
+    const tenant = await this.getTenant(tenantId);
+    await this.verifyRealmExists(tenant.slug);
+    const realm = tenant.slug;
+    try {
+      // 1. CONFIGURE_TOTP as a realm default action → new users must set up OTP
+      const actions = await this.kcAdminClient.authenticationManagement.getRequiredActions({
+        realm,
+      } as any);
+      const totp = actions.find((a) => a.alias === 'CONFIGURE_TOTP');
+      if (!totp) throw new Error('CONFIGURE_TOTP required action missing in realm');
+      await this.kcAdminClient.authenticationManagement.updateRequiredAction(
+        { realm, alias: 'CONFIGURE_TOTP' },
+        { ...totp, enabled: true, defaultAction: enforced },
+      );
+
+      // 2. OTP prompt on brokered logins (Google/SSO) via post-broker-login flow
+      if (enforced) await this.ensurePostBrokerMfaFlowForRealm(realm);
+      const idps = await this.kcAdminClient.identityProviders.find({ realm });
+      for (const idp of idps) {
+        await this.kcAdminClient.identityProviders.update(
+          { realm, alias: idp.alias! },
+          {
+            ...idp,
+            postBrokerLoginFlowAlias: enforced ? TenantService.POST_BROKER_MFA_FLOW_ALIAS : '',
+          },
+        );
+      }
+
+      // 3. Existing users: add (or withdraw) the pending OTP-setup requirement.
+      //    Users who already completed OTP setup are never touched.
+      let usersFlagged = 0;
+      const pageSize = 100;
+      for (let first = 0; ; first += pageSize) {
+        const users = await this.kcAdminClient.users.find({ realm, first, max: pageSize });
+        for (const user of users) {
+          const pending = user.requiredActions ?? [];
+          if (enforced) {
+            if (pending.includes('CONFIGURE_TOTP')) continue;
+            const credentials = await this.kcAdminClient.users.getCredentials({
+              realm,
+              id: user.id!,
+            });
+            if (credentials.some((c) => c.type === 'otp')) continue;
+            await this.kcAdminClient.users.update(
+              { realm, id: user.id! },
+              { requiredActions: [...pending, 'CONFIGURE_TOTP'] },
+            );
+            usersFlagged++;
+          } else if (pending.includes('CONFIGURE_TOTP')) {
+            await this.kcAdminClient.users.update(
+              { realm, id: user.id! },
+              { requiredActions: pending.filter((a) => a !== 'CONFIGURE_TOTP') },
+            );
+          }
+        }
+        if (users.length < pageSize) break;
+      }
+
+      AmdoxLogger.tenant(
+        `MFA enforcement ${enforced ? 'ENABLED' : 'DISABLED'}`,
+        `realm=${realm}  usersFlagged=${usersFlagged}`,
+      );
+      return { success: true, enforced, usersFlagged };
+    } catch (error) {
+      AmdoxLogger.error(`Failed to set MFA enforcement for ${realm}`, (error as Error).message);
+      throw new InternalServerErrorException('Failed to update MFA enforcement');
+    }
+  }
+
   async createIdentityProvider(tenantId: string, provider: any) {
     const tenant = await this.getTenant(tenantId);
     await this.verifyRealmExists(tenant.slug);
     try {
-      await this.kcAdminClient.identityProviders.create({ realm: tenant.slug, ...provider });
+      await this.ensureAutoLinkFlowForRealm(tenant.slug);
+      // If MFA is enforced for this tenant, new IdPs must also prompt for OTP
+      const { enforced: mfaEnforced } = await this.getMfaEnforcement(tenantId);
+      await this.kcAdminClient.identityProviders.create({
+        realm: tenant.slug,
+        // Defaults (overridable per request): trust the IdP's verified email and
+        // auto-link to an existing account instead of blocking on first login.
+        trustEmail: true,
+        firstBrokerLoginFlowAlias: TenantService.AUTO_LINK_FLOW_ALIAS,
+        ...(mfaEnforced
+          ? { postBrokerLoginFlowAlias: TenantService.POST_BROKER_MFA_FLOW_ALIAS }
+          : {}),
+        ...provider,
+      });
       return { success: true };
     } catch (error) {
       AmdoxLogger.error(
@@ -541,5 +865,50 @@ export class TenantService implements OnModuleInit, OnModuleDestroy {
 
     AmdoxLogger.success(`KC realm roles provisioned for tenant: ${tenant.slug}`);
     return { success: true, tenant: tenant.slug, admins: adminUsers.map((u) => u.user.email) };
+  }
+
+  /**
+   * One-time migration for realms created before the auto-link flow existed:
+   * creates the flow and switches every already-configured identity provider
+   * to it (with trustEmail), so first logins link instead of blocking.
+   * Idempotent — safe to call repeatedly.
+   */
+  async provisionAutoLink(tenantId: string) {
+    const tenant = await this.getTenant(tenantId);
+    await this.verifyRealmExists(tenant.slug);
+    try {
+      await this.ensureAutoLinkFlowForRealm(tenant.slug);
+
+      const idps = await this.kcAdminClient.identityProviders.find({ realm: tenant.slug });
+      const updated: string[] = [];
+      for (const idp of idps) {
+        if (
+          idp.trustEmail === true &&
+          idp.firstBrokerLoginFlowAlias === TenantService.AUTO_LINK_FLOW_ALIAS
+        )
+          continue;
+        await this.kcAdminClient.identityProviders.update(
+          { realm: tenant.slug, alias: idp.alias! },
+          {
+            ...idp,
+            trustEmail: true,
+            firstBrokerLoginFlowAlias: TenantService.AUTO_LINK_FLOW_ALIAS,
+          },
+        );
+        updated.push(idp.alias!);
+      }
+
+      AmdoxLogger.success(
+        `Auto-link provisioned for tenant: ${tenant.slug}` +
+          (updated.length ? ` (updated IdPs: ${updated.join(', ')})` : ''),
+      );
+      return { success: true, tenant: tenant.slug, updatedProviders: updated };
+    } catch (error) {
+      AmdoxLogger.error(
+        `Failed to provision auto-link for ${tenant.slug}`,
+        (error as Error).message,
+      );
+      throw new InternalServerErrorException('Failed to provision auto-link flow');
+    }
   }
 }

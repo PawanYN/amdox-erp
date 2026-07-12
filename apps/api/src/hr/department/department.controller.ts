@@ -4,12 +4,15 @@ import { CreateDepartmentDto } from '../dto/create-department.dto';
 import { UpdateDepartmentDto } from '../dto/update-department.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../../auth/guards/roles.guard';
+import { ModuleGuard } from '../../auth/guards/module.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
+import { RequireModule } from '../../auth/decorators/require-module.decorator';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 
 @ApiTags('Departments')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('keycloak'), RolesGuard)
+@RequireModule('hr')
+@UseGuards(AuthGuard('keycloak'), RolesGuard, ModuleGuard)
 @Controller('departments')
 export class DepartmentController {
   constructor(private readonly departmentService: DepartmentService) {}
@@ -35,7 +38,11 @@ export class DepartmentController {
 
   @Roles('SuperAdmin', 'TenantAdmin', 'Manager')
   @Patch(':id')
-  update(@Req() req: any, @Param('id') id: string, @Body() updateDepartmentDto: UpdateDepartmentDto) {
+  update(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() updateDepartmentDto: UpdateDepartmentDto,
+  ) {
     return this.departmentService.update(req.user.tenantId, id, updateDepartmentDto);
   }
 

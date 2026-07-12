@@ -44,11 +44,11 @@ else
     -s displayName="Amdox ERP"
 fi
 
-if docker_cmd exec "$CONTAINER_NAME" "$KCADM" get clients -r "$REALM" -q clientId="$CLIENT" | grep -q '"clientId"'; then
+if docker_cmd exec "$CONTAINER_NAME" "$KCADM" get clients -r "$REALM" -q clientId="$CLIENT" 2>/dev/null | grep -q '"clientId"'; then
   echo "Client '$CLIENT' already exists."
 else
   echo "Creating client '$CLIENT'..."
-  docker_cmd exec "$CONTAINER_NAME" "$KCADM" create clients -r "$REALM" \
+  if ! docker_cmd exec "$CONTAINER_NAME" "$KCADM" create clients -r "$REALM" \
     -s clientId="$CLIENT" \
     -s enabled=true \
     -s publicClient=true \
@@ -56,24 +56,33 @@ else
     -s 'redirectUris=["http://localhost:3000/*","http://localhost:3001/*","http://127.0.0.1:3000/*"]' \
     -s standardFlowEnabled=true \
     -s directAccessGrantsEnabled=true \
-    -s 'webOrigins=["+"]'
+    -s 'webOrigins=["+"]' 2>/dev/null; then
+    echo "Client '$CLIENT' already exists (create skipped)."
+  fi
 fi
 
-if docker_cmd exec "$CONTAINER_NAME" "$KCADM" get users -r "$REALM" -q username="$ERP_ADMIN_USER" | grep -q '"username"'; then
-  echo "User '$ERP_ADMIN_USER' already exists."
-else
+USER_ID=$(docker_cmd exec "$CONTAINER_NAME" "$KCADM" get users -r "$REALM" -q username="$ERP_ADMIN_USER" --fields id --format csv --noquotes 2>/dev/null | tail -1)
+
+if [ -z "$USER_ID" ] || [ "$USER_ID" = "id" ]; then
   echo "Creating user '$ERP_ADMIN_USER'..."
   docker_cmd exec "$CONTAINER_NAME" "$KCADM" create users -r "$REALM" \
     -s username="$ERP_ADMIN_USER" \
     -s email="$ERP_ADMIN_EMAIL" \
     -s enabled=true \
     -s emailVerified=true
-
   USER_ID=$(docker_cmd exec "$CONTAINER_NAME" "$KCADM" get users -r "$REALM" -q username="$ERP_ADMIN_USER" --fields id --format csv --noquotes | tail -1)
-  docker_cmd exec "$CONTAINER_NAME" "$KCADM" set-password -r "$REALM" --userid "$USER_ID" --new-password "$ERP_ADMIN_PASS"
+else
+  echo "User '$ERP_ADMIN_USER' already exists — refreshing password and clearing required actions."
 fi
+
+docker_cmd exec "$CONTAINER_NAME" "$KCADM" update "users/$USER_ID" -r "$REALM" \
+  -s enabled=true \
+  -s emailVerified=true \
+  -s 'requiredActions=[]' \
+  -s email="$ERP_ADMIN_EMAIL"
+docker_cmd exec "$CONTAINER_NAME" "$KCADM" set-password -r "$REALM" --userid "$USER_ID" --new-password "$ERP_ADMIN_PASS" --temporary=false
 
 echo "Keycloak setup complete."
 echo "  Realm:  $REALM"
 echo "  Client: $CLIENT"
-echo "  User:   $ERP_ADMIN_USER / $ERP_ADMIN_PASS"
+echo "  User:   $ERP_ADMIN_USER (password reset)"

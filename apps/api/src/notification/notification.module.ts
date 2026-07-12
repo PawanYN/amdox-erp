@@ -6,6 +6,7 @@ import { NotificationEventListener } from './notification-event.listener';
 import { NotificationDispatchProcessor } from './notification-dispatch.processor';
 import { WebhookChannel } from './channels/webhook.channel';
 import { EmailChannel } from './channels/email.channel';
+import { SmsChannel } from './channels/sms.channel';
 
 @Module({
   imports: [BullModule.registerQueue({ name: 'notification-dispatch' })],
@@ -16,7 +17,8 @@ import { EmailChannel } from './channels/email.channel';
     NotificationDispatchProcessor,
     WebhookChannel,
     EmailChannel,
+    SmsChannel,
   ],
-  exports: [NotificationService],
+  exports: [NotificationService, EmailChannel],
 })
 export class NotificationModule {}

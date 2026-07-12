@@ -3,28 +3,30 @@
 import { Check, X } from "lucide-react";
 import { Badge, statusToTone } from "@/components/ui/badge";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
-import { LeaveRequest, UserRole } from "@/lib/types";
+import { LeaveRequest } from "@/lib/types";
 
 export function LeaveTable({
   requests,
-  currentUserRole,
+  canApprove,
   onApprove,
   onReject,
 }: {
   requests: LeaveRequest[];
-  currentUserRole: UserRole;
+  canApprove: boolean;
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
 }) {
-  const canApprove = currentUserRole === "Manager";
-
   const columns: ColumnDef<LeaveRequest>[] = [
     {
       header: "Employee",
       cell: (req) => (
         <div className="flex items-center gap-2.5">
           <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-[11px] font-bold shrink-0">
-            {req.employeeName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+            {req.employeeName
+              .split(" ")
+              .map((n) => n[0])
+              .join("")
+              .slice(0, 2)}
           </div>
           <span className="font-semibold text-slate-900">{req.employeeName}</span>
         </div>

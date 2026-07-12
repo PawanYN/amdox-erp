@@ -1,0 +1,65 @@
+# SLA-breach alert rules (PDF NFRs: <300ms P95 latency, 99.9% availability).
+# Both fire after the breach holds for 5 minutes, then notify via ops-email.
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: sla-breaches
+    folder: SLA
+    interval: 1m
+    rules:
+      - uid: amdox-api-error-rate
+        title: API 5xx error rate above 5%
+        condition: C
+        for: 5m
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: 'More than 5% of API requests are failing with 5xx for 5+ minutes.'
+        labels:
+          severity: critical
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: '100 * (sum(rate(http_server_duration_count{job="amdox-api", net_host_port!="9464", http_status_code=~"5.."}[5m])) or vector(0)) / sum(rate(http_server_duration_count{job="amdox-api", net_host_port!="9464"}[5m]))'
+          - refId: C
+            relativeTimeRange: { from: 0, to: 0 }
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [5] }
+
+      - uid: amdox-api-p95-latency
+        title: API p95 latency above 300ms (SLA)
+        condition: C
+        for: 5m
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: 'API p95 latency has exceeded the 300ms SLA for 5+ minutes.'
+        labels:
+          severity: warning
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: 'histogram_quantile(0.95, sum(rate(http_server_duration_bucket{job="amdox-api", net_host_port!="9464"}[5m])) by (le))'
+          - refId: C
+            relativeTimeRange: { from: 0, to: 0 }
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [300] }

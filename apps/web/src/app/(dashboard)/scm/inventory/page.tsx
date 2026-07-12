@@ -1,6 +1,7 @@
 "use client";
+import { toast } from "@/components/ui/toast";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import dynamic from "next/dynamic";
 import {
   AlertTriangle,
@@ -14,6 +15,7 @@ import {
   Warehouse as WarehouseIcon,
   ArrowLeftRight,
   Settings2,
+  Zap,
 } from "lucide-react";
 import { scmApi } from "@/lib/api/scm-api";
 import { forecastApi } from "@/lib/api/forecast-api";
@@ -55,7 +57,7 @@ function WarehouseModal({
       onSaved();
       onClose();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to create warehouse.");
+      toast(err instanceof Error ? err.message : "Failed to create warehouse.", "error");
     } finally {
       setSaving(false);
     }
@@ -139,7 +141,7 @@ function StockMovementModal({
       onSaved();
       onClose();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to record movement.");
+      toast(err instanceof Error ? err.message : "Failed to record movement.", "error");
     } finally {
       setSaving(false);
     }
@@ -262,7 +264,7 @@ function ReorderRuleModal({
       onSaved();
       onClose();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to save reorder rule.");
+      toast(err instanceof Error ? err.message : "Failed to save reorder rule.", "error");
     } finally {
       setSaving(false);
     }
@@ -344,7 +346,7 @@ type InventoryItem = {
   name: string;
   category?: string;
   unitCost: number;
-  stockLevels?: { quantity: number }[];
+  stockLevels?: { quantity: number; warehouseId?: string }[];
   currentStock: number;
   reorderPoint: number;
   unit: string;
@@ -543,10 +545,13 @@ export default function InventoryPage() {
   const [raising, setRaising] = useState<string | null>(null);
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [warehouseModalOpen, setWarehouseModalOpen] = useState(false);
   const [movementModalOpen, setMovementModalOpen] = useState(false);
   const [reorderModalOpen, setReorderModalOpen] = useState(false);
+  const [runningAutomation, setRunningAutomation] = useState(false);
+  const [automationResult, setAutomationResult] = useState<string | null>(null);
 
   const loadInventory = useCallback(async () => {
     const [products, rules, wh] = await Promise.all([
@@ -583,7 +588,46 @@ export default function InventoryPage() {
     );
   }, [loadInventory]);
 
+  // When a specific warehouse is selected, recompute each item's stock from just
+  // that warehouse's StockLevel rows; otherwise show the total across all warehouses.
+  const viewItems = useMemo(() => {
+    if (!selectedWarehouseId) return items;
+    return items.map((item) => ({
+      ...item,
+      currentStock:
+        item.stockLevels
+          ?.filter((lvl) => lvl.warehouseId === selectedWarehouseId)
+          .reduce((sum, lvl) => sum + Number(lvl.quantity), 0) || 0,
+    }));
+  }, [items, selectedWarehouseId]);
+
+  const selectedWarehouseName = selectedWarehouseId
+    ? (warehouses.find((w) => w.id === selectedWarehouseId)?.name ?? "Selected warehouse")
+    : "All warehouses";
+
+  // Reorder need is always judged on TOTAL stock across every warehouse (matching the
+  // backend reorder automation). The warehouse filter only changes the per-item stock
+  // shown in the table below — it must NOT make an item that's simply stored in a
+  // different warehouse look "below reorder" here.
   const belowReorder = items.filter((i) => i.currentStock < i.reorderPoint);
+
+  const handleRunReorderAutomation = async () => {
+    setRunningAutomation(true);
+    setError(null);
+    setAutomationResult(null);
+    try {
+      const result = await scmApi.runReorderAutomation();
+      const created = Number(result?.draftOrdersCreated ?? 0);
+      setAutomationResult(
+        `Reorder automation complete — ${created} draft PO${created === 1 ? "" : "s"} created.`,
+      );
+      await loadInventory();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Reorder automation failed");
+    } finally {
+      setRunningAutomation(false);
+    }
+  };
 
   const handleRaisePr = async (item: InventoryItem) => {
     setRaising(item.id);
@@ -600,32 +644,71 @@ export default function InventoryPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-end gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          icon={<WarehouseIcon size={13} />}
-          onClick={() => setWarehouseModalOpen(true)}
-        >
-          New Warehouse
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          icon={<ArrowLeftRight size={13} />}
-          onClick={() => setMovementModalOpen(true)}
-        >
-          Record Movement
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          icon={<Settings2 size={13} />}
-          onClick={() => setReorderModalOpen(true)}
-        >
-          Reorder Rule
-        </Button>
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
+          <WarehouseIcon size={14} className="text-[#8A8678] shrink-0" />
+          <label htmlFor="inv-warehouse" className="sr-only">
+            Filter by warehouse
+          </label>
+          <select
+            id="inv-warehouse"
+            value={selectedWarehouseId}
+            onChange={(e) => setSelectedWarehouseId(e.target.value)}
+            className="text-[12px] border border-[#E4E2DC] rounded-md px-2.5 py-1.5 bg-white text-[#14171F] min-w-[200px] focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/20 focus:border-[#1E3A5F]"
+          >
+            <option value="">All warehouses (total stock)</option>
+            {warehouses.map((w) => (
+              <option key={w.id} value={w.id}>
+                {w.name}
+                {w.location ? ` · ${w.location}` : ""}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            icon={<WarehouseIcon size={13} />}
+            onClick={() => setWarehouseModalOpen(true)}
+          >
+            New Warehouse
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            icon={<ArrowLeftRight size={13} />}
+            onClick={() => setMovementModalOpen(true)}
+          >
+            Record Movement
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            icon={<Settings2 size={13} />}
+            onClick={() => setReorderModalOpen(true)}
+          >
+            Reorder Rule
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            icon={
+              runningAutomation ? <Loader2 size={13} className="animate-spin" /> : <Zap size={13} />
+            }
+            onClick={handleRunReorderAutomation}
+            disabled={runningAutomation}
+          >
+            {runningAutomation ? "Running…" : "Run Reorder Automation"}
+          </Button>
+        </div>
       </div>
+
+      {automationResult && (
+        <div className="rounded-lg border border-[#2F6B4F]/30 bg-[#2F6B4F]/5 px-4 py-3 text-[12px] text-[#2F6B4F]">
+          {automationResult}
+        </div>
+      )}
 
       {error && (
         <div className="rounded-lg border border-[#B4533B]/30 bg-[#B4533B]/5 px-4 py-3 text-[12px] text-[#B4533B]">
@@ -691,50 +774,76 @@ export default function InventoryPage() {
 
       <div>
         <div className="flex items-center justify-between mb-2">
-          <p className="text-[12px] text-[#8A8678] font-medium">All Inventory Items</p>
+          <p className="text-[12px] text-[#8A8678] font-medium">
+            All Inventory Items
+            <span className="ml-1.5 text-[11px] font-normal text-[#1E3A5F]">
+              · stock shown for {selectedWarehouseName}
+            </span>
+          </p>
           <p className="text-[10px] text-[#8A8678]">
             ▸ Expand a row to train AI demand forecast using SCM stock movement history
           </p>
         </div>
         <div className="border border-[#E4E2DC] rounded-lg overflow-hidden">
-          <table className="w-full text-[12px]">
-            <thead>
-              <tr className="bg-[#FAFAF9] border-b border-[#E4E2DC]">
-                <th className="text-left px-3 py-2 text-[#8A8678] font-medium">SKU / Item</th>
-                <th className="text-right px-3 py-2 text-[#8A8678] font-medium">Stock</th>
-                <th className="text-right px-3 py-2 text-[#8A8678] font-medium">Reorder at</th>
-                <th className="text-right px-3 py-2 text-[#8A8678] font-medium">Unit cost</th>
-                <th className="text-center px-3 py-2 text-[#8A8678] font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => (
-                <InventoryRow
-                  key={item.sku}
-                  item={item}
-                  onRaisePr={handleRaisePr}
-                  raised={raised}
-                  raising={raising}
-                />
-              ))}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto">
+            <table className="w-full text-[12px]">
+              <thead>
+                <tr className="bg-[#FAFAF9] border-b border-[#E4E2DC]">
+                  <th className="text-left px-3 py-2 text-[#8A8678] font-medium">SKU / Item</th>
+                  <th className="text-right px-3 py-2 text-[#8A8678] font-medium">
+                    {selectedWarehouseId ? "Stock (here)" : "Stock (all)"}
+                  </th>
+                  <th className="text-right px-3 py-2 text-[#8A8678] font-medium">Reorder at</th>
+                  <th className="text-right px-3 py-2 text-[#8A8678] font-medium">Unit cost</th>
+                  <th className="text-center px-3 py-2 text-[#8A8678] font-medium">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {viewItems.map((item) => (
+                  <InventoryRow
+                    key={item.sku}
+                    item={item}
+                    onRaisePr={handleRaisePr}
+                    raised={raised}
+                    raising={raising}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
       {warehouses.length > 0 && (
         <div>
-          <p className="text-[12px] text-[#8A8678] font-medium mb-2">Warehouses</p>
+          <p className="text-[12px] text-[#8A8678] font-medium mb-2">
+            Warehouses <span className="font-normal">· click to filter stock</span>
+          </p>
           <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setSelectedWarehouseId("")}
+              className={`flex items-center gap-2 rounded-md border px-3 py-1.5 transition-colors ${
+                selectedWarehouseId === ""
+                  ? "border-[#1E3A5F] bg-[#1E3A5F]/5"
+                  : "border-[#E4E2DC] bg-white hover:border-[#1E3A5F]/40"
+              }`}
+            >
+              <span className="text-[12px] font-medium text-[#14171F]">All warehouses</span>
+            </button>
             {warehouses.map((w) => (
-              <div
+              <button
                 key={w.id}
-                className="flex items-center gap-2 rounded-md border border-[#E4E2DC] bg-white px-3 py-1.5"
+                onClick={() => setSelectedWarehouseId((prev) => (prev === w.id ? "" : w.id))}
+                className={`flex items-center gap-2 rounded-md border px-3 py-1.5 transition-colors ${
+                  selectedWarehouseId === w.id
+                    ? "border-[#1E3A5F] bg-[#1E3A5F]/5"
+                    : "border-[#E4E2DC] bg-white hover:border-[#1E3A5F]/40"
+                }`}
               >
                 <WarehouseIcon size={12} className="text-[#8A8678]" />
                 <span className="text-[12px] font-medium text-[#14171F]">{w.name}</span>
                 {w.location && <span className="text-[11px] text-[#8A8678]">· {w.location}</span>}
-              </div>
+              </button>
             ))}
           </div>
         </div>

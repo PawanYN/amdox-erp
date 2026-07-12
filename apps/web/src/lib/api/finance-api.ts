@@ -3,8 +3,15 @@ import { ensureFreshToken } from "../auth";
 
 type JournalLineInput = { accountId: string; debit: number; credit: number };
 
+export type AccountBalance = {
+  accountId: string;
+  code: string;
+  balance: number;
+};
+
 export const financeApi = {
   getAccounts: () => apiClient("/finance/gl/accounts"),
+  getAccountBalances: (): Promise<AccountBalance[]> => apiClient("/finance/gl/accounts/balances"),
   createAccount: (body: {
     code: string;
     name: string;
@@ -51,8 +58,67 @@ export const financeApi = {
       body: JSON.stringify(body),
     }),
   getInvoices: () => apiClient("/finance/ap/invoices"),
+  createApInvoice: (body: {
+    type: "AP";
+    invoiceNumber: string;
+    vendorId: string;
+    issueDate: string;
+    dueDate: string;
+    totalAmount: number;
+    lines: { description: string; quantity: number; unitPrice: number; lineTotal: number }[];
+    goodsReceiptId?: string;
+  }) =>
+    apiClient("/finance/ap/invoices", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  recordApPayment: (body: { invoiceId: string; amount: number; bankReference?: string }) =>
+    apiClient("/finance/ap/invoices/payments", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  runApPaymentBatch: (body: {
+    invoiceIds: string[];
+    bankReference?: string;
+    description?: string;
+  }) =>
+    apiClient("/finance/ap/invoices/payment-runs", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   approveInvoice: (id: string) =>
     apiClient(`/finance/ap/invoices/${id}/approve`, { method: "POST" }),
+  cancelInvoice: (id: string, reason?: string) =>
+    apiClient(`/finance/ap/invoices/${id}/cancel`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+    }),
+  listSalesOrders: () => apiClient("/finance/sales-orders"),
+  getSalesOrder: (id: string) => apiClient(`/finance/sales-orders/${id}`),
+  createSalesOrder: (body: {
+    customerId: string;
+    currencyId?: string;
+    lines: { description: string; quantity: number; unitPrice: number }[];
+  }) =>
+    apiClient("/finance/sales-orders", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  createInvoiceFromOrder: (id: string) =>
+    apiClient(`/finance/sales-orders/${id}/invoice`, { method: "POST" }),
+  getSalesOrderReconciliation: (id: string) =>
+    apiClient(`/finance/sales-orders/${id}/reconciliation`),
+  listIntercompanyTransfers: () => apiClient("/finance/gl/intercompany-transfers"),
+  createIntercompanyTransfer: (body: {
+    fromAccountId: string;
+    toAccountId: string;
+    amount: number;
+    description?: string;
+  }) =>
+    apiClient("/finance/gl/intercompany-transfers", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   uploadInvoice: async (file: File, goodsReceiptId?: string) => {
     const form = new FormData();
     form.append("document", file);

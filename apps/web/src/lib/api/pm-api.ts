@@ -1,24 +1,39 @@
-import { apiClient } from './client';
+import { apiClient } from "./client";
 
 export const pmApi = {
-  getProjects: () => apiClient('/pm/projects'),
+  getProjects: () => apiClient("/pm/projects"),
+  /** SCM catalog for material requests — works with projects module only. */
+  getMaterialProducts: () => apiClient("/pm/projects/material-products"),
   getProject: (projectId: string) => apiClient(`/pm/projects/${projectId}`),
   updateProject: (projectId: string, body: Record<string, unknown>) =>
     apiClient(`/pm/projects/${projectId}`, {
-      method: 'PATCH',
+      method: "PATCH",
       body: JSON.stringify(body),
     }),
+  closeProject: (projectId: string) =>
+    apiClient(`/pm/projects/${projectId}/close`, { method: "POST" }),
+  deleteProject: (projectId: string) =>
+    apiClient(`/pm/projects/${projectId}`, { method: "DELETE" }),
   getTasks: (projectId?: string) =>
-    apiClient(projectId ? `/pm/projects/tasks?projectId=${projectId}` : '/pm/projects/tasks'),
+    apiClient(projectId ? `/pm/projects/tasks?projectId=${projectId}` : "/pm/projects/tasks"),
   createProject: (body: object) =>
-    apiClient('/pm/projects', { method: 'POST', body: JSON.stringify(body) }),
+    apiClient("/pm/projects", { method: "POST", body: JSON.stringify(body) }),
   createTask: (body: object) =>
-    apiClient('/pm/projects/tasks', { method: 'POST', body: JSON.stringify(body) }),
+    apiClient("/pm/projects/tasks", { method: "POST", body: JSON.stringify(body) }),
   updateTaskStatus: (taskId: string, status: string) =>
     apiClient(`/pm/projects/tasks/${taskId}`, {
-      method: 'PATCH',
+      method: "PATCH",
       body: JSON.stringify({ status }),
     }),
+  updateTask: (
+    taskId: string,
+    body: { title?: string; status?: string; startDate?: string; dueDate?: string },
+  ) =>
+    apiClient(`/pm/projects/tasks/${taskId}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+  deleteTask: (taskId: string) => apiClient(`/pm/projects/tasks/${taskId}`, { method: "DELETE" }),
   requestMaterial: (
     projectId: string,
     body: {
@@ -27,17 +42,14 @@ export const pmApi = {
     },
   ) =>
     apiClient(`/pm/projects/${projectId}/material-requests`, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify(body),
     }),
-  getMilestones: (projectId: string) =>
-    apiClient(`/pm/projects/${projectId}/milestones`),
-  createMilestone: (
-    projectId: string,
-    body: { name: string; dueDate: string },
-  ) =>
+  getMaterialRequests: () => apiClient("/pm/projects/material-requests"),
+  getMilestones: (projectId: string) => apiClient(`/pm/projects/${projectId}/milestones`),
+  createMilestone: (projectId: string, body: { name: string; dueDate: string }) =>
     apiClient(`/pm/projects/${projectId}/milestones`, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify(body),
     }),
   updateMilestone: (
@@ -46,19 +58,25 @@ export const pmApi = {
     body: { name?: string; dueDate?: string },
   ) =>
     apiClient(`/pm/projects/${projectId}/milestones/${milestoneId}`, {
-      method: 'PATCH',
+      method: "PATCH",
       body: JSON.stringify(body),
     }),
   achieveMilestone: (projectId: string, milestoneId: string) =>
     apiClient(`/pm/projects/${projectId}/milestones/${milestoneId}/achieve`, {
-      method: 'PATCH',
+      method: "PATCH",
     }),
-  getBudgets: () => apiClient('/pm/budgets'),
+  deleteMilestone: (projectId: string, milestoneId: string) =>
+    apiClient(`/pm/projects/${projectId}/milestones/${milestoneId}`, {
+      method: "DELETE",
+    }),
+  getBudgets: () => apiClient("/pm/budgets"),
   setBudget: (body: object) =>
-    apiClient('/pm/budgets', { method: 'POST', body: JSON.stringify(body) }),
+    apiClient("/pm/budgets", { method: "POST", body: JSON.stringify(body) }),
   getBudgetLines: (budgetId: string) => apiClient(`/pm/budgets/${budgetId}/lines`),
-  getResourceHeatmap: () => apiClient('/pm/resources/heatmap'),
-  getAllocations: () => apiClient('/pm/resources'),
+  getResourceHeatmap: () => apiClient("/pm/resources/heatmap"),
+  /** Active employees for allocation — works with projects module only (no HR access needed). */
+  getAllocatableEmployees: () => apiClient("/pm/resources/employees"),
+  getAllocations: () => apiClient("/pm/resources"),
   allocateResource: (body: {
     projectId: string;
     taskId?: string;
@@ -67,8 +85,10 @@ export const pmApi = {
     startDate: string;
     endDate?: string;
   }) =>
-    apiClient('/pm/resources/allocate', {
-      method: 'POST',
+    apiClient("/pm/resources/allocate", {
+      method: "POST",
       body: JSON.stringify(body),
     }),
+  deleteAllocation: (allocationId: string) =>
+    apiClient(`/pm/resources/${allocationId}`, { method: "DELETE" }),
 };

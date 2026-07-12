@@ -320,6 +320,47 @@ export class ApService {
   }
 
   /**
+   * WHAT: Cancels/voids an AP invoice that hasn't entered the books yet.
+   * WHY: A typo'd or duplicate invoice previously sat as PENDING_MATCH forever.
+   * Only pre-approval invoices can be cancelled — an APPROVED invoice has
+   * already posted Dr Inventory / Cr AP to the GL, so voiding it silently
+   * would desync the ledger (it needs a reversal entry instead).
+   */
+  async cancelInvoice(tenantId: string, invoiceId: string, reason?: string, actingUserId?: string) {
+    const invoice = await prisma.invoice.findFirst({
+      where: { id: invoiceId, tenantId, type: 'AP' },
+    });
+    if (!invoice) throw new NotFoundException('Invoice not found');
+
+    if (invoice.status === 'CANCELLED') {
+      throw new BadRequestException('This invoice is already cancelled.');
+    }
+    if (invoice.status !== 'DRAFT' && invoice.status !== 'PENDING_MATCH') {
+      throw new BadRequestException(
+        `Cannot cancel an invoice in status ${invoice.status} — it is already in the ledger. ` +
+          'Post a reversal journal entry instead.',
+      );
+    }
+
+    // tenant-scope-ok: `invoice` was just found via a tenantId-scoped findFirst above.
+    const cancelled = await prisma.invoice.update({
+      where: { id: invoiceId },
+      data: { status: 'CANCELLED' },
+    });
+
+    this.eventEmitter.emit('invoice.cancelled', {
+      tenantId,
+      invoiceId,
+      invoiceNumber: invoice.invoiceNumber,
+      reason,
+      userId: actingUserId,
+    });
+    this.logger.log(`AP invoice ${invoice.invoiceNumber} cancelled${reason ? ` (${reason})` : ''}`);
+
+    return cancelled;
+  }
+
+  /**
    * WHAT: Records a disbursement against an outstanding AP invoice.
    * WHY: Approval alone never moved money — this is the step that actually pays a
    * vendor, reduces the payable balance, and triggers the GL event to debit

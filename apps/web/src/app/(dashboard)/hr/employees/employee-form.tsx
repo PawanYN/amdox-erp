@@ -5,6 +5,7 @@ import { Modal, inputClasses } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Employee, NewEmployeeInput } from "@/lib/types";
 import { X } from "lucide-react";
+import { MODULE_OPTIONS, modulesForDepartment, type ErpModule } from "@/lib/erp-modules";
 
 const STEPS = [
   { id: 1, label: "Personal Info", desc: "Basic details" },
@@ -12,9 +13,25 @@ const STEPS = [
   { id: 3, label: "System Access", desc: "ERP login" },
 ];
 
-const ROLES = ["TenantAdmin", "Manager", "Viewer"];
+const ROLES = ["Employee", "Manager", "Viewer", "TenantAdmin"] as const;
 
-type DepartmentOption = { id: string; name: string };
+function suggestSystemRole(designation: string): (typeof ROLES)[number] {
+  const d = designation.toLowerCase();
+  if (d.includes("administrator") || d.includes("tenant admin")) return "TenantAdmin";
+  if (d.includes("manager")) return "Manager";
+  return "Employee";
+}
+
+type DepartmentOption = { id: string; name: string; code?: string; allowedModules?: string[] };
+
+function defaultModulesForDepartment(
+  departmentId: string,
+  departments: DepartmentOption[],
+): ErpModule[] {
+  const dept = departments.find((d) => String(d.id) === String(departmentId));
+  if (!dept) return [];
+  return modulesForDepartment(dept.code || "", dept.allowedModules);
+}
 
 export function EmployeeForm({
   open,
@@ -48,9 +65,12 @@ export function EmployeeForm({
     hireDate: "",
     departmentId: "",
     managerId: "",
+    designation: "",
     employmentType: "Full-time" as Employee["contractType"],
-    needsAccess: false,
+    salary: "",
+    needsAccess: true,
     role: "",
+    allowedModules: [] as ErpModule[],
   });
 
   useEffect(() => {
@@ -71,9 +91,12 @@ export function EmployeeForm({
         hireDate: editEmployee.startDate,
         departmentId: resolvedDeptId,
         managerId: editEmployee.reportsToId || "",
+        designation: editEmployee.designation || "",
         employmentType: editEmployee.contractType,
+        salary: editEmployee.salary != null ? String(editEmployee.salary) : "",
         needsAccess: false,
-        role: editEmployee.designation || "",
+        role: "",
+        allowedModules: [] as ErpModule[],
       });
       setStep(1);
       setErrors({});
@@ -95,9 +118,12 @@ export function EmployeeForm({
       hireDate: "",
       departmentId: "",
       managerId: "",
+      designation: "",
       employmentType: "Full-time",
-      needsAccess: false,
+      salary: "",
+      needsAccess: true,
       role: "",
+      allowedModules: [] as ErpModule[],
     });
   }
 
@@ -127,11 +153,29 @@ export function EmployeeForm({
       if (!data.departmentId) {
         newErrors.departmentId = "Department is required";
       }
+      if (data.salary && (Number.isNaN(Number(data.salary)) || Number(data.salary) < 0)) {
+        newErrors.salary = "Enter a valid monthly salary";
+      }
 
       if (Object.keys(newErrors).length > 0) {
         setErrors(newErrors);
         return;
       }
+
+      const suggested = suggestSystemRole(data.designation);
+      const deptModules = defaultModulesForDepartment(data.departmentId, departments);
+      const suggestedRole = data.role || suggested;
+      setData((prev) => ({
+        ...prev,
+        needsAccess: true,
+        role: suggestedRole,
+        allowedModules:
+          suggestedRole === "TenantAdmin"
+            ? MODULE_OPTIONS.map((m) => m.id)
+            : prev.allowedModules.length > 0
+              ? prev.allowedModules
+              : deptModules,
+      }));
     }
     setErrors({});
     setStep((s) => Math.min(3, s + 1));
@@ -150,16 +194,26 @@ export function EmployeeForm({
       return;
     }
 
+    if (data.needsAccess && data.role !== "TenantAdmin" && data.allowedModules.length === 0) {
+      setErrors({ allowedModules: "Select at least one ERP module tab" });
+      return;
+    }
+
     const payload: NewEmployeeInput = {
       name: `${data.firstName} ${data.lastName}`.trim(),
       email: data.email,
       phone: data.phone,
       department: data.departmentId,
-      designation: data.role || "",
+      designation: data.designation || "",
       contractType: data.employmentType,
       startDate: data.hireDate,
       reportsToId: data.managerId || null,
       dateOfBirth: data.dob || undefined,
+      salary: data.salary ? Number(data.salary) : undefined,
+      currencyCode: data.salary ? "INR" : undefined,
+      provideErpAccess: data.needsAccess,
+      systemRole: data.needsAccess ? (data.role as NewEmployeeInput["systemRole"]) : undefined,
+      allowedModules: data.needsAccess ? data.allowedModules : undefined,
     };
 
     if (isEdit && editEmployee && onUpdate) {
@@ -188,6 +242,23 @@ export function EmployeeForm({
     departments.find((d) => String(d.id) === String(data.departmentId))?.name || "Not assigned";
   const managerName =
     managers.find((m) => String(m.id) === String(data.managerId))?.name || "Not assigned";
+  const moduleLabels =
+    data.allowedModules.length > 0
+      ? data.allowedModules
+          .map((id) => MODULE_OPTIONS.find((m) => m.id === id)?.label || id)
+          .join(", ")
+      : "Inherit from department";
+
+  function toggleModule(mod: ErpModule) {
+    if (data.role === "TenantAdmin") return;
+    setData((prev) => ({
+      ...prev,
+      allowedModules: prev.allowedModules.includes(mod)
+        ? prev.allowedModules.filter((m) => m !== mod)
+        : [...prev.allowedModules, mod],
+    }));
+    if (errors.allowedModules) setErrors((prev) => ({ ...prev, allowedModules: "" }));
+  }
 
   const formInputClasses = `${inputClasses} h-[50px] px-4 bg-white hover:border-gray-300 focus:ring-4 focus:ring-brand-purple/10`;
 
@@ -400,6 +471,18 @@ export function EmployeeForm({
                   </div>
 
                   <div className="space-y-3.5">
+                    <div className="relative pb-4">
+                      <label className="text-xs font-semibold text-gray-700">
+                        Job Title / Designation
+                      </label>
+                      <input
+                        className={`${formInputClasses} mt-1`}
+                        placeholder="e.g. HR Manager, Accountant"
+                        value={data.designation}
+                        onChange={(e) => setData({ ...data, designation: e.target.value })}
+                      />
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                       <div className="relative pb-4">
                         <label className="text-xs font-semibold text-gray-700">Employee Code</label>
@@ -516,6 +599,34 @@ export function EmployeeForm({
                         ))}
                       </div>
                     </div>
+
+                    <div className="relative pb-4">
+                      <label className="text-xs font-semibold text-gray-700">
+                        Monthly Salary (₹)
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        inputMode="decimal"
+                        className={`${formInputClasses} mt-1`}
+                        placeholder="e.g. 65000"
+                        value={data.salary}
+                        onChange={(e) => {
+                          setData({ ...data, salary: e.target.value });
+                          if (errors.salary) setErrors((prev) => ({ ...prev, salary: "" }));
+                        }}
+                      />
+                      {errors.salary ? (
+                        <span className="absolute bottom-0 left-0 text-[10px] text-rose-600 font-medium">
+                          {errors.salary}
+                        </span>
+                      ) : (
+                        <span className="absolute bottom-0 left-0 text-[9px] text-gray-400 font-medium">
+                          Creates their pay contract — required before payroll can run for them.
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
@@ -569,7 +680,7 @@ export function EmployeeForm({
                       <div
                         className={`transition-all duration-300 ease-in-out overflow-hidden ${
                           data.needsAccess
-                            ? "max-h-48 opacity-100 mt-4 pt-4 border-t border-gray-200/30 translate-y-0"
+                            ? "max-h-[520px] opacity-100 mt-4 pt-4 border-t border-gray-200/30 translate-y-0"
                             : "max-h-0 opacity-0 pointer-events-none translate-y-2"
                         }`}
                       >
@@ -582,7 +693,23 @@ export function EmployeeForm({
                               className={`${formInputClasses} mt-1 ${data.role ? "text-ink font-medium" : "text-muted font-normal"}`}
                               value={data.role}
                               onChange={(e) => {
-                                setData({ ...data, role: e.target.value });
+                                const role = e.target.value;
+                                const deptModules = defaultModulesForDepartment(
+                                  data.departmentId,
+                                  departments,
+                                );
+                                setData({
+                                  ...data,
+                                  role,
+                                  allowedModules:
+                                    role === "TenantAdmin"
+                                      ? MODULE_OPTIONS.map((m) => m.id)
+                                      : data.role === "TenantAdmin"
+                                        ? deptModules
+                                        : data.allowedModules.length > 0
+                                          ? data.allowedModules
+                                          : deptModules,
+                                });
                                 if (errors.role) setErrors((prev) => ({ ...prev, role: "" }));
                               }}
                             >
@@ -614,6 +741,68 @@ export function EmployeeForm({
                               <span>✓</span> System invite instructions will dispatch via email
                             </div>
                           </div>
+                        </div>
+
+                        <div className="mt-4 space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <label className="text-xs font-semibold text-gray-700">
+                              ERP Module Tabs <span className="text-rose-500">*</span>
+                            </label>
+                            {data.role !== "TenantAdmin" && (
+                              <button
+                                type="button"
+                                className="text-[10px] font-semibold text-brand-purple hover:underline"
+                                onClick={() =>
+                                  setData((prev) => ({
+                                    ...prev,
+                                    allowedModules: defaultModulesForDepartment(
+                                      prev.departmentId,
+                                      departments,
+                                    ),
+                                  }))
+                                }
+                              >
+                                Reset to department defaults
+                              </button>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-gray-500">
+                            Choose which sidebar sections this person can open. Home and
+                            Notifications are always included.
+                          </p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {MODULE_OPTIONS.map((opt) => (
+                              <label
+                                key={opt.id}
+                                className={`flex items-start gap-2 rounded-xl border px-3 py-2.5 ${
+                                  data.role === "TenantAdmin"
+                                    ? "border-gray-100 bg-gray-50/80 opacity-80 cursor-not-allowed"
+                                    : "border-gray-200 hover:bg-gray-50 cursor-pointer"
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  className="mt-0.5"
+                                  checked={data.allowedModules.includes(opt.id)}
+                                  disabled={data.role === "TenantAdmin"}
+                                  onChange={() => toggleModule(opt.id)}
+                                />
+                                <span>
+                                  <span className="text-[12px] font-semibold text-gray-800 block">
+                                    {opt.label}
+                                  </span>
+                                  <span className="text-[10px] text-gray-500">
+                                    {opt.description}
+                                  </span>
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                          {errors.allowedModules && (
+                            <span className="text-[10px] text-rose-600 font-medium">
+                              {errors.allowedModules}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -692,13 +881,29 @@ export function EmployeeForm({
                   </div>
                   <div className="flex justify-between items-center text-xs pb-2.5 border-b border-gray-100/50">
                     <span className="text-gray-400 font-extrabold uppercase tracking-wider text-[9px]">
+                      Designation
+                    </span>
+                    <span className="text-gray-950 font-bold max-w-[140px] truncate text-right">
+                      {data.designation || "Not set"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs pb-2.5 border-b border-gray-100/50">
+                    <span className="text-gray-400 font-extrabold uppercase tracking-wider text-[9px]">
                       Employment Unit
                     </span>
                     <span className="text-gray-950 font-bold text-right">
                       {data.employmentType}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center text-xs">
+                  <div className="flex justify-between items-center text-xs pb-2.5 border-b border-gray-100/50">
+                    <span className="text-gray-400 font-extrabold uppercase tracking-wider text-[9px]">
+                      Monthly Salary
+                    </span>
+                    <span className="text-gray-950 font-bold text-right">
+                      {data.salary ? `₹${Number(data.salary).toLocaleString("en-IN")}` : "Not set"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs pb-2.5 border-b border-gray-100/50">
                     <span className="text-gray-400 font-extrabold uppercase tracking-wider text-[9px]">
                       ERP System Role
                     </span>
@@ -706,6 +911,16 @@ export function EmployeeForm({
                       {data.needsAccess ? data.role || "Pending Role *" : "No Login Permitted"}
                     </span>
                   </div>
+                  {data.needsAccess && (
+                    <div className="flex justify-between items-start text-xs pt-2.5">
+                      <span className="text-gray-400 font-extrabold uppercase tracking-wider text-[9px] shrink-0">
+                        Module Tabs
+                      </span>
+                      <span className="text-gray-950 font-bold text-right max-w-[150px] leading-snug">
+                        {moduleLabels}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { Subject } from 'rxjs';
@@ -34,15 +34,14 @@ export interface DispatchJobData {
  * Delivery channels:
  *  1. IN_APP — creates a Notification record readable by /notifications, and
  *     pushed live over SSE (`GET /notifications/stream`) to connected clients.
- *  2. WEBHOOK / EMAIL — dispatched asynchronously via the `notification-dispatch`
+ *  2. WEBHOOK / EMAIL / SMS — dispatched asynchronously via the `notification-dispatch`
  *     BullMQ queue (see NotificationDispatchProcessor) instead of inline, so a
  *     transient failure (network blip, tenant endpoint down) gets retried with
  *     backoff instead of being marked FAILED once and forgotten. Jobs that
  *     exhaust their retries are kept (not auto-removed) and stay visible in the
  *     Bull Board dashboard mounted at /admin/queues — the dead-letter view.
- *     EMAIL ultimately hits EmailChannel, which has no AWS SES credentials wired
- *     in yet (BE-07) so it logs instead of hitting the wire; the moment those
- *     credentials are added, this path starts delivering for real unchanged.
+ *     EMAIL uses Nodemailer (Mailpit in dev, real SMTP in prod). SMS uses an
+ *     optional HTTP webhook provider (SMS_WEBHOOK_URL) or logs in dev.
  *
  * Each channel is skipped if the target user has an explicit NotificationPreference
  * row disabling it for that eventType. No preference row means the channel defaults
@@ -129,6 +128,9 @@ export class NotificationService {
     // 6. Queue email dispatch if the target user has an address on file and hasn't opted out
     await this.enqueueIfEligible(notification.id, input, NotificationChannel.EMAIL);
 
+    // 7. Queue SMS dispatch when user has a phone on file (stored in tenant settings per user)
+    await this.enqueueIfEligible(notification.id, input, NotificationChannel.SMS);
+
     return notification;
   }
 
@@ -141,7 +143,7 @@ export class NotificationService {
   private async enqueueIfEligible(
     notificationId: string,
     input: NotifyInput,
-    channel: Extract<NotificationChannel, 'WEBHOOK' | 'EMAIL'>,
+    channel: Extract<NotificationChannel, 'WEBHOOK' | 'EMAIL' | 'SMS'>,
   ) {
     try {
       const enabled = await this.isChannelEnabled(
@@ -169,6 +171,12 @@ export class NotificationService {
           select: { email: true },
         });
         if (!user?.email) return;
+      }
+
+      if (channel === NotificationChannel.SMS) {
+        if (!input.userId) return;
+        const phone = await this.resolveUserPhone(input.tenantId, input.userId);
+        if (!phone) return;
       }
 
       const delivery = await prisma.notificationDelivery.create({
@@ -202,20 +210,50 @@ export class NotificationService {
     }
   }
 
-  async listForTenant(tenantId: string, limit = 50) {
+  async listForTenant(tenantId: string, userId: string, isTenantAdmin = false, limit = 50) {
+    const where = isTenantAdmin ? { tenantId } : { tenantId, OR: [{ userId: null }, { userId }] };
+
     return prisma.notification.findMany({
-      where: { tenantId },
+      where,
       orderBy: { createdAt: 'desc' },
       take: limit,
       include: { deliveries: true },
     });
   }
 
-  async markRead(tenantId: string, notificationId: string) {
+  async markRead(tenantId: string, notificationId: string, userId: string, isTenantAdmin = false) {
+    const where = isTenantAdmin
+      ? { id: notificationId, tenantId }
+      : { id: notificationId, tenantId, OR: [{ userId: null }, { userId }] };
+
     return prisma.notification.updateMany({
-      where: { id: notificationId, tenantId },
+      where,
       data: { isRead: true },
     });
+  }
+
+  async deleteNotification(
+    tenantId: string,
+    notificationId: string,
+    userId: string,
+    isTenantAdmin = false,
+  ) {
+    const where = isTenantAdmin
+      ? { id: notificationId, tenantId }
+      : { id: notificationId, tenantId, OR: [{ userId: null }, { userId }] };
+
+    const existing = await prisma.notification.findFirst({ where });
+    if (!existing) {
+      throw new NotFoundException('Notification not found');
+    }
+
+    // tenant-scope-ok: `existing` was just found via a tenantId-scoped findFirst above.
+    await prisma.$transaction([
+      prisma.notificationDelivery.deleteMany({ where: { notificationId } }),
+      prisma.notification.delete({ where: { id: notificationId } }),
+    ]);
+
+    return { deleted: true, notificationId };
   }
 
   async listPreferences(tenantId: string, userId: string) {
@@ -242,5 +280,15 @@ export class NotificationService {
     return prisma.notificationPreference.create({
       data: { tenantId, userId, eventType, channel, isEnabled },
     });
+  }
+
+  private async resolveUserPhone(tenantId: string, userId: string): Promise<string | null> {
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { settings: true },
+    });
+    const settings = tenant?.settings as Record<string, unknown> | null;
+    const phones = settings?.userPhones as Record<string, string> | undefined;
+    return phones?.[userId] ?? process.env.SMS_DEFAULT_PHONE ?? null;
   }
 }

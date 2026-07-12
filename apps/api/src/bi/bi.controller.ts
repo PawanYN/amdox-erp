@@ -15,7 +15,9 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { ModuleGuard } from '../auth/guards/module.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { RequireModule } from '../auth/decorators/require-module.decorator';
 import { Response } from 'express';
 import { interval, mergeMap, Observable } from 'rxjs';
 import * as fs from 'fs';
@@ -32,7 +34,8 @@ import {
 
 @ApiTags('Business Intelligence')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('keycloak'), RolesGuard)
+@RequireModule('bi')
+@UseGuards(AuthGuard('keycloak'), RolesGuard, ModuleGuard)
 @Controller('bi')
 export class BiController {
   constructor(

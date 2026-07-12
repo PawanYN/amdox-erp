@@ -2,7 +2,9 @@ import { Controller, Post, Body, UseGuards, Req, Get, Param } from '@nestjs/comm
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { RolesGuard } from '../../auth/guards/roles.guard';
+import { ModuleGuard } from '../../auth/guards/module.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
+import { RequireModule } from '../../auth/decorators/require-module.decorator';
 import { GlService } from './gl.service';
 import { CreateJournalEntryDto } from '../dto/create-journal-entry.dto';
 import { CreateAccountDto } from '../dto/create-account.dto';
@@ -14,7 +16,8 @@ import { CreateIntercompanyTransferDto } from '../dto/create-intercompany-transf
  */
 @ApiTags('General Ledger')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('keycloak'), RolesGuard)
+@RequireModule('finance')
+@UseGuards(AuthGuard('keycloak'), RolesGuard, ModuleGuard)
 @Controller('finance/gl')
 export class GlController {
   constructor(private readonly glService: GlService) {}
@@ -25,10 +28,7 @@ export class GlController {
   @Roles('Manager', 'TenantAdmin')
   @Post('accounts')
   @ApiOperation({ summary: 'Create a new Account in the Chart of Accounts' })
-  async createAccount(
-    @Req() req: any,
-    @Body() createAccountDto: CreateAccountDto
-  ) {
+  async createAccount(@Req() req: any, @Body() createAccountDto: CreateAccountDto) {
     return this.glService.createAccount(req.user.tenantId, createAccountDto);
   }
 
@@ -43,6 +43,17 @@ export class GlController {
   }
 
   /**
+   * Returns posted journal-line balances per account (debit − credit).
+   * Must stay before any `accounts/:id` route so "balances" is not captured as an id.
+   */
+  @Roles('Manager', 'TenantAdmin', 'Viewer', 'SuperAdmin')
+  @Get('accounts/balances')
+  @ApiOperation({ summary: 'Retrieve GL account balances from posted journal lines' })
+  async getAccountBalances(@Req() req: any) {
+    return this.glService.getAccountBalances(req.user.tenantId);
+  }
+
+  /**
    * Opens a new Fiscal Period.
    */
   @Roles('TenantAdmin')
@@ -52,9 +63,14 @@ export class GlController {
     @Req() req: any,
     @Body('name') name: string,
     @Body('startDate') startDate: string,
-    @Body('endDate') endDate: string
+    @Body('endDate') endDate: string,
   ) {
-    return this.glService.openFiscalPeriod(req.user.tenantId, name, new Date(startDate), new Date(endDate));
+    return this.glService.openFiscalPeriod(
+      req.user.tenantId,
+      name,
+      new Date(startDate),
+      new Date(endDate),
+    );
   }
 
   /**
@@ -63,11 +79,12 @@ export class GlController {
   @Roles('TenantAdmin')
   @Post('fiscal-periods/:id/close')
   @ApiOperation({ summary: 'Close (lock) a Fiscal Period' })
-  async closeFiscalPeriod(
-    @Req() req: any,
-    @Param('id') periodId: string
-  ) {
-    return this.glService.closeFiscalPeriod(req.user.tenantId, periodId, req.user.id ?? req.user.sub);
+  async closeFiscalPeriod(@Req() req: any, @Param('id') periodId: string) {
+    return this.glService.closeFiscalPeriod(
+      req.user.tenantId,
+      periodId,
+      req.user.id ?? req.user.sub,
+    );
   }
 
   @Roles('Manager', 'TenantAdmin', 'Viewer', 'SuperAdmin')
@@ -93,11 +110,12 @@ export class GlController {
   @Roles('Manager', 'TenantAdmin')
   @Post('journal-entries')
   @ApiOperation({ summary: 'Create a manual Journal Entry' })
-  async createJournalEntry(
-    @Req() req: any, 
-    @Body() createJournalEntryDto: CreateJournalEntryDto
-  ) {
-    return this.glService.createJournalEntry(req.user.tenantId, createJournalEntryDto, req.user.id ?? req.user.sub);
+  async createJournalEntry(@Req() req: any, @Body() createJournalEntryDto: CreateJournalEntryDto) {
+    return this.glService.createJournalEntry(
+      req.user.tenantId,
+      createJournalEntryDto,
+      req.user.id ?? req.user.sub,
+    );
   }
 
   @Roles('Manager', 'TenantAdmin', 'Viewer', 'SuperAdmin')
@@ -117,10 +135,11 @@ export class GlController {
   @Roles('TenantAdmin')
   @Post('intercompany-transfers')
   @ApiOperation({ summary: 'Create intercompany transfer with GL journal entry' })
-  async createIntercompanyTransfer(
-    @Req() req: any,
-    @Body() dto: CreateIntercompanyTransferDto,
-  ) {
-    return this.glService.createIntercompanyTransfer(req.user.tenantId, dto, req.user.id ?? req.user.sub);
+  async createIntercompanyTransfer(@Req() req: any, @Body() dto: CreateIntercompanyTransferDto) {
+    return this.glService.createIntercompanyTransfer(
+      req.user.tenantId,
+      dto,
+      req.user.id ?? req.user.sub,
+    );
   }
 }
