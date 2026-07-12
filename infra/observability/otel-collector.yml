@@ -1,0 +1,42 @@
+# OTel Collector: receives every trace from the API, then applies the PDF's
+# sampling policy TAIL-based — the collector waits for a trace to finish, so
+# unlike in-process (head) sampling it actually knows which traces errored:
+#   - 100% of traces containing an error span are kept
+#   - 10% of successful traces are kept
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  tail_sampling:
+    decision_wait: 10s # how long to hold a trace before deciding
+    policies:
+      - name: errors-100-percent
+        type: status_code
+        status_code:
+          status_codes: [ERROR]
+      - name: success-10-percent
+        type: probabilistic
+        probabilistic:
+          sampling_percentage: 10
+  batch: {}
+
+exporters:
+  otlp:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+
+service:
+  telemetry:
+    metrics:
+      address: 0.0.0.0:8888 # collector's own metrics, scraped by Prometheus
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [tail_sampling, batch]
+      exporters: [otlp]

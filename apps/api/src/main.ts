@@ -7,6 +7,11 @@ dotenv.config();
 dotenv.config({ path: path.join(__dirname, '../../../.env') });
 dotenv.config({ path: path.join(__dirname, '../../../../.env') });
 
+// OpenTelemetry must initialize before Nest/express/ioredis are imported so
+// auto-instrumentation can patch them as they load (TS preserves this order
+// in the CommonJS output).
+import './observability/otel';
+
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
