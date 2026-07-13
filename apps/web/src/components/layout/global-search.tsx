@@ -2,18 +2,98 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Package, Search, Store, X } from "lucide-react";
-import { searchApi, SearchResponse, SearchProductHit, SearchVendorHit } from "@/lib/api/search-api";
+import {
+  BookOpen,
+  Briefcase,
+  CalendarOff,
+  FileText,
+  Loader2,
+  Package,
+  Receipt,
+  Search,
+  ShoppingCart,
+  Store,
+  Users,
+  X,
+} from "lucide-react";
+import {
+  searchApi,
+  type SearchResponse,
+  type SearchAuditLogHit,
+  type SearchCustomerHit,
+  type SearchEmployeeHit,
+  type SearchInvoiceHit,
+  type SearchJournalEntryHit,
+  type SearchLeaveRequestHit,
+  type SearchProductHit,
+  type SearchProjectHit,
+  type SearchPurchaseOrderHit,
+  type SearchVendorHit,
+} from "@/lib/api/search-api";
+
+// ── Hit union type ────────────────────────────────────────────────────────────
 
 type SearchHit =
   | { kind: "vendor"; item: SearchVendorHit }
-  | { kind: "product"; item: SearchProductHit };
+  | { kind: "product"; item: SearchProductHit }
+  | { kind: "employee"; item: SearchEmployeeHit }
+  | { kind: "purchaseOrder"; item: SearchPurchaseOrderHit }
+  | { kind: "invoice"; item: SearchInvoiceHit }
+  | { kind: "customer"; item: SearchCustomerHit }
+  | { kind: "project"; item: SearchProjectHit }
+  | { kind: "leaveRequest"; item: SearchLeaveRequestHit }
+  | { kind: "auditLog"; item: SearchAuditLogHit }
+  | { kind: "journalEntry"; item: SearchJournalEntryHit };
+
+// ── Route map ─────────────────────────────────────────────────────────────────
+
+function routeForHit(hit: SearchHit): string {
+  switch (hit.kind) {
+    case "vendor":
+      return "/scm/vendors";
+    case "product":
+      return "/scm/products";
+    case "employee":
+      return "/hr/employees";
+    case "purchaseOrder":
+      return "/scm/purchase-orders";
+    case "invoice":
+      return "/finance/invoices";
+    case "customer":
+      return "/finance/customers";
+    case "project":
+      return "/pm/projects";
+    case "leaveRequest":
+      return "/hr/leave-requests";
+    case "auditLog":
+      return "/settings/audit-logs";
+    case "journalEntry":
+      return "/finance/journal-entries";
+  }
+}
+
+// ── Helper ────────────────────────────────────────────────────────────────────
 
 function isEditableTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   const tag = target.tagName;
   return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable;
 }
+
+const EMPTY_RESULTS: SearchResponse = {
+  vendors: [],
+  products: [],
+  employees: [],
+  purchaseOrders: [],
+  invoices: [],
+  customers: [],
+  projects: [],
+  leaveRequests: [],
+  auditLogs: [],
+  journalEntries: [],
+};
+
+// ── Main component ────────────────────────────────────────────────────────────
 
 export function GlobalSearch({ open, onClose }: { open: boolean; onClose: () => void }) {
   const router = useRouter();
@@ -26,10 +106,20 @@ export function GlobalSearch({ open, onClose }: { open: boolean; onClose: () => 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const requestIdRef = useRef(0);
 
-  const flatHits: SearchHit[] = [
-    ...(results?.vendors ?? []).map((item) => ({ kind: "vendor" as const, item })),
-    ...(results?.products ?? []).map((item) => ({ kind: "product" as const, item })),
-  ];
+  const flatHits: SearchHit[] = results
+    ? [
+        ...(results.vendors ?? []).map((item) => ({ kind: "vendor" as const, item })),
+        ...(results.products ?? []).map((item) => ({ kind: "product" as const, item })),
+        ...(results.employees ?? []).map((item) => ({ kind: "employee" as const, item })),
+        ...(results.purchaseOrders ?? []).map((item) => ({ kind: "purchaseOrder" as const, item })),
+        ...(results.invoices ?? []).map((item) => ({ kind: "invoice" as const, item })),
+        ...(results.customers ?? []).map((item) => ({ kind: "customer" as const, item })),
+        ...(results.projects ?? []).map((item) => ({ kind: "project" as const, item })),
+        ...(results.leaveRequests ?? []).map((item) => ({ kind: "leaveRequest" as const, item })),
+        ...(results.auditLogs ?? []).map((item) => ({ kind: "auditLog" as const, item })),
+        ...(results.journalEntries ?? []).map((item) => ({ kind: "journalEntry" as const, item })),
+      ]
+    : [];
 
   const reset = useCallback(() => {
     setQuery("");
@@ -82,10 +172,7 @@ export function GlobalSearch({ open, onClose }: { open: boolean; onClose: () => 
       try {
         const data = (await searchApi.search(q)) as SearchResponse;
         if (reqId !== requestIdRef.current) return;
-        setResults({
-          vendors: Array.isArray(data?.vendors) ? data.vendors : [],
-          products: Array.isArray(data?.products) ? data.products : [],
-        });
+        setResults({ ...EMPTY_RESULTS, ...data });
         setActiveIndex(0);
       } catch (err) {
         if (reqId !== requestIdRef.current) return;
@@ -103,11 +190,7 @@ export function GlobalSearch({ open, onClose }: { open: boolean; onClose: () => 
 
   const navigateToHit = (hit: SearchHit) => {
     handleClose();
-    if (hit.kind === "vendor") {
-      router.push("/scm/vendors");
-      return;
-    }
-    router.push("/scm/products");
+    router.push(routeForHit(hit));
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -128,8 +211,17 @@ export function GlobalSearch({ open, onClose }: { open: boolean; onClose: () => 
 
   if (!open) return null;
 
-  const showEmpty = !loading && !error && query.trim().length >= 2 && flatHits.length === 0;
+  const hasResults = flatHits.length > 0;
+  const showEmpty = !loading && !error && query.trim().length >= 2 && !hasResults;
   const showHint = query.trim().length < 2 && !loading && !error;
+
+  // Offset tracker for keyboard nav across groups
+  let offset = 0;
+  function nextOffset(count: number) {
+    const o = offset;
+    offset += count;
+    return o;
+  }
 
   return (
     <div
@@ -143,6 +235,7 @@ export function GlobalSearch({ open, onClose }: { open: boolean; onClose: () => 
         className="w-full max-w-xl rounded-xl bg-white shadow-modal border border-slate-200 overflow-hidden animate-fade-in-up"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Input bar */}
         <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3">
           <Search size={16} className="text-slate-400 shrink-0" />
           <input
@@ -150,7 +243,7 @@ export function GlobalSearch({ open, onClose }: { open: boolean; onClose: () => 
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKeyDown}
-            placeholder="Search vendors, products…"
+            placeholder="Search employees, invoices, POs, projects…"
             className="flex-1 text-[14px] text-slate-800 placeholder:text-slate-400 outline-none bg-transparent"
             aria-label="Search query"
           />
@@ -168,63 +261,158 @@ export function GlobalSearch({ open, onClose }: { open: boolean; onClose: () => 
           </button>
         </div>
 
-        <div className="max-h-[50vh] overflow-y-auto custom-scrollbar">
+        {/* Results */}
+        <div className="max-h-[55vh] overflow-y-auto custom-scrollbar">
           {showHint && (
             <p className="px-4 py-6 text-[13px] text-slate-500 text-center">
               Type at least 2 characters to search
             </p>
           )}
-
           {error && <p className="px-4 py-6 text-[13px] text-red-600 text-center">{error}</p>}
-
           {showEmpty && (
             <p className="px-4 py-6 text-[13px] text-slate-500 text-center">
               No results for &ldquo;{query.trim()}&rdquo;
             </p>
           )}
 
-          {results && (results.vendors.length > 0 || results.products.length > 0) && (
+          {hasResults && (
             <div className="py-2">
-              {results.vendors.length > 0 && (
+              {(results?.employees ?? []).length > 0 && (
+                <ResultGroup
+                  title="Employees"
+                  icon={<Users size={12} />}
+                  items={results!.employees}
+                  startIndex={nextOffset(results!.employees.length)}
+                  activeIndex={activeIndex}
+                  onSelect={(item) => navigateToHit({ kind: "employee", item })}
+                  onHover={setActiveIndex}
+                  getLabel={(e) => e.fullName}
+                  renderMeta={(e) => e.designation ?? e.department ?? "Employee"}
+                />
+              )}
+              {(results?.purchaseOrders ?? []).length > 0 && (
+                <ResultGroup
+                  title="Purchase Orders"
+                  icon={<ShoppingCart size={12} />}
+                  items={results!.purchaseOrders}
+                  startIndex={nextOffset(results!.purchaseOrders.length)}
+                  activeIndex={activeIndex}
+                  onSelect={(item) => navigateToHit({ kind: "purchaseOrder", item })}
+                  onHover={setActiveIndex}
+                  getLabel={(p) => p.poNumber}
+                  renderMeta={(p) => p.vendorName ?? p.status ?? "PO"}
+                />
+              )}
+              {(results?.invoices ?? []).length > 0 && (
+                <ResultGroup
+                  title="Invoices"
+                  icon={<FileText size={12} />}
+                  items={results!.invoices}
+                  startIndex={nextOffset(results!.invoices.length)}
+                  activeIndex={activeIndex}
+                  onSelect={(item) => navigateToHit({ kind: "invoice", item })}
+                  onHover={setActiveIndex}
+                  getLabel={(i) => i.invoiceNumber}
+                  renderMeta={(i) => i.vendorName ?? i.customerName ?? i.status ?? "Invoice"}
+                />
+              )}
+              {(results?.customers ?? []).length > 0 && (
+                <ResultGroup
+                  title="Customers"
+                  icon={<Briefcase size={12} />}
+                  items={results!.customers}
+                  startIndex={nextOffset(results!.customers.length)}
+                  activeIndex={activeIndex}
+                  onSelect={(item) => navigateToHit({ kind: "customer", item })}
+                  onHover={setActiveIndex}
+                  getLabel={(c) => c.name}
+                  renderMeta={(c) => c.email ?? (c.isActive ? "Active" : "Inactive")}
+                />
+              )}
+              {(results?.projects ?? []).length > 0 && (
+                <ResultGroup
+                  title="Projects"
+                  icon={<Receipt size={12} />}
+                  items={results!.projects}
+                  startIndex={nextOffset(results!.projects.length)}
+                  activeIndex={activeIndex}
+                  onSelect={(item) => navigateToHit({ kind: "project", item })}
+                  onHover={setActiveIndex}
+                  getLabel={(p) => p.name}
+                  renderMeta={(p) => p.status ?? "Project"}
+                />
+              )}
+              {(results?.leaveRequests ?? []).length > 0 && (
+                <ResultGroup
+                  title="Leave Requests"
+                  icon={<CalendarOff size={12} />}
+                  items={results!.leaveRequests}
+                  startIndex={nextOffset(results!.leaveRequests.length)}
+                  activeIndex={activeIndex}
+                  onSelect={(item) => navigateToHit({ kind: "leaveRequest", item })}
+                  onHover={setActiveIndex}
+                  getLabel={(l) => l.employeeName ?? "Leave Request"}
+                  renderMeta={(l) => l.status ?? "Leave"}
+                />
+              )}
+              {(results?.vendors ?? []).length > 0 && (
                 <ResultGroup
                   title="Vendors"
                   icon={<Store size={12} />}
-                  items={results.vendors}
-                  startIndex={0}
+                  items={results!.vendors}
+                  startIndex={nextOffset(results!.vendors.length)}
                   activeIndex={activeIndex}
                   onSelect={(item) => navigateToHit({ kind: "vendor", item })}
                   onHover={setActiveIndex}
-                  renderMeta={(v) => v.email || "Vendor"}
                   getLabel={(v) => v.name}
+                  renderMeta={(v) => v.email ?? "Vendor"}
                 />
               )}
-              {results.products.length > 0 && (
+              {(results?.products ?? []).length > 0 && (
                 <ResultGroup
                   title="Products"
                   icon={<Package size={12} />}
-                  items={results.products}
-                  startIndex={results.vendors.length}
+                  items={results!.products}
+                  startIndex={nextOffset(results!.products.length)}
                   activeIndex={activeIndex}
                   onSelect={(item) => navigateToHit({ kind: "product", item })}
                   onHover={setActiveIndex}
-                  renderMeta={(p) => (p.sku ? `SKU ${p.sku}` : "Product")}
                   getLabel={(p) => p.name}
+                  renderMeta={(p) => (p.sku ? `SKU ${p.sku}` : "Product")}
+                />
+              )}
+              {(results?.journalEntries ?? []).length > 0 && (
+                <ResultGroup
+                  title="Journal Entries"
+                  icon={<BookOpen size={12} />}
+                  items={results!.journalEntries}
+                  startIndex={nextOffset(results!.journalEntries.length)}
+                  activeIndex={activeIndex}
+                  onSelect={(item) => navigateToHit({ kind: "journalEntry", item })}
+                  onHover={setActiveIndex}
+                  getLabel={(j) => j.reference}
+                  renderMeta={(j) => j.sourceModule ?? j.status ?? "Journal"}
                 />
               )}
             </div>
           )}
         </div>
 
+        {/* Footer */}
         <div className="border-t border-slate-100 px-4 py-2 flex items-center justify-between text-[11px] text-slate-400">
           <span>↑↓ navigate · Enter open · Esc close</span>
-          <span>Vendors &amp; products</span>
+          <span className="flex gap-2 flex-wrap justify-end">
+            Employees · Invoices · POs · Projects · Vendors · Products
+          </span>
         </div>
       </div>
     </div>
   );
 }
 
-function ResultGroup<T extends { id: string; name: string }>({
+// ── Result group ──────────────────────────────────────────────────────────────
+
+function ResultGroup<T extends { id: string }>({
   title,
   icon,
   items,
@@ -232,8 +420,8 @@ function ResultGroup<T extends { id: string; name: string }>({
   activeIndex,
   onSelect,
   onHover,
-  renderMeta,
   getLabel,
+  renderMeta,
 }: {
   title: string;
   icon: ReactNode;
@@ -242,8 +430,8 @@ function ResultGroup<T extends { id: string; name: string }>({
   activeIndex: number;
   onSelect: (item: T) => void;
   onHover: (index: number) => void;
-  renderMeta: (item: T) => string;
   getLabel: (item: T) => string;
+  renderMeta: (item: T) => string;
 }) {
   return (
     <div className="mb-1">
@@ -266,13 +454,11 @@ function ResultGroup<T extends { id: string; name: string }>({
                 }`}
               >
                 <span
-                  className={`text-[13px] font-medium truncate ${
-                    active ? "text-blue-700" : "text-slate-800"
-                  }`}
+                  className={`text-[13px] font-medium truncate ${active ? "text-blue-700" : "text-slate-800"}`}
                 >
                   {getLabel(item)}
                 </span>
-                <span className="text-[11px] text-slate-400 shrink-0 truncate max-w-[40%]">
+                <span className="text-[11px] text-slate-400 shrink-0 truncate max-w-[45%]">
                   {renderMeta(item)}
                 </span>
               </button>
@@ -284,7 +470,9 @@ function ResultGroup<T extends { id: string; name: string }>({
   );
 }
 
-/** Hook: open search on `/` (when not typing) or Ctrl/Cmd+K. */
+// ── Keyboard shortcut hook ────────────────────────────────────────────────────
+
+/** Opens search on `/` (when not typing) or Ctrl/Cmd+K. */
 export function useGlobalSearchShortcut(onOpen: () => void) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
