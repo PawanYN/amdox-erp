@@ -1,36 +1,12 @@
 {
-  "name": "amdox-erp",
+  "name": "@amdox/types",
+  "version": "0.1.0",
   "private": true,
-  "scripts": {
-    "dev": "turbo run dev",
-    "build": "turbo run build",
-    "lint": "turbo run lint",
-    "test": "turbo run test",
-    "test:e2e": "turbo run test:e2e",
-    "db:generate": "turbo run db:generate --filter=@amdox/db",
-    "db:migrate": "turbo run db:migrate --filter=@amdox/db",
-    "db:seed": "turbo run db:seed --filter=@amdox/db",
-    "clean": "turbo run clean",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "prepare": "husky"
-  },
-  "devDependencies": {
-    "@commitlint/cli": "^21.2.0",
-    "@commitlint/config-conventional": "^21.2.0",
-    "husky": "^9.1.7",
-    "lint-staged": "^17.0.8",
-    "prettier": "^3.2.5",
-    "turbo": "^2.0.4"
-  },
-  "packageManager": "pnpm@9.1.4",
-  "pnpm": {
-    "overrides": {
-      "lodash@<4.18.0": "4.18.1",
-      "multer@<2.2.0": "2.2.0",
-      "ws": ">=8.21.0"
-    }
-  },
-  "dependencies": {
-    "recharts": "^3.9.0"
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {},
+  "exports": {
+    ".": "./src/index.ts"
   }
 }
+
