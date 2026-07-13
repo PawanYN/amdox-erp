@@ -291,7 +291,7 @@ The full requirement-by-requirement audit lives in `docs/TDD-Audit-Report.md`.
 
 •⁠ ⁠*Leave accrual rules* (leave request/approval workflow works; balances don't accrue)
 
-•⁠ ⁠*Forecast accuracy monitoring* (MAPE is computed per prediction but the <12% target isn't alerted on)
+•⁠ ⁠*Forecast accuracy alerting* (MAPE per SKU is computed and visible on the Forecast/BI dashboards — e.g. "target <12%" — but nothing notifies anyone automatically if a SKU crosses that line; would reuse the existing notification engine)
 
 •⁠ ⁠*Line-level 3-way matching + partial goods receipts* (one schema change unlocks both)
 
