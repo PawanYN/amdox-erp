@@ -279,4 +279,7 @@ The full requirement-by-requirement audit lives in `docs/TDD-Audit-Report.md`.
 •⁠  ⁠*Leave accrual rules* (leave request/approval workflow works; balances don't accrue)
 •⁠  ⁠*Forecast accuracy monitoring* (MAPE is computed per prediction but the <12% target isn't alerted on)
 •⁠  ⁠*Line-level 3-way matching + partial goods receipts* (one schema change unlocks both)
-•⁠  ⁠*Drag-and-drop dashboard editing* (layouts persist; rearranging is not yet mouse-driven)---
+•⁠  ⁠*Drag-and-drop dashboard editing* (layouts persist; rearranging is not yet mouse-driven)
+
+---
+
