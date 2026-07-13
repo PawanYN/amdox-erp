@@ -23,7 +23,7 @@ Deployed on Oracle Cloud with Caddy (automatic HTTPS via Let's Encrypt), pm2-man
 
 ---
 
-## Workspace Structure
+
 
 ![Login](images/Login.png)
 
@@ -35,157 +35,71 @@ Deployed on Oracle Cloud with Caddy (automatic HTTPS via Let's Encrypt), pm2-man
 
 ![ERD](docs/erd/Data_Processing_and_Model.png)
 
+## Workspace Structure
 
 Here is the exact current folder and file structure of our monorepo:
 
-⁠⁠  ```text  
+⁠ text
 amdox-erp/
-│
 ├── .github/
-│   ├── ISSUE_TEMPLATE/
-│   ├── PULL_REQUEST_TEMPLATE.md
 │   └── workflows/
-│       ├── ci.yml
-│       ├── cd.yml
-│       ├── lint.yml
-│       └── test.yml
-│
 ├── apps/
-│   │
-│   ├── web/                               # Next.js Frontend
-│   │   ├── public/
-│   │   ├── src/
-│   │   │   ├── app/
-│   │   │   ├── components/
-│   │   │   ├── features/
-│   │   │   ├── hooks/
-│   │   │   ├── layouts/
-│   │   │   ├── lib/
-│   │   │   ├── providers/
-│   │   │   ├── services/
-│   │   │   ├── stores/
-│   │   │   ├── styles/
-│   │   │   ├── types/
-│   │   │   └── utils/
-│   │   ├── next.config.js
-│   │   ├── package.json
-│   │   └── tsconfig.json
-│   │
-│   ├── api/                               # NestJS Backend
+│   ├── api/                           # NestJS Backend API (Initialized Structure)
 │   │   ├── src/
 │   │   │   ├── audit/
 │   │   │   ├── auth/
 │   │   │   ├── common/
-│   │   │   │   ├── decorators/
-│   │   │   │   ├── dto/
-│   │   │   │   ├── exceptions/
-│   │   │   │   ├── filters/
-│   │   │   │   ├── guards/
-│   │   │   │   ├── interceptors/
-│   │   │   │   ├── middleware/
-│   │   │   │   ├── pipes/
-│   │   │   │   └── utils/
-│   │   │   ├── dashboard/
 │   │   │   ├── finance/
 │   │   │   ├── health/
 │   │   │   ├── hr/
-│   │   │   ├── inventory/
 │   │   │   ├── notification/
-│   │   │   ├── payroll/
-│   │   │   ├── project/
-│   │   │   ├── reports/
-│   │   │   ├── scm/
-│   │   │   ├── users/
-│   │   │   ├── app.module.ts
-│   │   │   └── main.ts
-│   │   ├── test/
-│   │   ├── package.json
-│   │   └── tsconfig.json
-│   │
-│   ├── ml-service/                        # Python FastAPI
-│   │   ├── app/
-│   │   ├── models/
-│   │   ├── services/
-│   │   ├── requirements.txt
-│   │   └── main.py
-│   │
-│   └── docs-site/                         # Optional Documentation Site
-│
-├── packages/
-│   │
-│   ├── db/
-│   │   ├── prisma/
-│   │   │   ├── migrations/
-│   │   │   ├── schema.prisma
-│   │   │   └── seed.ts
-│   │   ├── src/
-│   │   │   └── client.ts
-│   │   ├── package.json
-│   │   └── tsconfig.json
-│   │
-│   ├── ui/                                # Shared UI Components
-│   │   ├── button/
-│   │   ├── card/
-│   │   ├── modal/
-│   │   ├── table/
-│   │   └── index.ts
-│   │
-│   ├── config/
-│   │   ├── eslint/
-│   │   ├── prettier/
-│   │   └── tailwind/
-│   │
-│   ├── types/
-│   │   ├── auth.ts
-│   │   ├── finance.ts
-│   │   ├── hr.ts
-│   │   └── index.ts
-│   │
-│   └── utils/
-│       ├── constants/
-│       ├── helpers/
-│       └── validators/
-│
+│   │   │   └── scm/
+│   │   └── test/
+│   ├── ml-service/
+│   └── web/                           # Next.js Frontend
+│       ├── public/
+│       ├── src/
+│       │   ├── app/
+│       │   ├── components/
+│       │   ├── hooks/
+│       │   ├── lib/
+│       │   ├── stores/
+│       │   └── styles/
 ├── docs/
 │   ├── adr/
 │   ├── api/
 │   │   └── openapi.yaml
-│   ├── architecture/
 │   ├── c4/
-│   │   ├── context.md
-│   │   ├── container.md
 │   │   ├── component.md
-│   │   └── deployment.md
+│   │   ├── component_clean.md
+│   │   ├── container.md
+│   │   └── context.md
 │   ├── erd/
-│   │   ├── database-erd.md
-│   │   └── Data_Processing_and_Model.png
-│   ├── deployment.md
+│   │   ├── Data_Processing_and_Model.png
+│   │   └── database-erd.md
 │   ├── frontend_development.md
-│   ├── backend_development.md
-│   ├── coding_guidelines.md
 │   └── monorepo_structure.md
-│
-├── infra/
-│   ├── docker/
-│   ├── kubernetes/
-│   ├── nginx/
-│   └── terraform/
-│
+├── packages/
+│   ├── config/
+│   │   └── .gitkeep
+│   ├── db/                            # Shared Database Package
+│   │   ├── prisma/
+│   │   │   └── schema.prisma          # Prisma Schema with all 24 entities
+│   │   ├── src/
+│   │   │   └── client.ts              # Prisma Client Singleton
+│   │   ├── package.json
+│   │   └── tsconfig.json
+│   ├── types/
+│   │   └── .gitkeep
+│   └── ui/
+│       └── .gitkeep
 ├── scripts/
-│   ├── create-api-dirs.ps1
-│   ├── setup.sh
-│   └── seed-db.ts
-│
-├── .env.example
+│   └── create-api-dirs.ps1
 ├── .gitignore
-├── docker-compose.yml
 ├── package.json
 ├── pnpm-workspace.yaml
-├── turbo.json
 ├── tsconfig.json
-├── README.md
-├── LICENSE
-└── CHANGELOG.md```
+└── turbo.json
  ⁠
 
 ---
