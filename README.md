@@ -10,6 +10,7 @@ Welcome to the **Amdox ERP** monorepo workspace. This project uses `pnpm` worksp
 LinkedIn post (full-stack development): https://www.linkedin.com/posts/agrim-gupta-b37748332_erp-fullstackdevelopment-reactjs-ugcPost-7481983427156631552-w-5k/?utm_source=share&utm_medium=member_desktop&rcm=ACoAAFPCdFsBaSccFtDfF9mn4gnwbJkh_GYpYrU
 
 ## 🌐 Live Demo
+
 |                         |                                                                                         |
 | ----------------------- | --------------------------------------------------------------------------------------- |
 | **App**                 | https://erp.92-4-86-3.sslip.io                                                          |
@@ -18,7 +19,8 @@ LinkedIn post (full-stack development): https://www.linkedin.com/posts/agrim-gup
 | **Tenant slug**         | `company-a`                                                                             |
 | **Admin login**         | `admin@companya.in` / `Admin123!` (full role list: `docs/company-a-employee-logins.md`) |
 
-Deployed on Oracle Cloud with Caddy (automatic HTTPS via Let's Encrypt), pm2-managed production builds, and the Docker infrastructure stack (PostgreSQL, Redis, Keycloak, MinIO, Elasticsearch).
+Deployed on Oracle Cloud with Caddy (automatic HTTPS via Let’s Encrypt), pm2-managed production builds, and the Docker infrastructure stack (PostgreSQL, Redis, Keycloak, MinIO, Elasticsearch).
+
 
 ---
 
@@ -225,7 +227,7 @@ The full requirement-by-requirement audit lives in `docs/TDD-Audit-Report.md`.
 
 
 
-## Not yet implemented (roadmap)
+### Not yet implemented (roadmap)
 
 •⁠  ⁠*Offline / PWA (F-12)* — service-worker caching and sync-on-reconnect
 •⁠  ⁠*Observability stack* — OpenTelemetry / Prometheus / Grafana / Loki (health endpoints and structured logging exist today)
