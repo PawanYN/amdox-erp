@@ -6,7 +6,7 @@ Welcome to the **Amdox ERP** monorepo workspace. This project uses `pnpm` worksp
 
 ## 🎥 Demo Video
 
-_(link pending — 5–7 min scenario-based walkthrough)_
+LinkedIn post (full-stack development): https://www.linkedin.com/posts/agrim-gupta-b37748332_erp-fullstackdevelopment-reactjs-ugcPost-7481983427156631552-w-5k/?utm_source=share&utm_medium=member_desktop&rcm=ACoAAFPCdFsBaSccFtDfF9mn4gnwbJkh_GYpYrU
 
 ## 🌐 Live Demo
 
