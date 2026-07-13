@@ -235,6 +235,41 @@ export class PurchaseService {
       });
       if (!warehouse) throw new NotFoundException('Warehouse not found');
 
+      // Resolve how much of each line to receive in this event. No `dto.lines` means
+      // "receive everything still outstanding" — the one-click behaviour every
+      // pre-existing caller (UI, E2E smoke test) already relies on.
+      const linesToReceive: Array<{
+        line: (typeof po.lines)[number];
+        quantity: number;
+      }> = [];
+
+      if (dto.lines && dto.lines.length > 0) {
+        for (const requested of dto.lines) {
+          const line = po.lines.find((l) => l.id === requested.purchaseOrderLineId);
+          if (!line) {
+            throw new BadRequestException(
+              `PO line ${requested.purchaseOrderLineId} does not belong to this PO`,
+            );
+          }
+          const remaining = Number(line.quantity) - Number(line.receivedQuantity);
+          if (requested.quantity > remaining + 1e-6) {
+            throw new BadRequestException(
+              `Cannot receive ${requested.quantity} for line ${line.id} — only ${remaining} remains outstanding`,
+            );
+          }
+          if (requested.quantity > 0) linesToReceive.push({ line, quantity: requested.quantity });
+        }
+      } else {
+        for (const line of po.lines) {
+          const remaining = Number(line.quantity) - Number(line.receivedQuantity);
+          if (remaining > 1e-6) linesToReceive.push({ line, quantity: remaining });
+        }
+      }
+
+      if (linesToReceive.length === 0) {
+        throw new BadRequestException('Nothing outstanding to receive on this PO');
+      }
+
       // 1. Create Goods Receipt
       const receipt = await tx.goodsReceipt.create({
         data: {
@@ -245,15 +280,33 @@ export class PurchaseService {
         },
       });
 
-      // 2. Loop through PO lines and update stock + FIFO cost layers
-      for (const line of po.lines) {
+      // 2. Loop through the lines being received and update stock + FIFO cost layers
+      for (const { line, quantity } of linesToReceive) {
+        // Per-delivery record: what arrived in THIS receipt, for this line —
+        // the audit trail behind the running total on the PO line, and what
+        // makes "received 60 of 100" a queryable fact rather than a status label.
+        await tx.goodsReceiptLine.create({
+          data: {
+            tenantId,
+            goodsReceiptId: receipt.id,
+            purchaseOrderLineId: line.id,
+            productId: line.productId,
+            quantity,
+          },
+        });
+
+        await tx.purchaseOrderLine.update({
+          where: { id: line.id },
+          data: { receivedQuantity: { increment: quantity } },
+        });
+
         await tx.stockMovement.create({
           data: {
             tenantId,
             productId: line.productId,
             warehouseId: dto.warehouseId,
             type: 'RECEIPT',
-            quantity: line.quantity,
+            quantity,
             reference: `GR-${receipt.id}`,
           },
         });
@@ -264,8 +317,8 @@ export class PurchaseService {
             productId: line.productId,
             warehouseId: dto.warehouseId,
             goodsReceiptId: receipt.id,
-            quantity: line.quantity,
-            remainingQty: line.quantity,
+            quantity,
+            remainingQty: quantity,
             unitCost: line.unitPrice,
           },
         });
@@ -294,7 +347,7 @@ export class PurchaseService {
           // tenant-scope-ok: existingLevel was just found via the tenant-safe lookup above.
           await tx.stockLevel.update({
             where: { id: existingLevel.id },
-            data: { quantity: Number(existingLevel.quantity) + Number(line.quantity) },
+            data: { quantity: Number(existingLevel.quantity) + quantity },
           });
         } else {
           await tx.stockLevel.create({
@@ -302,17 +355,25 @@ export class PurchaseService {
               tenantId,
               productId: line.productId,
               warehouseId: dto.warehouseId,
-              quantity: line.quantity,
+              quantity,
             },
           });
         }
       }
 
-      // 3. Mark PO as RECEIVED
+      // 3. Mark the PO RECEIVED only once every line is fully received;
+      // otherwise it's PARTIALLY_RECEIVED (F-04 roadmap item — was previously
+      // full-order-receipt-only, this is the schema change that unlocks it).
+      const receivedIncrementByLine = new Map(linesToReceive.map((r) => [r.line.id, r.quantity]));
+      const allLinesFullyReceived = po.lines.every((l) => {
+        const newTotal = Number(l.receivedQuantity) + (receivedIncrementByLine.get(l.id) ?? 0);
+        return newTotal >= Number(l.quantity) - 1e-6;
+      });
+
       // tenant-scope-ok: `po` was fetched scoped to `tenantId` at the top of this transaction.
       await tx.purchaseOrder.update({
         where: { id },
-        data: { status: 'RECEIVED' },
+        data: { status: allLinesFullyReceived ? 'RECEIVED' : 'PARTIALLY_RECEIVED' },
       });
 
       // 4. Trigger AI Forecasting pipeline placeholder

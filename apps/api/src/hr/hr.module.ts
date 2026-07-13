@@ -12,6 +12,8 @@ import { EmployeeController } from './employee/employee.controller';
 import { EmployeeService } from './employee/employee.service';
 import { LeaveController } from './leave/leave.controller';
 import { LeaveService } from './leave/leave.service';
+import { LeaveAccrualService } from './leave/leave-accrual.service';
+import { LeaveAccrualScheduler } from './leave/leave-accrual.scheduler';
 import { AttendanceController } from './attendance/attendance.controller';
 import { AttendanceService } from './attendance/attendance.service';
 import { PayrollController } from './payroll/payroll.controller';
@@ -48,6 +50,8 @@ import { SearchModule } from '../search/search.module';
     DepartmentService,
     EmployeeService,
     LeaveService,
+    LeaveAccrualService,
+    LeaveAccrualScheduler,
     LeaveStateMachine,
     AttendanceService,
     PayrollService,

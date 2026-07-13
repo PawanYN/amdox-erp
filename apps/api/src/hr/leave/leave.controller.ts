@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Body, Patch, Param, Req, UseGuards } from '@nestjs/common';
 import { LeaveService } from './leave.service';
+import { LeaveAccrualService } from './leave-accrual.service';
 import { CreateLeaveDto } from '../dto/create-leave.dto';
 import { ApproveLeaveDto, LeaveStatus } from '../dto/approve-leave.dto';
 import { AuthGuard } from '@nestjs/passport';
@@ -12,7 +13,10 @@ import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 @UseGuards(AuthGuard('keycloak'), RolesGuard)
 @Controller('leave')
 export class LeaveController {
-  constructor(private readonly leaveService: LeaveService) {}
+  constructor(
+    private readonly leaveService: LeaveService,
+    private readonly leaveAccrualService: LeaveAccrualService,
+  ) {}
 
   @Roles('Employee', 'Manager', 'TenantAdmin', 'SuperAdmin')
   @Post()
@@ -36,6 +40,17 @@ export class LeaveController {
   @Get('my-balances/:employeeId')
   getMyBalances(@Req() req: any, @Param('employeeId') employeeId: string) {
     return this.leaveService.getMyBalances(req.user.tenantId, employeeId);
+  }
+
+  /**
+   * Manually runs this tenant's monthly accrual immediately, instead of
+   * waiting for the 1st-of-month cron (LeaveAccrualScheduler) — for admins
+   * who want to grant this month's days early, and for testing the flow.
+   */
+  @Roles('TenantAdmin', 'SuperAdmin')
+  @Post('run-accrual')
+  runAccrual(@Req() req: any) {
+    return this.leaveAccrualService.runAccrual(req.user.tenantId);
   }
 
   @Roles('Manager', 'TenantAdmin', 'Tenant Admin', 'SuperAdmin')

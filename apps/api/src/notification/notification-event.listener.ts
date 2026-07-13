@@ -176,4 +176,20 @@ export class NotificationEventListener {
       body: `Invoice ${payload.invoiceNumber ?? payload.invoiceId} raised to customer`,
     });
   }
+
+  @OnEvent('forecast.mape_breach')
+  async onForecastMapeBreach(payload: {
+    tenantId: string;
+    productId: string;
+    sku: string;
+    mape: number;
+    modelType?: string;
+  }) {
+    await this.notifications.notify({
+      tenantId: payload.tenantId,
+      eventType: 'forecast.mape_breach',
+      title: 'Forecast accuracy below target',
+      body: `SKU ${payload.sku}: MAPE ${(payload.mape * 100).toFixed(1)}% exceeds the <12% target (${payload.modelType ?? 'model'})`,
+    });
+  }
 }

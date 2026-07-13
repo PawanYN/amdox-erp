@@ -1,15 +1,22 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { prisma, ForecastModelType } from '@amdox/db';
 import { RedisService } from '../common/redis/redis.service';
 
 const PREDICTIONS_CACHE_TTL_SECONDS = 6 * 60 * 60; // 6h — predictions only change on (re)train
+
+// PDF F-06 acceptance criterion: "MAPE < 12% on 90-day horizon".
+const MAPE_ALERT_THRESHOLD = 0.12;
 
 @Injectable()
 export class ForecastClientService {
   private readonly logger = new Logger(ForecastClientService.name);
   private readonly mlBaseUrl = process.env.ML_SERVICE_URL || 'http://localhost:8091';
 
-  constructor(private readonly redis: RedisService) {}
+  constructor(
+    private readonly redis: RedisService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   private cacheKey(tenantId: string, productId: string) {
     return `forecast:predictions:${tenantId}:${productId}`;
@@ -99,6 +106,18 @@ export class ForecastClientService {
 
     // Retraining invalidates any cached read of this product's predictions.
     await this.redis.del(this.cacheKey(tenantId, productId)).catch(() => undefined);
+
+    // F-06's <12% target was only ever displayed, never enforced — nothing
+    // told anyone when a SKU's model crossed it. This is that alert.
+    if (mape > MAPE_ALERT_THRESHOLD) {
+      this.eventEmitter.emit('forecast.mape_breach', {
+        tenantId,
+        productId,
+        sku,
+        mape,
+        modelType: dbModelType,
+      });
+    }
 
     return { model, predictions, mape };
   }

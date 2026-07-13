@@ -158,60 +158,86 @@ export class ApService {
               quantity: line.quantity,
               unitPrice: line.unitPrice,
               lineTotal: line.lineTotal,
+              productId: line.productId,
             })),
           },
         },
         include: { lines: true },
       });
 
-      // Attempt 3-way match if we have the necessary references
+      // Attempt 3-way match if we have the necessary references. Fetched via
+      // `tx` (not the global `prisma`) so this sees `invoice`, created earlier
+      // in this same still-open transaction.
       if (dto.purchaseOrderId && goodsReceiptId) {
         const po = await tx.purchaseOrder.findFirst({
           where: { id: dto.purchaseOrderId, tenantId },
+          include: { lines: true },
         });
         const gr = await tx.goodsReceipt.findFirst({ where: { id: goodsReceiptId, tenantId } });
 
-        if (po && gr && po.vendorId === dto.vendorId && gr.purchaseOrderId === po.id) {
-          const invoiceTotal = invoice.totalAmount.toNumber();
-          const poTotal = po.totalAmount?.toNumber() || 0;
-          const diff = poTotal === 0 ? 1 : Math.abs(invoiceTotal - poTotal) / poTotal;
+        const matchResult = this.invoiceMatchingService.performThreeWayMatch({
+          invoiceVendorId: dto.vendorId,
+          invoiceTotal: invoice.totalAmount.toNumber(),
+          invoiceLines: invoice.lines.map((l) => ({
+            productId: l.productId,
+            quantity: l.quantity.toNumber(),
+            unitPrice: l.unitPrice.toNumber(),
+          })),
+          po: po
+            ? {
+                id: po.id,
+                vendorId: po.vendorId,
+                totalAmount: po.totalAmount?.toNumber() ?? 0,
+                lines: po.lines.map((l) => ({
+                  productId: l.productId,
+                  quantity: l.quantity.toNumber(),
+                  unitPrice: l.unitPrice.toNumber(),
+                  receivedQuantity: l.receivedQuantity.toNumber(),
+                })),
+              }
+            : null,
+          gr: gr ? { purchaseOrderId: gr.purchaseOrderId } : null,
+        });
 
-          if (diff <= 0.02) {
-            // MATCH SUCCESSFUL -> Auto-approve
-            this.logger.log(`Invoice ${invoice.id} matched successfully! Auto-approving.`);
+        if (matchResult.matched) {
+          // MATCH SUCCESSFUL -> Auto-approve
+          this.logger.log(
+            `Invoice ${invoice.id} matched successfully (${matchResult.mode})! Auto-approving.`,
+          );
 
-            // tenant-scope-ok: `invoice` was created earlier in this same transaction, scoped to `tenantId`.
-            const approvedInvoice = await tx.invoice.update({
-              where: { id: invoice.id },
-              data: {
-                status: 'APPROVED',
-                matchedAt: new Date(),
-              },
-            });
+          // tenant-scope-ok: `invoice` was created earlier in this same transaction, scoped to `tenantId`.
+          const approvedInvoice = await tx.invoice.update({
+            where: { id: invoice.id },
+            data: {
+              status: 'APPROVED',
+              matchedAt: new Date(),
+            },
+          });
 
-            approvalEvent = {
+          approvalEvent = {
+            tenantId,
+            invoiceId: approvedInvoice.id,
+            projectId: invoice.projectId,
+            totalAmount: Number(approvedInvoice.totalAmount),
+            invoiceNumber: invoice.invoiceNumber,
+          };
+
+          // Outbox Pattern: durable event for BullMQ to process (audit, notifications)
+          await tx.outboxEvent.create({
+            data: {
               tenantId,
-              invoiceId: approvedInvoice.id,
-              projectId: invoice.projectId,
-              totalAmount: Number(approvedInvoice.totalAmount),
-              invoiceNumber: invoice.invoiceNumber,
-            };
-
-            // Outbox Pattern: durable event for BullMQ to process (audit, notifications)
-            await tx.outboxEvent.create({
-              data: {
-                tenantId,
-                eventType: 'invoice.approved',
-                payload: {
-                  invoiceId: approvedInvoice.id,
-                  totalAmount: approvedInvoice.totalAmount,
-                },
-                status: 'PENDING',
+              eventType: 'invoice.approved',
+              payload: {
+                invoiceId: approvedInvoice.id,
+                totalAmount: approvedInvoice.totalAmount,
               },
-            });
+              status: 'PENDING',
+            },
+          });
 
-            return approvedInvoice;
-          }
+          return approvedInvoice;
+        } else {
+          this.logger.log(`Invoice ${invoice.id} did not auto-approve: ${matchResult.reason}`);
         }
       }
 
@@ -247,11 +273,18 @@ export class ApService {
 
     const po = await prisma.purchaseOrder.findFirst({
       where: { id: purchaseOrderId, tenantId },
-      include: { lines: true },
+      include: { lines: { include: { product: true } } },
     });
     if (!po) {
       throw new NotFoundException(`Purchase order ${purchaseOrderId} not found`);
     }
+
+    // Invoice only what has actually arrived so far — for a partial receipt,
+    // lines with nothing received yet don't belong on this invoice. Carrying
+    // productId through (known here, unlike free-text OCR lines) is what lets
+    // the 3-way match below check quantity/price per product instead of just
+    // comparing two grand totals.
+    const receivedLines = po.lines.filter((line) => Number(line.receivedQuantity) > 0);
 
     return this.createInvoice(
       tenantId,
@@ -262,12 +295,16 @@ export class ApService {
         purchaseOrderId: po.id,
         issueDate: new Date(),
         dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        totalAmount: Number(po.totalAmount),
-        lines: po.lines.map((line) => ({
-          description: `Auto-generated for Product ${line.productId}`,
-          quantity: Number(line.quantity),
+        totalAmount: receivedLines.reduce(
+          (sum, line) => sum + Number(line.receivedQuantity) * Number(line.unitPrice),
+          0,
+        ),
+        lines: receivedLines.map((line) => ({
+          description: `${line.product?.name ?? 'Product'} (${line.product?.sku ?? line.productId})`,
+          productId: line.productId,
+          quantity: Number(line.receivedQuantity),
           unitPrice: Number(line.unitPrice),
-          lineTotal: Number(line.quantity) * Number(line.unitPrice),
+          lineTotal: Number(line.receivedQuantity) * Number(line.unitPrice),
         })),
       },
       undefined,

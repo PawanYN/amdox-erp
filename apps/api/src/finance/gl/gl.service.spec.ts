@@ -40,7 +40,7 @@ describe('GlService.createJournalEntry — double-entry guard (F-02)', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new GlService({ emit: vi.fn() } as never);
+    service = new GlService({ emit: vi.fn() } as never, { indexJournalEntry: vi.fn() } as never);
     tx.journalEntry.create.mockResolvedValue({
       id: 'je1',
       reference: 'TEST-1',
