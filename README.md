@@ -282,3 +282,4 @@ The full requirement-by-requirement audit lives in `docs/TDD-Audit-Report.md`.
 •⁠  ⁠*Drag-and-drop dashboard editing* (layouts persist; rearranging is not yet mouse-driven)
 
 
+---
