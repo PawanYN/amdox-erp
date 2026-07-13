@@ -35,9 +35,11 @@ Deployed on Oracle Cloud with Caddy (automatic HTTPS via Let's Encrypt), pm2-man
 
 ![ERD](docs/erd/Data_Processing_and_Model.png)
 
-## Workspace Structure
+
 
 Here is the exact current folder and file structure of our monorepo:
+
+## Workspace Structure
 
 ⁠```text
 amdox-erp/
