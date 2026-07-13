@@ -173,9 +173,8 @@ export class SearchService implements OnModuleInit {
   // ── Private helper ─────────────────────────────────────────────────────────
 
   // Wraps client.search with explicit any to bypass strict ES SDK v9 query DSL union types.
-   
+
   private searchIndex(index: string, size: number, query: any): Promise<any> {
-     
     return (this.client.search as any)({ index, size, query });
   }
 
@@ -466,7 +465,9 @@ export class SearchService implements OnModuleInit {
     poNumber: string;
     vendor?: { name?: string | null } | null;
     status: string;
-    totalAmount: number | string;
+    // Accepts Prisma Decimal, number, or string
+     
+    totalAmount: any;
   }): Promise<void> {
     if (!this.enabled) return;
     await this.safeIndex(PURCHASE_ORDER_INDEX, po.id, {
@@ -497,7 +498,9 @@ export class SearchService implements OnModuleInit {
     status: string;
     vendor?: { name?: string | null } | null;
     customer?: { name?: string | null } | null;
-    totalAmount: number | string;
+    // Accepts Prisma Decimal, number, or string
+     
+    totalAmount: any;
   }): Promise<void> {
     if (!this.enabled) return;
     await this.safeIndex(INVOICE_INDEX, inv.id, {
@@ -665,12 +668,9 @@ export class SearchService implements OnModuleInit {
         indexKeys.map(([, idx]) => this.searchIndex(idx, limit, buildQuery(SEARCH_FIELDS[idx]))),
       );
 
-       
       const toHits = (res: any) =>
-         
         (res?.hits?.hits ?? []).map((h: any) => ({ id: h._id, ...(h._source as object) }));
 
-       
       return indexKeys.reduce<Record<string, any[]>>((acc, [key], i) => {
         acc[key] = toHits(results[i]);
         return acc;
