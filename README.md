@@ -31,7 +31,7 @@ Deployed on Oracle Cloud with Caddy (automatic HTTPS via Let's Encrypt), pm2-man
 
 ![Attendance](images/Attendance.png)
 
-![Grafana Dashboard](images/Grafana Dashboard.png)
+![Grafana Dashboard](images/GrafanaDashboard.png)
 
 ![ERD](docs/erd/Data_Processing_and_Model.png)
 
