@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { prisma } from '@amdox/db';
 import { HashChainService } from './hash-chain.service';
+import { SearchService } from '../search/search.service';
 
 export interface AuditLogInput {
   tenantId: string;
@@ -15,7 +16,10 @@ export interface AuditLogInput {
 @Injectable()
 export class AuditService {
   private readonly logger = new Logger(AuditService.name);
-  constructor(private readonly hashChain: HashChainService) {}
+  constructor(
+    private readonly hashChain: HashChainService,
+    private readonly searchService: SearchService,
+  ) {}
 
   async record(input: AuditLogInput) {
     const last = await prisma.auditLog.findFirst({
@@ -55,6 +59,13 @@ export class AuditService {
     this.logger.log(
       `[AUDIT] ${input.action} ${input.entityType}:${input.entityId} hash=${hash.slice(0, 12)}…`,
     );
+    this.searchService.indexAuditLog({
+      id: log.id,
+      tenantId: log.tenantId,
+      action: log.action,
+      entityType: log.entityType,
+      entityId: log.entityId,
+    });
     return log;
   }
 

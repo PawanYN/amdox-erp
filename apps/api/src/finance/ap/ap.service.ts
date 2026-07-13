@@ -7,6 +7,7 @@ import { RunPaymentBatchDto } from '../dto/run-payment-batch.dto';
 import { InvoiceMatchingService } from './invoice-matching.service';
 import { OcrService } from './ocr.service';
 import { StorageService } from '../../common/storage/storage.service';
+import { SearchService } from '../../search/search.service';
 
 interface InvoiceApprovedEvent {
   tenantId: string;
@@ -50,6 +51,7 @@ export class ApService {
     private readonly ocrService: OcrService,
     private readonly eventEmitter: EventEmitter2,
     private readonly storageService: StorageService,
+    private readonly searchService: SearchService,
   ) {}
 
   /**
@@ -220,6 +222,7 @@ export class ApService {
       this.eventEmitter.emit('invoice.approved', approvalEvent);
     }
 
+    this.searchService.indexInvoice(result);
     return result;
   }
 
@@ -316,6 +319,7 @@ export class ApService {
       this.eventEmitter.emit('invoice.approved', approvalEvent);
     }
 
+    this.searchService.indexInvoice(approvedInvoice);
     return approvedInvoice;
   }
 

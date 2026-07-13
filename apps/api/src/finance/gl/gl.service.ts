@@ -4,6 +4,7 @@ import { prisma } from '@amdox/db';
 import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
 import { CreateJournalEntryDto } from '../dto/create-journal-entry.dto';
 import { CreateIntercompanyTransferDto } from '../dto/create-intercompany-transfer.dto';
+import { SearchService } from '../../search/search.service';
 
 /**
  * Service to handle General Ledger (GL) operations.
@@ -16,7 +17,10 @@ import { CreateIntercompanyTransferDto } from '../dto/create-intercompany-transf
 @Injectable()
 export class GlService {
   private readonly logger = new Logger(GlService.name);
-  constructor(private readonly eventEmitter: EventEmitter2) {}
+  constructor(
+    private readonly eventEmitter: EventEmitter2,
+    private readonly searchService: SearchService,
+  ) {}
 
   /**
    * WHAT: Creates a new Account in the Chart of Accounts (CoA).
@@ -217,7 +221,7 @@ export class GlService {
    * enforces the fundamental accounting equation (Debit = Credit) and fiscal period locks.
    */
   async createJournalEntry(tenantId: string, dto: CreateJournalEntryDto, actingUserId?: string) {
-    return prisma.$transaction(async (tx) => {
+    const entry = await prisma.$transaction(async (tx) => {
       // 1. Check Fiscal Period lock
       const period = await tx.fiscalPeriod.findFirst({
         where: { id: dto.fiscalPeriodId, tenantId },
@@ -245,7 +249,7 @@ export class GlService {
       }
 
       // 3. Create Entry
-      const entry = await tx.journalEntry.create({
+      const txEntry = await tx.journalEntry.create({
         data: {
           tenantId,
           fiscalPeriodId: dto.fiscalPeriodId,
@@ -268,17 +272,27 @@ export class GlService {
       });
 
       AmdoxLogger.finance(
-        `Journal entry posted  ref=${entry.reference}`,
-        `total=${totalDebit}  id=${entry.id}`,
+        `Journal entry posted  ref=${txEntry.reference}`,
+        `total=${totalDebit}  id=${txEntry.id}`,
       );
       this.eventEmitter.emit('journal.entry.posted', {
         tenantId,
-        journalEntryId: entry.id,
-        reference: entry.reference,
+        journalEntryId: txEntry.id,
+        reference: txEntry.reference,
         userId: actingUserId,
       });
-      return entry;
+      return txEntry;
     });
+
+    this.searchService.indexJournalEntry({
+      id: entry.id,
+      tenantId: entry.tenantId,
+      reference: entry.reference,
+      description: entry.description,
+      sourceModule: entry.sourceModule,
+      status: entry.status,
+    });
+    return entry;
   }
 
   async getJournalEntries(tenantId: string, limit = 100) {

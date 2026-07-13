@@ -8,10 +8,14 @@ import { UpdateMilestoneDto } from '../dto/update-milestone.dto';
 import { UpdateTaskDto } from '../dto/update-task.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { TaskStatus } from '@amdox/db';
+import { SearchService } from '../../search/search.service';
 
 @Injectable()
 export class ProjectService {
-  constructor(private eventEmitter: EventEmitter2) {}
+  constructor(
+    private eventEmitter: EventEmitter2,
+    private readonly searchService: SearchService,
+  ) {}
 
   async listProjects(tenantId: string) {
     const projects = await prisma.project.findMany({
@@ -180,6 +184,7 @@ export class ProjectService {
       },
     });
 
+    this.searchService.indexProject(project);
     this.eventEmitter.emit('project.created', {
       projectId: project.id,
       tenantId,
@@ -199,7 +204,7 @@ export class ProjectService {
     if (!project) throw new NotFoundException('Project not found');
 
     // tenant-scope-ok: `project` was just found via a tenantId-scoped findFirst above.
-    return prisma.project.update({
+    const updated = await prisma.project.update({
       where: { id: projectId },
       data: {
         ...(dto.name !== undefined && { name: dto.name }),
@@ -211,6 +216,8 @@ export class ProjectService {
         ...(dto.endDate !== undefined && { endDate: dto.endDate ? new Date(dto.endDate) : null }),
       },
     });
+    this.searchService.indexProject(updated);
+    return updated;
   }
 
   private async wouldCreateCycle(
@@ -599,6 +606,7 @@ export class ProjectService {
       });
     });
 
+    this.searchService.removeProject(projectId);
     this.eventEmitter.emit('project.deleted', { tenantId, projectId });
     return { deleted: true, projectId };
   }

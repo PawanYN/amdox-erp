@@ -5,12 +5,14 @@ import { CreateEmployeeDto } from '../dto/create-employee.dto';
 import { UpdateEmployeeDto } from '../dto/update-employee.dto';
 import { TenantService } from '../../tenant/tenant.service';
 import { filterAssignableModules } from '../../auth/erp-modules';
+import { SearchService } from '../../search/search.service';
 
 @Injectable()
 export class EmployeeService {
   constructor(
     private readonly tenantService: TenantService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly searchService: SearchService,
   ) {}
 
   async create(tenantId: string, createEmployeeDto: CreateEmployeeDto, actingUserId?: string) {
@@ -74,6 +76,7 @@ export class EmployeeService {
           employeeId: employee.id,
           userId: actingUserId,
         });
+        this.searchService.indexEmployee(employee);
         return employee;
       }
 
@@ -102,6 +105,7 @@ export class EmployeeService {
         employeeId: updatedEmployee.id,
         userId: actingUserId,
       });
+      this.searchService.indexEmployee(updatedEmployee);
       return updatedEmployee;
     } catch (err) {
       // Rollback: delete the leave balances, contract, and employee if provisioning fails.
@@ -291,6 +295,7 @@ export class EmployeeService {
       }
     }
 
+    this.searchService.indexEmployee(updated);
     this.eventEmitter.emit('employee.updated', { tenantId, employeeId: id, userId: actingUserId });
     return updated;
   }
@@ -306,6 +311,7 @@ export class EmployeeService {
         status: 'TERMINATED',
       },
     });
+    this.searchService.removeEmployee(id);
     this.eventEmitter.emit('employee.deleted', { tenantId, employeeId: id, userId: actingUserId });
     return result;
   }

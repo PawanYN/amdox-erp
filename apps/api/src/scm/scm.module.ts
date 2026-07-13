@@ -21,9 +21,10 @@ import { RequisitionListener } from './requisition/requisition.listener';
 import { VendorPortalModule } from './vendor-portal/vendor-portal.module';
 import { NotificationModule } from '../notification/notification.module';
 import { AuthModule } from '../auth/auth.module';
+import { SearchModule } from '../search/search.module';
 
 @Module({
-  imports: [AuthModule, VendorPortalModule, NotificationModule],
+  imports: [AuthModule, VendorPortalModule, NotificationModule, SearchModule],
   controllers: [
     VendorController,
     ProductController,

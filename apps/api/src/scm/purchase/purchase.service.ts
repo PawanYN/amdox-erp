@@ -38,6 +38,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { VendorPortalService } from '../vendor-portal/vendor-portal.service';
 import { EmailChannel } from '../../notification/channels/email.channel';
 import { AmdoxLogger } from '../../common/logger/amdox-logger';
+import { SearchService } from '../../search/search.service';
 
 @Injectable()
 export class PurchaseService {
@@ -47,6 +48,7 @@ export class PurchaseService {
     private eventEmitter: EventEmitter2,
     private vendorPortalService: VendorPortalService,
     private emailChannel: EmailChannel,
+    private readonly searchService: SearchService,
   ) {}
 
   // --- Purchase Orders ---
@@ -64,7 +66,7 @@ export class PurchaseService {
       }
     }
 
-    return prisma.purchaseOrder.create({
+    const result = await prisma.purchaseOrder.create({
       data: {
         tenantId,
         poNumber,
@@ -85,6 +87,8 @@ export class PurchaseService {
       },
       include: { lines: true },
     });
+    this.searchService.indexPurchaseOrder(result);
+    return result;
   }
 
   async getGoodsReceipts(tenantId: string) {
@@ -141,6 +145,7 @@ export class PurchaseService {
       vendorId: po.vendorId,
       userId: actingUserId,
     });
+    this.searchService.indexPurchaseOrder(updatedPo);
     AmdoxLogger.scm(
       `PO approved`,
       `poNumber=${updatedPo.poNumber}  total=${updatedPo.totalAmount}`,
@@ -331,6 +336,13 @@ export class PurchaseService {
     });
     AmdoxLogger.scm(`Goods received`, `poId=${id}  grId=${result.id}`);
     AmdoxLogger.event('Emitted goods.received → AP invoice + GL chain triggered');
+
+    prisma.purchaseOrder
+      .findFirst({ where: { id, tenantId }, include: { vendor: true } })
+      .then((po) => {
+        if (po) this.searchService.indexPurchaseOrder(po);
+      })
+      .catch(() => {});
 
     return result;
   }

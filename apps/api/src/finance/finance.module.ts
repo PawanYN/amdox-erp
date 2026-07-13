@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { AuthModule } from '../auth/auth.module';
+import { SearchModule } from '../search/search.module';
 import { ApController } from './ap/ap.controller';
 import { ApService } from './ap/ap.service';
 import { InvoiceMatchingService } from './ap/invoice-matching.service';
@@ -20,6 +21,7 @@ import { ScmFinanceBridgeListener } from './scm-finance-bridge.listener';
 @Module({
   imports: [
     AuthModule,
+    SearchModule,
     BullModule.registerQueue({
       name: 'finance-outbox',
     }),

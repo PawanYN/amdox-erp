@@ -4,12 +4,14 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CreateLeaveDto } from '../dto/create-leave.dto';
 import { ApproveLeaveDto } from '../dto/approve-leave.dto';
 import { LeaveStateMachine } from './leave-state-machine';
+import { SearchService } from '../../search/search.service';
 
 @Injectable()
 export class LeaveService {
   constructor(
     private readonly leaveStateMachine: LeaveStateMachine,
     private readonly eventEmitter: EventEmitter2,
+    private readonly searchService: SearchService,
   ) {}
 
   async createRequest(tenantId: string, createLeaveDto: CreateLeaveDto) {
@@ -36,7 +38,7 @@ export class LeaveService {
       throw new BadRequestException(`Leave type '${dbLeaveTypeName}' not found for this tenant.`);
     }
 
-    return prisma.leaveRequest.create({
+    const result = await prisma.leaveRequest.create({
       data: {
         tenantId,
         employeeId: createLeaveDto.employeeId,
@@ -46,6 +48,8 @@ export class LeaveService {
         status: LeaveStatus.PENDING,
       },
     });
+    this.searchService.indexLeaveRequest(result);
+    return result;
   }
 
   async getMyRequests(tenantId: string, employeeId: string) {
@@ -123,6 +127,7 @@ export class LeaveService {
       leaveId,
       status: targetStatus,
     });
+    this.searchService.indexLeaveRequest({ ...updated, employee: leave.employee });
     return updated;
   }
 }

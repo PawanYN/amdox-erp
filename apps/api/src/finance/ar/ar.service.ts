@@ -3,6 +3,7 @@ import { prisma } from '@amdox/db';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CreateInvoiceDto, InvoiceType } from '../dto/create-invoice.dto';
 import { RecordPaymentDto } from '../dto/record-payment.dto';
+import { SearchService } from '../../search/search.service';
 
 /**
  * Service to handle Accounts Receivable (AR) operations.
@@ -14,7 +15,10 @@ import { RecordPaymentDto } from '../dto/record-payment.dto';
 @Injectable()
 export class ArService {
   private readonly logger = new Logger(ArService.name);
-  constructor(private readonly eventEmitter: EventEmitter2) {}
+  constructor(
+    private readonly eventEmitter: EventEmitter2,
+    private readonly searchService: SearchService,
+  ) {}
 
   /**
    * WHAT: Generates a new receivable invoice for a customer.
@@ -211,8 +215,10 @@ export class ArService {
   }
 
   async createCustomer(tenantId: string, name: string, email?: string) {
-    return prisma.customer.create({
+    const customer = await prisma.customer.create({
       data: { tenantId, name, email: email || null },
     });
+    this.searchService.indexCustomer(customer);
+    return customer;
   }
 }

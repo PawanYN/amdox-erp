@@ -25,6 +25,7 @@ import { ComplianceService } from './compliance/compliance.service';
 
 import { TenantModule } from '../tenant/tenant.module';
 import { AuthModule } from '../auth/auth.module';
+import { SearchModule } from '../search/search.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { AuthModule } from '../auth/auth.module';
       name: 'payroll',
     }),
     TenantModule,
+    SearchModule,
   ],
   controllers: [
     DepartmentController,
