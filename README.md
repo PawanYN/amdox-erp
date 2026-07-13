@@ -22,9 +22,6 @@ LinkedIn post (full-stack development): https://www.linkedin.com/posts/agrim-gup
 Deployed on Oracle Cloud with Caddy (automatic HTTPS via Let’s Encrypt), pm2-managed production builds, and the Docker infrastructure stack (PostgreSQL, Redis, Keycloak, MinIO, Elasticsearch).
 
 
----
-
-## Workspace Structure
 
 ![Login](images/Login.png)
 
@@ -39,30 +36,77 @@ Deployed on Oracle Cloud with Caddy (automatic HTTPS via Let’s Encrypt), pm2-m
 > ERD reference: `docs/erd/database-erd.md`
 
 
+---
+
+## Workspace Structure
+
+Here is the exact current folder and file structure of our monorepo:
+
 ```text
-
-
 amdox-erp/
 ├── .github/
 │   └── workflows/
 ├── apps/
-│   ├── api/                           # NestJS Backend API
-│   ├── web/                           # Next.js Frontend
-│   └── ml-service/                   # Python/FastAPI ML service
+│   ├── api/                           # NestJS Backend API (Initialized Structure)
+│   │   ├── src/
+│   │   │   ├── audit/
+│   │   │   ├── auth/
+│   │   │   ├── common/
+│   │   │   ├── finance/
+│   │   │   ├── health/
+│   │   │   ├── hr/
+│   │   │   ├── notification/
+│   │   │   └── scm/
+│   │   └── test/
+│   ├── ml-service/
+│   └── web/                           # Next.js Frontend
+│       ├── public/
+│       ├── src/
+│       │   ├── app/
+│       │   ├── components/
+│       │   ├── hooks/
+│       │   ├── lib/
+│       │   ├── stores/
+│       │   └── styles/
 ├── docs/
+│   ├── adr/
+│   ├── api/
+│   │   └── openapi.yaml
+│   ├── c4/
+│   │   ├── component.md
+│   │   ├── component_clean.md
+│   │   ├── container.md
+│   │   └── context.md
+│   ├── erd/
+│   │   ├── Data_Processing_and_Model.png
+│   │   └── database-erd.md
+│   ├── frontend_development.md
+│   └── monorepo_structure.md
 ├── packages/
 │   ├── config/
-│   ├── db/
+│   │   └── .gitkeep
+│   ├── db/                            # Shared Database Package
+│   │   ├── prisma/
+│   │   │   └── schema.prisma          # Prisma Schema with all 24 entities
+│   │   ├── src/
+│   │   │   └── client.ts              # Prisma Client Singleton
+│   │   ├── package.json
+│   │   └── tsconfig.json
 │   ├── types/
+│   │   └── .gitkeep
 │   └── ui/
-├── infra/
+│       └── .gitkeep
 ├── scripts/
-├── testing/
+│   └── create-api-dirs.ps1
 ├── .gitignore
 ├── package.json
 ├── pnpm-workspace.yaml
+├── tsconfig.json
 └── turbo.json
 ```
+
+---
+
 
 Key workspaces:
 - `apps/api` — NestJS Backend API
