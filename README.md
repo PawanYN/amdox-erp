@@ -40,65 +40,152 @@ Here is the exact current folder and file structure of our monorepo:
 
 ⁠⁠```text
 amdox-erp/
+│
 ├── .github/
+│   ├── ISSUE_TEMPLATE/
+│   ├── PULL_REQUEST_TEMPLATE.md
 │   └── workflows/
+│       ├── ci.yml
+│       ├── cd.yml
+│       ├── lint.yml
+│       └── test.yml
+│
 ├── apps/
-│   ├── api/                           # NestJS Backend API (Initialized Structure)
+│   │
+│   ├── web/                               # Next.js Frontend
+│   │   ├── public/
+│   │   ├── src/
+│   │   │   ├── app/
+│   │   │   ├── components/
+│   │   │   ├── features/
+│   │   │   ├── hooks/
+│   │   │   ├── layouts/
+│   │   │   ├── lib/
+│   │   │   ├── providers/
+│   │   │   ├── services/
+│   │   │   ├── stores/
+│   │   │   ├── styles/
+│   │   │   ├── types/
+│   │   │   └── utils/
+│   │   ├── next.config.js
+│   │   ├── package.json
+│   │   └── tsconfig.json
+│   │
+│   ├── api/                               # NestJS Backend
 │   │   ├── src/
 │   │   │   ├── audit/
 │   │   │   ├── auth/
 │   │   │   ├── common/
+│   │   │   │   ├── decorators/
+│   │   │   │   ├── dto/
+│   │   │   │   ├── exceptions/
+│   │   │   │   ├── filters/
+│   │   │   │   ├── guards/
+│   │   │   │   ├── interceptors/
+│   │   │   │   ├── middleware/
+│   │   │   │   ├── pipes/
+│   │   │   │   └── utils/
+│   │   │   ├── dashboard/
 │   │   │   ├── finance/
 │   │   │   ├── health/
 │   │   │   ├── hr/
+│   │   │   ├── inventory/
 │   │   │   ├── notification/
-│   │   │   └── scm/
-│   │   └── test/
-│   ├── ml-service/
-│   └── web/                           # Next.js Frontend
-│       ├── public/
-│       ├── src/
-│       │   ├── app/
-│       │   ├── components/
-│       │   ├── hooks/
-│       │   ├── lib/
-│       │   ├── stores/
-│       │   └── styles/
+│   │   │   ├── payroll/
+│   │   │   ├── project/
+│   │   │   ├── reports/
+│   │   │   ├── scm/
+│   │   │   ├── users/
+│   │   │   ├── app.module.ts
+│   │   │   └── main.ts
+│   │   ├── test/
+│   │   ├── package.json
+│   │   └── tsconfig.json
+│   │
+│   ├── ml-service/                        # Python FastAPI
+│   │   ├── app/
+│   │   ├── models/
+│   │   ├── services/
+│   │   ├── requirements.txt
+│   │   └── main.py
+│   │
+│   └── docs-site/                         # Optional Documentation Site
+│
+├── packages/
+│   │
+│   ├── db/
+│   │   ├── prisma/
+│   │   │   ├── migrations/
+│   │   │   ├── schema.prisma
+│   │   │   └── seed.ts
+│   │   ├── src/
+│   │   │   └── client.ts
+│   │   ├── package.json
+│   │   └── tsconfig.json
+│   │
+│   ├── ui/                                # Shared UI Components
+│   │   ├── button/
+│   │   ├── card/
+│   │   ├── modal/
+│   │   ├── table/
+│   │   └── index.ts
+│   │
+│   ├── config/
+│   │   ├── eslint/
+│   │   ├── prettier/
+│   │   └── tailwind/
+│   │
+│   ├── types/
+│   │   ├── auth.ts
+│   │   ├── finance.ts
+│   │   ├── hr.ts
+│   │   └── index.ts
+│   │
+│   └── utils/
+│       ├── constants/
+│       ├── helpers/
+│       └── validators/
+│
 ├── docs/
 │   ├── adr/
 │   ├── api/
 │   │   └── openapi.yaml
+│   ├── architecture/
 │   ├── c4/
-│   │   ├── component.md
-│   │   ├── component_clean.md
+│   │   ├── context.md
 │   │   ├── container.md
-│   │   └── context.md
+│   │   ├── component.md
+│   │   └── deployment.md
 │   ├── erd/
-│   │   ├── Data_Processing_and_Model.png
-│   │   └── database-erd.md
+│   │   ├── database-erd.md
+│   │   └── Data_Processing_and_Model.png
+│   ├── deployment.md
 │   ├── frontend_development.md
+│   ├── backend_development.md
+│   ├── coding_guidelines.md
 │   └── monorepo_structure.md
-├── packages/
-│   ├── config/
-│   │   └── .gitkeep
-│   ├── db/                            # Shared Database Package
-│   │   ├── prisma/
-│   │   │   └── schema.prisma          # Prisma Schema with all 24 entities
-│   │   ├── src/
-│   │   │   └── client.ts              # Prisma Client Singleton
-│   │   ├── package.json
-│   │   └── tsconfig.json
-│   ├── types/
-│   │   └── .gitkeep
-│   └── ui/
-│       └── .gitkeep
+│
+├── infra/
+│   ├── docker/
+│   ├── kubernetes/
+│   ├── nginx/
+│   └── terraform/
+│
 ├── scripts/
-│   └── create-api-dirs.ps1
+│   ├── create-api-dirs.ps1
+│   ├── setup.sh
+│   └── seed-db.ts
+│
+├── .env.example
 ├── .gitignore
+├── docker-compose.yml
 ├── package.json
 ├── pnpm-workspace.yaml
+├── turbo.json
 ├── tsconfig.json
-└── turbo.json
+├── README.md
+├── LICENSE
+└── CHANGELOG.md
  ⁠```
 
 ---
