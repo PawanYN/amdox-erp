@@ -4,10 +4,9 @@ Welcome to the **Amdox ERP** monorepo workspace. This project uses `pnpm` worksp
 
 ---
 
-
-
 ## 🎥 Demo Video
-LinkedIn post (full-stack development): https://www.linkedin.com/posts/agrim-gupta-b37748332_erp-fullstackdevelopment-reactjs-ugcPost-7481983427156631552-w-5k/?utm_source=share&utm_medium=member_desktop&rcm=ACoAAFPCdFsBaSccFtDfF9mn4gnwbJkh_GYpYrU
+
+_(link pending — 5–7 min scenario-based walkthrough)_
 
 ## 🌐 Live Demo
 
@@ -21,8 +20,6 @@ LinkedIn post (full-stack development): https://www.linkedin.com/posts/agrim-gup
 
 Deployed on Oracle Cloud with Caddy (automatic HTTPS via Let’s Encrypt), pm2-managed production builds, and the Docker infrastructure stack (PostgreSQL, Redis, Keycloak, MinIO, Elasticsearch).
 
-
-
 ![Login](images/Login.png)
 
 ![Dashboard](images/Dashboard.png)
@@ -34,7 +31,6 @@ Deployed on Oracle Cloud with Caddy (automatic HTTPS via Let’s Encrypt), pm2-m
 ![ERD](docs/erd/Data_Processing_and_Model.png)
 
 > ERD reference: `docs/erd/database-erd.md`
-
 
 ---
 
@@ -107,13 +103,14 @@ amdox-erp/
 
 ---
 
-
 Key workspaces:
+
 - `apps/api` — NestJS Backend API
 - `apps/web` — Next.js Frontend
 - `apps/ml-service` — Forecasting/ML microservice
 
 Shared packages:
+
 - `packages/db` — Prisma schema + tenant-aware DB client
 - `packages/types` — shared TypeScript contracts
 - `packages/ui` — shared UI primitives
@@ -148,7 +145,6 @@ cp .env.example .env
 cd ../..
 ```
 
-
 ### Step 3: Setup Keycloak (SSO)
 
 Run the automated script to configure Keycloak. This will create the `amdox-erp` realm, the client app, and a dummy user (`erp-admin` / password: `password123`):
@@ -158,7 +154,6 @@ Run the automated script to configure Keycloak. This will create the `amdox-erp`
 # Windows PowerShell
 .\scripts\setup-keycloak.ps1
 ```
-
 
 > If you are on macOS/Linux, use: `./scripts/setup-keycloak.sh`
 
@@ -235,6 +230,7 @@ All database actions are centralized under the `@amdox/db` package. Run these fr
 ### Interactive Swagger UI
 
 When the NestJS API is running locally, Swagger is available at:
+
 - `http://localhost:3001/api-docs`
 
 ### Auto-generated Postman Collection
@@ -253,39 +249,35 @@ This produces `postman_collection.json` inside the `apps/api` folder.
 
 The full requirement-by-requirement audit lives in `docs/TDD-Audit-Report.md`.
 
-| Area | TDD asked for | What we built & why |
-|---|---|---|
-| MFA / token rotation | MFA enforced per tenant | Delegated to Keycloak realm configuration (supported, not switched on in the demo realm). Realm-per-tenant implemented programmatically at signup. |
-| 3-way matching | Line-by-line PO/GR/Invoice match | Header-level match: invoice total vs PO total within a 2% tolerance + vendor & GR ownership. Line-level matching requires per-line goods-receipt quantities (roadmap). |
-| Goods receipt | Partial receipts (`PARTIALLY_RECEIVED`) | Full-order receipt only; schema status exists for roadmap item. |
-| Multi-currency | FX conversion on transactions | Daily ECB rates fetched/stored per tenant; conversion at posting time not applied yet (demo single-currency). |
-| Reorder automation | Trigger PO draft when stock < threshold | Raises purchase requisition instead; a human converts it to a PO. |
-| Audit log storage | TimescaleDB append-only | Regular PostgreSQL with SHA-256 hash chaining for tamper evidence. Time-series engine dropped. |
-| Notification retries | Retry up to 3x | 5 attempts with exponential backoff + dead-letter view (exceeds spec). |
-| Org chart | Recursive CTE in Postgres | Tree assembled client-side from `managerId` (fine for demo scale). |
-| Journal entries | Draft→post workflow implied | Entries post directly as balanced immutable records; corrections via counter-entries. |
-| Payroll saga | Compensating transactions on failure | Compensation step: retried run wipes failed attempt payslips before reprocessing. |
-
+| Area                 | TDD asked for                           | What we built & why                                                                                                                                                    |
+| -------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| MFA / token rotation | MFA enforced per tenant                 | Delegated to Keycloak realm configuration (supported, not switched on in the demo realm). Realm-per-tenant implemented programmatically at signup.                     |
+| 3-way matching       | Line-by-line PO/GR/Invoice match        | Header-level match: invoice total vs PO total within a 2% tolerance + vendor & GR ownership. Line-level matching requires per-line goods-receipt quantities (roadmap). |
+| Goods receipt        | Partial receipts (`PARTIALLY_RECEIVED`) | Full-order receipt only; schema status exists for roadmap item.                                                                                                        |
+| Multi-currency       | FX conversion on transactions           | Daily ECB rates fetched/stored per tenant; conversion at posting time not applied yet (demo single-currency).                                                          |
+| Reorder automation   | Trigger PO draft when stock < threshold | Raises purchase requisition instead; a human converts it to a PO.                                                                                                      |
+| Audit log storage    | TimescaleDB append-only                 | Regular PostgreSQL with SHA-256 hash chaining for tamper evidence. Time-series engine dropped.                                                                         |
+| Notification retries | Retry up to 3x                          | 5 attempts with exponential backoff + dead-letter view (exceeds spec).                                                                                                 |
+| Org chart            | Recursive CTE in Postgres               | Tree assembled client-side from `managerId` (fine for demo scale).                                                                                                     |
+| Journal entries      | Draft→post workflow implied             | Entries post directly as balanced immutable records; corrections via counter-entries.                                                                                  |
+| Payroll saga         | Compensating transactions on failure    | Compensation step: retried run wipes failed attempt payslips before reprocessing.                                                                                      |
 
 ---
-
-
 
 ### Not yet implemented (roadmap)
 
-•⁠  ⁠*Offline / PWA (F-12)* — service-worker caching and sync-on-reconnect
+•⁠ ⁠*Offline / PWA (F-12)* — service-worker caching and sync-on-reconnect
 
-•⁠  ⁠*Observability stack* — OpenTelemetry / Prometheus / Grafana / Loki (health endpoints and structured logging exist today)
+•⁠ ⁠*Observability stack* — OpenTelemetry / Prometheus / Grafana / Loki (health endpoints and structured logging exist today)
 
-•⁠  ⁠*k6 load-test evidence* for the 2,000-concurrent-user NFR
+•⁠ ⁠*k6 load-test evidence* for the 2,000-concurrent-user NFR
 
-•⁠  ⁠*Leave accrual rules* (leave request/approval workflow works; balances don't accrue)
+•⁠ ⁠*Leave accrual rules* (leave request/approval workflow works; balances don't accrue)
 
-•⁠  ⁠*Forecast accuracy monitoring* (MAPE is computed per prediction but the <12% target isn't alerted on)
+•⁠ ⁠*Forecast accuracy monitoring* (MAPE is computed per prediction but the <12% target isn't alerted on)
 
-•⁠  ⁠*Line-level 3-way matching + partial goods receipts* (one schema change unlocks both)
+•⁠ ⁠*Line-level 3-way matching + partial goods receipts* (one schema change unlocks both)
 
-•⁠  ⁠*Drag-and-drop dashboard editing* (layouts persist; rearranging is not yet mouse-driven)
+•⁠ ⁠*Drag-and-drop dashboard editing* (layouts persist; rearranging is not yet mouse-driven)
 
 ---
-
