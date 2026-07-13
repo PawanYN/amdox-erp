@@ -225,7 +225,7 @@ The full requirement-by-requirement audit lives in `docs/TDD-Audit-Report.md`.
 
 
 
-### Not yet implemented (roadmap)
+## Not yet implemented (roadmap)
 
 •⁠  ⁠*Offline / PWA (F-12)* — service-worker caching and sync-on-reconnect
 •⁠  ⁠*Observability stack* — OpenTelemetry / Prometheus / Grafana / Loki (health endpoints and structured logging exist today)
