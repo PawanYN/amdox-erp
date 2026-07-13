@@ -274,11 +274,17 @@ The full requirement-by-requirement audit lives in `docs/TDD-Audit-Report.md`.
 ### Not yet implemented (roadmap)
 
 •⁠  ⁠*Offline / PWA (F-12)* — service-worker caching and sync-on-reconnect
+
 •⁠  ⁠*Observability stack* — OpenTelemetry / Prometheus / Grafana / Loki (health endpoints and structured logging exist today)
+
 •⁠  ⁠*k6 load-test evidence* for the 2,000-concurrent-user NFR
+
 •⁠  ⁠*Leave accrual rules* (leave request/approval workflow works; balances don't accrue)
+
 •⁠  ⁠*Forecast accuracy monitoring* (MAPE is computed per prediction but the <12% target isn't alerted on)
+
 •⁠  ⁠*Line-level 3-way matching + partial goods receipts* (one schema change unlocks both)
+
 •⁠  ⁠*Drag-and-drop dashboard editing* (layouts persist; rearranging is not yet mouse-driven)
 
 ---
