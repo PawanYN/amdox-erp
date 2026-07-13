@@ -34,6 +34,27 @@ Deployed on Oracle Cloud with Caddy (automatic HTTPS via Let’s Encrypt), pm2-m
 
 ---
 
+## 📊 Project Status
+
+**39 done · 2 partial · 2 open** out of 43 tracked tasks (Frontend 18/18, Backend 9/11, Integrations 9/9, Platform 3/5). Full breakdown with evidence: `docs/team_assignment.md`.
+
+The only remaining P0: recording the 5–7 min scenario-based demo video. Everything else — including the live deployment, auth hardening (SSO auto-link + per-tenant MFA), and the observability stack below — is built and verified against the running system, not just planned.
+
+## 🏗️ Architecture
+
+| Doc                                         | Covers                                                                        |
+| ------------------------------------------- | ----------------------------------------------------------------------------- |
+| `docs/backend_architecture.md`              | NestJS module layout, request lifecycle, tenant isolation, RBAC guards        |
+| `docs/frontend_architecture.md`             | Next.js app router structure, state management, API client layer              |
+| `docs/erd/database-erd.md` (rendered above) | Full Prisma schema — 58+ models across every module                           |
+| `docs/auth-flow.md`                         | Login flow (password / Google / company SSO), auto-link, MFA — with a diagram |
+| `docs/observability.md`                     | OTel + Prometheus/Grafana/Loki/Tempo stack, public dashboard URLs             |
+| `docs/c4/`                                  | C4 context/container/component diagrams                                       |
+
+A deployment topology diagram (VM/Caddy/pm2/Docker layout) is not yet drawn — the architecture docs above describe it in prose today.
+
+---
+
 ## Workspace Structure
 
 Here is the exact current folder and file structure of our monorepo:
@@ -251,7 +272,7 @@ The full requirement-by-requirement audit lives in `docs/TDD-Audit-Report.md`.
 
 | Area                 | TDD asked for                           | What we built & why                                                                                                                                                    |
 | -------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| MFA / token rotation | MFA enforced per tenant                 | Delegated to Keycloak realm configuration (supported, not switched on in the demo realm). Realm-per-tenant implemented programmatically at signup.                     |
+| Token rotation       | Refresh-token rotation                  | Configurable per tenant in Settings → Identity Settings; off by default. MFA itself is fully built — see below, no longer a deviation.                                 |
 | 3-way matching       | Line-by-line PO/GR/Invoice match        | Header-level match: invoice total vs PO total within a 2% tolerance + vendor & GR ownership. Line-level matching requires per-line goods-receipt quantities (roadmap). |
 | Goods receipt        | Partial receipts (`PARTIALLY_RECEIVED`) | Full-order receipt only; schema status exists for roadmap item.                                                                                                        |
 | Multi-currency       | FX conversion on transactions           | Daily ECB rates fetched/stored per tenant; conversion at posting time not applied yet (demo single-currency).                                                          |
@@ -267,10 +288,6 @@ The full requirement-by-requirement audit lives in `docs/TDD-Audit-Report.md`.
 ### Not yet implemented (roadmap)
 
 •⁠ ⁠*Offline / PWA (F-12)* — service-worker caching and sync-on-reconnect
-
-•⁠ ⁠*Observability stack* — OpenTelemetry / Prometheus / Grafana / Loki (health endpoints and structured logging exist today)
-
-•⁠ ⁠*k6 load-test evidence* for the 2,000-concurrent-user NFR
 
 •⁠ ⁠*Leave accrual rules* (leave request/approval workflow works; balances don't accrue)
 
