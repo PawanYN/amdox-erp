@@ -28,6 +28,7 @@ graph LR
             AR[AR Service\nAging Report]
             FX[FX Rate Service]
             OUTBOX[Outbox Processor]
+            BRIDGE[ScmFinanceBridge\nListener]
         end
 
         subgraph HR["👥 HR"]
@@ -45,7 +46,6 @@ graph LR
             PROD[Product]
             PURCH[Purchase\nPO · Goods Receipt]
             INV[Inventory\nWarehouses · Stock]
-            SCMW[SCM Events Worker]
         end
 
         subgraph PM["🗂️ Projects"]
@@ -58,16 +58,20 @@ graph LR
         subgraph SUPPORT["🔧 Supporting"]
             direction TB
             TENANT[Tenant Module]
-            AUDIT[Audit Module]
+            AUDIT[Audit Module\nHash Chain · GDPR]
             NOTIF[Notifications]
             HEALTH[Health /health]
+            BI[BI\nDashboards · SSE · Reports]
+            FCST[Forecast\nML-service client]
+            SRCH[Search\nElasticsearch]
+            GQL[GraphQL\nApollo]
         end
     end
 
     subgraph INFRA["🔌 Infrastructure"]
         direction TB
         EB(((Event Bus\nEventEmitter2)))
-        BULL[(BullMQ\nscm-events\nfinance-outbox)]
+        BULL[(BullMQ\npayroll · finance-outbox\nforecast-retrain\nnotification-dispatch)]
         REDIS[(Redis)]
         DB[(PostgreSQL\nPrisma ORM)]
         BULL --> REDIS
@@ -80,10 +84,10 @@ graph LR
     %% ── DB writes ─────────────────────────────────
     FIN & HR & SCM & PM & SUPPORT -->|"Prisma ORM · scoped by tenantId"| DB
 
-    %% ── SCM → Finance async: 3-way match flow ─────
-    PURCH -.->|"① POST /purchase-orders/:id/receive\nenqueues goods.received job (async)"| BULL
-    BULL  -.->|"② BullMQ picks up job\nfrom scm-events queue"| SCMW
-    SCMW  -.->|"③ createInvoice()\nInvoiceMatchingService: PO ±2% check\nPASS→auto-approve  FAIL→PENDING_MATCH"| AP
+    %% ── SCM → Finance: 3-way match flow ─────
+    PURCH  -.->|"① POST /purchase-orders/:id/receive\ncommits GR + GR lines + stock + FIFO layer,\nthen emits goods.received"| EB
+    EB     -.->|"② ScmFinanceBridgeListener\nconsumes goods.received"| BRIDGE
+    BRIDGE -.->|"③ createInvoiceFromGoodsReceipt()\nline-level 3-way match: qty ≤ received,\nunit price within ±2% of PO line\nPASS→auto-approve  FAIL→PENDING_MATCH"| AP
 
     %% ── In-process events via EventEmitter2 ────────
     AP    -.->|"emit invoice.approved\n(fast, in-process, not crash-safe)"| EB
@@ -103,7 +107,7 @@ graph LR
     classDef authStyle fill:#B4533B,stroke:#8a3d2b,color:#fff,rx:6;
     classDef clientStyle fill:#D9A85C,stroke:#a07030,color:#14171F,rx:6;
 
-    class GL,AP,AR,FX,OUTBOX,EMP,DEPT,LEAVE,ATT,PAY,VEND,PROD,PURCH,INV,SCMW,PROJ,RES,BUDG,TENANT,AUDIT,NOTIF,HEALTH modStyle;
+    class GL,AP,AR,FX,OUTBOX,BRIDGE,EMP,DEPT,LEAVE,ATT,PAY,VEND,PROD,PURCH,INV,PROJ,RES,BUDG,TENANT,AUDIT,NOTIF,HEALTH,BI,FCST,SRCH,GQL modStyle;
     class EB,BULL,REDIS infraStyle;
     class DB dbStyle;
     class KC,AG authStyle;
@@ -118,10 +122,10 @@ graph LR
 
 There are two kinds of arrows in the diagram. Think of them like this:
 
-| Arrow | Looks like | Meaning | When it happens |
-|---|---|---|---|
-| **Solid `-->`** | `────►` | **Synchronous / direct call** | Happens immediately, the caller waits for the result |
-| **Dashed `-.->` with label** | `- - - ►` | **Async / event-driven** | Fires and forgets — the caller does NOT wait. Work happens in the background |
+| Arrow                        | Looks like | Meaning                       | When it happens                                                              |
+| ---------------------------- | ---------- | ----------------------------- | ---------------------------------------------------------------------------- |
+| **Solid `-->`**              | `────►`    | **Synchronous / direct call** | Happens immediately, the caller waits for the result                         |
+| **Dashed `-.->` with label** | `- - - ►`  | **Async / event-driven**      | Fires and forgets — the caller does NOT wait. Work happens in the background |
 
 ---
 
@@ -129,18 +133,18 @@ There are two kinds of arrows in the diagram. Think of them like this:
 
 #### 🔐 Request Entry & Auth (left side of diagram)
 
-| Connection | What is actually happening |
-|---|---|
-| `Client → Keycloak (KC)` | Every HTTP request must carry a **Bearer JWT token**. The request first hits the `AuthGuard` which validates the token against Keycloak. If invalid → `401 Unauthorized` is returned immediately. |
-| `KC → AuthGuard (AG)` | After token validation passes, `RolesGuard` checks if the logged-in user has the required role for that endpoint (e.g. `Manager` role is needed to approve a PO). If role check fails → `403 Forbidden`. |
-| `AG → FIN / HR / SCM / PM / SUPPORT` | Once auth passes, the request is forwarded to the correct NestJS module controller. Each module handles its own routes independently. |
+| Connection                           | What is actually happening                                                                                                                                                                               |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Client → Keycloak (KC)`             | Every HTTP request must carry a **Bearer JWT token**. The request first hits the `AuthGuard` which validates the token against Keycloak. If invalid → `401 Unauthorized` is returned immediately.        |
+| `KC → AuthGuard (AG)`                | After token validation passes, `RolesGuard` checks if the logged-in user has the required role for that endpoint (e.g. `Manager` role is needed to approve a PO). If role check fails → `403 Forbidden`. |
+| `AG → FIN / HR / SCM / PM / SUPPORT` | Once auth passes, the request is forwarded to the correct NestJS module controller. Each module handles its own routes independently.                                                                    |
 
 ---
 
 #### 🗄️ Database Writes (all modules → DB)
 
-| Connection | What is actually happening |
-|---|---|
+| Connection                           | What is actually happening                                                                                                                                                                        |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `FIN / HR / SCM / PM / SUPPORT → DB` | Every module uses **Prisma ORM** to read/write PostgreSQL. All queries are automatically scoped to the current tenant's `tenantId` — so Company A's data can never leak into Company B's queries. |
 
 ---
@@ -149,11 +153,11 @@ There are two kinds of arrows in the diagram. Think of them like this:
 
 This is the most important async flow in the whole system. A human triggers it, then the system does the rest automatically.
 
-| Connection | What is actually happening |
-|---|---|
-| `PURCH -.-> ① goods.received job → BULL` | A warehouse employee calls `POST /scm/purchase-orders/:id/receive`. `PurchaseService` saves the `GoodsReceipt` record in PostgreSQL **inside a DB transaction**, then immediately **enqueues a job** called `goods.received` into the `scm-events` BullMQ queue. The HTTP response returns instantly — the invoice creation happens later, in the background. |
-| `BULL -.-> ② consume → SCMW` | The `ScmEventsWorker` (running as a BullMQ consumer) picks up the `goods.received` job from the queue. This worker lives inside the Finance module and runs in a separate process loop — it doesn't block any API requests. |
-| `SCMW -.-> ③ createInvoice + 3-way match → AP` | The worker calls `ApService.createInvoice()`. The `InvoiceMatchingService` then performs the **3-way match**: it compares (1) the original Purchase Order amount, (2) the Goods Receipt quantity, and (3) the vendor's invoice amount. If all three match within ±2% tolerance → invoice is auto-approved. If not → invoice status is set to `PENDING_MATCH` for manual review. |
+| Connection                                                       | What is actually happening                                                                                                                                                                                                                                                                                                                                                                                               |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `PURCH -.-> ① goods.received → EB`                               | A warehouse employee calls `POST /scm/purchase-orders/:id/receive` (optionally with **per-line quantities** — omitting them receives everything outstanding). `PurchaseService` commits the `GoodsReceipt`, its `GoodsReceiptLine`s, stock upserts, and the FIFO cost layer **inside one DB transaction**, sets the PO to `RECEIVED` or `PARTIALLY_RECEIVED`, then emits a `goods.received` event on the in-process bus. |
+| `EB -.-> ② consume → BRIDGE`                                     | The `ScmFinanceBridgeListener` (Finance module) consumes `goods.received`. ⚠️ History note: this used to _also_ be enqueued on a `scm-events` BullMQ queue — both consumers raced past the idempotency check and created **two** approved AP invoices per receipt (double GL/budget posting). The queue path was removed; exactly one invoice is created per receipt.                                                    |
+| `BRIDGE -.-> ③ createInvoiceFromGoodsReceipt + 3-way match → AP` | The listener creates an AP invoice **billing only what actually arrived** and runs the **line-level 3-way match** (`performThreeWayMatch`, a pure function): for every invoice line — invoiced quantity ≤ received quantity, and unit price within ±2% of the PO line price; header-total fallback when lines can't be resolved to products. PASS → auto-approved. FAIL → `PENDING_MATCH` for manual review.             |
 
 ---
 
@@ -161,13 +165,13 @@ This is the most important async flow in the whole system. A human triggers it, 
 
 These events happen **inside the same Node.js process** using EventEmitter2. They are fast (no network hop) but not durable — if the server crashes between emit and handler, the event is lost. That is why we also use the Outbox pattern (see below).
 
-| Connection | What is actually happening |
-|---|---|
-| `AP -.-> emit: invoice.approved → EB` | When an AP invoice is approved (either auto or manually), `ApService` emits an `invoice.approved` event onto the in-process Event Bus. Any listener registered for this event runs synchronously in the same request cycle. |
-| `PAY -.-> emit: payroll.completed → EB` | When a payroll run finishes (all employee salaries calculated), `PayrollService` emits `payroll.completed`. The GL listener picks this up to auto-post salary journal entries — Debit: Salary Expense / Credit: Cash. |
-| `PURCH -.-> emit: po.created → EB` | When a new Purchase Order is created, `PurchaseService` emits `po.created`. The Notification module listens to this to send an alert to the approving manager. |
-| `EB -.-> auto-post journals → GL` | The `GlService` listens for `invoice.approved` and `payroll.completed` events. On receiving them, it automatically creates the correct double-entry journal (e.g. Debit AP / Credit Cash for a paid invoice). This removes any manual GL entry work. |
-| `EB -.-> notify → NOTIF` | The `NotificationService` listens for several events (`po.created`, `invoice.approved`) and sends in-app or email notifications to relevant users. |
+| Connection                              | What is actually happening                                                                                                                                                                                                                           |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AP -.-> emit: invoice.approved → EB`   | When an AP invoice is approved (either auto or manually), `ApService` emits an `invoice.approved` event onto the in-process Event Bus. Any listener registered for this event runs synchronously in the same request cycle.                          |
+| `PAY -.-> emit: payroll.completed → EB` | When a payroll run finishes (all employee salaries calculated), `PayrollService` emits `payroll.completed`. The GL listener picks this up to auto-post salary journal entries — Debit: Salary Expense / Credit: Cash.                                |
+| `PURCH -.-> emit: po.created → EB`      | When a new Purchase Order is created, `PurchaseService` emits `po.created`. The Notification module listens to this to send an alert to the approving manager.                                                                                       |
+| `EB -.-> auto-post journals → GL`       | The `GlService` listens for `invoice.approved` and `payroll.completed` events. On receiving them, it automatically creates the correct double-entry journal (e.g. Debit AP / Credit Cash for a paid invoice). This removes any manual GL entry work. |
+| `EB -.-> notify → NOTIF`                | The `NotificationService` listens for several events (`po.created`, `invoice.approved`) and sends in-app or email notifications to relevant users.                                                                                                   |
 
 ---
 
@@ -175,17 +179,17 @@ These events happen **inside the same Node.js process** using EventEmitter2. The
 
 The EventEmitter2 events above are "fire and forget" — they work but are not crash-safe. The Outbox pattern solves this.
 
-| Connection | What is actually happening |
-|---|---|
-| `AP -.-> write outbox event → OUTBOX` | When `ApService` approves an invoice, it writes an `OutboxEvent` row to PostgreSQL **in the same DB transaction** as the invoice status update. This means either both succeed or both fail — there is no way to update the invoice without also creating the outbox record. |
-| `OUTBOX -.-> deliver → NOTIF` | A separate `OutboxProcessor` BullMQ worker polls the `OutboxEvent` table, finds undelivered events, and delivers them to consumers (like Notification). Once delivered, it marks the event as `PROCESSED`. If the server crashes, the next startup re-reads unprocessed outbox rows and retries — **no events are ever lost**. |
+| Connection                            | What is actually happening                                                                                                                                                                                                                                                                                                     |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `AP -.-> write outbox event → OUTBOX` | When `ApService` approves an invoice, it writes an `OutboxEvent` row to PostgreSQL **in the same DB transaction** as the invoice status update. This means either both succeed or both fail — there is no way to update the invoice without also creating the outbox record.                                                   |
+| `OUTBOX -.-> deliver → NOTIF`         | A separate `OutboxProcessor` BullMQ worker polls the `OutboxEvent` table, finds undelivered events, and delivers them to consumers (like Notification). Once delivered, it marks the event as `PROCESSED`. If the server crashes, the next startup re-reads unprocessed outbox rows and retries — **no events are ever lost**. |
 
 ---
 
 #### 🔌 Infrastructure (BullMQ + Redis)
 
-| Connection | What is actually happening |
-|---|---|
+| Connection     | What is actually happening                                                                                                                                                                                                                                  |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `BULL → REDIS` | BullMQ uses Redis as its job store. Every enqueued job (e.g. `goods.received`) is persisted in Redis with its payload, retry count, and status. If a worker crashes mid-job, Redis still holds the job and BullMQ will retry it on the next worker startup. |
 
 ---
@@ -193,72 +197,100 @@ The EventEmitter2 events above are "fire and forget" — they work but are not c
 ## Module Breakdown
 
 ### Finance Module (`/finance`)
-| Sub-module | Controller Route | Key Responsibilities |
-|---|---|---|
-| **AP** | `POST/GET /finance/ap/invoices` | Vendor invoice lifecycle, OCR extraction, 3-way match, manual approval |
-| **AR** | `POST /finance/ar/invoices`, `GET /finance/ar/aging-report` | Customer invoicing, payment recording, aging report |
-| **GL** | `POST /finance/gl/journal-entries` | Double-entry journal posting, fiscal period lock check |
-| **FX** | Internal service | FX rate lookups, multi-currency conversion |
-| **Outbox Processor** | BullMQ worker | Durable event delivery for `invoice.approved` events |
+
+| Sub-module           | Controller Route                                            | Key Responsibilities                                                                      |
+| -------------------- | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| **AP**               | `POST/GET /finance/ap/invoices`                             | Vendor invoice lifecycle, OCR extraction, 3-way match, manual approval                    |
+| **AR**               | `POST /finance/ar/invoices`, `GET /finance/ar/aging-report` | Customer invoicing, payment recording, aging report                                       |
+| **GL**               | `POST /finance/gl/journal-entries`                          | Double-entry journal posting, fiscal period lock check                                    |
+| **FX**               | Internal service                                            | Daily ECB rate fetch (29 currencies, per tenant); conversion-at-posting is a roadmap item |
+| **Outbox Processor** | BullMQ worker                                               | Durable event delivery for `invoice.approved` events                                      |
+| **ScmFinanceBridge** | Event listener                                              | `goods.received` → AP invoice creation + line-level 3-way match                           |
 
 ### HR Module (`/hr`)
-| Sub-module | Controller Route | Key Responsibilities |
-|---|---|---|
-| **Employee** | `/hr/employees` | CRUD, leave balance initialisation on hire |
-| **Department** | `/hr/departments` | Org hierarchy management |
-| **Leave** | `/hr/leave-requests` | Leave request lifecycle, approval workflow |
-| **Attendance** | `/hr/attendance` | Clock-in/out, overtime tracking |
-| **Payroll** | `/hr/payroll` | Saga-based payroll run, tax slab, payslip generation |
+
+| Sub-module     | Controller Route     | Key Responsibilities                                 |
+| -------------- | -------------------- | ---------------------------------------------------- |
+| **Employee**   | `/hr/employees`      | CRUD, leave balance initialisation on hire           |
+| **Department** | `/hr/departments`    | Org hierarchy management                             |
+| **Leave**      | `/hr/leave-requests` | Leave request lifecycle, approval workflow           |
+| **Attendance** | `/hr/attendance`     | Clock-in/out, overtime tracking                      |
+| **Payroll**    | `/hr/payroll`        | Saga-based payroll run, tax slab, payslip generation |
 
 ### SCM Module (`/scm`)
-| Sub-module | Controller Route | Key Responsibilities |
-|---|---|---|
-| **Vendor** | `/scm/vendors` | Full CRUD — create, read, update, delete vendors |
-| **Product** | `/scm/products` | SKU management, unit cost tracking |
-| **Purchase** | `/scm/purchase-orders` | PO creation, approval, goods receipt + stock upsert |
-| **Inventory** | `/scm/inventory` | Warehouse CRUD, stock movements, reorder rules |
-| **SCM Events Worker** | BullMQ consumer | Listens to `goods.received` → triggers AP invoice creation |
+
+| Sub-module    | Controller Route       | Key Responsibilities                                                                              |
+| ------------- | ---------------------- | ------------------------------------------------------------------------------------------------- |
+| **Vendor**    | `/scm/vendors`         | Full CRUD — create, read, update, delete vendors                                                  |
+| **Product**   | `/scm/products`        | SKU management, unit cost tracking                                                                |
+| **Purchase**  | `/scm/purchase-orders` | PO creation, approval, goods receipt (full or per-line partial) + stock upsert + FIFO cost layers |
+| **Inventory** | `/scm/inventory`       | Warehouse CRUD, stock movements, reorder rules                                                    |
 
 ### PM Module (`/pm`)
-| Sub-module | Controller Route | Key Responsibilities |
-|---|---|---|
-| **Project** | `/pm/projects` | Project lifecycle (Planning → Active → Closed) |
-| **Resource** | `/pm/resources` | Employee allocation to tasks, hour tracking |
-| **Budget** | `/pm/budgets` | Budget vs actuals, overrun threshold alerts |
+
+| Sub-module   | Controller Route | Key Responsibilities                           |
+| ------------ | ---------------- | ---------------------------------------------- |
+| **Project**  | `/pm/projects`   | Project lifecycle (Planning → Active → Closed) |
+| **Resource** | `/pm/resources`  | Employee allocation to tasks, hour tracking    |
+| **Budget**   | `/pm/budgets`    | Budget vs actuals, overrun threshold alerts    |
+
+### Analytics & Platform Modules
+
+| Module            | Controller Route | Key Responsibilities                                                                                                                                           |
+| ----------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **BI**            | `/bi`            | Dashboards + widget CRUD, KPI/drill-down data service, SSE metric stream, scheduled PDF/XLSX reports                                                           |
+| **Forecast**      | `/forecast`      | Client of the Python ml-service (Prophet + LSTM); Redis-cached predictions; weekly `forecast-retrain` BullMQ job; `forecast.mape_breach` alert when MAPE > 12% |
+| **Search**        | `/search`        | Elasticsearch global search over 10 entity types with real-time index sync (graceful degradation when ES is down)                                              |
+| **GraphQL**       | `/graphql`       | Apollo server with auth guard, BI-style flexible queries                                                                                                       |
+| **Notification**  | `/notifications` | In-app (SSE) + email + SMS + HMAC webhook channels, per-user/channel preferences, `notification-dispatch` queue (5 retries, Bull Board DLQ at `/admin/queues`) |
+| **Audit**         | `/audit`         | Hash-chained audit log + verification, GDPR DSR/consent endpoints                                                                                              |
+| **Tenant**        | `/tenant`        | Tenant signup (creates a dedicated Keycloak realm), module licensing config                                                                                    |
+| **Observability** | —                | OpenTelemetry traces + metrics wiring (see `docs/observability.md`)                                                                                            |
 
 ---
 
 ## How It Works
 
 ### 1. Multi-Tenant Isolation
+
 Every API request carries a JWT from Keycloak. The `TenantContextInterceptor` extracts `tenantId` from the validated token and injects it into every DB query — ensuring one tenant's data is never visible to another.
 
 ### 2. Authentication & RBAC
+
 - **Keycloak JWT Strategy** verifies the Bearer token on every protected route.
 - **RolesGuard** checks the `roles` claim in the token against `@Roles(...)` on each endpoint.
 - Roles in use: `SuperAdmin`, `TenantAdmin`, `Manager`, `Viewer`, `Employee`.
 - **Full role matrix:** see [`docs/rbac-role-matrix.md`](./rbac-role-matrix.md) (BE-11 audit, July 2026).
 
-### 3. SCM → Finance Async Event Flow (3-Way Match)
+### 3. SCM → Finance Event Flow (3-Way Match)
+
 Think of this like a conveyor belt:
-1. Warehouse staff mark a PO as received via `POST /scm/purchase-orders/:id/receive`.
-2. `PurchaseService` saves the `GoodsReceipt` in a DB transaction, then **enqueues** a `goods.received` BullMQ job.
-3. `ScmEventsWorker` (in Finance module) picks up the job and calls `ApService.createInvoice()`.
-4. `InvoiceMatchingService` checks if the invoice total matches the PO ± 2%.
+
+1. Warehouse staff mark a PO as received via `POST /scm/purchase-orders/:id/receive` — either everything outstanding (one click) or **specific per-line quantities** (partial delivery → PO becomes `PARTIALLY_RECEIVED`).
+2. `PurchaseService` commits the `GoodsReceipt` + `GoodsReceiptLine`s + stock + FIFO cost layer in one DB transaction, then emits `goods.received` on the in-process event bus.
+3. `ScmFinanceBridgeListener` (Finance module) consumes it and creates an AP invoice **for the received quantities only**.
+4. `performThreeWayMatch` checks each invoice line: invoiced qty ≤ received qty, unit price within ±2% of the PO line (header-total fallback if lines can't be resolved).
 5. **If match passes** → invoice is auto-approved, `invoice.approved` event is emitted → GL posts journal entry.
 6. **If match fails** → invoice stays as `PENDING_MATCH` for manual approval via the Finance dashboard.
 
 ### 4. Outbox Pattern (Durable Events)
+
 When `invoice.approved` fires, AP service writes to an `OutboxEvent` table inside the same DB transaction. A separate `OutboxProcessor` BullMQ worker reads pending outbox events and delivers them (e.g. to the Notification service). This guarantees no events are lost even if a worker crashes mid-flight.
 
 ### 5. Background Jobs (BullMQ + Redis)
-| Queue | Producer | Consumer | Purpose |
-|---|---|---|---|
-| `scm-events` | `PurchaseService` | `ScmEventsWorker` | Goods receipt → AP invoice auto-generation |
-| `finance-outbox` | `ApService` (Outbox) | `OutboxProcessor` | Durable domain event delivery |
+
+| Queue                   | Producer              | Consumer                        | Purpose                                                                                                       |
+| ----------------------- | --------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `payroll`               | `PayrollService`      | `PayrollProcessor`              | Async gross-to-net runs in 500-employee chunks; idempotent retry (stale payslips wiped before reprocessing)   |
+| `finance-outbox`        | `ApService` (Outbox)  | `OutboxProcessor`               | Durable domain event delivery                                                                                 |
+| `notification-dispatch` | `NotificationService` | `NotificationDispatchProcessor` | Email/webhook delivery — 5 attempts, exponential backoff, failed jobs visible in Bull Board (`/admin/queues`) |
+| `forecast-retrain`      | repeatable job        | `ForecastRetrainProcessor`      | Weekly ML model retraining + Redis cache invalidation                                                         |
+
+> `scm-events` no longer exists — the goods-receipt → AP invoice hop is in-process only (see the ⚠️ history note above; the dual path caused duplicate invoices). |
 
 ### 6. Key API Conventions
-- **No global prefix** — routes are served directly at `http://localhost:3001/<path>`.
+
+- **Global prefix `api/v1`** — all routes are versioned (`http://localhost:3001/api/v1/<path>`), excluding `health/*`, `api-docs`, `admin/queues`, and `graphql`.
 - **Swagger UI** available at `http://localhost:3001/api-docs`.
 - **Health check** at `GET http://localhost:3001/health` → `{"status":"ok"}`.
 - All money fields use `Decimal(18,4)` in PostgreSQL (via Prisma).

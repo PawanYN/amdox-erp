@@ -2,17 +2,16 @@
 
 ## How to use
 
-This is the folder structure your team creates on Day 3. Copy this as-is when initializing the repo.
+This is the **original Day-3 blueprint** the repo was initialized from. The layout below is kept as designed (it explains the _intent_ of each folder); the repo has since evolved — see **“Reality check (July 2026)”** at the end for every place the live repo differs, and the root `README.md` Workspace Structure section for the exact current tree.
 
-## Folder Tree
+## Folder Tree (original blueprint)
 
 ```
 amdox-erp/
 │
 ├── .github/
 │   └── workflows/
-│       ├── ci.yml                    # GitHub Actions — lint → test → build → docker → deploy
-│       └── ci.yml                    # lint, typecheck, build, TruffleHog + Grype + Trivy
+│       └── ci.yml                    # GitHub Actions — lint · typecheck · unit tests · tenant-scoping audit · build · TruffleHog · Grype · Trivy
 │
 ├── apps/
 │   │
@@ -152,7 +151,7 @@ amdox-erp/
 │   │   ├── tsconfig.json
 │   │   └── package.json
 │   │
-│   └── ml-service/                    # ML SERVICE — Python FastAPI (V2, but infra set up now)
+│   └── ml-service/                    # ML SERVICE — Python FastAPI (live: Prophet + PyTorch LSTM)
 │       ├── app/
 │       │   ├── main.py                # FastAPI bootstrap
 │       │   ├── routers/
@@ -371,6 +370,19 @@ packages/config→ exports ESLint, Prettier, tsconfig presets
 
 Each package has its own `package.json` with a name like `@amdox/db`, `@amdox/ui`, etc.
 pnpm workspaces auto-links them — no need to publish to npm.
+
+## Reality check (July 2026) — where the live repo differs from this blueprint
+
+| Blueprint says                                                   | Live repo has                                                                                                                                                                                                                                                                                                                                                                      |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `infra/k8s/` + `infra/terraform/`                                | `infra/helm/amdox/` (chart with HPA/PDB/Ingress/Istio canary + Sealed Secrets), `infra/argocd/` (GitOps app manifests), `infra/observability/` (OTel Collector, Prometheus, Grafana, Loki, Tempo, Promtail compose stack), `infra/pm2/` (production process configs for the live VM). **No Terraform** — single-VM deployment; per-env Helm values files cover environment config. |
+| `docs/adr/` with 5 ADRs                                          | One ADR so far (`003-realm-per-tenant-isolation.md`)                                                                                                                                                                                                                                                                                                                               |
+| `schema.prisma` — "All 24 entities"                              | **67 models** — see `docs/erd/database-erd.md` (auto-generated)                                                                                                                                                                                                                                                                                                                    |
+| `apps/api/test/` e2e specs                                       | Unit tests live next to code (`*.spec.ts`, 31 tests, Vitest); the black-box API suite lives in the repo-root `testing/` folder (64 authenticated checks across 9 suites + k6 load tests)                                                                                                                                                                                           |
+| `packages/ui` — shadcn/ui components                             | Custom component kit in `apps/web/src/components/ui/` (documented deviation); `packages/ui`/`types`/`config` exist but are thin                                                                                                                                                                                                                                                    |
+| API modules: auth, finance, hr, scm, notification, audit, health | Also: `tenant`, `pm`, `bi`, `forecast`, `graphql`, `search`, `observability`, `common` — 17 module folders total (see `docs/backend_architecture.md`)                                                                                                                                                                                                                              |
+| `scripts/` — seed-db, generate-postman, migrate                  | Also: `generate-erd.mjs` (ERD from live schema), `audit-tenant-scoping.ts` (CI security gate, in `apps/api/scripts/`), `verify-payroll-retry.ts`                                                                                                                                                                                                                                   |
+| Notification email via AWS SES                                   | Nodemailer → Mailpit (dev) / SMTP (prod); SES is a config swap-in                                                                                                                                                                                                                                                                                                                  |
 
 ## DDD Guardrail Check
 

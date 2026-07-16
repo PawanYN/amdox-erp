@@ -1,0 +1,180 @@
+digraph ERD {
+  graph [rankdir=TB, fontname="Helvetica", fontsize=22, splines=true, ranksep=1.1, nodesep=0.35,
+         label="Amdox ERP — Database Model (67 Prisma models, PostgreSQL 17)\nEvery model carries tenantId (multi-tenant row scoping) — those edges are omitted for readability.\nGenerated from packages/db/prisma/schema.prisma by scripts/generate-erd.mjs", labelloc=t];
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=13, margin="0.14,0.08"];
+  edge [color="#8899AA", arrowsize=0.6, penwidth=1.1];
+  subgraph cluster_0 {
+    label="Tenancy & Auth"; fontsize=17; style="rounded,filled"; fillcolor="#7C3AED14"; color="#7C3AED"; penwidth=2; fontcolor="#7C3AED";
+    Tenant [fillcolor="#7C3AED", fontcolor="white"];
+    User [fillcolor="#7C3AED", fontcolor="white"];
+    Role [fillcolor="#7C3AED", fontcolor="white"];
+    UserRole [fillcolor="#7C3AED", fontcolor="white"];
+    Permission [fillcolor="#7C3AED", fontcolor="white"];
+    RolePermission [fillcolor="#7C3AED", fontcolor="white"];
+    RefreshToken [fillcolor="#7C3AED", fontcolor="white"];
+    ApiKey [fillcolor="#7C3AED", fontcolor="white"];
+  }
+  subgraph cluster_1 {
+    label="Finance"; fontsize=17; style="rounded,filled"; fillcolor="#1A7A3C14"; color="#1A7A3C"; penwidth=2; fontcolor="#1A7A3C";
+    Account [fillcolor="#1A7A3C", fontcolor="white"];
+    FiscalPeriod [fillcolor="#1A7A3C", fontcolor="white"];
+    JournalEntry [fillcolor="#1A7A3C", fontcolor="white"];
+    JournalLine [fillcolor="#1A7A3C", fontcolor="white"];
+    Currency [fillcolor="#1A7A3C", fontcolor="white"];
+    ExchangeRate [fillcolor="#1A7A3C", fontcolor="white"];
+    IntercompanyTransfer [fillcolor="#1A7A3C", fontcolor="white"];
+    Customer [fillcolor="#1A7A3C", fontcolor="white"];
+    SalesOrder [fillcolor="#1A7A3C", fontcolor="white"];
+    SalesOrderLine [fillcolor="#1A7A3C", fontcolor="white"];
+    Invoice [fillcolor="#1A7A3C", fontcolor="white"];
+    InvoiceLine [fillcolor="#1A7A3C", fontcolor="white"];
+    Payment [fillcolor="#1A7A3C", fontcolor="white"];
+    PaymentRun [fillcolor="#1A7A3C", fontcolor="white"];
+  }
+  subgraph cluster_2 {
+    label="HR & Payroll"; fontsize=17; style="rounded,filled"; fillcolor="#B3125F14"; color="#B3125F"; penwidth=2; fontcolor="#B3125F";
+    Department [fillcolor="#B3125F", fontcolor="white"];
+    Employee [fillcolor="#B3125F", fontcolor="white"];
+    TaxSlab [fillcolor="#B3125F", fontcolor="white"];
+    EmploymentContract [fillcolor="#B3125F", fontcolor="white"];
+    LeaveType [fillcolor="#B3125F", fontcolor="white"];
+    LeaveRequest [fillcolor="#B3125F", fontcolor="white"];
+    LeaveBalance [fillcolor="#B3125F", fontcolor="white"];
+    AttendanceRecord [fillcolor="#B3125F", fontcolor="white"];
+    PayrollRun [fillcolor="#B3125F", fontcolor="white"];
+    Payslip [fillcolor="#B3125F", fontcolor="white"];
+  }
+  subgraph cluster_3 {
+    label="Supply Chain & Inventory"; fontsize=17; style="rounded,filled"; fillcolor="#B36B0014"; color="#B36B00"; penwidth=2; fontcolor="#B36B00";
+    Vendor [fillcolor="#B36B00", fontcolor="white"];
+    Warehouse [fillcolor="#B36B00", fontcolor="white"];
+    Product [fillcolor="#B36B00", fontcolor="white"];
+    PurchaseRequisition [fillcolor="#B36B00", fontcolor="white"];
+    PurchaseRequisitionLine [fillcolor="#B36B00", fontcolor="white"];
+    PurchaseOrder [fillcolor="#B36B00", fontcolor="white"];
+    PurchaseOrderLine [fillcolor="#B36B00", fontcolor="white"];
+    GoodsReceipt [fillcolor="#B36B00", fontcolor="white"];
+    GoodsReceiptLine [fillcolor="#B36B00", fontcolor="white"];
+    InventoryCostLayer [fillcolor="#B36B00", fontcolor="white"];
+    StockLevel [fillcolor="#B36B00", fontcolor="white"];
+    StockMovement [fillcolor="#B36B00", fontcolor="white"];
+    ReorderRule [fillcolor="#B36B00", fontcolor="white"];
+  }
+  subgraph cluster_4 {
+    label="AI Forecasting"; fontsize=17; style="rounded,filled"; fillcolor="#0E749014"; color="#0E7490"; penwidth=2; fontcolor="#0E7490";
+    ForecastModel [fillcolor="#0E7490", fontcolor="white"];
+    ForecastPrediction [fillcolor="#0E7490", fontcolor="white"];
+  }
+  subgraph cluster_5 {
+    label="Project Management"; fontsize=17; style="rounded,filled"; fillcolor="#1F6FB214"; color="#1F6FB2"; penwidth=2; fontcolor="#1F6FB2";
+    Project [fillcolor="#1F6FB2", fontcolor="white"];
+    Task [fillcolor="#1F6FB2", fontcolor="white"];
+    TaskDependency [fillcolor="#1F6FB2", fontcolor="white"];
+    Milestone [fillcolor="#1F6FB2", fontcolor="white"];
+    ResourceAllocation [fillcolor="#1F6FB2", fontcolor="white"];
+    ProjectBudget [fillcolor="#1F6FB2", fontcolor="white"];
+    ProjectBudgetLine [fillcolor="#1F6FB2", fontcolor="white"];
+  }
+  subgraph cluster_6 {
+    label="Business Intelligence"; fontsize=17; style="rounded,filled"; fillcolor="#5B21B614"; color="#5B21B6"; penwidth=2; fontcolor="#5B21B6";
+    Dashboard [fillcolor="#5B21B6", fontcolor="white"];
+    Widget [fillcolor="#5B21B6", fontcolor="white"];
+    ScheduledReport [fillcolor="#5B21B6", fontcolor="white"];
+  }
+  subgraph cluster_7 {
+    label="Notifications & Webhooks"; fontsize=17; style="rounded,filled"; fillcolor="#C2410C14"; color="#C2410C"; penwidth=2; fontcolor="#C2410C";
+    Notification [fillcolor="#C2410C", fontcolor="white"];
+    NotificationPreference [fillcolor="#C2410C", fontcolor="white"];
+    NotificationDelivery [fillcolor="#C2410C", fontcolor="white"];
+    WebhookSubscription [fillcolor="#C2410C", fontcolor="white"];
+    WebhookDelivery [fillcolor="#C2410C", fontcolor="white"];
+  }
+  subgraph cluster_8 {
+    label="Audit & Compliance"; fontsize=17; style="rounded,filled"; fillcolor="#A9322614"; color="#A93226"; penwidth=2; fontcolor="#A93226";
+    AuditLog [fillcolor="#A93226", fontcolor="white"];
+    DataSubjectRequest [fillcolor="#A93226", fontcolor="white"];
+    ConsentRecord [fillcolor="#A93226", fontcolor="white"];
+  }
+  subgraph cluster_9 {
+    label="Eventing & Sagas"; fontsize=17; style="rounded,filled"; fillcolor="#4B556314"; color="#4B5563"; penwidth=2; fontcolor="#4B5563";
+    OutboxEvent [fillcolor="#4B5563", fontcolor="white"];
+    SagaState [fillcolor="#4B5563", fontcolor="white"];
+  }
+  UserRole -> User;
+  UserRole -> Role;
+  RolePermission -> Role;
+  RolePermission -> Permission;
+  RefreshToken -> User;
+  Account -> Currency;
+  JournalEntry -> FiscalPeriod;
+  JournalLine -> JournalEntry;
+  JournalLine -> Account;
+  JournalLine -> Currency;
+  ExchangeRate -> Currency;
+  SalesOrder -> Customer;
+  SalesOrder -> Currency;
+  SalesOrderLine -> SalesOrder;
+  Invoice -> Vendor;
+  Invoice -> Customer;
+  Invoice -> PurchaseOrder;
+  Invoice -> SalesOrder;
+  Invoice -> Project;
+  Invoice -> Currency;
+  InvoiceLine -> Invoice;
+  InvoiceLine -> Product;
+  Payment -> Invoice;
+  Payment -> PaymentRun;
+  Employee -> Department;
+  EmploymentContract -> Employee;
+  LeaveRequest -> Employee;
+  LeaveRequest -> LeaveType;
+  LeaveRequest -> User;
+  LeaveBalance -> Employee;
+  LeaveBalance -> LeaveType;
+  AttendanceRecord -> Employee;
+  Payslip -> PayrollRun;
+  Payslip -> Employee;
+  Product -> Vendor;
+  PurchaseRequisition -> Project;
+  PurchaseRequisitionLine -> PurchaseRequisition;
+  PurchaseRequisitionLine -> Product;
+  PurchaseOrder -> Vendor;
+  PurchaseOrder -> PurchaseRequisition;
+  PurchaseOrder -> Project;
+  PurchaseOrderLine -> PurchaseOrder;
+  PurchaseOrderLine -> Product;
+  GoodsReceipt -> PurchaseOrder;
+  GoodsReceipt -> Warehouse;
+  GoodsReceiptLine -> GoodsReceipt;
+  GoodsReceiptLine -> PurchaseOrderLine;
+  GoodsReceiptLine -> Product;
+  InventoryCostLayer -> Product;
+  InventoryCostLayer -> Warehouse;
+  InventoryCostLayer -> GoodsReceipt;
+  StockLevel -> Product;
+  StockLevel -> Warehouse;
+  StockMovement -> Product;
+  StockMovement -> Warehouse;
+  ReorderRule -> Product;
+  ForecastModel -> Product;
+  ForecastPrediction -> ForecastModel;
+  ForecastPrediction -> Product;
+  Task -> Project;
+  Task -> Milestone;
+  TaskDependency -> Task;
+  Milestone -> Project;
+  ResourceAllocation -> Project;
+  ResourceAllocation -> Task;
+  ResourceAllocation -> Employee;
+  ProjectBudget -> Project;
+  ProjectBudgetLine -> ProjectBudget;
+  Widget -> Dashboard;
+  ScheduledReport -> Dashboard;
+  Notification -> User;
+  NotificationPreference -> User;
+  NotificationDelivery -> Notification;
+  WebhookDelivery -> WebhookSubscription;
+  ApiKey -> User;
+  AuditLog -> User;
+  SagaState -> PayrollRun;
+}

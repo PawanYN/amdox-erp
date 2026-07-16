@@ -28,9 +28,9 @@ Deployed on Oracle Cloud with Caddy (automatic HTTPS via Let’s Encrypt), pm2-m
 
 ![Grafana Dashboard](images/GrafanaDashboard.png)
 
-![ERD](docs/erd/Data_Processing_and_Model.png)
+![ERD](docs/erd/database-erd.png)
 
-> ERD reference: `docs/erd/database-erd.md`
+> ERD reference: `docs/erd/database-erd.md` — auto-generated from the live Prisma schema (67 models) via `node scripts/generate-erd.mjs`
 
 ---
 
@@ -95,8 +95,9 @@ amdox-erp/
 │   │   ├── container.md
 │   │   └── context.md
 │   ├── erd/
-│   │   ├── Data_Processing_and_Model.png
-│   │   └── database-erd.md
+│   │   ├── database-erd.md            # generated: full ERD + mermaid relations
+│   │   ├── database-erd.png           # generated: ERD image (node scripts/generate-erd.mjs)
+│   │   └── schema.prisma              # synced copy of the live schema
 │   ├── frontend_development.md
 │   └── monorepo_structure.md
 ├── packages/

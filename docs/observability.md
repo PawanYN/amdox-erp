@@ -43,7 +43,7 @@ Everything below ran and was checked live on the VM, not just configured:
 - **Alerts** — two provisioned SLA rules (5xx > 5%, p95 > 300ms, both sustained 5m) → email contact point; test notification **delivered to Mailpit** (`http://localhost:8025`). PagerDuty/OpsGenie = swap the receiver, rules unchanged.
 - **Gotcha fixed** — Oracle's default iptables rejects container→host traffic; opened 9464 + 1025 to the docker subnet only, persisted in `/etc/iptables/rules.v4`.
 
-Where to look: Grafana **https://grafana.92-4-86-3.sslip.io** (admin / `Amdox-Obs-2026!`) · Mailpit **https://mailpit.92-4-86-3.sslip.io** (amdox / `Amdox-Obs-2026!`) · Prometheus localhost-only `:9090`. Concepts walkthrough: `docs/learning/day26-observability-concepts.md`.
+Where to look: Grafana **[https://grafana.92-4-86-3.sslip.io](https://grafana.92-4-86-3.sslip.io)** (admin / `Amdox-Obs-2026!`) · Mailpit **[https://mailpit.92-4-86-3.sslip.io](https://mailpit.92-4-86-3.sslip.io)** (amdox / `Amdox-Obs-2026!`) · Prometheus localhost-only `:9090`. Concepts walkthrough: `docs/learning/day26-observability-concepts.md`.
 
 Honest scope notes: `amdox-web` ships logs only (its work lands on the traced API; Next.js `instrumentation.ts` is the follow-up if ever needed); Prisma's own spans need the `tracing` preview feature (skipped — `pg` driver spans already come through); Grafana and Mailpit are exposed through Caddy over HTTPS (Grafana has its own login; Mailpit sits behind Caddy basic auth); Prometheus/Loki/Tempo remain localhost-only since they have no auth of their own.
 
@@ -65,10 +65,10 @@ Honest scope notes: `amdox-web` ships logs only (its work lands on the traced AP
 
 ## Public URLs (hosted, like the main app)
 
-| Service                                       | URL                                    | Login                     |
-| --------------------------------------------- | -------------------------------------- | ------------------------- |
-| **Grafana** (dashboard, logs, traces, alerts) | **https://grafana.92-4-86-3.sslip.io** | admin / `Amdox-Obs-2026!` |
-| **Mailpit** (alert-email inbox)               | **https://mailpit.92-4-86-3.sslip.io** | amdox / `Amdox-Obs-2026!` |
+| Service                                       | URL                                                                          | Login                     |
+| --------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------- |
+| **Grafana** (dashboard, logs, traces, alerts) | **[https://grafana.92-4-86-3.sslip.io](https://grafana.92-4-86-3.sslip.io)** | admin / `Amdox-Obs-2026!` |
+| **Mailpit** (alert-email inbox)               | **[https://mailpit.92-4-86-3.sslip.io](https://mailpit.92-4-86-3.sslip.io)** | amdox / `Amdox-Obs-2026!` |
 
 Both serve over HTTPS via Caddy (`/etc/caddy/Caddyfile` on the VM). Verified from outside, including the negative cases: Mailpit refuses entry without the password, and Grafana rejects the old weak password (hardened from `amdox` to `Amdox-Obs-2026!` when it went public).
 
@@ -76,7 +76,7 @@ Both serve over HTTPS via Caddy (`/etc/caddy/Caddyfile` on the VM). Verified fro
 
 ## What you now have, point by point
 
-**1) Observation dashboard** — Grafana at **https://grafana.92-4-86-3.sslip.io** (login: admin / `Amdox-Obs-2026!`). Inside it, the dashboard **"Amdox API — Golden Signals"** (folder _Amdox_) with 7 live panels: request rate, 5xx error %, p50/p95 latency with the 300ms SLA line, host CPU %, host memory %, event-loop utilization, and a live API-logs panel at the bottom.
+**1) Observation dashboard** — Grafana at **[https://grafana.92-4-86-3.sslip.io](https://grafana.92-4-86-3.sslip.io)** (login: admin / `Amdox-Obs-2026!`). Inside it, the dashboard **"Amdox API — Golden Signals"** (folder _Amdox_) with 7 live panels: request rate, 5xx error %, p50/p95 latency with the 300ms SLA line, host CPU %, host memory %, event-loop utilization, and a live API-logs panel at the bottom.
 
 **2) Logs search (all services in one place)** — Grafana → Explore → Loki. Query `{job="pm2"}` for api/web logs, `{job="docker"}` for Keycloak/Postgres/Redis/ml-service logs. Filter by text, time range, and filename.
 
@@ -88,7 +88,7 @@ Both serve over HTTPS via Caddy (`/etc/caddy/Caddyfile` on the VM). Verified fro
 
 **6) Two alarms, armed** — if 5xx errors exceed 5% for 5 minutes, or p95 latency exceeds 300ms for 5 minutes → an email fires automatically.
 
-**7) Alert inbox** — Mailpit at **https://mailpit.92-4-86-3.sslip.io** (basic auth: amdox / `Amdox-Obs-2026!`). That's where the alarm emails land (a test email from the verification run is already in there).
+**7) Alert inbox** — Mailpit at **[https://mailpit.92-4-86-3.sslip.io](https://mailpit.92-4-86-3.sslip.io)** (basic auth: amdox / `Amdox-Obs-2026!`). That's where the alarm emails land (a test email from the verification run is already in there).
 
 **8) Storage rules working silently** — every errored request's trace is kept, only 1-in-10 successful ones; traces auto-delete after 7 days.
 

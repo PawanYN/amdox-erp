@@ -9,7 +9,7 @@ Last updated: July 2026.
 
 ```mermaid
 graph LR
-    Browser["🌐 Browser\nNext.js 14 App Router"]
+    Browser["🌐 Browser\nNext.js 15 App Router"]
 
     subgraph AUTH["🔐 Auth Layer"]
         direction TB
@@ -134,10 +134,10 @@ graph LR
 
 ### Arrow Types
 
-| Arrow | Meaning | When it happens |
-|---|---|---|
-| **Solid `-->`** | Direct dependency / synchronous call | Component mounts, function is called, response is awaited |
-| **Dashed `-.->` with label** | Async / background behaviour | Not triggered by user action — happens automatically in background |
+| Arrow                        | Meaning                              | When it happens                                                    |
+| ---------------------------- | ------------------------------------ | ------------------------------------------------------------------ |
+| **Solid `-->`**              | Direct dependency / synchronous call | Component mounts, function is called, response is awaited          |
+| **Dashed `-.->` with label** | Async / background behaviour         | Not triggered by user action — happens automatically in background |
 
 ---
 
@@ -145,10 +145,10 @@ graph LR
 
 #### 🌐 Browser Startup
 
-| Connection | What is actually happening |
-|---|---|
+| Connection                          | What is actually happening                                                                                                                                                                                                                                                                                                                                   |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `Browser → keycloak-js (check-sso)` | When the app loads, `KeycloakProvider` calls `keycloak.init({ onLoad: 'check-sso' })`. This silently checks if there is an active Keycloak session using an iframe. If yes → user is treated as authenticated. If no → the landing page still loads (it is public). The user only gets redirected to Keycloak login if they try to access a protected route. |
-| `Browser → Root Layout` | Next.js renders the root `layout.tsx` which wraps the whole app. It sets up global fonts, the CSS design tokens, and mounts the `KeycloakProvider` so all child components can access auth state. |
+| `Browser → Root Layout`             | Next.js renders the root `layout.tsx` which wraps the whole app. It sets up global fonts, the CSS design tokens, and mounts the `KeycloakProvider` so all child components can access auth state.                                                                                                                                                            |
 
 ---
 
@@ -156,13 +156,13 @@ graph LR
 
 Next.js automatically wraps every page with all the `layout.tsx` files above it in the folder tree.
 
-| Layout File | What it wraps | What it adds |
-|---|---|---|
-| `app/layout.tsx` | Every page in the app | Global CSS, fonts (IBM Plex Sans), `KeycloakProvider` |
-| `app/(dashboard)/layout.tsx` | Every module page | Sidebar navigation, top bar |
-| `scm/layout.tsx` | All `/scm/**` pages | Tab bar (Inventory · POs · Goods Receipt · Invoices) + KPI row |
-| `finance/layout.tsx` | All `/finance/**` pages | Tab bar (Chart of Accounts · GL · AP · Aging) + KPI row |
-| `projects/layout.tsx` | All `/projects/**` pages | Tab bar (Overview · Tasks · Resources · Budget) + KPI row |
+| Layout File                  | What it wraps            | What it adds                                                   |
+| ---------------------------- | ------------------------ | -------------------------------------------------------------- |
+| `app/layout.tsx`             | Every page in the app    | Global CSS, fonts (IBM Plex Sans), `KeycloakProvider`          |
+| `app/(dashboard)/layout.tsx` | Every module page        | Sidebar navigation, top bar                                    |
+| `scm/layout.tsx`             | All `/scm/**` pages      | Tab bar (Inventory · POs · Goods Receipt · Invoices) + KPI row |
+| `finance/layout.tsx`         | All `/finance/**` pages  | Tab bar (Chart of Accounts · GL · AP · Aging) + KPI row        |
+| `projects/layout.tsx`        | All `/projects/**` pages | Tab bar (Overview · Tasks · Resources · Budget) + KPI row      |
 
 > **Key rule**: A `layout.tsx` renders once and stays mounted as the user navigates between tabs — only `{children}` (the page) re-renders. This keeps the KPI cards and tab bar from flickering on tab switches.
 
@@ -170,20 +170,20 @@ Next.js automatically wraps every page with all the `layout.tsx` files above it 
 
 #### 📄 Pages and the UI Component Library
 
-| Connection | What is actually happening |
-|---|---|
+| Connection           | What is actually happening                                                                                                                                                                                                                                                   |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Pages → UI Library` | Every page imports reusable primitives from `components/ui/`. Pages never write their own raw `<table>`, `<button>`, or `<span>` for common patterns — they always use the shared components. This ensures consistent spacing, colours, and hover states across all modules. |
 
 **Available shared UI components:**
 
-| Component | File | What it does |
-|---|---|---|
-| `Button` | `button.tsx` | Primary, secondary, outline, ghost variants + icon slot |
-| `Badge` + `statusToTone` | `badge.tsx` | Coloured pill label. `statusToTone` maps backend status strings (e.g. `APPROVED`) to a colour tone |
-| `DataTable` + `ColumnDef` | `data-table.tsx` | Generic typed table. Pass `data`, `columns`, `keyExtractor`, `emptyMessage` — no boilerplate |
-| `StatCard` | `stat-card.tsx` | Gradient KPI metric card used in every module's header |
-| `Modal` | `modal.tsx` | Overlay dialog for forms (create/edit/delete confirmation) |
-| `Table`, `THead`, `TH`, `TBody`, `TR`, `TD`, `EmptyState` | `table.tsx` | Raw table primitives for custom layouts |
+| Component                                                 | File             | What it does                                                                                       |
+| --------------------------------------------------------- | ---------------- | -------------------------------------------------------------------------------------------------- |
+| `Button`                                                  | `button.tsx`     | Primary, secondary, outline, ghost variants + icon slot                                            |
+| `Badge` + `statusToTone`                                  | `badge.tsx`      | Coloured pill label. `statusToTone` maps backend status strings (e.g. `APPROVED`) to a colour tone |
+| `DataTable` + `ColumnDef`                                 | `data-table.tsx` | Generic typed table. Pass `data`, `columns`, `keyExtractor`, `emptyMessage` — no boilerplate       |
+| `StatCard`                                                | `stat-card.tsx`  | Gradient KPI metric card used in every module's header                                             |
+| `Modal`                                                   | `modal.tsx`      | Overlay dialog for forms (create/edit/delete confirmation)                                         |
+| `Table`, `THead`, `TH`, `TBody`, `TR`, `TD`, `EmptyState` | `table.tsx`      | Raw table primitives for custom layouts                                                            |
 
 ---
 
@@ -191,12 +191,12 @@ Next.js automatically wraps every page with all the `layout.tsx` files above it 
 
 The API layer sits between pages and the backend. Pages never call `fetch()` directly.
 
-| Connection | What is actually happening |
-|---|---|
-| `SCM pages → scm-api.ts` | SCM pages call typed functions like `scmApi.getVendors()`, `scmApi.createPurchaseOrder(body)`. These functions know the exact backend endpoint URLs. If the endpoint URL ever changes, only this file needs to be updated — no page code changes needed. |
-| `Finance pages → finance-api.ts` | Finance pages call `financeApi.getInvoices()` and `financeApi.approveInvoice(id)`. The approve call internally sends `POST /finance/ap/invoices/:id/approve`. |
-| `HR pages → hr-api.ts` | HR pages call `hrApi.getEmployees()`, `hrApi.approveLeave(id)`, `hrApi.runPayroll(body)`. |
-| `All API modules → client.ts` | Every API module calls `apiClient(endpoint, options)`. This is the single shared `fetch` wrapper for the whole app. |
+| Connection                       | What is actually happening                                                                                                                                                                                                                               |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SCM pages → scm-api.ts`         | SCM pages call typed functions like `scmApi.getVendors()`, `scmApi.createPurchaseOrder(body)`. These functions know the exact backend endpoint URLs. If the endpoint URL ever changes, only this file needs to be updated — no page code changes needed. |
+| `Finance pages → finance-api.ts` | Finance pages call `financeApi.getInvoices()` and `financeApi.approveInvoice(id)`. The approve call internally sends `POST /finance/ap/invoices/:id/approve`.                                                                                            |
+| `HR pages → hr-api.ts`           | HR pages call `hrApi.getEmployees()`, `hrApi.approveLeave(id)`, `hrApi.runPayroll(body)`.                                                                                                                                                                |
+| `All API modules → client.ts`    | Every API module calls `apiClient(endpoint, options)`. This is the single shared `fetch` wrapper for the whole app.                                                                                                                                      |
 
 ---
 
@@ -221,8 +221,8 @@ This means **no page ever handles token expiry** — it is handled centrally in 
 
 #### ⚡ Token Auto-Refresh (dashed arrow)
 
-| Connection | What is actually happening |
-|---|---|
+| Connection                        | What is actually happening                                                                                                                                                                                                                                                                                                                                                                                      |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `KeycloakProvider -.-> apiClient` | `KeycloakProvider` does not push tokens to `apiClient` — instead, `apiClient` reads from the `keycloak` singleton directly. The `keycloak.updateToken(30)` call in `apiClient` is what does the auto-refresh. If the refresh fails (user has been idle for too long and the Keycloak session on the server expired), `keycloak.login()` is called which redirects the user to the Keycloak login page and back. |
 
 ---
@@ -287,7 +287,7 @@ apps/web/src/
 │   ├── keycloak.ts                   ← Keycloak JS singleton instance
 │   ├── current-user.ts               ← Helper to read current user from token
 │   ├── types.ts                      ← Shared frontend TypeScript types
-│   └── mock/                         ← Mock data (used where backend not yet connected)
+│   └── mock/                         ← Orphaned mock fixtures (no page imports these anymore)
 │
 ├── stores/                           ← (reserved for Zustand/Jotai global state)
 ├── hooks/                            ← Custom React hooks
@@ -298,10 +298,10 @@ apps/web/src/
 
 ## Key Conventions
 
-| Rule | Why |
-|---|---|
-| Every page file is `"use client"` | Data fetching uses `useEffect` + `useState` — not React Server Components — because auth token is only available client-side. |
-| Pages fetch data in `useEffect` on mount | Simple and predictable. All API calls go through `apiClient` which handles auth automatically. |
-| No global state store yet | `stores/` folder exists but is empty. Each page manages its own local state with `useState`. If cross-page state is needed in future, Zustand will be added here. |
-| Mock data in `/lib/mock/` | Pages not yet connected to the backend use mock data from this folder so the UI always renders something useful. This folder will shrink as backend endpoints are added. |
-| `ColumnDef<T>` for all tables | All tables use the typed `DataTable` component with `ColumnDef<T>[]`. This enforces type safety — if a backend response type changes, TypeScript will highlight every affected column. |
+| Rule                                     | Why                                                                                                                                                                                    |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Every page file is `"use client"`        | Data fetching uses `useEffect` + `useState` — not React Server Components — because auth token is only available client-side.                                                          |
+| Pages fetch data in `useEffect` on mount | Simple and predictable. All API calls go through `apiClient` which handles auth automatically.                                                                                         |
+| No global state store yet                | `stores/` folder exists but is empty. Each page manages its own local state with `useState`. If cross-page state is needed in future, Zustand will be added here.                      |
+| Mock data in `/lib/mock/`                | **Orphaned** — every dashboard screen now calls live APIs (see `docs/wiring-audit.md`); no page imports this folder. Kept only as reference fixtures; safe to delete.                  |
+| `ColumnDef<T>` for all tables            | All tables use the typed `DataTable` component with `ColumnDef<T>[]`. This enforces type safety — if a backend response type changes, TypeScript will highlight every affected column. |

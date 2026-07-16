@@ -52,3 +52,11 @@ Thumbs.db
 # Auto-generated API specs
 openapi-spec.json
 postman_collection.json
+
+# LaTeX build artifacts
+report/*.aux
+report/*.log
+report/*.fls
+report/*.fdb_latexmk
+report/*.out
+report/*.toc

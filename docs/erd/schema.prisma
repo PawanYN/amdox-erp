@@ -38,6 +38,7 @@ enum SystemRole {
   TENANT_ADMIN
   MANAGER
   VIEWER
+  EMPLOYEE
 }
 
 enum AccountType {
@@ -64,8 +65,17 @@ enum InvoiceStatus {
   PENDING_MATCH
   MATCHED
   APPROVED
+  PARTIALLY_PAID
   PAID
   OVERDUE
+  CANCELLED
+}
+
+enum SalesOrderStatus {
+  DRAFT
+  CONFIRMED
+  INVOICED
+  FULFILLED
   CANCELLED
 }
 
@@ -185,73 +195,79 @@ model Tenant {
   updatedAt DateTime   @updatedAt
   deletedAt DateTime?
 
-  users           User[]
-  roles           Role[]
-  userRoles       UserRole[]
-  permissions     Permission[]
-  refreshTokens   RefreshToken[]
+  users         User[]
+  roles         Role[]
+  userRoles     UserRole[]
+  permissions   Permission[]
+  refreshTokens RefreshToken[]
 
-  accounts        Account[]
-  journalEntries  JournalEntry[]
-  journalLines    JournalLine[]
-  fiscalPeriods   FiscalPeriod[]
-  currencies      Currency[]
-  exchangeRates   ExchangeRate[]
-  invoices        Invoice[]
-  invoiceLines    InvoiceLine[]
-  payments        Payment[]
-  paymentRuns     PaymentRun[]
-  customers       Customer[]
+  accounts              Account[]
+  journalEntries        JournalEntry[]
+  journalLines          JournalLine[]
+  fiscalPeriods         FiscalPeriod[]
+  currencies            Currency[]
+  exchangeRates         ExchangeRate[]
+  invoices              Invoice[]
+  invoiceLines          InvoiceLine[]
+  payments              Payment[]
+  paymentRuns           PaymentRun[]
+  customers             Customer[]
   intercompanyTransfers IntercompanyTransfer[]
+  salesOrders           SalesOrder[]
+  salesOrderLines       SalesOrderLine[]
+  inventoryCostLayers   InventoryCostLayer[]
+  goodsReceiptLines     GoodsReceiptLine[]
 
-  employees       Employee[]
-  departments     Department[]
+  employees           Employee[]
+  departments         Department[]
   employmentContracts EmploymentContract[]
-  leaveTypes      LeaveType[]
-  leaveRequests   LeaveRequest[]
-  leaveBalances   LeaveBalance[]
-  attendanceRecords AttendanceRecord[]
-  payrollRuns     PayrollRun[]
-  payslips        Payslip[]
+  leaveTypes          LeaveType[]
+  leaveRequests       LeaveRequest[]
+  leaveBalances       LeaveBalance[]
+  attendanceRecords   AttendanceRecord[]
+  payrollRuns         PayrollRun[]
+  payslips            Payslip[]
 
-  vendors         Vendor[]
-  warehouses      Warehouse[]
-  products        Product[]
-  purchaseRequisitions PurchaseRequisition[]
-  purchaseOrders  PurchaseOrder[]
-  purchaseOrderLines PurchaseOrderLine[]
-  goodsReceipts   GoodsReceipt[]
-  stockLevels     StockLevel[]
-  stockMovements  StockMovement[]
-  reorderRules    ReorderRule[]
+  vendors                  Vendor[]
+  warehouses               Warehouse[]
+  products                 Product[]
+  purchaseRequisitions     PurchaseRequisition[]
+  purchaseRequisitionLines PurchaseRequisitionLine[]
+  purchaseOrders           PurchaseOrder[]
+  purchaseOrderLines       PurchaseOrderLine[]
+  goodsReceipts            GoodsReceipt[]
+  stockLevels              StockLevel[]
+  stockMovements           StockMovement[]
+  reorderRules             ReorderRule[]
+  taxSlabs                 TaxSlab[]
 
-  forecastModels  ForecastModel[]
+  forecastModels      ForecastModel[]
   forecastPredictions ForecastPrediction[]
 
-  projects        Project[]
-  tasks           Task[]
-  milestones      Milestone[]
+  projects            Project[]
+  tasks               Task[]
+  milestones          Milestone[]
   resourceAllocations ResourceAllocation[]
-  projectBudgets  ProjectBudget[]
-  projectBudgetLines ProjectBudgetLine[]
+  projectBudgets      ProjectBudget[]
+  projectBudgetLines  ProjectBudgetLine[]
 
-  dashboards      Dashboard[]
-  widgets         Widget[]
+  dashboards       Dashboard[]
+  widgets          Widget[]
   scheduledReports ScheduledReport[]
 
-  notifications   Notification[]
+  notifications           Notification[]
   notificationPreferences NotificationPreference[]
-  notificationDeliveries NotificationDelivery[]
+  notificationDeliveries  NotificationDelivery[]
 
   webhookSubscriptions WebhookSubscription[]
-  webhookDeliveries WebhookDelivery[]
-  apiKeys         ApiKey[]
+  webhookDeliveries    WebhookDelivery[]
+  apiKeys              ApiKey[]
 
-  auditLogs       AuditLog[]
+  auditLogs           AuditLog[]
   dataSubjectRequests DataSubjectRequest[]
-  consentRecords  ConsentRecord[]
+  consentRecords      ConsentRecord[]
 
-  outboxEvents    OutboxEvent[]
+  outboxEvents OutboxEvent[]
 
   @@index([slug])
 }
@@ -269,27 +285,27 @@ model User {
   updatedAt    DateTime  @updatedAt
   deletedAt    DateTime?
 
-  userRoles      UserRole[]
-  refreshTokens  RefreshToken[]
-  auditLogs      AuditLog[]
-  leaveRequests  LeaveRequest[] @relation("LeaveRequestedBy")
-  notifications  Notification[]
+  userRoles        UserRole[]
+  refreshTokens    RefreshToken[]
+  auditLogs        AuditLog[]
+  leaveRequests    LeaveRequest[]           @relation("LeaveRequestedBy")
+  notifications    Notification[]
   notifPreferences NotificationPreference[]
-  apiKeys        ApiKey[]
+  apiKeys          ApiKey[]
 
   @@unique([tenantId, email])
   @@index([tenantId])
 }
 
 model Role {
-  id          String   @id @default(uuid())
+  id          String     @id @default(uuid())
   tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  tenant      Tenant     @relation(fields: [tenantId], references: [id])
   name        String
   systemRole  SystemRole @default(VIEWER)
   description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
   userRoles       UserRole[]
   rolePermissions RolePermission[]
@@ -313,10 +329,10 @@ model UserRole {
 }
 
 model Permission {
-  id          String   @id @default(uuid())
+  id          String  @id @default(uuid())
   tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
-  key         String   // e.g. "finance.invoice.approve"
+  tenant      Tenant  @relation(fields: [tenantId], references: [id])
+  key         String // e.g. "finance.invoice.approve"
   description String?
 
   rolePermissions RolePermission[]
@@ -336,15 +352,15 @@ model RolePermission {
 }
 
 model RefreshToken {
-  id          String    @id @default(uuid())
-  tenantId    String
-  tenant      Tenant    @relation(fields: [tenantId], references: [id])
-  userId      String
-  user        User      @relation(fields: [userId], references: [id])
-  tokenHash   String    @unique
-  isRevoked   Boolean   @default(false)
-  expiresAt   DateTime
-  createdAt   DateTime  @default(now())
+  id        String   @id @default(uuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  tokenHash String   @unique
+  isRevoked Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 
   @@index([tenantId])
   @@index([userId])
@@ -355,21 +371,21 @@ model RefreshToken {
 // ============================================================================
 
 model Account {
-  id          String      @id @default(uuid())
-  tenantId    String
-  tenant      Tenant      @relation(fields: [tenantId], references: [id])
-  code        String
-  name        String
-  type        AccountType
-  parentId    String?
-  parent      Account?    @relation("AccountHierarchy", fields: [parentId], references: [id])
-  children    Account[]   @relation("AccountHierarchy")
-  currencyId  String?
-  currency    Currency?   @relation(fields: [currencyId], references: [id])
-  isActive    Boolean     @default(true)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  deletedAt   DateTime?
+  id         String      @id @default(uuid())
+  tenantId   String
+  tenant     Tenant      @relation(fields: [tenantId], references: [id])
+  code       String
+  name       String
+  type       AccountType
+  parentId   String?
+  parent     Account?    @relation("AccountHierarchy", fields: [parentId], references: [id])
+  children   Account[]   @relation("AccountHierarchy")
+  currencyId String?
+  currency   Currency?   @relation(fields: [currencyId], references: [id])
+  isActive   Boolean     @default(true)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  deletedAt  DateTime?
 
   journalLines JournalLine[]
 
@@ -378,16 +394,16 @@ model Account {
 }
 
 model FiscalPeriod {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  name      String   // e.g. "2026-06"
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
+  name      String // e.g. "2026-06"
   startDate DateTime
   endDate   DateTime
-  isLocked  Boolean  @default(false)
+  isLocked  Boolean   @default(false)
   lockedAt  DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   journalEntries JournalEntry[]
 
@@ -405,8 +421,8 @@ model JournalEntry {
   description    String?
   status         JournalEntryStatus @default(DRAFT)
   postedAt       DateTime?
-  sourceModule   String?            // e.g. "AP", "PAYROLL", "AR"
-  sourceId       String?            // polymorphic ref to originating record
+  sourceModule   String? // e.g. "AP", "PAYROLL", "AR"
+  sourceId       String? // polymorphic ref to originating record
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
   deletedAt      DateTime?
@@ -415,6 +431,7 @@ model JournalEntry {
 
   @@index([tenantId])
   @@index([fiscalPeriodId])
+  @@index([tenantId, createdAt])
 }
 
 model JournalLine {
@@ -438,18 +455,19 @@ model JournalLine {
 }
 
 model Currency {
-  id        String   @id @default(uuid())
-  tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  code      String   // ISO 4217, e.g. "USD"
-  symbol    String?
-  isBase    Boolean  @default(false)
+  id       String  @id @default(uuid())
+  tenantId String
+  tenant   Tenant  @relation(fields: [tenantId], references: [id])
+  code     String // ISO 4217, e.g. "USD"
+  symbol   String?
+  isBase   Boolean @default(false)
 
-  accounts      Account[]
-  journalLines  JournalLine[]
+  accounts          Account[]
+  journalLines      JournalLine[]
   exchangeRatesFrom ExchangeRate[] @relation("FromCurrency")
   exchangeRatesTo   ExchangeRate[] @relation("ToCurrency")
-  invoices      Invoice[]
+  invoices          Invoice[]
+  salesOrders       SalesOrder[]
 
   @@unique([tenantId, code])
   @@index([tenantId])
@@ -465,7 +483,7 @@ model ExchangeRate {
   toCurrency     Currency @relation("ToCurrency", fields: [toCurrencyId], references: [id])
   rate           Decimal  @db.Decimal(18, 6)
   asOfDate       DateTime
-  source         String?  // e.g. "ECB", "OpenExchangeRates"
+  source         String? // e.g. "ECB", "OpenExchangeRates"
   createdAt      DateTime @default(now())
 
   @@unique([tenantId, fromCurrencyId, toCurrencyId, asOfDate])
@@ -486,44 +504,88 @@ model IntercompanyTransfer {
 }
 
 model Customer {
-  id        String   @id @default(uuid())
-  tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  name      String
-  email     String?
+  id             String    @id @default(uuid())
+  tenantId       String
+  tenant         Tenant    @relation(fields: [tenantId], references: [id])
+  name           String
+  email          String?
   billingAddress Json?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
 
-  invoices Invoice[]
+  invoices    Invoice[]
+  salesOrders SalesOrder[]
 
   @@index([tenantId])
 }
 
+model SalesOrder {
+  id          String           @id @default(uuid())
+  tenantId    String
+  tenant      Tenant           @relation(fields: [tenantId], references: [id])
+  orderNumber String
+  customerId  String
+  customer    Customer         @relation(fields: [customerId], references: [id])
+  status      SalesOrderStatus @default(CONFIRMED)
+  totalAmount Decimal          @db.Decimal(18, 4)
+  currencyId  String?
+  currency    Currency?        @relation(fields: [currencyId], references: [id])
+  orderDate   DateTime         @default(now())
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  lines    SalesOrderLine[]
+  invoices Invoice[]
+
+  @@unique([tenantId, orderNumber])
+  @@index([tenantId])
+  @@index([customerId])
+}
+
+model SalesOrderLine {
+  id           String     @id @default(uuid())
+  tenantId     String
+  tenant       Tenant     @relation(fields: [tenantId], references: [id])
+  salesOrderId String
+  salesOrder   SalesOrder @relation(fields: [salesOrderId], references: [id])
+  description  String
+  quantity     Decimal    @db.Decimal(18, 4)
+  unitPrice    Decimal    @db.Decimal(18, 4)
+  lineTotal    Decimal    @db.Decimal(18, 4)
+
+  @@index([tenantId])
+  @@index([salesOrderId])
+}
+
 model Invoice {
-  id              String        @id @default(uuid())
+  id              String         @id @default(uuid())
   tenantId        String
-  tenant          Tenant        @relation(fields: [tenantId], references: [id])
-  type            InvoiceType   // AP or AR
+  tenant          Tenant         @relation(fields: [tenantId], references: [id])
+  type            InvoiceType // AP or AR
   invoiceNumber   String
   vendorId        String?
-  vendor          Vendor?       @relation(fields: [vendorId], references: [id])
+  vendor          Vendor?        @relation(fields: [vendorId], references: [id])
   customerId      String?
-  customer        Customer?     @relation(fields: [customerId], references: [id])
+  customer        Customer?      @relation(fields: [customerId], references: [id])
   purchaseOrderId String?
   purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
+  salesOrderId    String?
+  salesOrder      SalesOrder?    @relation(fields: [salesOrderId], references: [id])
+  projectId       String?
+  project         Project?       @relation(fields: [projectId], references: [id])
   currencyId      String?
-  currency        Currency?     @relation(fields: [currencyId], references: [id])
-  status          InvoiceStatus @default(DRAFT)
+  currency        Currency?      @relation(fields: [currencyId], references: [id])
+  status          InvoiceStatus  @default(DRAFT)
   ocrConfidence   Float?
+  documentKey     String? // original uploaded document's object-storage key (StorageService)
   issueDate       DateTime
   dueDate         DateTime
-  totalAmount     Decimal       @db.Decimal(18, 4)
+  totalAmount     Decimal        @db.Decimal(18, 4)
   matchedAt       DateTime?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
   deletedAt       DateTime?
 
   lines    InvoiceLine[]
@@ -533,6 +595,8 @@ model Invoice {
   @@index([tenantId])
   @@index([vendorId])
   @@index([customerId])
+  @@index([projectId])
+  @@index([tenantId, type, createdAt])
 }
 
 model InvoiceLine {
@@ -545,6 +609,11 @@ model InvoiceLine {
   quantity    Decimal  @db.Decimal(18, 4)
   unitPrice   Decimal  @db.Decimal(18, 4)
   lineTotal   Decimal  @db.Decimal(18, 4)
+  // Nullable: only resolvable when the line's product is known (auto-generated
+  // from a PO/GR, or picked in the AP form). OCR-extracted lines without a
+  // resolved product stay null and fall back to header-level match tolerance.
+  productId   String?
+  product     Product? @relation(fields: [productId], references: [id])
 
   @@index([tenantId])
   @@index([invoiceId])
@@ -559,6 +628,7 @@ model Payment {
   paymentRunId  String?
   paymentRun    PaymentRun?   @relation(fields: [paymentRunId], references: [id])
   amount        Decimal       @db.Decimal(18, 4)
+  bankReference String?
   status        PaymentStatus @default(PENDING)
   paidAt        DateTime?
   createdAt     DateTime      @default(now())
@@ -585,16 +655,20 @@ model PaymentRun {
 // ============================================================================
 
 model Department {
-  id        String   @id @default(uuid())
-  tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  name      String
-  parentId  String?
-  parent    Department? @relation("DeptHierarchy", fields: [parentId], references: [id])
-  children  Department[] @relation("DeptHierarchy")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
+  id             String       @id @default(uuid())
+  tenantId       String
+  tenant         Tenant       @relation(fields: [tenantId], references: [id])
+  name           String
+  code           String
+  headId         String?
+  parentId       String?
+  parent         Department?  @relation("DeptHierarchy", fields: [parentId], references: [id])
+  children       Department[] @relation("DeptHierarchy")
+  /// ERP sidebar/API modules granted to employees in this department (e.g. finance, hr, scm, projects)
+  allowedModules String[]     @default([])
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
 
   employees Employee[]
 
@@ -603,24 +677,27 @@ model Department {
 }
 
 model Employee {
-  id               String           @id @default(uuid())
-  tenantId         String
-  tenant           Tenant           @relation(fields: [tenantId], references: [id])
-  userId           String?
-  fullName         String
-  email            String
-  departmentId     String?
-  department       Department?      @relation(fields: [departmentId], references: [id])
-  managerId        String?
-  manager          Employee?        @relation("ReportingHierarchy", fields: [managerId], references: [id])
-  directReports    Employee[]       @relation("ReportingHierarchy")
-  status           EmploymentStatus @default(ACTIVE)
-  hireDate         DateTime
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-  deletedAt        DateTime?
+  id             String           @id @default(uuid())
+  tenantId       String
+  tenant         Tenant           @relation(fields: [tenantId], references: [id])
+  userId         String?
+  fullName       String
+  email          String
+  designation    String?
+  departmentId   String?
+  department     Department?      @relation(fields: [departmentId], references: [id])
+  managerId      String?
+  manager        Employee?        @relation("ReportingHierarchy", fields: [managerId], references: [id])
+  directReports  Employee[]       @relation("ReportingHierarchy")
+  status         EmploymentStatus @default(ACTIVE)
+  hireDate       DateTime
+  // When non-empty, overrides department allowedModules for ERP sidebar access.
+  allowedModules String[]         @default([])
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  deletedAt      DateTime?
 
-  contracts          EmploymentContract[]
+  contracts           EmploymentContract[]
   leaveRequests       LeaveRequest[]
   leaveBalances       LeaveBalance[]
   attendanceRecords   AttendanceRecord[]
@@ -632,29 +709,41 @@ model Employee {
   @@index([departmentId])
 }
 
+model TaxSlab {
+  id        String   @id @default(uuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  name      String
+  minSalary Decimal  @db.Decimal(18, 4)
+  maxSalary Decimal? @db.Decimal(18, 4)
+  rate      Decimal  @db.Decimal(10, 4) // e.g. 0.12 for 12%
+
+  @@index([tenantId])
+}
+
 model EmploymentContract {
-  id          String   @id @default(uuid())
-  tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
-  employeeId  String
-  employee    Employee @relation(fields: [employeeId], references: [id])
-  jobTitle    String
-  salary      Decimal  @db.Decimal(18, 4)
-  currencyCode String  @default("USD")
-  startDate   DateTime
-  endDate     DateTime?
-  createdAt   DateTime @default(now())
+  id           String    @id @default(uuid())
+  tenantId     String
+  tenant       Tenant    @relation(fields: [tenantId], references: [id])
+  employeeId   String
+  employee     Employee  @relation(fields: [employeeId], references: [id])
+  jobTitle     String
+  salary       Decimal   @db.Decimal(18, 4)
+  currencyCode String    @default("USD")
+  startDate    DateTime
+  endDate      DateTime?
+  createdAt    DateTime  @default(now())
 
   @@index([tenantId])
   @@index([employeeId])
 }
 
 model LeaveType {
-  id           String  @id @default(uuid())
-  tenantId     String
-  tenant       Tenant  @relation(fields: [tenantId], references: [id])
-  name         String  // e.g. "Annual", "Sick"
-  accrualRate  Decimal @default(0) @db.Decimal(10, 4) // days per month
+  id          String  @id @default(uuid())
+  tenantId    String
+  tenant      Tenant  @relation(fields: [tenantId], references: [id])
+  name        String // e.g. "Annual", "Sick"
+  accrualRate Decimal @default(0) @db.Decimal(10, 4) // days per month
 
   leaveRequests LeaveRequest[]
   leaveBalances LeaveBalance[]
@@ -700,15 +789,15 @@ model LeaveBalance {
 }
 
 model AttendanceRecord {
-  id          String   @id @default(uuid())
-  tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
-  employeeId  String
-  employee    Employee @relation(fields: [employeeId], references: [id])
-  clockIn     DateTime
-  clockOut    DateTime?
-  overtimeMins Int     @default(0)
-  createdAt   DateTime @default(now())
+  id           String    @id @default(uuid())
+  tenantId     String
+  tenant       Tenant    @relation(fields: [tenantId], references: [id])
+  employeeId   String
+  employee     Employee  @relation(fields: [employeeId], references: [id])
+  clockIn      DateTime
+  clockOut     DateTime?
+  overtimeMins Int       @default(0)
+  createdAt    DateTime  @default(now())
 
   @@index([tenantId])
   @@index([employeeId])
@@ -718,15 +807,15 @@ model PayrollRun {
   id          String           @id @default(uuid())
   tenantId    String
   tenant      Tenant           @relation(fields: [tenantId], references: [id])
-  periodLabel String           // e.g. "2026-06"
+  periodLabel String // e.g. "2026-06"
   status      PayrollRunStatus @default(SCHEDULED)
   totalNetPay Decimal?         @db.Decimal(18, 4)
   startedAt   DateTime?
   completedAt DateTime?
   createdAt   DateTime         @default(now())
 
-  payslips   Payslip[]
-  sagaSteps  SagaState[]
+  payslips  Payslip[]
+  sagaSteps SagaState[]
 
   @@index([tenantId])
 }
@@ -755,19 +844,23 @@ model Payslip {
 // ============================================================================
 
 model Vendor {
-  id        String   @id @default(uuid())
-  tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  name      String
-  email     String?
-  webhookUrl String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
+  id                  String    @id @default(uuid())
+  tenantId            String
+  tenant              Tenant    @relation(fields: [tenantId], references: [id])
+  name                String
+  email               String?
+  phone               String?
+  webhookUrl          String?
+  portalAccessKeyHash String?
+  portalKeyIssuedAt   DateTime?
+  isActive            Boolean   @default(true)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  deletedAt           DateTime?
 
   purchaseOrders PurchaseOrder[]
   invoices       Invoice[]
+  products       Product[]
 
   @@index([tenantId])
 }
@@ -780,29 +873,39 @@ model Warehouse {
   location  String?
   createdAt DateTime @default(now())
 
-  stockLevels    StockLevel[]
-  stockMovements StockMovement[]
+  stockLevels         StockLevel[]
+  stockMovements      StockMovement[]
+  goodsReceipts       GoodsReceipt[]
+  inventoryCostLayers InventoryCostLayer[]
 
   @@index([tenantId])
 }
 
 model Product {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
   sku       String
   name      String
-  unitCost  Decimal  @default(0) @db.Decimal(18, 4)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  unitCost  Decimal   @default(0) @db.Decimal(18, 4)
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  stockLevels         StockLevel[]
-  stockMovements      StockMovement[]
-  reorderRules        ReorderRule[]
-  purchaseOrderLines  PurchaseOrderLine[]
-  forecastPredictions ForecastPrediction[]
+  stockLevels              StockLevel[]
+  stockMovements           StockMovement[]
+  reorderRules             ReorderRule[]
+  purchaseOrderLines       PurchaseOrderLine[]
+  purchaseRequisitionLines PurchaseRequisitionLine[]
+  forecastPredictions      ForecastPrediction[]
+  forecastModels           ForecastModel[]
+  inventoryCostLayers      InventoryCostLayer[]
+  goodsReceiptLines        GoodsReceiptLine[]
+  invoiceLines             InvoiceLine[]
+
+  defaultVendorId String?
+  defaultVendor   Vendor? @relation(fields: [defaultVendorId], references: [id])
 
   @@unique([tenantId, sku])
   @@index([tenantId])
@@ -812,30 +915,56 @@ model PurchaseRequisition {
   id          String   @id @default(uuid())
   tenantId    String
   tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  projectId   String?
+  project     Project? @relation(fields: [projectId], references: [id])
   requestedBy String?
   reason      String?
   createdAt   DateTime @default(now())
 
+  lines          PurchaseRequisitionLine[]
   purchaseOrders PurchaseOrder[]
 
   @@index([tenantId])
+  @@index([projectId])
+  @@index([tenantId, createdAt])
+}
+
+model PurchaseRequisitionLine {
+  id                 String              @id @default(uuid())
+  tenantId           String
+  tenant             Tenant              @relation(fields: [tenantId], references: [id])
+  requisitionId      String
+  requisition        PurchaseRequisition @relation(fields: [requisitionId], references: [id])
+  productId          String
+  product            Product             @relation(fields: [productId], references: [id])
+  quantity           Decimal             @db.Decimal(18, 4)
+  estimatedUnitPrice Decimal?            @db.Decimal(18, 4)
+
+  @@index([tenantId])
+  @@index([requisitionId])
+  @@index([productId])
 }
 
 model PurchaseOrder {
-  id              String              @id @default(uuid())
-  tenantId        String
-  tenant          Tenant              @relation(fields: [tenantId], references: [id])
-  poNumber        String
-  vendorId        String
-  vendor          Vendor              @relation(fields: [vendorId], references: [id])
-  requisitionId   String?
-  requisition     PurchaseRequisition? @relation(fields: [requisitionId], references: [id])
-  status          PurchaseOrderStatus @default(DRAFT)
-  totalAmount     Decimal             @db.Decimal(18, 4)
-  orderedAt       DateTime?
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-  deletedAt       DateTime?
+  id                       String               @id @default(uuid())
+  tenantId                 String
+  tenant                   Tenant               @relation(fields: [tenantId], references: [id])
+  poNumber                 String
+  vendorId                 String
+  vendor                   Vendor               @relation(fields: [vendorId], references: [id])
+  requisitionId            String?
+  requisition              PurchaseRequisition? @relation(fields: [requisitionId], references: [id])
+  projectId                String?
+  project                  Project?             @relation(fields: [projectId], references: [id])
+  status                   PurchaseOrderStatus  @default(DRAFT)
+  totalAmount              Decimal              @db.Decimal(18, 4)
+  orderedAt                DateTime?
+  vendorAcknowledgedAt     DateTime?
+  vendorExpectedDeliveryAt DateTime?
+  vendorShipmentNotes      String?
+  createdAt                DateTime             @default(now())
+  updatedAt                DateTime             @updatedAt
+  deletedAt                DateTime?
 
   lines         PurchaseOrderLine[]
   goodsReceipts GoodsReceipt[]
@@ -844,18 +973,26 @@ model PurchaseOrder {
   @@unique([tenantId, poNumber])
   @@index([tenantId])
   @@index([vendorId])
+  @@index([projectId])
+  @@index([tenantId, createdAt])
 }
 
 model PurchaseOrderLine {
-  id              String        @id @default(uuid())
-  tenantId        String
-  tenant          Tenant        @relation(fields: [tenantId], references: [id])
-  purchaseOrderId String
-  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
-  productId       String
-  product         Product       @relation(fields: [productId], references: [id])
-  quantity        Decimal       @db.Decimal(18, 4)
-  unitPrice       Decimal       @db.Decimal(18, 4)
+  id               String        @id @default(uuid())
+  tenantId         String
+  tenant           Tenant        @relation(fields: [tenantId], references: [id])
+  purchaseOrderId  String
+  purchaseOrder    PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  productId        String
+  product          Product       @relation(fields: [productId], references: [id])
+  quantity         Decimal       @db.Decimal(18, 4)
+  unitPrice        Decimal       @db.Decimal(18, 4)
+  // Running total received across every goods receipt against this line —
+  // lets a PO be received in more than one delivery (partial receipts) and
+  // is the source of truth the line-level 3-way match checks against.
+  receivedQuantity Decimal       @default(0) @db.Decimal(18, 4)
+
+  goodsReceiptLines GoodsReceiptLine[]
 
   @@index([tenantId])
   @@index([purchaseOrderId])
@@ -867,11 +1004,58 @@ model GoodsReceipt {
   tenant          Tenant        @relation(fields: [tenantId], references: [id])
   purchaseOrderId String
   purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  warehouseId     String
+  warehouse       Warehouse     @relation(fields: [warehouseId], references: [id])
   receivedAt      DateTime      @default(now())
   notes           String?
 
+  costLayers InventoryCostLayer[]
+  lines      GoodsReceiptLine[]
+
   @@index([tenantId])
   @@index([purchaseOrderId])
+}
+
+// One row per (product, quantity) actually received in a single delivery —
+// the audit trail behind PurchaseOrderLine.receivedQuantity, and what makes
+// a partial delivery ("received 60 of 100 ordered") a real, queryable fact
+// instead of just a status label.
+model GoodsReceiptLine {
+  id                  String            @id @default(uuid())
+  tenantId            String
+  tenant              Tenant            @relation(fields: [tenantId], references: [id])
+  goodsReceiptId      String
+  goodsReceipt        GoodsReceipt      @relation(fields: [goodsReceiptId], references: [id])
+  purchaseOrderLineId String
+  purchaseOrderLine   PurchaseOrderLine @relation(fields: [purchaseOrderLineId], references: [id])
+  productId           String
+  product             Product           @relation(fields: [productId], references: [id])
+  quantity            Decimal           @db.Decimal(18, 4)
+
+  @@index([tenantId])
+  @@index([goodsReceiptId])
+  @@index([purchaseOrderLineId])
+}
+
+model InventoryCostLayer {
+  id             String        @id @default(uuid())
+  tenantId       String
+  tenant         Tenant        @relation(fields: [tenantId], references: [id])
+  productId      String
+  product        Product       @relation(fields: [productId], references: [id])
+  warehouseId    String
+  warehouse      Warehouse     @relation(fields: [warehouseId], references: [id])
+  goodsReceiptId String?
+  goodsReceipt   GoodsReceipt? @relation(fields: [goodsReceiptId], references: [id])
+  quantity       Decimal       @db.Decimal(18, 4)
+  remainingQty   Decimal       @db.Decimal(18, 4)
+  unitCost       Decimal       @db.Decimal(18, 4)
+  receivedAt     DateTime      @default(now())
+
+  @@index([tenantId])
+  @@index([productId])
+  @@index([warehouseId])
+  @@index([tenantId, productId, warehouseId])
 }
 
 model StockLevel {
@@ -899,19 +1083,20 @@ model StockMovement {
   warehouse   Warehouse         @relation(fields: [warehouseId], references: [id])
   type        StockMovementType
   quantity    Decimal           @db.Decimal(18, 4)
-  reference   String?           // e.g. GoodsReceipt id, SalesOrder id
+  reference   String? // e.g. GoodsReceipt id, SalesOrder id
   createdAt   DateTime          @default(now())
 
   @@index([tenantId])
   @@index([productId])
+  @@index([tenantId, productId, createdAt])
 }
 
 model ReorderRule {
-  id          String   @id @default(uuid())
-  tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
-  productId   String
-  product     Product  @relation(fields: [productId], references: [id])
+  id           String  @id @default(uuid())
+  tenantId     String
+  tenant       Tenant  @relation(fields: [tenantId], references: [id])
+  productId    String
+  product      Product @relation(fields: [productId], references: [id])
   thresholdQty Decimal @db.Decimal(18, 4)
   reorderQty   Decimal @db.Decimal(18, 4)
   isActive     Boolean @default(true)
@@ -921,19 +1106,22 @@ model ReorderRule {
 }
 
 model ForecastModel {
-  id          String            @id @default(uuid())
-  tenantId    String
-  tenant      Tenant            @relation(fields: [tenantId], references: [id])
-  type        ForecastModelType
-  version     String
-  trainedAt   DateTime?
-  mapeScore   Float?
-  isActive    Boolean           @default(false)
-  createdAt   DateTime          @default(now())
+  id        String            @id @default(uuid())
+  tenantId  String
+  tenant    Tenant            @relation(fields: [tenantId], references: [id])
+  productId String?
+  product   Product?          @relation(fields: [productId], references: [id])
+  type      ForecastModelType
+  version   String
+  trainedAt DateTime?
+  mapeScore Float?
+  isActive  Boolean           @default(false)
+  createdAt DateTime          @default(now())
 
   predictions ForecastPrediction[]
 
   @@index([tenantId])
+  @@index([tenantId, productId])
 }
 
 model ForecastPrediction {
@@ -969,10 +1157,13 @@ model Project {
   updatedAt   DateTime      @updatedAt
   deletedAt   DateTime?
 
-  tasks               Task[]
-  milestones          Milestone[]
-  resourceAllocations ResourceAllocation[]
-  budgets             ProjectBudget[]
+  tasks                Task[]
+  milestones           Milestone[]
+  resourceAllocations  ResourceAllocation[]
+  budgets              ProjectBudget[]
+  purchaseRequisitions PurchaseRequisition[]
+  purchaseOrders       PurchaseOrder[]
+  invoices             Invoice[]
 
   @@index([tenantId])
 }
@@ -992,8 +1183,8 @@ model Task {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
-  dependsOn   TaskDependency[] @relation("DependentTask")
-  dependedBy  TaskDependency[] @relation("PrerequisiteTask")
+  dependsOn   TaskDependency[]     @relation("DependentTask")
+  dependedBy  TaskDependency[]     @relation("PrerequisiteTask")
   allocations ResourceAllocation[]
 
   @@index([tenantId])
@@ -1001,27 +1192,27 @@ model Task {
 }
 
 model TaskDependency {
-  id               String @id @default(uuid())
-  tenantId         String
-  dependentTaskId  String
-  dependentTask    Task   @relation("DependentTask", fields: [dependentTaskId], references: [id])
+  id                 String @id @default(uuid())
+  tenantId           String
+  dependentTaskId    String
+  dependentTask      Task   @relation("DependentTask", fields: [dependentTaskId], references: [id])
   prerequisiteTaskId String
-  prerequisiteTask Task   @relation("PrerequisiteTask", fields: [prerequisiteTaskId], references: [id])
+  prerequisiteTask   Task   @relation("PrerequisiteTask", fields: [prerequisiteTaskId], references: [id])
 
   @@unique([dependentTaskId, prerequisiteTaskId])
   @@index([tenantId])
 }
 
 model Milestone {
-  id        String   @id @default(uuid())
-  tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  projectId String
-  project   Project  @relation(fields: [projectId], references: [id])
-  name      String
-  dueDate   DateTime
-  isAchieved Boolean @default(false)
-  createdAt DateTime @default(now())
+  id         String   @id @default(uuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id])
+  name       String
+  dueDate    DateTime
+  isAchieved Boolean  @default(false)
+  createdAt  DateTime @default(now())
 
   tasks Task[]
 
@@ -1030,18 +1221,18 @@ model Milestone {
 }
 
 model ResourceAllocation {
-  id          String   @id @default(uuid())
-  tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
-  projectId   String
-  project     Project  @relation(fields: [projectId], references: [id])
-  taskId      String?
-  task        Task?    @relation(fields: [taskId], references: [id])
-  employeeId  String
-  employee    Employee @relation(fields: [employeeId], references: [id])
-  allocatedHours Decimal @db.Decimal(10, 2)
-  startDate   DateTime
-  endDate     DateTime?
+  id             String    @id @default(uuid())
+  tenantId       String
+  tenant         Tenant    @relation(fields: [tenantId], references: [id])
+  projectId      String
+  project        Project   @relation(fields: [projectId], references: [id])
+  taskId         String?
+  task           Task?     @relation(fields: [taskId], references: [id])
+  employeeId     String
+  employee       Employee  @relation(fields: [employeeId], references: [id])
+  allocatedHours Decimal   @db.Decimal(10, 2)
+  startDate      DateTime
+  endDate        DateTime?
 
   @@index([tenantId])
   @@index([projectId])
@@ -1049,16 +1240,16 @@ model ResourceAllocation {
 }
 
 model ProjectBudget {
-  id            String   @id @default(uuid())
-  tenantId      String
-  tenant        Tenant   @relation(fields: [tenantId], references: [id])
-  projectId     String
-  project       Project  @relation(fields: [projectId], references: [id])
-  plannedAmount Decimal  @db.Decimal(18, 4)
-  actualAmount  Decimal  @default(0) @db.Decimal(18, 4)
-  overrunThresholdPct Decimal @default(10) @db.Decimal(5, 2)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                  String   @id @default(uuid())
+  tenantId            String
+  tenant              Tenant   @relation(fields: [tenantId], references: [id])
+  projectId           String
+  project             Project  @relation(fields: [projectId], references: [id])
+  plannedAmount       Decimal  @db.Decimal(18, 4)
+  actualAmount        Decimal  @default(0) @db.Decimal(18, 4)
+  overrunThresholdPct Decimal  @default(10) @db.Decimal(5, 2)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   lines ProjectBudgetLine[]
 
@@ -1074,8 +1265,11 @@ model ProjectBudgetLine {
   projectBudget   ProjectBudget @relation(fields: [projectBudgetId], references: [id])
   description     String
   amount          Decimal       @db.Decimal(18, 4)
-  journalEntryRef String?       // link back to Finance GL posting
+  sourceModule    String? // e.g. "AP", "PAYROLL"
+  sourceId        String? // e.g. invoiceId — dedup key with sourceModule
+  journalEntryRef String? // link back to Finance GL posting
 
+  @@unique([tenantId, sourceModule, sourceId])
   @@index([tenantId])
   @@index([projectBudgetId])
 }
@@ -1085,29 +1279,30 @@ model ProjectBudgetLine {
 // ============================================================================
 
 model Dashboard {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
   name      String
   ownerId   String?
-  layout    Json?    // widget positions
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  layout    Json? // widget positions
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  widgets Widget[]
+  widgets          Widget[]
+  scheduledReports ScheduledReport[]
 
   @@index([tenantId])
 }
 
 model Widget {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
   dashboardId String
   dashboard   Dashboard @relation(fields: [dashboardId], references: [id])
-  type        String   // "bar" | "line" | "pie" | "heatmap" | "funnel"
-  config      Json      // chart config, source query, filters
+  type        String // "bar" | "line" | "pie" | "heatmap" | "funnel"
+  config      Json // chart config, source query, filters
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -1116,15 +1311,19 @@ model Widget {
 }
 
 model ScheduledReport {
-  id           String   @id @default(uuid())
-  tenantId     String
-  tenant       Tenant   @relation(fields: [tenantId], references: [id])
-  name         String
-  cronExpr     String
-  format       String   // "PDF" | "EXCEL"
-  recipients   String[]
-  lastRunAt    DateTime?
-  createdAt    DateTime @default(now())
+  id             String     @id @default(uuid())
+  tenantId       String
+  tenant         Tenant     @relation(fields: [tenantId], references: [id])
+  name           String
+  dashboardId    String?
+  dashboard      Dashboard? @relation(fields: [dashboardId], references: [id])
+  cronExpr       String
+  format         String // "PDF" | "EXCEL"
+  recipients     String[]
+  lastRunAt      DateTime?
+  lastReportPath String?
+  isActive       Boolean    @default(true)
+  createdAt      DateTime   @default(now())
 
   @@index([tenantId])
 }
@@ -1139,7 +1338,7 @@ model Notification {
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   userId    String?
   user      User?    @relation(fields: [userId], references: [id])
-  eventType String   // e.g. "PO_CREATED", "BUDGET_OVERRUN"
+  eventType String // e.g. "PO_CREATED", "BUDGET_OVERRUN"
   title     String
   body      String?
   isRead    Boolean  @default(false)
@@ -1149,6 +1348,7 @@ model Notification {
 
   @@index([tenantId])
   @@index([userId])
+  @@index([tenantId, createdAt])
 }
 
 model NotificationPreference {
@@ -1186,14 +1386,14 @@ model NotificationDelivery {
 // ============================================================================
 
 model WebhookSubscription {
-  id          String   @id @default(uuid())
-  tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
-  url         String
-  eventTypes  String[]
-  secret      String   // HMAC signing secret
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
+  id         String   @id @default(uuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  url        String
+  eventTypes String[]
+  secret     String // HMAC signing secret
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
 
   deliveries WebhookDelivery[]
 
@@ -1201,33 +1401,33 @@ model WebhookSubscription {
 }
 
 model WebhookDelivery {
-  id             String               @id @default(uuid())
+  id             String              @id @default(uuid())
   tenantId       String
-  tenant         Tenant               @relation(fields: [tenantId], references: [id])
+  tenant         Tenant              @relation(fields: [tenantId], references: [id])
   subscriptionId String
-  subscription   WebhookSubscription  @relation(fields: [subscriptionId], references: [id])
+  subscription   WebhookSubscription @relation(fields: [subscriptionId], references: [id])
   eventType      String
   payload        Json
   statusCode     Int?
-  attempts       Int                  @default(0)
+  attempts       Int                 @default(0)
   deliveredAt    DateTime?
-  createdAt      DateTime             @default(now())
+  createdAt      DateTime            @default(now())
 
   @@index([tenantId])
   @@index([subscriptionId])
 }
 
 model ApiKey {
-  id         String   @id @default(uuid())
+  id         String    @id @default(uuid())
   tenantId   String
-  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  tenant     Tenant    @relation(fields: [tenantId], references: [id])
   userId     String?
-  user       User?    @relation(fields: [userId], references: [id])
-  keyHash    String   @unique
+  user       User?     @relation(fields: [userId], references: [id])
+  keyHash    String    @unique
   label      String?
   lastUsedAt DateTime?
   expiresAt  DateTime?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime  @default(now())
 
   @@index([tenantId])
 }
@@ -1237,45 +1437,46 @@ model ApiKey {
 // ============================================================================
 
 model AuditLog {
-  id          String   @id @default(uuid())
-  tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
-  userId      String?
-  user        User?    @relation(fields: [userId], references: [id])
-  action      String   // e.g. "INVOICE_APPROVED"
-  entityType  String   // e.g. "Invoice"
-  entityId    String
-  beforeState Json?
-  afterState  Json?
-  hash        String   // tamper-evident hash chain
+  id           String   @id @default(uuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id])
+  action       String // e.g. "INVOICE_APPROVED"
+  entityType   String // e.g. "Invoice"
+  entityId     String
+  beforeState  Json?
+  afterState   Json?
+  hash         String // tamper-evident hash chain
   previousHash String?
-  createdAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
 
   @@index([tenantId])
   @@index([entityType, entityId])
+  @@index([tenantId, createdAt])
 }
 
 model DataSubjectRequest {
-  id          String                   @id @default(uuid())
-  tenantId    String
-  tenant      Tenant                   @relation(fields: [tenantId], references: [id])
+  id           String                   @id @default(uuid())
+  tenantId     String
+  tenant       Tenant                   @relation(fields: [tenantId], references: [id])
   subjectEmail String
-  type        DataSubjectRequestType
-  status      DataSubjectRequestStatus @default(OPEN)
-  requestedAt DateTime                 @default(now())
-  fulfilledAt DateTime?
+  type         DataSubjectRequestType
+  status       DataSubjectRequestStatus @default(OPEN)
+  requestedAt  DateTime                 @default(now())
+  fulfilledAt  DateTime?
 
   @@index([tenantId])
 }
 
 model ConsentRecord {
-  id          String   @id @default(uuid())
-  tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  id           String   @id @default(uuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
   subjectEmail String
-  consentType String
-  granted     Boolean
-  recordedAt  DateTime @default(now())
+  consentType  String
+  granted      Boolean
+  recordedAt   DateTime @default(now())
 
   @@index([tenantId])
 }
@@ -1288,7 +1489,7 @@ model OutboxEvent {
   id          String            @id @default(uuid())
   tenantId    String
   tenant      Tenant            @relation(fields: [tenantId], references: [id])
-  eventType   String            // e.g. "PO_CREATED", "PAYROLL_COMPLETED"
+  eventType   String // e.g. "PO_CREATED", "PAYROLL_COMPLETED"
   payload     Json
   status      OutboxEventStatus @default(PENDING)
   attempts    Int               @default(0)
@@ -1303,8 +1504,8 @@ model SagaState {
   id           String     @id @default(uuid())
   payrollRunId String
   payrollRun   PayrollRun @relation(fields: [payrollRunId], references: [id])
-  stepName     String     // e.g. "CALCULATE_GROSS", "POST_GL", "GENERATE_PAYSLIP"
-  status       String     // "PENDING" | "DONE" | "COMPENSATED" | "FAILED"
+  stepName     String // e.g. "CALCULATE_GROSS", "POST_GL", "GENERATE_PAYSLIP"
+  status       String // "PENDING" | "DONE" | "COMPENSATED" | "FAILED"
   payload      Json?
   executedAt   DateTime?
 
