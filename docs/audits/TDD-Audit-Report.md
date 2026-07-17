@@ -114,9 +114,9 @@ The other two company-wide loops work the same way:
 
   [In simple words: The company organisation chart works fine, but it is built inside the user's browser instead of by the database, which is what the plan asked for. For a small or medium company this is no problem; for a very large company with thousands of employees it may become slow.]
 
-- ⚠️ Leave **accrual rules** (Day 10) are not implemented — leave types/approvals exist, but balances don't accrue.
+- ✅ **Correction (post-audit):** Leave **accrual rules** (Day 10) are now implemented — `LeaveAccrualService` + `LeaveAccrualScheduler` grant each active employee `leaveType.accrualRate` additional days per leave type on a monthly cron (`EVERY_1ST_DAY_OF_MONTH_AT_MIDNIGHT`), on top of the leave request/approval workflow that already worked.
 
-  [In simple words: Employees can apply for leave and managers can approve or reject it — that works. But the system does not automatically build up each employee's earned leave balance over time (for example, earning 1.5 days of leave per month worked). Leave balances are simply not tracked.]
+  [In simple words: Employees can apply for leave and managers can approve or reject it, and the system now also automatically adds earned leave to each employee's balance once a month, based on that leave type's configured accrual rate.]
 
 ### F-05 Supply Chain & Inventory — ✅ Implemented
 
@@ -239,27 +239,27 @@ The only mild scope-creep concern: some of this effort (e.g., sales orders, port
 
 ## Part 4 — Scoreboard: Done vs. Remaining
 
-| Requirement                                     | Status                                                            |
-| ----------------------------------------------- | ----------------------------------------------------------------- |
-| F-01 Multi-tenant auth/SSO                      | ✅ Done (realm-per-tenant + MFA delegated to Keycloak)            |
-| F-02 Financial ledger                           | ✅ Done, except multi-currency _conversion_                       |
-| F-03 AP/AR automation                           | ✅ Done (matching header-level; OCR mock by default)              |
-| F-04 HR & payroll                               | ✅ Done (saga compensation **fixed 11 July**; leave accrual open) |
-| F-05 SCM & inventory                            | ✅ Done (full-receipt only)                                       |
-| F-06 AI forecasting                             | ✅ Done                                                           |
-| F-07 Project management                         | ✅ Done                                                           |
-| F-08 Business intelligence                      | ✅ Done (builder basic)                                           |
-| F-09 Audit & GDPR                               | ✅ Done                                                           |
-| F-10 Notifications                              | ✅ Done+                                                          |
-| F-11 API gateway & webhooks                     | ✅ Done                                                           |
-| F-12 Offline/PWA                                | ❌ Not started                                                    |
-| Security hardening                              | ✅ Done                                                           |
-| Docker/K8s/Helm/ArgoCD manifests                | ✅ Done                                                           |
-| **Automated tests (unit/integration/E2E/load)** | 🟡 Unit tests + CI ✅ (11 July); integration/E2E/load open        |
-| **Live deployment URL**                         | ✅ **LIVE 11 July** — https://erp.92-4-86-3.sslip.io              |
-| **Observability stack**                         | ❌ Not started                                                    |
-| Docs (README, ADRs, C4, ERD, API docs)          | ✅ Present                                                        |
-| Demo video                                      | ❌ Pending                                                        |
+| Requirement                                     | Status                                                                                  |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------- |
+| F-01 Multi-tenant auth/SSO                      | ✅ Done (realm-per-tenant + MFA delegated to Keycloak)                                  |
+| F-02 Financial ledger                           | ✅ Done, except multi-currency _conversion_                                             |
+| F-03 AP/AR automation                           | ✅ Done (matching header-level; OCR mock by default)                                    |
+| F-04 HR & payroll                               | ✅ Done (saga compensation **fixed 11 July**; leave accrual **implemented post-audit**) |
+| F-05 SCM & inventory                            | ✅ Done (full-receipt only)                                                             |
+| F-06 AI forecasting                             | ✅ Done                                                                                 |
+| F-07 Project management                         | ✅ Done                                                                                 |
+| F-08 Business intelligence                      | ✅ Done (builder basic)                                                                 |
+| F-09 Audit & GDPR                               | ✅ Done                                                                                 |
+| F-10 Notifications                              | ✅ Done+                                                                                |
+| F-11 API gateway & webhooks                     | ✅ Done                                                                                 |
+| F-12 Offline/PWA                                | ❌ Not started                                                                          |
+| Security hardening                              | ✅ Done                                                                                 |
+| Docker/K8s/Helm/ArgoCD manifests                | ✅ Done                                                                                 |
+| **Automated tests (unit/integration/E2E/load)** | 🟡 Unit tests + CI ✅ (11 July); integration/E2E/load open                              |
+| **Live deployment URL**                         | ✅ **LIVE 11 July** — https://erp.92-4-86-3.sslip.io                                    |
+| **Observability stack**                         | ❌ Not started                                                                          |
+| Docs (README, ADRs, C4, ERD, API docs)          | ✅ Present                                                                              |
+| Demo video                                      | ❌ Pending                                                                              |
 
 [In simple words — what each remaining ❌/🟡 row above means:
 — **Offline/PWA**: the app cannot work without internet at all; this planned feature was never started (deliberately de-scoped, see README roadmap).
@@ -304,7 +304,7 @@ The TDD names six user segments. Verdict per persona, walking their real screens
 
 **HR user — served.** Employees (with contracts), Departments, Org Chart, Leave Requests (approve/reject in place), Attendance, Statutory Compliance rates, Payroll trigger. Payroll runs asynchronously and the screen reflects run status.
 
-**Plain employee — thinner but covered where it counts.** No dedicated self-service section, but the Home dashboard adapts: it shows **their own leave balance cards and their latest payslip** — the two things employees actually come for. Leave _application_ also works. Missing: payslip history (only the latest is surfaced) and leave-balance accrual (backend gap, Part 2 F-04).
+**Plain employee — thinner but covered where it counts.** No dedicated self-service section, but the Home dashboard adapts: it shows **their own leave balance cards and their latest payslip** — the two things employees actually come for. Leave _application_ also works, and balances now accrue monthly (Part 2 F-04, implemented post-audit). Missing: payslip history (only the latest is surfaced).
 
 **Executive — served.** Home KPI dashboard, BI dashboards with drill-down, scheduled PDF/Excel reports, AI Forecast — a director gets a real overview without asking anyone.
 
@@ -483,7 +483,7 @@ A **"Known Deviations from the TDD"** table + roadmap list now lives in `README.
 
 ### Deliberately dropped for the 3-day window ⏳
 
-PWA/offline (F-12), observability stack, k6 load test, leave accrual, MAPE monitoring, drag-drop dashboard editor, allocation editing, activity timelines, WCAG audit. Each is real, none moves marks as much as B, G, or C do in the time left. List them in the README as roadmap items — the TDD itself de-scopes via "MVP feature scope and de-scope list" (Day 1), so naming your de-scope is following the plan.
+PWA/offline (F-12), observability stack, k6 load test, leave accrual (**later implemented, see F-04 correction above**), MAPE monitoring, drag-drop dashboard editor, allocation editing, activity timelines, WCAG audit. Each is real, none moves marks as much as B, G, or C do in the time left. List them in the README as roadmap items — the TDD itself de-scopes via "MVP feature scope and de-scope list" (Day 1), so naming your de-scope is following the plan.
 
 ### Where I need you, summarized 🙋
 

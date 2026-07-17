@@ -18,7 +18,7 @@ LinkedIn post (full-stack development): https://www.linkedin.com/posts/agrim-gup
 | **Tenant slug**         | `company-a`                                                                                    |
 | **Admin login**         | `admin@companya.in` / `Admin123!` (full role list: `docs/guides/company-a-employee-logins.md`) |
 
-Deployed on Oracle Cloud with Caddy (automatic HTTPS via Let’s Encrypt), pm2-managed production builds, and the Docker infrastructure stack (PostgreSQL, Redis, Keycloak, MinIO, Elasticsearch).
+Deployed on Oracle Cloud with Caddy (automatic HTTPS via Let’s Encrypt), pm2-managed production builds, and the Docker infrastructure stack (PostgreSQL 17 + TimescaleDB, Redis, Keycloak, MinIO, Elasticsearch).
 
 ![Login](docs/screenshots/Login.png)
 
@@ -46,7 +46,7 @@ The only remaining P0: recording the 5–7 min scenario-based demo video. Everyt
 | -------------------------------------------- | ----------------------------------------------------------------------------- |
 | `docs/architecture/backend_architecture.md`  | NestJS module layout, request lifecycle, tenant isolation, RBAC guards        |
 | `docs/architecture/frontend_architecture.md` | Next.js app router structure, state management, API client layer              |
-| `docs/erd/database-erd.md` (rendered above)  | Full Prisma schema — 58+ models across every module                           |
+| `docs/erd/database-erd.md` (rendered above)  | Full Prisma schema — 67 models across every module                            |
 | `docs/architecture/auth-flow.md`             | Login flow (password / Google / company SSO), auto-link, MFA — with a diagram |
 | `docs/architecture/observability.md`         | OTel + Prometheus/Grafana/Loki/Tempo stack, public dashboard URLs             |
 | `docs/c4/`                                   | C4 context/container/component diagrams                                       |
@@ -294,31 +294,20 @@ This produces `postman_collection.json` inside the `apps/api` folder.
 
 The full requirement-by-requirement audit lives in `docs/audits/TDD-Audit-Report.md`.
 
-| Area                 | TDD asked for                           | What we built & why                                                                                                                                                    |
-| -------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Token rotation       | Refresh-token rotation                  | Configurable per tenant in Settings → Identity Settings; off by default. MFA itself is fully built — see below, no longer a deviation.                                 |
-| 3-way matching       | Line-by-line PO/GR/Invoice match        | Header-level match: invoice total vs PO total within a 2% tolerance + vendor & GR ownership. Line-level matching requires per-line goods-receipt quantities (roadmap). |
-| Goods receipt        | Partial receipts (`PARTIALLY_RECEIVED`) | Full-order receipt only; schema status exists for roadmap item.                                                                                                        |
-| Multi-currency       | FX conversion on transactions           | Daily ECB rates fetched/stored per tenant; conversion at posting time not applied yet (demo single-currency).                                                          |
-| Reorder automation   | Trigger PO draft when stock < threshold | Raises purchase requisition instead; a human converts it to a PO.                                                                                                      |
-| Audit log storage    | TimescaleDB append-only                 | Regular PostgreSQL with SHA-256 hash chaining for tamper evidence. Time-series engine dropped.                                                                         |
-| Notification retries | Retry up to 3x                          | 5 attempts with exponential backoff + dead-letter view (exceeds spec).                                                                                                 |
-| Org chart            | Recursive CTE in Postgres               | Tree assembled client-side from `managerId` (fine for demo scale).                                                                                                     |
-| Journal entries      | Draft→post workflow implied             | Entries post directly as balanced immutable records; corrections via counter-entries.                                                                                  |
-| Payroll saga         | Compensating transactions on failure    | Compensation step: retried run wipes failed attempt payslips before reprocessing.                                                                                      |
+| Area                 | TDD asked for                           | What we built & why                                                                                                                                         |
+| -------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Token rotation       | Refresh-token rotation                  | Configurable per tenant in Settings → Identity Settings; off by default. MFA is fully built (auto-link + per-tenant enforcement) and no longer a deviation. |
+| Multi-currency       | FX conversion on transactions           | Daily ECB rates fetched/stored per tenant; conversion at posting time not applied yet (demo single-currency).                                               |
+| Reorder automation   | Trigger PO draft when stock < threshold | Raises purchase requisition instead; a human converts it to a PO.                                                                                           |
+| Notification retries | Retry up to 3x                          | 5 attempts with exponential backoff + dead-letter view (exceeds spec).                                                                                      |
+| Org chart            | Recursive CTE in Postgres               | Tree assembled client-side from `managerId` (fine for demo scale).                                                                                          |
+| Journal entries      | Draft→post workflow implied             | Entries post directly as balanced immutable records; corrections via counter-entries.                                                                       |
+| Payroll saga         | Compensating transactions on failure    | Compensation step: retried run wipes failed attempt payslips before reprocessing.                                                                           |
 
 ---
 
 ### Not yet implemented (roadmap)
 
-•⁠ ⁠*Offline / PWA (F-12)* — service-worker caching and sync-on-reconnect
-
-•⁠ ⁠*Leave accrual rules* (leave request/approval workflow works; balances don't accrue)
-
-•⁠ ⁠*Forecast accuracy alerting* (MAPE per SKU is computed and visible on the Forecast/BI dashboards — e.g. "target <12%" — but nothing notifies anyone automatically if a SKU crosses that line; would reuse the existing notification engine)
-
-•⁠ ⁠*Line-level 3-way matching + partial goods receipts* (one schema change unlocks both)
-
-•⁠ ⁠*Drag-and-drop dashboard editing* (layouts persist; rearranging is not yet mouse-driven)
+- _Offline / PWA (F-12)_ — service-worker caching and sync-on-reconnect
 
 ---
