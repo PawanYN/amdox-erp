@@ -30,7 +30,7 @@
 | F-06 | AI demand forecasting   | ✅     | FastAPI ml-service: Prophet + PyTorch LSTM for high-volume SKUs, Redis-cached, weekly retrain; **MAPE breach alerting** (`forecast.mape_breach` when >12%) — closed 13 July                                                    |
 | F-07 | Project management      | ✅     | DAG-validated tasks, Gantt, utilisation heatmap, budget actuals fed from AP + payroll, overrun alerts at >110%                                                                                                                 |
 | F-08 | Business intelligence   | ✅     | Drag-drop grid builder (`react-grid-layout`), 10+ chart types, SSE live refresh, scheduled real PDF/XLSX reports                                                                                                               |
-| F-09 | Audit & compliance      | ✅     | SHA-256 hash-chained audit log + verify routine; GDPR DSR + consent; Postgres (not TimescaleDB)                                                                                                                                |
+| F-09 | Audit & compliance      | ✅     | SHA-256 hash-chained audit log + verify routine; GDPR DSR + consent; PostgreSQL + TimescaleDB hypertable (`AuditLog`, migration `20260716000000`)                                                                              |
 | F-10 | Notification engine     | ✅     | In-app (SSE) + email + SMS + HMAC webhook; per-user/channel preferences; 5-attempt retry + Bull Board DLQ at `/admin/queues`                                                                                                   |
 | F-11 | API gateway & webhooks  | ✅     | Versioned REST (`api/v1`) + Swagger, GraphQL (Apollo), outbound HMAC webhooks, Elasticsearch search (10 entity types)                                                                                                          |
 | F-12 | Offline / PWA           | ❌     | De-scoped for MVP (TDD Day-1 de-scope list); on roadmap                                                                                                                                                                        |
@@ -51,11 +51,11 @@
 | ------------- | ---------------------------------- | ------------------------------------------------------------------------------- | ------------------------- |
 | Frontend      | Next.js 15 + React 19 + TS         | Next.js 15.5 + React 19.1                                                       | ✅                        |
 | UI library    | shadcn/ui + Tailwind 4             | Custom component kit + Tailwind 4                                               | ⚠️ deviation (documented) |
-| Charts        | Recharts + ECharts + D3            | Recharts + ECharts (D3 not needed)                                              | ⚠️                        |
+| Charts        | Recharts + ECharts + D3            | Recharts + ECharts + D3 (PM Gantt chart)                                        | ✅                        |
 | Backend       | Node 22 + NestJS 11                | NestJS 11 modular monolith                                                      | ✅                        |
 | API           | REST + GraphQL                     | REST (`api/v1`) + Swagger + GraphQL (Apollo)                                    | ✅                        |
 | Database      | PostgreSQL 17 + Prisma             | PostgreSQL 17 + Prisma (66 tables)                                              | ✅                        |
-| Time-series   | TimescaleDB                        | Plain Postgres + hash chain for audit                                           | ⚠️ deviation (documented) |
+| Time-series   | TimescaleDB                        | TimescaleDB hypertable for `AuditLog` + hash chain for tamper evidence          | ✅                        |
 | Cache/queue   | Redis 8 + BullMQ                   | Redis 8 (noeviction) + BullMQ (payroll, outbox, notifications, retrain)         | ✅                        |
 | ML            | Python FastAPI + Prophet + LSTM    | FastAPI + Prophet + PyTorch LSTM                                                | ✅                        |
 | Search        | Elasticsearch 8                    | Elasticsearch, 10 entities, real-time sync                                      | ✅                        |
