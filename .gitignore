@@ -1,6 +1,9 @@
 # Temporary architect design and workspace source files
 tem/
 
+# Local Claude Code tooling config (dev-server launch config, per-machine)
+.claude/
+
 # Node dependencies
 node_modules/
 .pnpm-store/
