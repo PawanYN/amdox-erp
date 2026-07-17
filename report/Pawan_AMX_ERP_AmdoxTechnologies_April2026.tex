@@ -411,7 +411,7 @@ via a Redis set that every guarded route checks.
 \end{tikzpicture}
 \caption{Authentication flow. Paths A/B/C are three ways to prove identity; everything
 from the merge point on --- MFA, tokens, per-request guards --- is identical regardless
-of path (adapted from \code{docs/auth-flow.md}).}
+of path (adapted from \code{docs/architecture/auth-flow.md}).}
 \end{figure}
 
 \subsection{Financial Ledger --- GL (F-02)}
@@ -861,7 +861,7 @@ uses (Figure~\ref{fig:p2p}).}
 \subsection{Role-Based Access Control}
 
 78 \code{@Roles()} declarations across 21 controllers. The matrix below is abridged;
-the full matrix is in \code{docs/rbac-role-matrix.md}.
+the full matrix is in \code{docs/architecture/rbac-role-matrix.md}.
 
 \begin{table}[H]
 \centering\small

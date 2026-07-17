@@ -34,7 +34,7 @@ The PDF's Day 26 checklist:
 
 Everything below ran and was checked live on the VM, not just configured:
 
-- **API instrumented** — `apps/api/src/observability/otel.ts`, loaded first in `main.ts`. Metrics on `:9464/metrics` (HTTP histograms + Node.js runtime), traces via OTLP to the collector. `OTEL_DISABLED=true` switches it all off.
+- **API instrumented** — `apps/api/src/infrastructure/observability/otel.ts`, loaded first in `main.ts`. Metrics on `:9464/metrics` (HTTP histograms + Node.js runtime), traces via OTLP to the collector. `OTEL_DISABLED=true` switches it all off.
 - **ml-service instrumented** — FastAPI traces → collector (bridged onto the app docker network). Verified: `amdox-ml-service` traces visible in Tempo.
 - **Stack up** — 7 containers (`infra/observability/docker-compose.observability.yml`): collector, Tempo, Prometheus, node-exporter, Loki, Promtail, Grafana. All Prometheus targets **up**.
 - **Tail sampling verified** — 60 successful requests → 3 traces kept (~10%); error traces keep at 100% per the collector policy.

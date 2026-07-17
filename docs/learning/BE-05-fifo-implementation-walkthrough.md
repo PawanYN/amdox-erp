@@ -136,7 +136,7 @@ silently throwing.
 
 ## Step 7: Update the tracking doc
 
-Went through `docs/team_assignment.md` and updated every place BE-05 was
+Went through `docs/planning/team_assignment.md` and updated every place BE-05 was
 referenced (task table, priority list, owner table, executive snapshot, overall
 completion percentages) so the doc stays internally consistent rather than
 having one row say "done" and a summary table elsewhere still say "open."

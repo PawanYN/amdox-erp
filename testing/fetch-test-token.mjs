@@ -40,6 +40,6 @@ export async function ensureTestToken() {
   }
 
   console.error(`Failed to obtain test token from Keycloak: ${lastError}`);
-  console.error('Hint: run scripts/setup-keycloak.sh or set TEST_TOKEN manually.');
+  console.error('Hint: run scripts/keycloak/setup-keycloak.sh or set TEST_TOKEN manually.');
   return false;
 }

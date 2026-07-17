@@ -1,7 +1,7 @@
 # Database ERD — Amdox AI-Powered Cloud ERP Suite
 
 > **Generated file — do not edit by hand.** Regenerate after any schema change with
-> `node scripts/generate-erd.mjs` (source of truth: `packages/db/prisma/schema.prisma`).
+> `node scripts/reporting/generate-erd.mjs` (source of truth: `packages/db/prisma/schema.prisma`).
 >
 > Current schema: **67 models**, 77 relations, PostgreSQL 17 + Prisma.
 > Every model carries `tenantId` (multi-tenant row scoping); those edges are omitted below for readability.

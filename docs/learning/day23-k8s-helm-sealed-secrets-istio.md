@@ -132,7 +132,7 @@ curl -H "Host: api-staging.amdox.local" http://$NODE_IP:31914/health/live
 
 - In-cluster Keycloaks have **no realms** (`/realms/amdox-erp` → 404 in all
   three namespaces) — login flows still need the docker-compose stack until
-  `scripts/setup-keycloak.sh` is run against them.
+  `scripts/keycloak/setup-keycloak.sh` is run against them.
 - The kind cluster was created without 80/443 port mappings, so ingress is
   reached via the node container IP + NodePort, not `localhost`.
 - ArgoCD (deploying this chart via GitOps) is Day 24 scope and still open.

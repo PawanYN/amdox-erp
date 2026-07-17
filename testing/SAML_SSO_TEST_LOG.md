@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-06
 **Environment:** Linux, Node.js v20, API at `http://localhost:3001`, Web at `http://localhost:3000`, Keycloak 25.0.6 at `http://localhost:8180` (container `amdox-keycloak`, internal port 8080)
-**Purpose:** `docs/team_assignment.md` claimed "SAML adapter ✅ — wired end-to-end but not live SSO-tested." This log performs that missing live test: register a real external SAML Identity Provider against the `company-a` tenant realm through the app's own code path, then drive an actual login round-trip (external IdP → SAML assertion → Keycloak broker → OIDC token), with no browser — every auto-submit HTML form is parsed and resubmitted by hand with `curl`.
+**Purpose:** `docs/planning/team_assignment.md` claimed "SAML adapter ✅ — wired end-to-end but not live SSO-tested." This log performs that missing live test: register a real external SAML Identity Provider against the `company-a` tenant realm through the app's own code path, then drive an actual login round-trip (external IdP → SAML assertion → Keycloak broker → OIDC token), with no browser — every auto-submit HTML form is parsed and resubmitted by hand with `curl`.
 
 ---
 
@@ -336,7 +336,7 @@ curl -X DELETE ".../realms/test-idp"                                     # whole
 
 ### Result
 
-All three returned `204`. `company-a`'s identity-provider list is back to `[]`; `test-idp` realm returns `404` (gone). `git status` confirmed no source files were altered by the test itself (only the already-tracked `docs/team_assignment.md`, edited separately/concurrently, and this new file).
+All three returned `204`. `company-a`'s identity-provider list is back to `[]`; `test-idp` realm returns `404` (gone). `git status` confirmed no source files were altered by the test itself (only the already-tracked `docs/planning/team_assignment.md`, edited separately/concurrently, and this new file).
 
 ### Analysis
 

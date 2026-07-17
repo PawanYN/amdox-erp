@@ -10,14 +10,14 @@
 
 ## PDF Requirements (Acceptance)
 
-| Requirement | Target | Status |
-|-------------|--------|--------|
-| Drag-and-drop dashboard builder | Widget config JSON in Postgres | ✅ |
-| Chart types | bar, line, pie, heatmap, funnel + extensions | ✅ |
-| Drill-down | Chart segment → filtered table | ✅ |
-| Scheduled reports | PDF/Excel + email | ✅ |
-| Real-time refresh | SSE on `/bi/metrics/stream` | ✅ |
-| Dashboard save | `< 500ms` | ✅ Debounced (400ms) |
+| Requirement                     | Target                                       | Status               |
+| ------------------------------- | -------------------------------------------- | -------------------- |
+| Drag-and-drop dashboard builder | Widget config JSON in Postgres               | ✅                   |
+| Chart types                     | bar, line, pie, heatmap, funnel + extensions | ✅                   |
+| Drill-down                      | Chart segment → filtered table               | ✅                   |
+| Scheduled reports               | PDF/Excel + email                            | ✅                   |
+| Real-time refresh               | SSE on `/bi/metrics/stream`                  | ✅                   |
+| Dashboard save                  | `< 500ms`                                    | ✅ Debounced (400ms) |
 
 ---
 
@@ -64,7 +64,7 @@
 
 - [x] Smoke checklist documented below
 - [x] Dashboard PATCH debounced for save latency target
-- [x] `project_status.md` F-08 updated
+- [x] `docs/planning/project_status.md` F-08 updated
 - [x] Demo script for evaluators
 
 ---
@@ -85,18 +85,18 @@
 
 ## Key Files
 
-| Layer | Path |
-|-------|------|
-| BI page | `apps/web/src/app/(dashboard)/bi/page.tsx` |
-| Workspace | `apps/web/src/components/bi/bi-workspace.tsx` |
-| Grid | `apps/web/src/components/bi/grid-layout-wrapper.tsx` |
-| Types | `apps/web/src/lib/types/bi.ts` |
-| API client | `apps/web/src/lib/api/bi-api.ts` |
-| Controller | `apps/api/src/bi/bi.controller.ts` |
-| DTOs | `apps/api/src/bi/dto/bi.dto.ts` |
-| Data layer | `apps/api/src/bi/bi-data.service.ts` |
-| Reports | `apps/api/src/bi/bi-report.service.ts` |
-| Seed | `packages/db/prisma/seed.ts` |
+| Layer      | Path                                                 |
+| ---------- | ---------------------------------------------------- |
+| BI page    | `apps/web/src/app/(dashboard)/bi/page.tsx`           |
+| Workspace  | `apps/web/src/components/bi/bi-workspace.tsx`        |
+| Grid       | `apps/web/src/components/bi/grid-layout-wrapper.tsx` |
+| Types      | `apps/web/src/lib/types/bi.ts`                       |
+| API client | `apps/web/src/lib/api/bi-api.ts`                     |
+| Controller | `apps/api/src/bi/bi.controller.ts`                   |
+| DTOs       | `apps/api/src/bi/dto/bi.dto.ts`                      |
+| Data layer | `apps/api/src/bi/bi-data.service.ts`                 |
+| Reports    | `apps/api/src/bi/bi-report.service.ts`               |
+| Seed       | `packages/db/prisma/seed.ts`                         |
 
 ---
 
@@ -115,4 +115,4 @@ npm run dev
 
 ---
 
-*Last updated: 2026-07-03*
+_Last updated: 2026-07-03_

@@ -10,46 +10,46 @@ LinkedIn post (full-stack development): https://www.linkedin.com/posts/agrim-gup
 
 ## 🌐 Live Demo
 
-|                         |                                                                                         |
-| ----------------------- | --------------------------------------------------------------------------------------- |
-| **App**                 | https://erp.92-4-86-3.sslip.io                                                          |
-| **API docs (Swagger)**  | https://erp.92-4-86-3.sslip.io/api-docs                                                 |
-| **Identity (Keycloak)** | https://kc.92-4-86-3.sslip.io                                                           |
-| **Tenant slug**         | `company-a`                                                                             |
-| **Admin login**         | `admin@companya.in` / `Admin123!` (full role list: `docs/company-a-employee-logins.md`) |
+|                         |                                                                                                |
+| ----------------------- | ---------------------------------------------------------------------------------------------- |
+| **App**                 | https://erp.92-4-86-3.sslip.io                                                                 |
+| **API docs (Swagger)**  | https://erp.92-4-86-3.sslip.io/api-docs                                                        |
+| **Identity (Keycloak)** | https://kc.92-4-86-3.sslip.io                                                                  |
+| **Tenant slug**         | `company-a`                                                                                    |
+| **Admin login**         | `admin@companya.in` / `Admin123!` (full role list: `docs/guides/company-a-employee-logins.md`) |
 
 Deployed on Oracle Cloud with Caddy (automatic HTTPS via Let’s Encrypt), pm2-managed production builds, and the Docker infrastructure stack (PostgreSQL, Redis, Keycloak, MinIO, Elasticsearch).
 
-![Login](images/Login.png)
+![Login](docs/screenshots/Login.png)
 
-![Dashboard](images/Dashboard.png)
+![Dashboard](docs/screenshots/Dashboard.png)
 
-![Attendance](images/Attendance.png)
+![Attendance](docs/screenshots/Attendance.png)
 
-![Grafana Dashboard](images/GrafanaDashboard.png)
+![Grafana Dashboard](docs/screenshots/GrafanaDashboard.png)
 
 ![ERD](docs/erd/database-erd.png)
 
-> ERD reference: `docs/erd/database-erd.md` — auto-generated from the live Prisma schema (67 models) via `node scripts/generate-erd.mjs`
+> ERD reference: `docs/erd/database-erd.md` — auto-generated from the live Prisma schema (67 models) via `node scripts/reporting/generate-erd.mjs`
 
 ---
 
 ## 📊 Project Status
 
-**39 done · 2 partial · 2 open** out of 43 tracked tasks (Frontend 18/18, Backend 9/11, Integrations 9/9, Platform 3/5). Full breakdown with evidence: `docs/team_assignment.md`.
+**39 done · 2 partial · 2 open** out of 43 tracked tasks (Frontend 18/18, Backend 9/11, Integrations 9/9, Platform 3/5). Full breakdown with evidence: `docs/planning/team_assignment.md`.
 
 The only remaining P0: recording the 5–7 min scenario-based demo video. Everything else — including the live deployment, auth hardening (SSO auto-link + per-tenant MFA), and the observability stack below — is built and verified against the running system, not just planned.
 
 ## 🏗️ Architecture
 
-| Doc                                         | Covers                                                                        |
-| ------------------------------------------- | ----------------------------------------------------------------------------- |
-| `docs/backend_architecture.md`              | NestJS module layout, request lifecycle, tenant isolation, RBAC guards        |
-| `docs/frontend_architecture.md`             | Next.js app router structure, state management, API client layer              |
-| `docs/erd/database-erd.md` (rendered above) | Full Prisma schema — 58+ models across every module                           |
-| `docs/auth-flow.md`                         | Login flow (password / Google / company SSO), auto-link, MFA — with a diagram |
-| `docs/observability.md`                     | OTel + Prometheus/Grafana/Loki/Tempo stack, public dashboard URLs             |
-| `docs/c4/`                                  | C4 context/container/component diagrams                                       |
+| Doc                                          | Covers                                                                        |
+| -------------------------------------------- | ----------------------------------------------------------------------------- |
+| `docs/architecture/backend_architecture.md`  | NestJS module layout, request lifecycle, tenant isolation, RBAC guards        |
+| `docs/architecture/frontend_architecture.md` | Next.js app router structure, state management, API client layer              |
+| `docs/erd/database-erd.md` (rendered above)  | Full Prisma schema — 58+ models across every module                           |
+| `docs/architecture/auth-flow.md`             | Login flow (password / Google / company SSO), auto-link, MFA — with a diagram |
+| `docs/architecture/observability.md`         | OTel + Prometheus/Grafana/Loki/Tempo stack, public dashboard URLs             |
+| `docs/c4/`                                   | C4 context/container/component diagrams                                       |
 
 A deployment topology diagram (VM/Caddy/pm2/Docker layout) is not yet drawn — the architecture docs above describe it in prose today.
 
@@ -64,18 +64,28 @@ amdox-erp/
 ├── .github/
 │   └── workflows/
 ├── apps/
-│   ├── api/                           # NestJS Backend API (Initialized Structure)
+│   ├── api/                            # NestJS Backend API
 │   │   ├── src/
-│   │   │   ├── audit/
+│   │   │   ├── audit/                 # business modules — one folder per capability
 │   │   │   ├── auth/
-│   │   │   ├── common/
-│   │   │   ├── finance/
-│   │   │   ├── health/
-│   │   │   ├── hr/
+│   │   │   ├── bi/
+│   │   │   ├── finance/                (ap, ar, gl, fx, sales, automation, listeners)
+│   │   │   ├── forecast/
+│   │   │   ├── hr/                     (employee, payroll, leave, attendance, department, compliance)
+│   │   │   ├── infrastructure/         # cross-cutting, not business capabilities
+│   │   │   │   ├── common/             (guards, interceptors, logger, redis, storage, throttler)
+│   │   │   │   ├── graphql/
+│   │   │   │   ├── health/
+│   │   │   │   ├── observability/
+│   │   │   │   ├── queues/             (shared BullMQ queue-name constants)
+│   │   │   │   └── search/
 │   │   │   ├── notification/
-│   │   │   └── scm/
+│   │   │   ├── pm/
+│   │   │   ├── scm/                    (purchase, requisition, inventory, vendor, vendor-portal, product, automation)
+│   │   │   └── tenant/
+│   │   ├── scripts/                    # in-package scripts, see scripts/README.md there
 │   │   └── test/
-│   ├── ml-service/
+│   ├── ml-service/                    # Python FastAPI demand-forecasting microservice
 │   └── web/                           # Next.js Frontend
 │       ├── public/
 │       ├── src/
@@ -86,26 +96,34 @@ amdox-erp/
 │       │   ├── stores/
 │       │   └── styles/
 ├── docs/
-│   ├── adr/
+│   ├── architecture/                  # system design docs
+│   ├── audits/                        # point-in-time audit reports
+│   ├── planning/                      # task tracking / project status
+│   ├── guides/                        # setup / how-to docs
+│   ├── reference/                     # static reference material (original TDD, etc.)
+│   ├── adr/                           # Architecture Decision Records
 │   ├── api/
 │   │   └── openapi.yaml
-│   ├── c4/
+│   ├── c4/                            # Mermaid-based C4 diagrams (companion to the team's Eraser diagrams)
 │   │   ├── component.md
 │   │   ├── component_clean.md
 │   │   ├── container.md
 │   │   └── context.md
 │   ├── erd/
 │   │   ├── database-erd.md            # generated: full ERD + mermaid relations
-│   │   ├── database-erd.png           # generated: ERD image (node scripts/generate-erd.mjs)
+│   │   ├── database-erd.png           # generated: ERD image (node scripts/reporting/generate-erd.mjs)
 │   │   └── schema.prisma              # synced copy of the live schema
-│   ├── frontend_development.md
-│   └── monorepo_structure.md
+│   ├── learning/                      # day-by-day concept walkthroughs
+│   ├── screenshots/                   # README/report screenshots
+│   ├── fixtures/                      # sample test files
+│   ├── doubts/                        # open business-rule questions
+│   └── README.md                      # index of the above
 ├── packages/
 │   ├── config/
 │   │   └── .gitkeep
 │   ├── db/                            # Shared Database Package
 │   │   ├── prisma/
-│   │   │   └── schema.prisma          # Prisma Schema with all 24 entities
+│   │   │   └── schema.prisma          # Prisma Schema — 67 models
 │   │   ├── src/
 │   │   │   └── client.ts              # Prisma Client Singleton
 │   │   ├── package.json
@@ -114,8 +132,13 @@ amdox-erp/
 │   │   └── .gitkeep
 │   └── ui/
 │       └── .gitkeep
-├── scripts/
-│   └── create-api-dirs.ps1
+├── scripts/                           # repo-wide ops/dev tooling, see scripts/README.md
+│   ├── keycloak/
+│   ├── data-seed/
+│   ├── scaffolding/
+│   └── reporting/
+├── testing/                           # standalone black-box API test project, see testing/README.md
+├── report/                            # final submission package (PDF/tex + images)
 ├── .gitignore
 ├── package.json
 ├── pnpm-workspace.yaml
@@ -174,10 +197,10 @@ Run the automated script to configure Keycloak. This will create the `amdox-erp`
 ```powershell
 # Run this from the root directory
 # Windows PowerShell
-.\scripts\setup-keycloak.ps1
+.\scripts\keycloak\setup-keycloak.ps1
 ```
 
-> If you are on macOS/Linux, use: `./scripts/setup-keycloak.sh`
+> If you are on macOS/Linux, use: `./scripts/keycloak/setup-keycloak.sh`
 
 ### Step 4: Build Database & Insert Dummy Data
 
@@ -217,7 +240,7 @@ cd apps/web
 npx pnpm dev
 ```
 
-Refer to `docs/frontend_development.md` for pointing the local frontend to remote/staging APIs.
+Refer to `docs/guides/frontend_development.md` for pointing the local frontend to remote/staging APIs.
 
 ### Option C: Run the Backend Only
 
@@ -269,7 +292,7 @@ This produces `postman_collection.json` inside the `apps/api` folder.
 
 ## Known Deviations from the TDD
 
-The full requirement-by-requirement audit lives in `docs/TDD-Audit-Report.md`.
+The full requirement-by-requirement audit lives in `docs/audits/TDD-Audit-Report.md`.
 
 | Area                 | TDD asked for                           | What we built & why                                                                                                                                                    |
 | -------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

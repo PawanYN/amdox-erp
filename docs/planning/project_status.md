@@ -2,7 +2,7 @@
 
 > **Company document:** [`Amdox Web.pdf`](./Amdox%20Web.pdf) — _AMX-ERP-2026-04, Version 1.0, April 2026_
 > **Last full re-verification:** 13 July 2026 (supersedes the 3 July version of this file, which pre-dated the deployment/testing/observability sprints and is no longer accurate)
-> **Detailed evidence:** [`TDD-Audit-Report.md`](./TDD-Audit-Report.md) (line-by-line audit, 11 July) · [`team_assignment.md`](./team_assignment.md) (task ledger, 12 July)
+> **Detailed evidence:** [`TDD-Audit-Report.md`](../audits/TDD-Audit-Report.md) (line-by-line audit, 11 July) · [`team_assignment.md`](./team_assignment.md) (task ledger, 12 July)
 
 ---
 
@@ -37,13 +37,13 @@
 
 ## 3. Non-Functional Requirements — Evidence
 
-| NFR              | Target                 | Evidence                                                                                                                  |
-| ---------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| API latency      | < 300 ms P95           | k6: p95 = 39 ms on served requests (`testing/K6_LOAD_TEST_LOG.md`)                                                        |
-| Throughput       | 2,000 concurrent users | k6 2,000-VU/10-min runs; surfaced & fixed JWKS + throttler bugs                                                           |
-| Security         | OWASP Top 10 + scans   | Helmet/CSP, user-aware rate limiting, tenant-scoping CI gate, TruffleHog/Grype/Trivy (`docs/security-hardening-audit.md`) |
-| Availability     | 99.9 %                 | Single-VM deployment — SLA alert rules exist (Grafana); HA = roadmap                                                      |
-| Frontend quality | Lighthouse ≥ 90        | `/login` 90, `/home` 93 (prod build); `/bi` 76 (`testing/LIGHTHOUSE_AUDIT.md`)                                            |
+| NFR              | Target                 | Evidence                                                                                                                         |
+| ---------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| API latency      | < 300 ms P95           | k6: p95 = 39 ms on served requests (`testing/K6_LOAD_TEST_LOG.md`)                                                               |
+| Throughput       | 2,000 concurrent users | k6 2,000-VU/10-min runs; surfaced & fixed JWKS + throttler bugs                                                                  |
+| Security         | OWASP Top 10 + scans   | Helmet/CSP, user-aware rate limiting, tenant-scoping CI gate, TruffleHog/Grype/Trivy (`docs/audits/security-hardening-audit.md`) |
+| Availability     | 99.9 %                 | Single-VM deployment — SLA alert rules exist (Grafana); HA = roadmap                                                             |
+| Frontend quality | Lighthouse ≥ 90        | `/login` 90, `/home` 93 (prod build); `/bi` 76 (`testing/LIGHTHOUSE_AUDIT.md`)                                                   |
 
 ## 4. Technology Stack — Spec vs Repo (current)
 
@@ -78,17 +78,17 @@ _Closed 13 July (`999cd39`), formerly on this list: line-level 3-way matching, p
 
 ## 6. Key Documents Map
 
-| Topic                               | Document                                                                             |
-| ----------------------------------- | ------------------------------------------------------------------------------------ |
-| Line-by-line TDD audit              | `docs/TDD-Audit-Report.md`                                                           |
-| Task ledger + session history       | `docs/team_assignment.md`                                                            |
-| Architecture                        | `docs/backend_architecture.md`, `docs/frontend_architecture.md`, `docs/c4/`          |
-| Auth flow (password/Google/SSO/MFA) | `docs/auth-flow.md`                                                                  |
-| Security hardening audit            | `docs/security-hardening-audit.md`                                                   |
-| Observability stack                 | `docs/observability.md`                                                              |
-| Deployment walkthrough              | `docs/learning/PLAT-01-public-deployment-walkthrough.md`                             |
-| Testing logs                        | `testing/` — k6, Lighthouse, query optimisation, SAML SSO, terminal, bundle analysis |
-| RBAC matrix                         | `docs/rbac-role-matrix.md`                                                           |
+| Topic                               | Document                                                                                              |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Line-by-line TDD audit              | `docs/audits/TDD-Audit-Report.md`                                                                     |
+| Task ledger + session history       | `docs/planning/team_assignment.md`                                                                    |
+| Architecture                        | `docs/architecture/backend_architecture.md`, `docs/architecture/frontend_architecture.md`, `docs/c4/` |
+| Auth flow (password/Google/SSO/MFA) | `docs/architecture/auth-flow.md`                                                                      |
+| Security hardening audit            | `docs/audits/security-hardening-audit.md`                                                             |
+| Observability stack                 | `docs/architecture/observability.md`                                                                  |
+| Deployment walkthrough              | `docs/learning/PLAT-01-public-deployment-walkthrough.md`                                              |
+| Testing logs                        | `testing/` — k6, Lighthouse, query optimisation, SAML SSO, terminal, bundle analysis                  |
+| RBAC matrix                         | `docs/architecture/rbac-role-matrix.md`                                                               |
 
 ---
 

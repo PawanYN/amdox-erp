@@ -1,7 +1,7 @@
 # Performance & Load Testing — Full Walkthrough
 
 This explains, from zero, the five Day 21 gaps closed in this session
-(`docs/team_assignment.md`), the real bugs they surfaced
+(`docs/planning/team_assignment.md`), the real bugs they surfaced
 (`testing/K6_LOAD_TEST_LOG.md`, `testing/LIGHTHOUSE_AUDIT.md`,
 `testing/BUNDLE_ANALYSIS.md`), and a reusable checklist for the next
 project. Written for someone who hasn't done any of this before.
@@ -47,7 +47,7 @@ was keyed by IP. It worked exactly as designed for its intended job
 ("stop one abusive client") — the problem only appears at the specific
 scale this load test exercised (many callers sharing one IP), which the
 earlier, correct, single-client verification test in
-`docs/security-hardening-audit.md` had no reason to catch.
+`docs/audits/security-hardening-audit.md` had no reason to catch.
 
 ### What is JWKS, and why does _where_ you cache it matter?
 
@@ -146,7 +146,7 @@ after the initial page is already interactive."
    applied it to the two heaviest BI read paths (`getExecutiveKpis()`,
    `getWidgetData()`), 30s TTL, tenant+filter-scoped keys.
 7. **Wrote the read-replica strategy** as a design doc only
-   (`docs/postgres-read-replica-strategy.md`) — no replica was stood up,
+   (`docs/audits/postgres-read-replica-strategy.md`) — no replica was stood up,
    per the Day 21 task's actual scope.
 8. **Ran a real bundle analysis** (`@next/bundle-analyzer` on a genuine
    `next build`), found ECharts already correctly deferred but Recharts

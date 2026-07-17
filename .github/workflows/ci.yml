@@ -115,7 +115,7 @@ jobs:
     # Grype (free/OSS, Apache 2.0) replaces Snyk — no account/token/signup
     # required, so this actually runs on every push instead of silently
     # skipping (Snyk needs a SNYK_TOKEN repo secret that was never set,
-    # so it never scanned anything). See docs/Amdox_Free_Alternatives.pdf.
+    # so it never scanned anything). See docs/reference/Amdox_Free_Alternatives.pdf.
     steps:
       - uses: actions/checkout@v4
       - name: Run Grype

@@ -1,6 +1,6 @@
 # AmdoxLogger — Branded Terminal Logger
 
-**File:** `apps/api/src/common/logger/amdox-logger.ts`
+**File:** `apps/api/src/infrastructure/common/logger/amdox-logger.ts`
 
 A lightweight, zero-dependency static logger for the Amdox ERP API. Replaces plain `console.log` and NestJS `Logger` calls with vivid 256-color ANSI output that is instantly scannable by domain and severity.
 
@@ -14,12 +14,12 @@ Every line follows this structure:
 2026-07-04 10:23:41.512  [ FINANCE ]  Journal entry posted  ref=INV-001  id=abc123
 ```
 
-| Part | Example | Description |
-|---|---|---|
-| Timestamp | `2026-07-04 10:23:41.512` | Dimmed grey ISO timestamp (ms precision) |
-| Badge | `[ FINANCE ]` | Domain/severity label in its assigned color |
-| Message | `Journal entry posted` | Primary log message |
-| Extra | `ref=INV-001  id=abc123` | Optional key=value context, dimmed |
+| Part      | Example                   | Description                                 |
+| --------- | ------------------------- | ------------------------------------------- |
+| Timestamp | `2026-07-04 10:23:41.512` | Dimmed grey ISO timestamp (ms precision)    |
+| Badge     | `[ FINANCE ]`             | Domain/severity label in its assigned color |
+| Message   | `Journal entry posted`    | Primary log message                         |
+| Extra     | `ref=INV-001  id=abc123`  | Optional key=value context, dimmed          |
 
 ---
 
@@ -27,34 +27,34 @@ Every line follows this structure:
 
 Each business domain has a fixed color so you can spot module logs instantly.
 
-| Method | Color | ANSI # | Use for |
-|---|---|---|---|
-| `AmdoxLogger.brand()` | Electric blue | 39 | Startup, system-level messages |
-| `AmdoxLogger.auth()` | Violet / indigo | 135 | Token verification, user lookups, role checks |
-| `AmdoxLogger.finance()` | Gold | 220 | GL postings, journal entries, fiscal periods |
-| `AmdoxLogger.hr()` | Cyan | 87 | Payroll processing, employees, attendance |
-| `AmdoxLogger.scm()` | Spring green | 118 | Purchase orders, goods receipts, inventory |
-| `AmdoxLogger.pm()` | Peach-orange | 214 | Projects, budgets, resource allocation |
-| `AmdoxLogger.tenant()` | Magenta | 201 | Realm & user provisioning, KC config |
-| `AmdoxLogger.event()` | Sky blue | 75 | Cross-module domain events (EventEmitter2) |
+| Method                  | Color           | ANSI # | Use for                                       |
+| ----------------------- | --------------- | ------ | --------------------------------------------- |
+| `AmdoxLogger.brand()`   | Electric blue   | 39     | Startup, system-level messages                |
+| `AmdoxLogger.auth()`    | Violet / indigo | 135    | Token verification, user lookups, role checks |
+| `AmdoxLogger.finance()` | Gold            | 220    | GL postings, journal entries, fiscal periods  |
+| `AmdoxLogger.hr()`      | Cyan            | 87     | Payroll processing, employees, attendance     |
+| `AmdoxLogger.scm()`     | Spring green    | 118    | Purchase orders, goods receipts, inventory    |
+| `AmdoxLogger.pm()`      | Peach-orange    | 214    | Projects, budgets, resource allocation        |
+| `AmdoxLogger.tenant()`  | Magenta         | 201    | Realm & user provisioning, KC config          |
+| `AmdoxLogger.event()`   | Sky blue        | 75     | Cross-module domain events (EventEmitter2)    |
 
 ## Severity Methods
 
 Used when the message is not domain-specific or when severity needs to be highlighted.
 
-| Method | Color | When to use |
-|---|---|---|
-| `AmdoxLogger.info()` | White | Generic informational messages |
-| `AmdoxLogger.debug()` | Grey (dim) | Verbose / low-level detail |
-| `AmdoxLogger.warn()` | Amber | Recoverable unexpected condition |
-| `AmdoxLogger.error()` | Crimson | Failed operation; service continues |
-| `AmdoxLogger.critical()` | White on red bg | Data loss risk or security event |
-| `AmdoxLogger.success()` | Bright green | Important operation completed successfully |
+| Method                   | Color           | When to use                                |
+| ------------------------ | --------------- | ------------------------------------------ |
+| `AmdoxLogger.info()`     | White           | Generic informational messages             |
+| `AmdoxLogger.debug()`    | Grey (dim)      | Verbose / low-level detail                 |
+| `AmdoxLogger.warn()`     | Amber           | Recoverable unexpected condition           |
+| `AmdoxLogger.error()`    | Crimson         | Failed operation; service continues        |
+| `AmdoxLogger.critical()` | White on red bg | Data loss risk or security event           |
+| `AmdoxLogger.success()`  | Bright green    | Important operation completed successfully |
 
 ## Utility
 
-| Method | Description |
-|---|---|
+| Method                        | Description                                                                                  |
+| ----------------------------- | -------------------------------------------------------------------------------------------- |
 | `AmdoxLogger.divider(label?)` | Prints a `────` separator line, optionally with a bold label. Used between startup sections. |
 
 ---
@@ -99,23 +99,24 @@ static methodName(msg: string, extra?: string): void
 
 The logger is currently active in these files:
 
-| File | Methods used |
-|---|---|
-| `apps/api/src/main.ts` | `brand`, `divider` — startup banner |
-| `apps/api/src/auth/strategies/keycloak.strategy.ts` | `auth`, `debug`, `warn`, `critical`, `success` |
-| `apps/api/src/tenant/tenant.service.ts` | `tenant`, `hr`, `warn`, `error`, `critical`, `success` |
-| `apps/api/src/finance/gl/gl.service.ts` | `finance`, `event`, `warn`, `error`, `critical` |
-| `apps/api/src/hr/payroll/payroll.processor.ts` | `hr`, `event`, `success`, `critical` |
-| `apps/api/src/scm/purchase/purchase.service.ts` | `scm`, `event` |
-| `apps/api/src/finance/pm-cost-bridge.listener.ts` | `event` |
-| `apps/api/src/finance/scm-finance-bridge.listener.ts` | `event`, `scm`, `critical` |
-| `apps/api/src/pm/budget/labor-cost-bridge.listener.ts` | `event`, `warn` |
+| File                                                   | Methods used                                           |
+| ------------------------------------------------------ | ------------------------------------------------------ |
+| `apps/api/src/main.ts`                                 | `brand`, `divider` — startup banner                    |
+| `apps/api/src/auth/strategies/keycloak.strategy.ts`    | `auth`, `debug`, `warn`, `critical`, `success`         |
+| `apps/api/src/tenant/tenant.service.ts`                | `tenant`, `hr`, `warn`, `error`, `critical`, `success` |
+| `apps/api/src/finance/gl/gl.service.ts`                | `finance`, `event`, `warn`, `error`, `critical`        |
+| `apps/api/src/hr/payroll/payroll.processor.ts`         | `hr`, `event`, `success`, `critical`                   |
+| `apps/api/src/scm/purchase/purchase.service.ts`        | `scm`, `event`                                         |
+| `apps/api/src/finance/pm-cost-bridge.listener.ts`      | `event`                                                |
+| `apps/api/src/finance/scm-finance-bridge.listener.ts`  | `event`, `scm`, `critical`                             |
+| `apps/api/src/pm/budget/labor-cost-bridge.listener.ts` | `event`, `warn`                                        |
 
 ---
 
 ## Key Log Points by Flow
 
 ### Authentication
+
 ```
 [  AUTH   ]  Processing token verification…
 [  AUTH   ]  Token signature verified            sub=a1b2c3…
@@ -129,6 +130,7 @@ The logger is currently active in these files:
 ```
 
 ### Payroll → GL Chain (INT-04 / INT-05)
+
 ```
 [   HR    ]  Payroll run started: July 2026      runId=abc  tenant=company-a
 [ SUCCESS ]  Payroll run complete: July 2026     employees=42  totalNetPay=840000.00
@@ -141,6 +143,7 @@ The logger is currently active in these files:
 ```
 
 ### Procure-to-Pay Chain (INT-01)
+
 ```
 [   SCM   ]  PO approved                         poNumber=PO-001  total=50000
 [  EVENT  ]  Emitted po.created                  poId=xyz
@@ -155,6 +158,7 @@ The logger is currently active in these files:
 ```
 
 ### Tenant Provisioning
+
 ```
 [ TENANT  ]  Keycloak Admin Client authenticated
 [ TENANT  ]  Tenant provisioned: Company A       slug=company-a  id=…

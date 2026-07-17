@@ -1,6 +1,6 @@
 # Day 26 — Observability: Concepts & What We Built
 
-Companion to `docs/observability.md` (the plan) and `infra/observability/` (the stack).
+Companion to `docs/architecture/observability.md` (the plan) and `infra/observability/` (the stack).
 This explains each concept the way it clicked while building, one piece at a time.
 
 ## The one-sentence version

@@ -84,7 +84,7 @@ behind it.
 ### Finding 3 — global rate limiter keyed by IP (real bug, fixed)
 
 `ThrottlerModule` (added in the Day 20 security-hardening pass, see
-`docs/security-hardening-audit.md`) is keyed by caller IP by default, at
+`docs/audits/security-hardening-audit.md`) is keyed by caller IP by default, at
 5 req/s and 100/min. **All 2,000 k6 VUs run from one machine, i.e. one
 IP** — so they all drew from the _same_ rate-limit bucket. This isn't
 just a load-test artifact: any real deployment where multiple legitimate
@@ -249,7 +249,7 @@ and does.
 | JWKS client re-created per request                                                 | Yes           | **Fixed this session**, confirmed gone in Run 4                                            |
 | Global rate limiter keyed by IP                                                    | Yes           | **Fixed this session**, confirmed gone in Run 4 (98% success vs. ~10%)                     |
 | Redis cache gaps (BI/reporting reads)                                              | Yes           | **Fixed this session** — see `apps/api/src/common/redis/cache.service.ts`                  |
-| Postgres read replicas for BI                                                      | Not yet built | Strategy documented — `docs/postgres-read-replica-strategy.md`                             |
+| Postgres read replicas for BI                                                      | Not yet built | Strategy documented — `docs/audits/postgres-read-replica-strategy.md`                      |
 | Single Node process is a real throughput ceiling at 2,000 genuine concurrent users | Yes (Run 4)   | **Found, not fixed** — needs clustering/horizontal scaling, an infra change not a code fix |
 
 The database itself was never the bottleneck in any of the 4 runs. Real

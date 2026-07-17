@@ -6,13 +6,13 @@ Diagrams marked **[I draw]** are ones I will generate myself in LaTeX/TikZ — y
 
 ## Already have (I will copy from existing folders — nothing to do)
 
-| File                         | Source                                                                                           |
-| ---------------------------- | ------------------------------------------------------------------------------------------------ |
-| `login.png`                  | `images/Login.png`                                                                               |
-| `home-dashboard.png`         | `images/Dashboard.png`                                                                           |
-| `attendance.png`             | `images/Attendance.png`                                                                          |
-| `grafana-golden-signals.png` | `images/GrafanaDashboard.png`                                                                    |
-| `erd.png`                    | `docs/erd/database-erd.png` — regenerated from the live schema (`node scripts/generate-erd.mjs`) |
+| File                         | Source                                                                                                     |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `login.png`                  | `docs/screenshots/Login.png`                                                                               |
+| `home-dashboard.png`         | `docs/screenshots/Dashboard.png`                                                                           |
+| `attendance.png`             | `docs/screenshots/Attendance.png`                                                                          |
+| `grafana-golden-signals.png` | `docs/screenshots/GrafanaDashboard.png`                                                                    |
+| `erd.png`                    | `docs/erd/database-erd.png` — regenerated from the live schema (`node scripts/reporting/generate-erd.mjs`) |
 
 ## Needed from you (12 screenshots, priority order)
 
@@ -45,4 +45,4 @@ Diagrams marked **[I draw]** are ones I will generate myself in LaTeX/TikZ — y
 - System architecture (client → Caddy → Next.js/NestJS/ml-service → Postgres/Redis/Keycloak/ES/MinIO)
 - Procure-to-pay event flow (PM request → requisition → PO → GR → 3-way match → GL → budget)
 - Deployment topology (Oracle VM, Caddy, pm2, Docker stack, observability sidecar stack)
-- Multi-tenant auth flow (realm-per-tenant, condensed from `docs/auth-flow.md`)
+- Multi-tenant auth flow (realm-per-tenant, condensed from `docs/architecture/auth-flow.md`)

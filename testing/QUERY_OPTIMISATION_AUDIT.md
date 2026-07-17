@@ -3,7 +3,7 @@
 **Date:** 2026-07-06
 **Purpose:** Day 14 of the 28-day plan calls for "Database query optimisation
 (EXPLAIN ANALYZE on critical queries)". This was marked ❌ in
-`docs/team_assignment.md` — nobody had ever run `EXPLAIN ANALYZE` against this
+`docs/planning/team_assignment.md` — nobody had ever run `EXPLAIN ANALYZE` against this
 app's queries. This log documents the audit done to close that gap.
 
 ---

@@ -1,8 +1,8 @@
 # Amdox ERP — Containerisation (PLAT-05 prep / Day 22)
 
 **Started:** 2026-07-07
-**Trigger:** `team_assignment.md`'s Day 22 section listed multi-stage Dockerfiles as ❌ — `infra/docker/Dockerfile.api`, `Dockerfile.web`, and `Dockerfile.ml` were all 0-byte empty dead files, and the one real ML Dockerfile (`apps/ml-service/Dockerfile`) was single-stage `python:3.11-slim`, not distroless. This document records what was built, the real bugs it surfaced, and how each image was verified against the live stack (not just built).
-**Status:** Item 1 of 4 (multi-stage Dockerfiles) done and verified live for all 3 services. `docker-compose.prod.yml` (health checks + resource limits) and Trivy CI scanning are still open — see `team_assignment.md` Day 22.
+**Trigger:** `docs/planning/team_assignment.md`'s Day 22 section listed multi-stage Dockerfiles as ❌ — `infra/docker/Dockerfile.api`, `Dockerfile.web`, and `Dockerfile.ml` were all 0-byte empty dead files, and the one real ML Dockerfile (`apps/ml-service/Dockerfile`) was single-stage `python:3.11-slim`, not distroless. This document records what was built, the real bugs it surfaced, and how each image was verified against the live stack (not just built).
+**Status:** Item 1 of 4 (multi-stage Dockerfiles) done and verified live for all 3 services. `docker-compose.prod.yml` (health checks + resource limits) and Trivy CI scanning are still open — see `docs/planning/team_assignment.md` Day 22.
 
 ---
 

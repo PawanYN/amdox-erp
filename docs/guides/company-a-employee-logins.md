@@ -215,9 +215,9 @@ Departments store `allowedModules` — employees inherit module access from thei
 | IT        | settings      |
 
 - Sidebar and API are driven by `GET /auth/me` → `modules` array.
-- Backfill existing depts: `node scripts/backfill-company-a-department-modules.mjs`
+- Backfill existing depts: `node scripts/data-seed/backfill-company-a-department-modules.mjs`
 - All department heads are created with **Manager** ERP system role; staff get **Employee**.
 - Employee form Step 3 **Assign Role** is now sent to the API as `systemRole`.
-- To fix roles on existing users without recreate: `node scripts/assign-company-a-manager-roles.mjs`
-- To recreate all users: `node scripts/recreate-company-a-employees.mjs`
+- To fix roles on existing users without recreate: `node scripts/data-seed/assign-company-a-manager-roles.mjs`
+- To recreate all users: `node scripts/data-seed/recreate-company-a-employees.mjs`
 - Passwords are also printed in API terminal (yellow credential box) on each create.

@@ -136,7 +136,7 @@ and looking for a database call sitting inside a loop.
 
 ### Step 1: Start from the actual claim, not a guess
 
-The tracking doc (`docs/team_assignment.md`) had "Database query optimisation
+The tracking doc (`docs/planning/team_assignment.md`) had "Database query optimisation
 (EXPLAIN ANALYZE on critical queries)" marked ❌ — meaning nobody had ever
 actually run `EXPLAIN ANALYZE` against this app's real queries.
 

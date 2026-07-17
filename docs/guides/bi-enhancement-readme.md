@@ -1,13 +1,15 @@
 # Power BI-Like BI Dashboard Enhancement
 
 ## Overview
+
 Enhanced the BI page to provide a comprehensive Power BI-like experience with drag-and-drop functionality, advanced visualizations, and improved UX.
 
 ## Features Implemented
 
 ### ✅ 1. Drag-and-Drop Grid Layout System
+
 - **Technology**: `react-grid-layout` with responsive breakpoints
-- **Functionality**: 
+- **Functionality**:
   - Draggable widgets with grip handles in edit mode
   - Resizable widgets with corner and edge handles
   - Responsive grid system (12 cols desktop, 8 cols tablet, 4 cols mobile)
@@ -16,6 +18,7 @@ Enhanced the BI page to provide a comprehensive Power BI-like experience with dr
   - Visual feedback during drag/resize operations
 
 ### ✅ 2. Advanced Visualization Types
+
 Added 5 new chart types beyond the existing bar/line/pie/heatmap/funnel:
 
 1. **Gauge Chart** - Circular gauge for KPI metrics with color zones
@@ -25,6 +28,7 @@ Added 5 new chart types beyond the existing bar/line/pie/heatmap/funnel:
 5. **Treemap** - Hierarchical data visualization
 
 ### ✅ 3. Enhanced Executive Dashboard
+
 - Revenue KPI card with YTD metrics
 - Cash flow gauge with monthly targets
 - Gross margin performance card with trend indicators
@@ -32,6 +36,7 @@ Added 5 new chart types beyond the existing bar/line/pie/heatmap/funnel:
 - All cards support trend indicators (up/down/neutral)
 
 ### ✅ 4. Power BI-Inspired UX
+
 - **Drag handles**: Grip icon appears in edit mode
 - **Resize handles**: Corner/edge handles with Power BI styling
 - **Visual selection**: Yellow ring highlight when selected
@@ -40,6 +45,7 @@ Added 5 new chart types beyond the existing bar/line/pie/heatmap/funnel:
 - **Smooth transitions**: 200ms ease animations
 
 ### ✅ 5. Visualization Pane Enhancement
+
 - Added all 10 chart types with proper icons
 - Icon mapping using Lucide React icons
 - Grid display for easy selection
@@ -98,13 +104,23 @@ Added 5 new chart types beyond the existing bar/line/pie/heatmap/funnel:
 ### API & Types
 
 **Updated `WidgetType`** (in `bi-api.ts`):
+
 ```typescript
-type WidgetType = 
-  | 'bar' | 'line' | 'pie' | 'heatmap' | 'funnel'  // Original
-  | 'gauge' | 'card' | 'waterfall' | 'scatter' | 'treemap';  // New
+type WidgetType =
+  | 'bar'
+  | 'line'
+  | 'pie'
+  | 'heatmap'
+  | 'funnel' // Original
+  | 'gauge'
+  | 'card'
+  | 'waterfall'
+  | 'scatter'
+  | 'treemap'; // New
 ```
 
 **Layout Structure** (stored in `Dashboard.layout`):
+
 ```typescript
 {
   lg: [{ i: "widget-id", x: 0, y: 0, w: 6, h: 4 }, ...],
@@ -118,6 +134,7 @@ type WidgetType =
 ### For End Users
 
 **Edit Mode**:
+
 1. Click "Edit" button in the ribbon
 2. Drag widgets by their title bar (grip icon appears)
 3. Resize widgets using corner/edge handles
@@ -125,6 +142,7 @@ type WidgetType =
 5. Layout auto-saves when changes are made
 
 **Reading Mode**:
+
 - Click on chart segments for cross-filtering
 - Drill-down data appears in bottom panel
 - Use slicers to filter all visuals
@@ -133,6 +151,7 @@ type WidgetType =
 ### For Developers
 
 **Adding a New Chart Type**:
+
 1. Create chart component in `advanced-charts.tsx`
 2. Add type to `WidgetType` union in `bi-api.ts`
 3. Update `VISUAL_TYPE_META` in `power-bi-theme.ts`
@@ -140,6 +159,7 @@ type WidgetType =
 5. Handle rendering in `widget-chart.tsx`
 
 **Customizing Grid Behavior**:
+
 ```typescript
 // In grid-layout-wrapper.tsx
 <ResponsiveGridLayout
@@ -172,7 +192,7 @@ type WidgetType =
 ✅ **Scheduled reports**: Generate PDF/Excel + email delivery  
 ✅ **Real-time metrics**: Server-Sent Events (SSE) refresh  
 ✅ **Dashboard saved < 500ms**: Optimized layout persistence  
-✅ **Drag-and-drop builder**: True Power BI-like experience  
+✅ **Drag-and-drop builder**: True Power BI-like experience
 
 ## Future Enhancements
 
@@ -188,6 +208,7 @@ type WidgetType =
 ## Installation Note
 
 The package.json has been updated with:
+
 ```json
 {
   "dependencies": {
@@ -204,6 +225,7 @@ Run `npm install` (or your package manager) to install the new dependencies.
 ## Screenshots
 
 The BI page now features:
+
 - Power BI-inspired ribbon interface
 - Draggable and resizable widgets
 - 10 different visualization types

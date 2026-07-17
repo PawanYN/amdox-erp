@@ -86,9 +86,7 @@
           "name": "Get All Employees",
           "request": {
             "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
-            ],
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
             "url": {
               "raw": "{{BASE_URL}}/employees",
               "host": ["{{BASE_URL}}"],
@@ -100,9 +98,7 @@
           "name": "Get Employee by ID",
           "request": {
             "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
-            ],
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
             "url": {
               "raw": "{{BASE_URL}}/employees/{{EMP_ID}}",
               "host": ["{{BASE_URL}}"],
@@ -138,9 +134,7 @@
           "name": "Get All Departments",
           "request": {
             "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
-            ],
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
             "url": {
               "raw": "{{BASE_URL}}/departments",
               "host": ["{{BASE_URL}}"],
@@ -176,9 +170,7 @@
           "name": "Clock Out",
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
-            ],
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
             "url": {
               "raw": "{{BASE_URL}}/attendance/clock-out/{{EMP_ID}}",
               "host": ["{{BASE_URL}}"],
@@ -214,9 +206,7 @@
           "name": "Get My Leave Requests",
           "request": {
             "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
-            ],
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
             "url": {
               "raw": "{{BASE_URL}}/leave/my-requests/{{EMP_ID}}",
               "host": ["{{BASE_URL}}"],

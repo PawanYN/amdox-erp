@@ -3,7 +3,7 @@
 > **Living checklist** — page ↔ API client ↔ backend route  
 > **Created:** 2026-07-10 (Phase 1)  
 > **Last verified:** 2026-07-10 (Phase 4 backend-only features wired)  
-> **Source plan:** [`frontend-backend-wiring-and-testing-plan.md`](./frontend-backend-wiring-and-testing-plan.md)
+> **Source plan:** [`frontend-backend-wiring-and-testing-plan.md`](../planning/frontend-backend-wiring-and-testing-plan.md)
 
 **Status legend:** ✅ WIRED | ⚠️ PARTIAL | ❌ STUB/MISSING
 

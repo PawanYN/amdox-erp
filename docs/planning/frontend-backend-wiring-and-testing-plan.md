@@ -3,12 +3,12 @@
 > **Purpose:** Verify every module is correctly wired between the web app and API, and establish a repeatable testing strategy.  
 > **Last updated:** 2026-07-10  
 > **Branch context:** `feat/complete-pdf-gaps` (includes `/api/v1` prefix, GraphQL, search, GDPR, HR compliance)  
-> **Phase 1:** ✅ Complete — see [`docs/wiring-audit.md`](./wiring-audit.md)  
+> **Phase 1:** ✅ Complete — see [`docs/audits/wiring-audit.md`](../audits/wiring-audit.md)  
 > **Phase 2:** ✅ Complete — P0-1…P0-5 fixed (2026-07-10)  
 > **Phase 3:** ✅ Complete — P1-1…P1-6 stub/partial UI wired (2026-07-10)  
 > **Phase 4:** ✅ Complete — backend-only features wired (2026-07-10)  
 > **Phase 5:** ✅ Complete — 9 suites, 64/64 pass with `admin@companya.in` (2026-07-10)  
-> **Phase 7:** 🔄 In progress — see [`docs/phase7-e2e-log.md`](./phase7-e2e-log.md)
+> **Phase 7:** 🔄 In progress — see [`docs/audits/phase7-e2e-log.md`](../audits/phase7-e2e-log.md)
 
 ---
 
@@ -22,7 +22,7 @@
 | **Unit/e2e tests**   | **None** (0 `*.spec.ts` / `*.test.ts` files)                                            |
 | **Functional tests** | 9 JS suites — **64/64 pass** locally (`node run-authenticated.js`); not yet in CI       |
 | **CI**               | Lint, typecheck, build, security scans only — **no API or UI tests**                    |
-| **Wiring audit**     | ✅ [`docs/wiring-audit.md`](./wiring-audit.md) — Phase 4 updates applied                |
+| **Wiring audit**     | ✅ [`docs/audits/wiring-audit.md`](../audits/wiring-audit.md) — Phase 4 updates applied |
 
 ### Module wiring at a glance
 
@@ -43,12 +43,12 @@
 
 ## Phase 1 — Wiring Audit Matrix (1 day) ✅ COMPLETE (2026-07-10)
 
-> **Deliverable:** [`docs/wiring-audit.md`](./wiring-audit.md) — living checklist (page ↔ client ↔ backend).  
+> **Deliverable:** [`docs/audits/wiring-audit.md`](../audits/wiring-audit.md) — living checklist (page ↔ client ↔ backend).  
 > **Result:** 26 ✅ / 12 ⚠️ / 3 ❌ across all dashboard modules. P0/P1 findings confirmed and linked to Phases 2–3.
 
-### 1.1 Create `docs/wiring-audit.md` (living checklist) ✅
+### 1.1 Create `docs/audits/wiring-audit.md` (living checklist) ✅
 
-Full matrix lives in [`docs/wiring-audit.md`](./wiring-audit.md). Snapshot of critical rows:
+Full matrix lives in [`docs/audits/wiring-audit.md`](../audits/wiring-audit.md). Snapshot of critical rows:
 
 | Module        | Page / Feature                               | API client                                      | Backend route                               | Status | Notes                                                   |
 | ------------- | -------------------------------------------- | ----------------------------------------------- | ------------------------------------------- | ------ | ------------------------------------------------------- |
@@ -241,7 +241,7 @@ test-functional:
 
 ## Phase 7 — Manual E2E Checklist (per release) 🔄 IN PROGRESS (2026-07-10)
 
-> **Log:** [`docs/phase7-e2e-log.md`](./phase7-e2e-log.md) — first pass with `admin@companya.in` / `company-a`.
+> **Log:** [`docs/audits/phase7-e2e-log.md`](../audits/phase7-e2e-log.md) — first pass with `admin@companya.in` / `company-a`.
 
 ### Auth & tenant
 
@@ -291,7 +291,7 @@ test-functional:
 
 ## Phase 8 — Documentation Sync (0.5 day)
 
-- [ ] Update `docs/project_status.md` with wiring matrix results
+- [ ] Update `docs/planning/project_status.md` with wiring matrix results
 - [ ] Fix stale paths in `apps/web/src/lib/api/contracts.ts`
 - [ ] Archive or delete unused `apps/web/src/lib/mock/*`
 - [ ] Document env vars in `.env.example`:
@@ -306,7 +306,7 @@ test-functional:
 
 ```
 Week 1 (foundation)
-├── Phase 1: Wiring audit matrix (docs/wiring-audit.md) ✅ DONE 2026-07-10
+├── Phase 1: Wiring audit matrix (docs/audits/wiring-audit.md) ✅ DONE 2026-07-10
 ├── Phase 2: P0 wiring bugs (env, vendor-portal, balances, current-user) ✅ DONE 2026-07-10
 └── Phase 5: Fix test client + run all 9 suites locally ✅ DONE 2026-07-10
 
@@ -314,7 +314,7 @@ Week 2 (completeness)
 ├── Phase 3: Stub pages (goods-receipt, search, GDPR consent) ✅ DONE 2026-07-10
 ├── Phase 4: Backend-only features ✅ DONE 2026-07-10
 ├── Phase 5: New test suites 10–14 ← NEXT
-└── Phase 7: Manual E2E checklist pass 🔄 IN PROGRESS (see phase7-e2e-log.md)
+└── Phase 7: Manual E2E checklist pass 🔄 IN PROGRESS (see docs/audits/phase7-e2e-log.md)
 
 Week 3 (automation)
 ├── Phase 6: CI functional test job
@@ -374,9 +374,9 @@ Week 3 (automation)
 
 ## References
 
-- **Wiring audit (Phase 1):** [`docs/wiring-audit.md`](./wiring-audit.md)
+- **Wiring audit (Phase 1):** [`docs/audits/wiring-audit.md`](../audits/wiring-audit.md)
 - Backend controllers: `apps/api/src/**/**.controller.ts`
 - Frontend API clients: `apps/web/src/lib/api/*.ts`
 - Functional tests: `testing/suites/*.test.js`
 - CI workflow: `.github/workflows/ci.yml`
-- Project status (stale): `docs/project_status.md`
+- Project status (stale): `docs/planning/project_status.md`

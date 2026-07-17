@@ -1,7 +1,7 @@
 # Security Hardening — Concepts Learned
 
 This doc explains the general security concepts behind the PLAT-04 hardening
-work (`docs/security-hardening-audit.md`), written so they apply to any
+work (`docs/audits/security-hardening-audit.md`), written so they apply to any
 backend project, not just Amdox. Each section pairs the concept with the
 concrete code from this project so you can see the idea and the
 implementation side by side.
