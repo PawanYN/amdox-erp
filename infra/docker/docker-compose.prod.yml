@@ -24,10 +24,10 @@ name: amdox-prod
 services:
 
   # ─────────────────────────────────────
-  # PostgreSQL 17 — Primary Database
+  # PostgreSQL 17 (+ TimescaleDB) — Primary Database
   # ─────────────────────────────────────
   api-db:
-    image: postgres:17-alpine
+    image: timescale/timescaledb:2.17.2-pg17
     restart: always
     # not published to the host — only reachable on the internal network
     environment:
@@ -54,10 +54,11 @@ services:
       - amdox-network
 
   # ─────────────────────────────────────
-  # PostgreSQL 17 — Streaming Read Replica (BI/reporting reads)
+  # PostgreSQL 17 (+ TimescaleDB) — Streaming Read Replica (BI/reporting reads)
+  # Must match api-db's image exactly for streaming replication.
   # ─────────────────────────────────────
   api-db-replica:
-    image: postgres:17-alpine
+    image: timescale/timescaledb:2.17.2-pg17
     restart: always
     environment:
       PGDATA: /var/lib/postgresql/data

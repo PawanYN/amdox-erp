@@ -1437,7 +1437,7 @@ model ApiKey {
 // ============================================================================
 
 model AuditLog {
-  id           String   @id @default(uuid())
+  id           String   @default(uuid())
   tenantId     String
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
   userId       String?
@@ -1451,6 +1451,11 @@ model AuditLog {
   previousHash String?
   createdAt    DateTime @default(now())
 
+  // Composite PK (not just `id`) because TimescaleDB requires every unique
+  // constraint on a hypertable to include the partitioning column (createdAt).
+  // `id` is still globally unique in practice (uuid()) — this just satisfies
+  // TimescaleDB's requirement without weakening that.
+  @@id([id, createdAt])
   @@index([tenantId])
   @@index([entityType, entityId])
   @@index([tenantId, createdAt])

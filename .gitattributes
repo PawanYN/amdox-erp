@@ -1,0 +1,5 @@
+# Shell scripts run inside Linux containers — force LF regardless of the
+# checkout platform's line-ending settings (a Windows checkout with
+# core.autocrlf=true would otherwise convert these to CRLF, which breaks
+# `sh`/`bash` inside containers with errors like "illegal option -").
+*.sh text eol=lf

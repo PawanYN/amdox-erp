@@ -11,10 +11,14 @@
 services:
 
   # ─────────────────────────────────────
-  # PostgreSQL 17 — Primary Database
+  # PostgreSQL 17 (+ TimescaleDB) — Primary Database
+  # TimescaleDB is a Postgres extension, not a fork — this image is plain
+  # Postgres 17 underneath with the extension added, so existing volumes/data
+  # are unaffected. AuditLog is converted into a hypertable via migration
+  # 20260716000000_add_timescaledb_audit_log_hypertable.
   # ─────────────────────────────────────
   api-db:
-    image: postgres:17-alpine
+    image: timescale/timescaledb:2.17.2-pg17
     container_name: amdox-postgres
     restart: unless-stopped
     ports:
@@ -36,14 +40,16 @@ services:
       - amdox-network
 
   # ─────────────────────────────────────
-  # PostgreSQL 17 — Streaming Read Replica
-  # (Day 21 — see docs/postgres-read-replica-strategy.md)
+  # PostgreSQL 17 (+ TimescaleDB) — Streaming Read Replica
+  # (Day 21 — see docs/audits/postgres-read-replica-strategy.md)
   # BI/reporting reads only; every write still goes to api-db. Real
   # streaming replication via pg_basebackup, not a mock — replica-entrypoint.sh
   # takes a base backup from api-db on first start.
+  # Must match api-db's image exactly — pg_basebackup/streaming replication
+  # requires identical Postgres binaries on both sides.
   # ─────────────────────────────────────
   api-db-replica:
-    image: postgres:17-alpine
+    image: timescale/timescaledb:2.17.2-pg17
     container_name: amdox-postgres-replica
     restart: unless-stopped
     ports:
