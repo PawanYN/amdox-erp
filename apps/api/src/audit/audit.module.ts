@@ -5,7 +5,7 @@ import { HashChainService } from './hash-chain.service';
 import { AuditEventListener } from './audit-event.listener';
 import { GdprController } from './gdpr/gdpr.controller';
 import { GdprService } from './gdpr/gdpr.service';
-import { SearchModule } from '../search/search.module';
+import { SearchModule } from '../infrastructure/search/search.module';
 
 @Module({
   imports: [SearchModule],

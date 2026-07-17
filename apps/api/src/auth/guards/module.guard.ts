@@ -3,7 +3,7 @@ import { Reflector } from '@nestjs/core';
 import { MODULE_KEY, SKIP_MODULE_KEY } from '../decorators/require-module.decorator';
 import { AccessService } from '../access.service';
 import { ErpModule } from '../erp-modules';
-import { AmdoxLogger } from '../../common/logger/amdox-logger';
+import { AmdoxLogger } from '../../infrastructure/common/logger/amdox-logger';
 
 @Injectable()
 export class ModuleGuard implements CanActivate {

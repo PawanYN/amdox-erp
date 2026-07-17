@@ -27,13 +27,14 @@ import { prisma, PayrollRunStatus } from '@amdox/db';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { PayslipGenerator } from './payslip-generator';
-import { StorageService } from '../../common/storage/storage.service';
+import { StorageService } from '../../infrastructure/common/storage/storage.service';
 import { legacyPayslipAmounts } from './payroll-deductions';
+import { QUEUE_NAMES } from '../../infrastructure/queues/queue-names';
 
 @Injectable()
 export class PayrollService {
   constructor(
-    @InjectQueue('payroll') private payrollQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.PAYROLL) private payrollQueue: Queue,
     private payslipGenerator: PayslipGenerator,
     private storageService: StorageService,
   ) {}

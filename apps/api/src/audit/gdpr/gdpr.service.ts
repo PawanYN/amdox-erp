@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { prisma, DataSubjectRequestType } from '@amdox/db';
-import { StorageService } from '../../common/storage/storage.service';
+import { StorageService } from '../../infrastructure/common/storage/storage.service';
 import { PassThrough } from 'stream';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const createArchive = require('archiver') as (

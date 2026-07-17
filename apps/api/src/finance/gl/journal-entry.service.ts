@@ -1,10 +1,10 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
-import { AmdoxLogger } from '../../common/logger/amdox-logger';
+import { AmdoxLogger } from '../../infrastructure/common/logger/amdox-logger';
 import { prisma } from '@amdox/db';
 import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
 import { CreateJournalEntryDto } from '../dto/create-journal-entry.dto';
 import { CreateIntercompanyTransferDto } from '../dto/create-intercompany-transfer.dto';
-import { SearchService } from '../../search/search.service';
+import { SearchService } from '../../infrastructure/search/search.service';
 
 /**
  * Service to handle General Ledger (GL) operations.
@@ -15,8 +15,8 @@ import { SearchService } from '../../search/search.service';
  * guarantee that Debits = Credits and that no entries are posted to closed periods.
  */
 @Injectable()
-export class GlService {
-  private readonly logger = new Logger(GlService.name);
+export class JournalEntryService {
+  private readonly logger = new Logger(JournalEntryService.name);
   constructor(
     private readonly eventEmitter: EventEmitter2,
     private readonly searchService: SearchService,
@@ -100,9 +100,9 @@ export class GlService {
 
     // 2. Not found — auto-create it, preferring the standard map for name/type and
     //    falling back to a code-inferred default so a valid posting is never blocked.
-    const def = GlService.STANDARD_ACCOUNTS[code] ?? {
+    const def = JournalEntryService.STANDARD_ACCOUNTS[code] ?? {
       name: `Account ${code}`,
-      type: GlService.inferAccountType(code),
+      type: JournalEntryService.inferAccountType(code),
     };
     return prisma.account.upsert({
       where: { tenantId_code: { tenantId, code } },

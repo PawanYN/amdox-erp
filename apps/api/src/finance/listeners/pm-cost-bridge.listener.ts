@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
 import { prisma } from '@amdox/db';
-import { AmdoxLogger } from '../common/logger/amdox-logger';
+import { AmdoxLogger } from '../../infrastructure/common/logger/amdox-logger';
 
 interface InvoiceApprovedPayload {
   tenantId: string;

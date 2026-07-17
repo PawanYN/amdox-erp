@@ -5,7 +5,7 @@ import { CreateEmployeeDto } from '../dto/create-employee.dto';
 import { UpdateEmployeeDto } from '../dto/update-employee.dto';
 import { TenantService } from '../../tenant/tenant.service';
 import { filterAssignableModules } from '../../auth/erp-modules';
-import { SearchService } from '../../search/search.service';
+import { SearchService } from '../../infrastructure/search/search.service';
 
 @Injectable()
 export class EmployeeService {

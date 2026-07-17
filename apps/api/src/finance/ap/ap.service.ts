@@ -1,13 +1,16 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { prisma, InvoiceStatus } from '@amdox/db';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { CreateInvoiceDto, InvoiceType } from '../dto/create-invoice.dto';
 import { RecordPaymentDto } from '../dto/record-payment.dto';
 import { RunPaymentBatchDto } from '../dto/run-payment-batch.dto';
 import { InvoiceMatchingService } from './invoice-matching.service';
 import { OcrService } from './ocr.service';
-import { StorageService } from '../../common/storage/storage.service';
-import { SearchService } from '../../search/search.service';
+import { StorageService } from '../../infrastructure/common/storage/storage.service';
+import { SearchService } from '../../infrastructure/search/search.service';
+import { QUEUE_NAMES } from '../../infrastructure/queues/queue-names';
 
 interface InvoiceApprovedEvent {
   tenantId: string;
@@ -52,6 +55,7 @@ export class ApService {
     private readonly eventEmitter: EventEmitter2,
     private readonly storageService: StorageService,
     private readonly searchService: SearchService,
+    @InjectQueue(QUEUE_NAMES.FINANCE_OUTBOX) private readonly outboxQueue: Queue,
   ) {}
 
   /**
@@ -124,6 +128,7 @@ export class ApService {
 
     // Wrap in a transaction to safely handle the Outbox pattern
     let approvalEvent: InvoiceApprovedEvent | null = null;
+    let outboxEventId: string | null = null;
 
     const result = await prisma.$transaction(async (tx) => {
       const initialStatus: InvoiceStatus = 'PENDING_MATCH';
@@ -223,7 +228,7 @@ export class ApService {
           };
 
           // Outbox Pattern: durable event for BullMQ to process (audit, notifications)
-          await tx.outboxEvent.create({
+          const outboxEvent = await tx.outboxEvent.create({
             data: {
               tenantId,
               eventType: 'invoice.approved',
@@ -234,6 +239,7 @@ export class ApService {
               status: 'PENDING',
             },
           });
+          outboxEventId = outboxEvent.id;
 
           return approvedInvoice;
         } else {
@@ -246,6 +252,9 @@ export class ApService {
 
     if (approvalEvent) {
       this.eventEmitter.emit('invoice.approved', approvalEvent);
+    }
+    if (outboxEventId) {
+      await this.outboxQueue.add('process', { id: outboxEventId });
     }
 
     this.searchService.indexInvoice(result);
@@ -318,6 +327,7 @@ export class ApService {
    */
   async manuallyApproveInvoice(tenantId: string, invoiceId: string, actingUserId?: string) {
     let approvalEvent: InvoiceApprovedEvent | null = null;
+    let outboxEventId: string | null = null;
 
     const approvedInvoice = await prisma.$transaction(async (tx) => {
       const invoice = await tx.invoice.findFirst({
@@ -340,7 +350,7 @@ export class ApService {
         userId: actingUserId,
       };
 
-      await tx.outboxEvent.create({
+      const outboxEvent = await tx.outboxEvent.create({
         data: {
           tenantId,
           eventType: 'invoice.approved',
@@ -348,12 +358,16 @@ export class ApService {
           status: 'PENDING',
         },
       });
+      outboxEventId = outboxEvent.id;
 
       return updated;
     });
 
     if (approvalEvent) {
       this.eventEmitter.emit('invoice.approved', approvalEvent);
+    }
+    if (outboxEventId) {
+      await this.outboxQueue.add('process', { id: outboxEventId });
     }
 
     this.searchService.indexInvoice(approvedInvoice);
@@ -414,6 +428,7 @@ export class ApService {
     paymentRunId?: string,
   ) {
     let paymentEvent: PaymentMadeEvent | null = null;
+    let outboxEventId: string | null = null;
 
     const result = await prisma.$transaction(async (tx) => {
       const invoice = await tx.invoice.findFirst({
@@ -462,7 +477,7 @@ export class ApService {
         userId: actingUserId,
       };
 
-      await tx.outboxEvent.create({
+      const outboxEvent = await tx.outboxEvent.create({
         data: {
           tenantId,
           eventType: 'payment.made',
@@ -475,6 +490,7 @@ export class ApService {
           status: 'PENDING',
         },
       });
+      outboxEventId = outboxEvent.id;
 
       return {
         payment,
@@ -489,6 +505,9 @@ export class ApService {
 
     if (paymentEvent) {
       this.eventEmitter.emit('payment.made', paymentEvent);
+    }
+    if (outboxEventId) {
+      await this.outboxQueue.add('process', { id: outboxEventId });
     }
 
     return result;

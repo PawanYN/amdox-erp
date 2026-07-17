@@ -4,12 +4,13 @@ import { AuthModule } from '../auth/auth.module';
 import { ForecastController } from './forecast.controller';
 import { ForecastClientService } from './forecast.service';
 import { ForecastRetrainScheduler, ForecastRetrainProcessor } from './forecast-retrain.processor';
+import { QUEUE_NAMES } from '../infrastructure/queues/queue-names';
 
 @Module({
   imports: [
     AuthModule,
     BullModule.registerQueue({
-      name: 'forecast-retrain',
+      name: QUEUE_NAMES.FORECAST_RETRAIN,
     }),
   ],
   controllers: [ForecastController],

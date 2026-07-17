@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { ApService } from './ap/ap.service';
-import { AmdoxLogger } from '../common/logger/amdox-logger';
+import { ApService } from '../ap/ap.service';
+import { AmdoxLogger } from '../../infrastructure/common/logger/amdox-logger';
 
 /**
  * Synchronous SCM → Finance bridge for goods receipt.
@@ -26,7 +26,10 @@ export class ScmFinanceBridgeListener {
         payload.purchaseOrderId,
         payload.goodsReceiptId,
       );
-      AmdoxLogger.scm('AP invoice auto-created from GR', `po=${payload.purchaseOrderId}  gr=${payload.goodsReceiptId}`);
+      AmdoxLogger.scm(
+        'AP invoice auto-created from GR',
+        `po=${payload.purchaseOrderId}  gr=${payload.goodsReceiptId}`,
+      );
     } catch (err) {
       AmdoxLogger.critical(
         `AP invoice generation failed for PO ${payload.purchaseOrderId}`,

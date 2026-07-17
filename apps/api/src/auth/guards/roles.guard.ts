@@ -1,7 +1,7 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../decorators/roles.decorator';
-import { AmdoxLogger } from '../../common/logger/amdox-logger';
+import { AmdoxLogger } from '../../infrastructure/common/logger/amdox-logger';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -20,7 +20,10 @@ export class RolesGuard implements CanActivate {
     const { user } = context.switchToHttp().getRequest();
 
     if (!user || !user.userRoles) {
-      AmdoxLogger.warn('RolesGuard denied — missing user or userRoles', `required=[${requiredRoles.join(', ')}]`);
+      AmdoxLogger.warn(
+        'RolesGuard denied — missing user or userRoles',
+        `required=[${requiredRoles.join(', ')}]`,
+      );
       return false;
     }
 

@@ -1,9 +1,12 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { prisma } from '@amdox/db';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { CreateInvoiceDto, InvoiceType } from '../dto/create-invoice.dto';
 import { RecordPaymentDto } from '../dto/record-payment.dto';
-import { SearchService } from '../../search/search.service';
+import { SearchService } from '../../infrastructure/search/search.service';
+import { QUEUE_NAMES } from '../../infrastructure/queues/queue-names';
 
 /**
  * Service to handle Accounts Receivable (AR) operations.
@@ -18,6 +21,7 @@ export class ArService {
   constructor(
     private readonly eventEmitter: EventEmitter2,
     private readonly searchService: SearchService,
+    @InjectQueue(QUEUE_NAMES.FINANCE_OUTBOX) private readonly outboxQueue: Queue,
   ) {}
 
   /**
@@ -30,7 +34,9 @@ export class ArService {
       throw new Error('AR Service only handles AR invoices.');
     }
 
-    return prisma.$transaction(async (tx) => {
+    let outboxEventId: string | null = null;
+
+    const invoice = await prisma.$transaction(async (tx) => {
       const invoice = await tx.invoice.create({
         data: {
           tenantId,
@@ -61,7 +67,7 @@ export class ArService {
         invoiceId: invoice.id,
       });
 
-      await tx.outboxEvent.create({
+      const outboxEvent = await tx.outboxEvent.create({
         data: {
           tenantId,
           eventType: 'invoice.issued',
@@ -69,9 +75,16 @@ export class ArService {
           status: 'PENDING',
         },
       });
+      outboxEventId = outboxEvent.id;
 
       return invoice;
     });
+
+    if (outboxEventId) {
+      await this.outboxQueue.add('process', { id: outboxEventId });
+    }
+
+    return invoice;
   }
 
   /**
@@ -80,7 +93,9 @@ export class ArService {
    * and triggers the GL event to debit Cash and credit Accounts Receivable.
    */
   async recordPayment(tenantId: string, dto: RecordPaymentDto) {
-    return prisma.$transaction(async (tx) => {
+    let outboxEventId: string | null = null;
+
+    const result = await prisma.$transaction(async (tx) => {
       const invoice = await tx.invoice.findFirst({
         where: { id: dto.invoiceId, tenantId, type: 'AR' },
         include: { payments: true, salesOrder: true },
@@ -136,7 +151,7 @@ export class ArService {
         bankReference: dto.bankReference,
       });
 
-      await tx.outboxEvent.create({
+      const outboxEvent = await tx.outboxEvent.create({
         data: {
           tenantId,
           eventType: 'payment.received',
@@ -149,6 +164,7 @@ export class ArService {
           status: 'PENDING',
         },
       });
+      outboxEventId = outboxEvent.id;
 
       return {
         payment,
@@ -160,6 +176,12 @@ export class ArService {
         },
       };
     });
+
+    if (outboxEventId) {
+      await this.outboxQueue.add('process', { id: outboxEventId });
+    }
+
+    return result;
   }
 
   /**

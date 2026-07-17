@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { prisma, queryReplicaOrPrimary } from '@amdox/db';
-import { CacheService } from '../common/redis/cache.service';
+import { CacheService } from '../infrastructure/common/redis/cache.service';
 
 // Executive KPIs tolerate a short staleness window in exchange for not
 // re-running 7 aggregate queries (across Invoice/PurchaseOrder/Employee/
@@ -149,7 +149,7 @@ export class BiService {
     );
   }
 
-  // Runs against the read replica (docs/postgres-read-replica-strategy.md)
+  // Runs against the read replica (docs/audits/postgres-read-replica-strategy.md)
   // — this is 7+ aggregate queries across Invoice/PurchaseOrder/Employee/
   // ReorderRule/Project/Department/StockLevel, exactly the kind of
   // reporting read that shouldn't compete with transactional writes for

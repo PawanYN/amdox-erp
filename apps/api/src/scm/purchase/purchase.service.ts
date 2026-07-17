@@ -37,8 +37,8 @@ import { ReceiveGoodsDto } from '../dto/receive-goods.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { VendorPortalService } from '../vendor-portal/vendor-portal.service';
 import { EmailChannel } from '../../notification/channels/email.channel';
-import { AmdoxLogger } from '../../common/logger/amdox-logger';
-import { SearchService } from '../../search/search.service';
+import { AmdoxLogger } from '../../infrastructure/common/logger/amdox-logger';
+import { SearchService } from '../../infrastructure/search/search.service';
 
 @Injectable()
 export class PurchaseService {

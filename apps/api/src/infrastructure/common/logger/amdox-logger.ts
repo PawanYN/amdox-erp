@@ -22,35 +22,35 @@ const bg = (n: number) => `\x1b[48;5;${n}m`;
 // ─── Domain color map ─────────────────────────────────────────────────────────
 const COLOR = {
   // Amdox brand — electric blue
-  brand:   fg(39)  + BOLD,
+  brand: fg(39) + BOLD,
   // Auth — violet / indigo
-  auth:    fg(135) + BOLD,
+  auth: fg(135) + BOLD,
   // Finance / GL — gold
   finance: fg(220) + BOLD,
   // HR / Payroll — cyan
-  hr:      fg(87)  + BOLD,
+  hr: fg(87) + BOLD,
   // SCM / Inventory — spring green
-  scm:     fg(118) + BOLD,
+  scm: fg(118) + BOLD,
   // Projects / PM — peach-orange
-  pm:      fg(214) + BOLD,
+  pm: fg(214) + BOLD,
   // Tenant provisioning — magenta
-  tenant:  fg(201) + BOLD,
+  tenant: fg(201) + BOLD,
   // Events / bus — sky blue
-  event:   fg(75)  + BOLD,
+  event: fg(75) + BOLD,
   // HTTP requests — teal
-  http:    fg(51)  + BOLD,
+  http: fg(51) + BOLD,
   // Info — white
-  info:    fg(255),
+  info: fg(255),
   // Debug — grey
-  debug:   fg(244) + DIM,
+  debug: fg(244) + DIM,
   // Warn — amber
-  warn:    fg(214) + BOLD,
+  warn: fg(214) + BOLD,
   // Error — crimson
-  error:   fg(196) + BOLD,
+  error: fg(196) + BOLD,
   // Critical — white on red bg
   critical: BOLD + fg(255) + bg(196),
   // Success — bright green
-  success: fg(46)  + BOLD,
+  success: fg(46) + BOLD,
 } as const;
 
 type Domain = keyof typeof COLOR;
@@ -63,21 +63,21 @@ function ts(): string {
 
 // ─── Label badge ─────────────────────────────────────────────────────────────
 const LABELS: Record<Domain, string> = {
-  brand:    '  AMDOX  ',
-  auth:     '  AUTH   ',
-  finance:  ' FINANCE ',
-  hr:       '   HR    ',
-  scm:      '   SCM   ',
-  pm:       '   PM    ',
-  tenant:   ' TENANT  ',
-  event:    '  EVENT  ',
-  http:     '  HTTP   ',
-  info:     '  INFO   ',
-  debug:    '  DEBUG  ',
-  warn:     '  WARN   ',
-  error:    '  ERROR  ',
+  brand: '  AMDOX  ',
+  auth: '  AUTH   ',
+  finance: ' FINANCE ',
+  hr: '   HR    ',
+  scm: '   SCM   ',
+  pm: '   PM    ',
+  tenant: ' TENANT  ',
+  event: '  EVENT  ',
+  http: '  HTTP   ',
+  info: '  INFO   ',
+  debug: '  DEBUG  ',
+  warn: '  WARN   ',
+  error: '  ERROR  ',
   critical: ' CRITICAL',
-  success:  ' SUCCESS ',
+  success: ' SUCCESS ',
 };
 
 function badge(domain: Domain): string {
@@ -95,49 +95,79 @@ function print(domain: Domain, msg: string, extra?: string): void {
 // ─── Public API ──────────────────────────────────────────────────────────────
 export class AmdoxLogger {
   /** Amdox system/startup messages */
-  static brand(msg: string, extra?: string)    { print('brand',   msg, extra); }
+  static brand(msg: string, extra?: string) {
+    print('brand', msg, extra);
+  }
 
   /** Auth — token validation, user lookups, role checks */
-  static auth(msg: string, extra?: string)     { print('auth',    msg, extra); }
+  static auth(msg: string, extra?: string) {
+    print('auth', msg, extra);
+  }
 
   /** Finance — GL, journal entries, fiscal periods */
-  static finance(msg: string, extra?: string)  { print('finance', msg, extra); }
+  static finance(msg: string, extra?: string) {
+    print('finance', msg, extra);
+  }
 
   /** HR — employees, payroll, attendance */
-  static hr(msg: string, extra?: string)       { print('hr',      msg, extra); }
+  static hr(msg: string, extra?: string) {
+    print('hr', msg, extra);
+  }
 
   /** SCM — vendors, purchase orders, inventory */
-  static scm(msg: string, extra?: string)      { print('scm',     msg, extra); }
+  static scm(msg: string, extra?: string) {
+    print('scm', msg, extra);
+  }
 
   /** Projects / PM — budgets, tasks, resources */
-  static pm(msg: string, extra?: string)       { print('pm',      msg, extra); }
+  static pm(msg: string, extra?: string) {
+    print('pm', msg, extra);
+  }
 
   /** Tenant provisioning — realm & user creation */
-  static tenant(msg: string, extra?: string)   { print('tenant',  msg, extra); }
+  static tenant(msg: string, extra?: string) {
+    print('tenant', msg, extra);
+  }
 
   /** Cross-module domain events */
-  static event(msg: string, extra?: string)    { print('event',   msg, extra); }
+  static event(msg: string, extra?: string) {
+    print('event', msg, extra);
+  }
 
   /** HTTP request/response — method, path, status, timing */
-  static http(msg: string, extra?: string)     { print('http',    msg, extra); }
+  static http(msg: string, extra?: string) {
+    print('http', msg, extra);
+  }
 
   /** Generic informational */
-  static info(msg: string, extra?: string)     { print('info',    msg, extra); }
+  static info(msg: string, extra?: string) {
+    print('info', msg, extra);
+  }
 
   /** Debug — verbose, lower-level detail */
-  static debug(msg: string, extra?: string)    { print('debug',   msg, extra); }
+  static debug(msg: string, extra?: string) {
+    print('debug', msg, extra);
+  }
 
   /** Warning — recoverable unexpected condition */
-  static warn(msg: string, extra?: string)     { print('warn',    msg, extra); }
+  static warn(msg: string, extra?: string) {
+    print('warn', msg, extra);
+  }
 
   /** Error — failed operation, service may continue */
-  static error(msg: string, extra?: string)    { print('error',   msg, extra); }
+  static error(msg: string, extra?: string) {
+    print('error', msg, extra);
+  }
 
   /** Critical — potential data loss or security concern; highest visibility */
-  static critical(msg: string, extra?: string) { print('critical', msg, extra); }
+  static critical(msg: string, extra?: string) {
+    print('critical', msg, extra);
+  }
 
   /** Success — important operation completed successfully */
-  static success(msg: string, extra?: string)  { print('success', msg, extra); }
+  static success(msg: string, extra?: string) {
+    print('success', msg, extra);
+  }
 
   /** Separator line useful between startup sections */
   static divider(label = '') {

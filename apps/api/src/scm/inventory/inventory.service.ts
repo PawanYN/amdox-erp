@@ -36,7 +36,7 @@ import { prisma } from '@amdox/db';
 import { CreateWarehouseDto } from '../dto/create-warehouse.dto';
 import { CreateStockMovementDto } from '../dto/stock-movement.dto';
 import { UpsertReorderRuleDto } from '../dto/reorder-rule.dto';
-import { AmdoxLogger } from '../../common/logger/amdox-logger';
+import { AmdoxLogger } from '../../infrastructure/common/logger/amdox-logger';
 
 // The auto-scoping `prisma` export from @amdox/db is a $extends()-wrapped client,
 // whose $transaction callback receives a structurally different (but compatible)

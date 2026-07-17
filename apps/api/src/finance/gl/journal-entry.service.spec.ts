@@ -15,7 +15,7 @@ vi.mock('@amdox/db', () => {
 });
 
 import { prisma } from '@amdox/db';
-import { GlService } from './gl.service';
+import { JournalEntryService } from './journal-entry.service';
 
 type MockTx = {
   fiscalPeriod: { findFirst: Mock };
@@ -35,12 +35,15 @@ function dto(lines: { accountId: string; debit: number; credit: number }[]) {
   };
 }
 
-describe('GlService.createJournalEntry — double-entry guard (F-02)', () => {
-  let service: GlService;
+describe('JournalEntryService.createJournalEntry — double-entry guard (F-02)', () => {
+  let service: JournalEntryService;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new GlService({ emit: vi.fn() } as never, { indexJournalEntry: vi.fn() } as never);
+    service = new JournalEntryService(
+      { emit: vi.fn() } as never,
+      { indexJournalEntry: vi.fn() } as never,
+    );
     tx.journalEntry.create.mockResolvedValue({
       id: 'je1',
       reference: 'TEST-1',

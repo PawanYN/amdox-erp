@@ -11,7 +11,7 @@ import { randomUUID } from 'crypto';
 import KcAdminClient from '@keycloak/keycloak-admin-client';
 import { prisma } from '@amdox/db';
 import { CreateTenantDto } from './dto/create-tenant.dto';
-import { AmdoxLogger } from '../common/logger/amdox-logger';
+import { AmdoxLogger } from '../infrastructure/common/logger/amdox-logger';
 
 // Re-authenticate well inside Keycloak's default 5-minute access-token /
 // 30-minute refresh-token lifespans, so a long-lived process never has to

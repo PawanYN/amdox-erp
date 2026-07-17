@@ -6,6 +6,7 @@ import { WebhookChannel } from './channels/webhook.channel';
 import { EmailChannel } from './channels/email.channel';
 import { SmsChannel } from './channels/sms.channel';
 import { DispatchJobData } from './notification.service';
+import { QUEUE_NAMES } from '../infrastructure/queues/queue-names';
 
 /**
  * Processes WEBHOOK/EMAIL dispatch jobs enqueued by NotificationService.notify().
@@ -14,7 +15,7 @@ import { DispatchJobData } from './notification.service';
  * rather than being discarded, so it stays visible in the Bull Board dashboard
  * mounted at /admin/queues — the dead-letter view for this queue.
  */
-@Processor('notification-dispatch')
+@Processor(QUEUE_NAMES.NOTIFICATION_DISPATCH)
 export class NotificationDispatchProcessor extends WorkerHost {
   private readonly logger = new Logger(NotificationDispatchProcessor.name);
   constructor(

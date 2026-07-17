@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { prisma, queryReplicaOrPrimary, type ScopedPrismaClient } from '@amdox/db';
-import { CacheService } from '../common/redis/cache.service';
+import { CacheService } from '../infrastructure/common/redis/cache.service';
 
 // Same tradeoff as BiService's KPI cache: chart widgets tolerate a short
 // staleness window in exchange for not recomputing on every dashboard
@@ -42,7 +42,7 @@ export class BiDataService {
     );
   }
 
-  // Runs against the read replica (docs/postgres-read-replica-strategy.md)
+  // Runs against the read replica (docs/audits/postgres-read-replica-strategy.md)
   // — all 6 chart data sources are read-only reporting queries. Falls back
   // to the primary automatically if the replica is unavailable.
   private async computeWidgetData(

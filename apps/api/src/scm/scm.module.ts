@@ -3,6 +3,13 @@
  *
  * This file bundles together all the controllers and services for this specific feature.
  * It acts as the "glue" that tells NestJS how these files depend on each other.
+ *
+ * Vendor, product, inventory, purchase, automation, and requisition are registered
+ * directly here rather than each having their own `.module.ts` — there's nothing
+ * about them that needs isolating. `VendorPortalModule` is the one real exception:
+ * it's imported as its own module because it has its own external-facing auth guard
+ * (`vendor-portal.guard.ts`) for non-employee vendor users, a genuinely separate
+ * concern from the rest of SCM.
  */
 import { Module } from '@nestjs/common';
 import { VendorController } from './vendor/vendor.controller';
@@ -21,7 +28,7 @@ import { RequisitionListener } from './requisition/requisition.listener';
 import { VendorPortalModule } from './vendor-portal/vendor-portal.module';
 import { NotificationModule } from '../notification/notification.module';
 import { AuthModule } from '../auth/auth.module';
-import { SearchModule } from '../search/search.module';
+import { SearchModule } from '../infrastructure/search/search.module';
 
 @Module({
   imports: [AuthModule, VendorPortalModule, NotificationModule, SearchModule],

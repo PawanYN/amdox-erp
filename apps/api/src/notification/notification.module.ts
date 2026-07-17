@@ -7,9 +7,10 @@ import { NotificationDispatchProcessor } from './notification-dispatch.processor
 import { WebhookChannel } from './channels/webhook.channel';
 import { EmailChannel } from './channels/email.channel';
 import { SmsChannel } from './channels/sms.channel';
+import { QUEUE_NAMES } from '../infrastructure/queues/queue-names';
 
 @Module({
-  imports: [BullModule.registerQueue({ name: 'notification-dispatch' })],
+  imports: [BullModule.registerQueue({ name: QUEUE_NAMES.NOTIFICATION_DISPATCH })],
   controllers: [NotificationController],
   providers: [
     NotificationService,

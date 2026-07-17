@@ -466,7 +466,7 @@ export class SearchService implements OnModuleInit {
     vendor?: { name?: string | null } | null;
     status: string;
     // Accepts Prisma Decimal, number, or string
-     
+
     totalAmount: any;
   }): Promise<void> {
     if (!this.enabled) return;
@@ -499,7 +499,7 @@ export class SearchService implements OnModuleInit {
     vendor?: { name?: string | null } | null;
     customer?: { name?: string | null } | null;
     // Accepts Prisma Decimal, number, or string
-     
+
     totalAmount: any;
   }): Promise<void> {
     if (!this.enabled) return;

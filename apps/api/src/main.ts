@@ -10,7 +10,7 @@ dotenv.config({ path: path.join(__dirname, '../../../../.env') });
 // OpenTelemetry must initialize before Nest/express/ioredis are imported so
 // auto-instrumentation can patch them as they load (TS preserves this order
 // in the CommonJS output).
-import './observability/otel';
+import './infrastructure/observability/otel';
 
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
@@ -24,7 +24,8 @@ import type { Queue } from 'bullmq';
 import type { Request, Response, NextFunction } from 'express';
 import { AppModule } from './app.module';
 import { Logger } from 'nestjs-pino';
-import { AmdoxLogger } from './common/logger/amdox-logger';
+import { AmdoxLogger } from './infrastructure/common/logger/amdox-logger';
+import { QUEUE_NAMES } from './infrastructure/queues/queue-names';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
@@ -119,11 +120,21 @@ async function bootstrap() {
 
   // Bull Board — retry/dead-letter dashboard for BullMQ queues, gated by HTTP Basic Auth
   // so it isn't a wide-open admin surface. Credentials come from BULL_BOARD_USER/PASSWORD.
-  const notificationQueue = app.get<Queue>(getQueueToken('notification-dispatch'));
+  // Covers all 4 queues, not just notification-dispatch — finance-outbox, forecast-retrain,
+  // and payroll previously had zero admin visibility if a job got stuck.
+  const notificationQueue = app.get<Queue>(getQueueToken(QUEUE_NAMES.NOTIFICATION_DISPATCH));
+  const financeOutboxQueue = app.get<Queue>(getQueueToken(QUEUE_NAMES.FINANCE_OUTBOX));
+  const forecastRetrainQueue = app.get<Queue>(getQueueToken(QUEUE_NAMES.FORECAST_RETRAIN));
+  const payrollQueue = app.get<Queue>(getQueueToken(QUEUE_NAMES.PAYROLL));
   const serverAdapter = new ExpressAdapter();
   serverAdapter.setBasePath('/admin/queues');
   createBullBoard({
-    queues: [new BullMQAdapter(notificationQueue)],
+    queues: [
+      new BullMQAdapter(notificationQueue),
+      new BullMQAdapter(financeOutboxQueue),
+      new BullMQAdapter(forecastRetrainQueue),
+      new BullMQAdapter(payrollQueue),
+    ],
     serverAdapter,
   });
   const expressApp = app.getHttpAdapter().getInstance();

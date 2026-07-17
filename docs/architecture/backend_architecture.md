@@ -245,7 +245,7 @@ The EventEmitter2 events above are "fire and forget" — they work but are not c
 | **Notification**  | `/notifications` | In-app (SSE) + email + SMS + HMAC webhook channels, per-user/channel preferences, `notification-dispatch` queue (5 retries, Bull Board DLQ at `/admin/queues`) |
 | **Audit**         | `/audit`         | Hash-chained audit log + verification, GDPR DSR/consent endpoints                                                                                              |
 | **Tenant**        | `/tenant`        | Tenant signup (creates a dedicated Keycloak realm), module licensing config                                                                                    |
-| **Observability** | —                | OpenTelemetry traces + metrics wiring (see `docs/observability.md`)                                                                                            |
+| **Observability** | —                | OpenTelemetry traces + metrics wiring (see `docs/architecture/observability.md`)                                                                               |
 
 ---
 
@@ -260,7 +260,7 @@ Every API request carries a JWT from Keycloak. The `TenantContextInterceptor` ex
 - **Keycloak JWT Strategy** verifies the Bearer token on every protected route.
 - **RolesGuard** checks the `roles` claim in the token against `@Roles(...)` on each endpoint.
 - Roles in use: `SuperAdmin`, `TenantAdmin`, `Manager`, `Viewer`, `Employee`.
-- **Full role matrix:** see [`docs/rbac-role-matrix.md`](./rbac-role-matrix.md) (BE-11 audit, July 2026).
+- **Full role matrix:** see [`docs/architecture/rbac-role-matrix.md`](./rbac-role-matrix.md) (BE-11 audit, July 2026).
 
 ### 3. SCM → Finance Event Flow (3-Way Match)
 
@@ -295,3 +295,37 @@ When `invoice.approved` fires, AP service writes to an `OutboxEvent` table insid
 - **Health check** at `GET http://localhost:3001/health` → `{"status":"ok"}`.
 - All money fields use `Decimal(18,4)` in PostgreSQL (via Prisma).
 - Dates are stored as `DateTime` in UTC; the API accepts ISO 8601 strings.
+
+### 7. Naming Conventions
+
+Within each module folder, two file-naming styles coexist deliberately, not by accident:
+
+- **`module.controller.ts` / `module.service.ts`** — the primary facade of the module (e.g. `gl.controller.ts`, `ap.service.ts`). This is what other modules and the API consumer interact with.
+- **`domain-entity.type.ts`** — internal collaborators the facade delegates to (e.g. `account.repository.ts`, `journal-entry.repository.ts` in `finance/gl/`; `ocr.service.ts`, `invoice-matching.service.ts` in `finance/ap/`). These aren't meant to be imported from outside the module.
+
+A folder mixing both styles (like `finance/gl/`) isn't inconsistent — it's the facade plus its internal collaborators, following this same pattern used throughout `finance/`, `hr/`, and `scm/`.
+
+### 8. Modules Not on the Component Diagram
+
+The C4 Component diagram (Eraser) shows 10 business-capability boxes. Five real modules exist in code but intentionally don't appear there, since they're cross-cutting infrastructure rather than business capabilities:
+
+| Module                  | Role                                                                                | Where it appears at the Container level instead                                      |
+| ----------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `search`                | Elasticsearch client + indexing                                                     | The "Search Engine (Elasticsearch 8)" Container box                                  |
+| `observability`         | OpenTelemetry SDK bootstrap                                                         | The "Observability Stack" Container box                                              |
+| `graphql`               | Alternate query protocol over the same domain services REST uses                    | Named on the `WebApp → APIGateway` arrow ("HTTPS REST + GraphQL + SSE")              |
+| `infrastructure/common` | Shared guards, interceptors, logger, Redis, storage, throttler used by every module | The API Gateway box's "JWT validation, rate limiting, tenant context injection" line |
+| `health`                | `/health/live`, `/health/ready`, `/health/db` — Kubernetes probe endpoints          | Not represented at any level — a known, accepted gap (too low-level to diagram)      |
+
+### 9. External Integrations
+
+Each external system named on the C4 Context diagram has exactly one adapter service in code — a single, DI-injected instance, reused wherever needed rather than duplicated:
+
+| External system (Context diagram)            | Adapter service                                                                                                                                    |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FX rates (ECB)                               | `finance/fx/fx-rate.service.ts`                                                                                                                    |
+| Email (SMTP via Nodemailer — Mailpit in dev) | `notification/channels/email.channel.ts`                                                                                                           |
+| File Storage (S3/MinIO)                      | `infrastructure/common/storage/storage.service.ts`                                                                                                 |
+| Search (Elasticsearch)                       | `infrastructure/search/search.service.ts`                                                                                                          |
+| SSO / Identity Providers (Keycloak)          | `auth/strategies/keycloak.strategy.ts` (token validation) + `tenant/tenant.service.ts` (self-service IdP management via the Keycloak Admin Client) |
+| AI Demand Forecasting (Python ML service)    | `forecast/forecast.service.ts` (HTTP client)                                                                                                       |

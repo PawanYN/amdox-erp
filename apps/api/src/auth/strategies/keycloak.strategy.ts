@@ -3,8 +3,8 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { passportJwtSecret } from 'jwks-rsa';
 import { prisma } from '@amdox/db';
-import { RedisService } from '../../common/redis/redis.service';
-import { AmdoxLogger } from '../../common/logger/amdox-logger';
+import { RedisService } from '../../infrastructure/common/redis/redis.service';
+import { AmdoxLogger } from '../../infrastructure/common/logger/amdox-logger';
 
 // One JWKS client (with its own LRU cache + rate limiter) per issuer,
 // created once and reused across every request — a per-request client, as

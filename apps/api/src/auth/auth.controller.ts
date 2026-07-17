@@ -1,7 +1,7 @@
 import { BadRequestException, Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { prisma } from '@amdox/db';
-import { RedisService } from '../common/redis/redis.service';
+import { RedisService } from '../infrastructure/common/redis/redis.service';
 import { AccessService } from './access.service';
 
 @Controller('auth')

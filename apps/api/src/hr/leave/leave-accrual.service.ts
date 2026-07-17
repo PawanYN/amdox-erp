@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { prisma, EmploymentStatus } from '@amdox/db';
-import { AmdoxLogger } from '../../common/logger/amdox-logger';
+import { AmdoxLogger } from '../../infrastructure/common/logger/amdox-logger';
 
 /**
  * WHAT: Grants each active employee `leaveType.accrualRate` additional days

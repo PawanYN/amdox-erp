@@ -1,13 +1,19 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { prisma } from '@amdox/db';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { CreateSalesOrderDto } from '../dto/create-sales-order.dto';
 import { InvoiceType } from '../dto/create-invoice.dto';
+import { QUEUE_NAMES } from '../../infrastructure/queues/queue-names';
 
 @Injectable()
 export class SalesOrderService {
   private readonly logger = new Logger(SalesOrderService.name);
-  constructor(private readonly eventEmitter: EventEmitter2) {}
+  constructor(
+    private readonly eventEmitter: EventEmitter2,
+    @InjectQueue(QUEUE_NAMES.FINANCE_OUTBOX) private readonly outboxQueue: Queue,
+  ) {}
 
   async createSalesOrder(tenantId: string, dto: CreateSalesOrderDto) {
     const customer = await prisma.customer.findFirst({
@@ -71,7 +77,9 @@ export class SalesOrderService {
   }
 
   async createInvoiceFromOrder(tenantId: string, salesOrderId: string) {
-    return prisma.$transaction(async (tx) => {
+    let outboxEventId: string | null = null;
+
+    const invoice = await prisma.$transaction(async (tx) => {
       const order = await tx.salesOrder.findFirst({
         where: { id: salesOrderId, tenantId },
         include: { lines: true, customer: true },
@@ -124,7 +132,7 @@ export class SalesOrderService {
         invoiceId: invoice.id,
       });
 
-      await tx.outboxEvent.create({
+      const outboxEvent = await tx.outboxEvent.create({
         data: {
           tenantId,
           eventType: 'invoice.issued',
@@ -132,9 +140,16 @@ export class SalesOrderService {
           status: 'PENDING',
         },
       });
+      outboxEventId = outboxEvent.id;
 
       return invoice;
     });
+
+    if (outboxEventId) {
+      await this.outboxQueue.add('process', { id: outboxEventId });
+    }
+
+    return invoice;
   }
 
   async getReconciliation(tenantId: string, salesOrderId: string) {

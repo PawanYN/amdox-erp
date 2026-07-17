@@ -5,7 +5,7 @@ import { RolesGuard } from '../../auth/guards/roles.guard';
 import { ModuleGuard } from '../../auth/guards/module.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { RequireModule } from '../../auth/decorators/require-module.decorator';
-import { GlService } from './gl.service';
+import { JournalEntryService } from './journal-entry.service';
 import { CreateJournalEntryDto } from '../dto/create-journal-entry.dto';
 import { CreateAccountDto } from '../dto/create-account.dto';
 import { CreateIntercompanyTransferDto } from '../dto/create-intercompany-transfer.dto';
@@ -19,8 +19,8 @@ import { CreateIntercompanyTransferDto } from '../dto/create-intercompany-transf
 @RequireModule('finance')
 @UseGuards(AuthGuard('keycloak'), RolesGuard, ModuleGuard)
 @Controller('finance/gl')
-export class GlController {
-  constructor(private readonly glService: GlService) {}
+export class JournalEntryController {
+  constructor(private readonly glService: JournalEntryService) {}
 
   /**
    * Creates a new Account in the Chart of Accounts (CoA).

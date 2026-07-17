@@ -1,6 +1,6 @@
 /**
  * Email channel — real SMTP delivery via Nodemailer (free/OSS, no paid
- * provider required — see docs/Amdox_Free_Alternatives.pdf, which flags
+ * provider required — see docs/reference/Amdox_Free_Alternatives.pdf, which flags
  * AWS SES as paid/restricted and Nodemailer as a free alternative).
  *
  * In dev/kind, SMTP_* env vars point at Mailpit (docker-compose service

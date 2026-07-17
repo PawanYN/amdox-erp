@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { prisma } from '@amdox/db';
 import { HashChainService } from './hash-chain.service';
-import { SearchService } from '../search/search.service';
+import { SearchService } from '../infrastructure/search/search.service';
 
 export interface AuditLogInput {
   tenantId: string;

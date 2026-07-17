@@ -3,6 +3,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { Subject } from 'rxjs';
 import { prisma, NotificationChannel, NotificationDeliveryStatus, Notification } from '@amdox/db';
+import { QUEUE_NAMES } from '../infrastructure/queues/queue-names';
 
 export interface NotifyInput {
   tenantId: string;
@@ -57,7 +58,9 @@ export class NotificationService {
   private readonly logger = new Logger('NotificationEngine');
   private readonly stream$ = new Subject<NotificationStreamEvent>();
 
-  constructor(@InjectQueue('notification-dispatch') private readonly dispatchQueue: Queue) {}
+  constructor(
+    @InjectQueue(QUEUE_NAMES.NOTIFICATION_DISPATCH) private readonly dispatchQueue: Queue,
+  ) {}
 
   getStream() {
     return this.stream$.asObservable();

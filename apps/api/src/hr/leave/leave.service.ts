@@ -4,7 +4,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CreateLeaveDto } from '../dto/create-leave.dto';
 import { ApproveLeaveDto } from '../dto/approve-leave.dto';
 import { LeaveStateMachine } from './leave-state-machine';
-import { SearchService } from '../../search/search.service';
+import { SearchService } from '../../infrastructure/search/search.service';
 
 @Injectable()
 export class LeaveService {

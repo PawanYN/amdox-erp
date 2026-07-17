@@ -20,14 +20,15 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { prisma, EmploymentStatus } from '@amdox/db';
 import { Logger } from '@nestjs/common';
-import { AmdoxLogger } from '../../common/logger/amdox-logger';
+import { AmdoxLogger } from '../../infrastructure/common/logger/amdox-logger';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PayslipGenerator } from './payslip-generator';
-import { StorageService } from '../../common/storage/storage.service';
+import { StorageService } from '../../infrastructure/common/storage/storage.service';
 import { ComplianceService } from '../compliance/compliance.service';
 import { calculatePayrollAmounts, resolveTaxSlabRate } from './payroll-deductions';
+import { QUEUE_NAMES } from '../../infrastructure/queues/queue-names';
 
-@Processor('payroll')
+@Processor(QUEUE_NAMES.PAYROLL)
 export class PayrollProcessor extends WorkerHost {
   private readonly logger = new Logger(PayrollProcessor.name);
   constructor(

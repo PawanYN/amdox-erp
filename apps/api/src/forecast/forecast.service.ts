@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { prisma, ForecastModelType } from '@amdox/db';
-import { RedisService } from '../common/redis/redis.service';
+import { RedisService } from '../infrastructure/common/redis/redis.service';
 
 const PREDICTIONS_CACHE_TTL_SECONDS = 6 * 60 * 60; // 6h — predictions only change on (re)train
 

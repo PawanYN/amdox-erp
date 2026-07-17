@@ -8,7 +8,7 @@ import { UpdateMilestoneDto } from '../dto/update-milestone.dto';
 import { UpdateTaskDto } from '../dto/update-task.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { TaskStatus } from '@amdox/db';
-import { SearchService } from '../../search/search.service';
+import { SearchService } from '../../infrastructure/search/search.service';
 
 @Injectable()
 export class ProjectService {

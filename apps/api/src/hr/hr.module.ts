@@ -27,13 +27,14 @@ import { ComplianceService } from './compliance/compliance.service';
 
 import { TenantModule } from '../tenant/tenant.module';
 import { AuthModule } from '../auth/auth.module';
-import { SearchModule } from '../search/search.module';
+import { SearchModule } from '../infrastructure/search/search.module';
+import { QUEUE_NAMES } from '../infrastructure/queues/queue-names';
 
 @Module({
   imports: [
     AuthModule,
     BullModule.registerQueue({
-      name: 'payroll',
+      name: QUEUE_NAMES.PAYROLL,
     }),
     TenantModule,
     SearchModule,
