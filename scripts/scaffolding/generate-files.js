@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const basePath = path.join('w:', 'amdox-erp', 'apps', 'api', 'src');
+const basePath = path.join(__dirname, '..', '..', 'apps', 'api', 'src');
 
 const filesToCreate = [
   // Auth
@@ -89,7 +89,11 @@ const getCommentForFile = (filename) => {
   if (filename.includes('state-machine')) {
     return `/**\n * STATE MACHINE: ${path.basename(filename)}\n * \n * This file manages complex status transitions (e.g., Pending -> Approved -> Rejected).\n * It ensures the business rules are followed perfectly before a status changes.\n */\n`;
   }
-  if (filename.includes('processor') || filename.includes('engine') || filename.includes('generator')) {
+  if (
+    filename.includes('processor') ||
+    filename.includes('engine') ||
+    filename.includes('generator')
+  ) {
     return `/**\n * BACKGROUND WORKER: ${path.basename(filename)}\n * \n * This file handles heavy, asynchronous jobs that run in the background (like processing payroll,\n * calculating tax slabs, or generating PDF documents).\n */\n`;
   }
   if (filename.includes('.channel.ts')) {
@@ -101,14 +105,25 @@ const getCommentForFile = (filename) => {
 const getBoilerplate = (filename) => {
   if (filename.endsWith('.gitkeep')) return '';
   const basename = path.basename(filename, '.ts');
-  const className = basename.split(/[\\.\\-]/).map(part => part.charAt(0).toUpperCase() + part.slice(1)).join('');
+  const className = basename
+    .split(/[\\.\\-]/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join('');
   const comments = getCommentForFile(filename);
-  
+
   if (filename.includes('.module.ts')) {
     return `${comments}import { Module } from '@nestjs/common';\n\n@Module({})\nexport class ${className} {}\n`;
   } else if (filename.includes('.controller.ts')) {
     return `${comments}import { Controller } from '@nestjs/common';\n\n@Controller()\nexport class ${className} {}\n`;
-  } else if (filename.includes('.service.ts') || filename.includes('repository.ts') || filename.includes('processor') || filename.includes('channel') || filename.includes('engine') || filename.includes('generator') || filename.includes('state-machine')) {
+  } else if (
+    filename.includes('.service.ts') ||
+    filename.includes('repository.ts') ||
+    filename.includes('processor') ||
+    filename.includes('channel') ||
+    filename.includes('engine') ||
+    filename.includes('generator') ||
+    filename.includes('state-machine')
+  ) {
     return `${comments}import { Injectable } from '@nestjs/common';\n\n@Injectable()\nexport class ${className} {}\n`;
   }
   return `${comments}export class ${className} {}\n`;

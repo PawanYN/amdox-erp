@@ -17,7 +17,7 @@ import { execSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const schemaPath = join(root, 'packages/db/prisma/schema.prisma');
 const outDir = join(root, 'docs/erd');
 

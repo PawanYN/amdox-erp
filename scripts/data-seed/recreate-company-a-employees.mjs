@@ -255,7 +255,7 @@ async function main() {
     await new Promise((r) => setTimeout(r, 500));
   }
 
-  const summaryPath = '/home/ubuntu/amdox-erp/docs/company-a-employee-logins.md';
+  const summaryPath = '/home/ubuntu/amdox-erp/docs/guides/company-a-employee-logins.md';
   const lines = [
     '# Company A — Employee Logins (recreated)',
     '',

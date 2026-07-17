@@ -13,7 +13,12 @@
     "audit:tenant-scoping": "ts-node scripts/audit-tenant-scoping.ts",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\"",
     "test": "vitest run",
-    "verify:payroll-retry": "ts-node scripts/verify-payroll-retry.ts"
+    "verify:payroll-retry": "ts-node scripts/verify-payroll-retry.ts",
+    "backfill:ap-gl": "ts-node scripts/backfill-ap-gl.ts",
+    "backfill:ar-revenue-gl": "ts-node scripts/backfill-ar-revenue-gl.ts",
+    "backfill:employee-contracts": "ts-node scripts/backfill-employee-contracts.ts",
+    "backfill:payment-gl": "ts-node scripts/backfill-payment-gl.ts",
+    "seed:june-attendance": "ts-node scripts/seed-june-attendance.ts"
   },
   "dependencies": {
     "@amdox/db": "workspace:*",
