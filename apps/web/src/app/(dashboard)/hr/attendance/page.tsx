@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Clock as ClockIcon } from "lucide-react";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
-import { useKeycloak } from "@/components/KeycloakProvider";
+import { useKeycloak } from "@/components/layout/keycloak-provider";
 import { hrApi } from "@/lib/api/hr-api";
 
 function formatTime(date: Date): string {

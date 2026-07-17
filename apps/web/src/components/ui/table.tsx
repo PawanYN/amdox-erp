@@ -1,13 +1,5 @@
 import { ReactNode } from "react";
 
-export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return (
-    <div className={`rounded-lg border border-slate-200 bg-white shadow-card overflow-hidden ${className}`}>
-      {children}
-    </div>
-  );
-}
-
 export function Table({ children }: { children: ReactNode }) {
   return (
     <div className="overflow-x-auto">
@@ -26,7 +18,9 @@ export function THead({ children }: { children: ReactNode }) {
 
 export function TH({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <th className={`px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 whitespace-nowrap ${className}`}>
+    <th
+      className={`px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 whitespace-nowrap ${className}`}
+    >
       {children}
     </th>
   );
@@ -37,25 +31,11 @@ export function TBody({ children }: { children: ReactNode }) {
 }
 
 export function TR({ children }: { children: ReactNode }) {
-  return (
-    <tr className="hover:bg-slate-50/60 transition-colors duration-100">
-      {children}
-    </tr>
-  );
+  return <tr className="hover:bg-slate-50/60 transition-colors duration-100">{children}</tr>;
 }
 
-export function TD({
-  children,
-  className = "",
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <td className={`px-4 py-3 align-middle text-slate-700 ${className}`}>
-      {children}
-    </td>
-  );
+export function TD({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return <td className={`px-4 py-3 align-middle text-slate-700 ${className}`}>{children}</td>;
 }
 
 export function EmptyState({ message }: { message: string }) {

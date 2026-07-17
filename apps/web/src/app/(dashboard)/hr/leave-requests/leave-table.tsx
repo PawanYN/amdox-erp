@@ -3,7 +3,7 @@
 import { Check, X } from "lucide-react";
 import { Badge, statusToTone } from "@/components/ui/badge";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
-import { LeaveRequest } from "@/lib/types";
+import { LeaveRequest } from "@/lib/types/hr";
 
 export function LeaveTable({
   requests,

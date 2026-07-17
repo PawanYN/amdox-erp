@@ -1,7 +1,8 @@
 "use client";
 
 import React, { ReactNode } from "react";
-import { Table, THead, TH, TBody, TR, TD, EmptyState, Card } from "./table";
+import { Table, THead, TH, TBody, TR, TD, EmptyState } from "./table";
+import { Card } from "./card";
 
 export interface ColumnDef<T> {
   header: string;
@@ -46,8 +47,8 @@ export function DataTable<T>({
                     {col.cell
                       ? col.cell(row)
                       : col.accessorKey
-                      ? (row[col.accessorKey] as ReactNode)
-                      : null}
+                        ? (row[col.accessorKey] as ReactNode)
+                        : null}
                   </TD>
                 ))}
               </TR>

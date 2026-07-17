@@ -3,7 +3,7 @@
 import { FormEvent, useState, useEffect } from "react";
 import { Modal, inputClasses } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import { Employee, NewEmployeeInput } from "@/lib/types";
+import { Employee, NewEmployeeInput } from "@/lib/types/hr";
 import { X } from "lucide-react";
 import { MODULE_OPTIONS, modulesForDepartment, type ErpModule } from "@/lib/erp-modules";
 

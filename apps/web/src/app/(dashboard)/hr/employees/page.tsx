@@ -14,11 +14,11 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge, statusToTone } from "@/components/ui/badge";
-import { Card } from "@/components/ui/table";
+import { Card } from "@/components/ui/card";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { StatCard } from "@/components/ui/stat-card";
-import { Employee, NewEmployeeInput } from "@/lib/types";
-import { useKeycloak } from "@/components/KeycloakProvider";
+import { Employee, NewEmployeeInput } from "@/lib/types/hr";
+import { useKeycloak } from "@/components/layout/keycloak-provider";
 import { hrApi } from "@/lib/api/hr-api";
 import { EmployeeForm } from "./employee-form";
 import { OrgChart } from "./org-chart";

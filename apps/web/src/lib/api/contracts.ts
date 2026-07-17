@@ -15,12 +15,7 @@
  *   4xx/5xx status.
  */
 
-import {
-  AttendanceRecord,
-  Employee,
-  LeaveRequest,
-  PayrollRecord,
-} from "../types";
+import { AttendanceRecord, Employee, LeaveRequest, PayrollRecord } from "../types/hr";
 
 /* ──────────────────────────  Employees  ────────────────────────── */
 

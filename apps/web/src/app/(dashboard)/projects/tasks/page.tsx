@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
 import { Pencil, Trash2 } from "lucide-react";
 import { pmApi } from "@/lib/api/pm-api";
-import { D3GanttChart } from "@/components/pm/D3GanttChart";
+import { D3GanttChart } from "@/components/pm/d3-gantt-chart";
 
 const STATUSES = ["TODO", "IN_PROGRESS", "BLOCKED", "DONE"] as const;
 

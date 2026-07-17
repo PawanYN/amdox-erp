@@ -14,7 +14,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { pmApi } from "@/lib/api/pm-api";
-import { useKeycloak } from "@/components/KeycloakProvider";
+import { useKeycloak } from "@/components/layout/keycloak-provider";
 
 const STEPS = ["Create Project", "Tasks & Milestones (WBS)", "Resource Allocation"];
 

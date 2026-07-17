@@ -3,7 +3,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import { Modal, FormField, inputClasses } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import { LeaveRequest, LeaveType } from "@/lib/types";
+import { LeaveRequest, LeaveType } from "@/lib/types/hr";
 
 const LEAVE_TYPES: LeaveType[] = ["Sick Leave", "Earned Leave", "Casual Leave", "Unpaid Leave"];
 

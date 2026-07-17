@@ -3,6 +3,8 @@
 This document reflects the **current, live** frontend architecture as implemented in `apps/web/src`.
 Last updated: July 2026.
 
+> **Reality check**: the diagram and page tables below cover the original 4 core modules (SCM, Finance, HR, Projects) in detail and are still accurate for those. The app has since grown 6 more top-level areas not reflected in the diagram: **BI** (`bi/`), **Forecast** (`forecast/`), **Notifications** (`notifications/`), **Settings** (`settings/`, including Identity Provider self-service management), **create-tenant** (`app/create-tenant/`, pre-auth tenant signup), and **vendor-portal** (`app/vendor-portal/`, a separate portal for external vendor users, not tenant employees — its own auth context, matching the backend's dedicated `vendor-portal.guard.ts`). The Folder Structure Reference and Key Conventions sections below are kept current for all 10 areas; the mermaid diagram is not.
+
 ---
 
 ## System Architecture Diagram
@@ -176,14 +178,18 @@ Next.js automatically wraps every page with all the `layout.tsx` files above it 
 
 **Available shared UI components:**
 
-| Component                                                 | File             | What it does                                                                                       |
-| --------------------------------------------------------- | ---------------- | -------------------------------------------------------------------------------------------------- |
-| `Button`                                                  | `button.tsx`     | Primary, secondary, outline, ghost variants + icon slot                                            |
-| `Badge` + `statusToTone`                                  | `badge.tsx`      | Coloured pill label. `statusToTone` maps backend status strings (e.g. `APPROVED`) to a colour tone |
-| `DataTable` + `ColumnDef`                                 | `data-table.tsx` | Generic typed table. Pass `data`, `columns`, `keyExtractor`, `emptyMessage` — no boilerplate       |
-| `StatCard`                                                | `stat-card.tsx`  | Gradient KPI metric card used in every module's header                                             |
-| `Modal`                                                   | `modal.tsx`      | Overlay dialog for forms (create/edit/delete confirmation)                                         |
-| `Table`, `THead`, `TH`, `TBody`, `TR`, `TD`, `EmptyState` | `table.tsx`      | Raw table primitives for custom layouts                                                            |
+| Component                                                 | File             | What it does                                                                                                                             |
+| --------------------------------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `Button`                                                  | `button.tsx`     | Primary, secondary, outline, ghost variants + icon slot                                                                                  |
+| `Badge` + `statusToTone`                                  | `badge.tsx`      | Coloured pill label. `statusToTone` maps backend status strings (e.g. `APPROVED`) to a colour tone                                       |
+| `Card`                                                    | `card.tsx`       | Bordered container shell — used both standalone and as `DataTable`'s wrapper                                                             |
+| `DataTable` + `ColumnDef`                                 | `data-table.tsx` | Generic typed table, built on `table.tsx`'s primitives + `Card`. Pass `data`, `columns`, `keyExtractor`, `emptyMessage` — no boilerplate |
+| `StatCard`                                                | `stat-card.tsx`  | Gradient KPI metric card used in every module's header                                                                                   |
+| `Modal`                                                   | `modal.tsx`      | Overlay dialog for forms (create/edit/delete confirmation)                                                                               |
+| `toast`                                                   | `toast.tsx`      | Transient success/error notification, called imperatively (not a rendered component)                                                     |
+| `Table`, `THead`, `TH`, `TBody`, `TR`, `TD`, `EmptyState` | `table.tsx`      | Internal primitives `DataTable` is built from — not meant to be imported directly by pages                                               |
+
+There is no `input.tsx` — forms use native `<input>` elements styled inline rather than a shared primitive.
 
 ---
 
@@ -234,74 +240,97 @@ apps/web/src/
 │
 ├── app/
 │   ├── layout.tsx                    ← Root layout: global styles, providers
+│   ├── page.tsx                      ← Public landing page
+│   ├── create-tenant/page.tsx        ← Pre-auth tenant signup (outside any route group)
+│   ├── vendor-portal/page.tsx        ← External vendor portal (own auth context, outside any route group)
+│   ├── (auth)/                       ← Route group: login, signup, forgot-password
 │   └── (dashboard)/
 │       ├── layout.tsx                ← Dashboard shell: sidebar + topbar
 │       ├── home/                     ← Dashboard home page
+│       ├── bi/                       ← Business Intelligence dashboards
+│       ├── forecast/                 ← AI demand forecasting
+│       ├── notifications/
+│       ├── settings/                 ← Includes Identity Provider self-service management
 │       ├── scm/
 │       │   ├── layout.tsx            ← SCM tab bar + KPI row
 │       │   ├── vendors/page.tsx
 │       │   ├── purchase-orders/page.tsx
 │       │   ├── goods-receipt/page.tsx
 │       │   ├── inventory/page.tsx
-│       │   └── invoices/page.tsx
+│       │   ├── invoices/page.tsx
+│       │   ├── products/page.tsx
+│       │   └── forecast/page.tsx
 │       ├── finance/
 │       │   ├── layout.tsx            ← Finance tab bar + KPI row
 │       │   ├── accounts/page.tsx     ← Chart of Accounts
 │       │   ├── journal-entries/page.tsx
-│       │   ├── invoices/page.tsx     ← AP Invoices (connected to backend)
-│       │   └── aging-report/page.tsx
+│       │   ├── invoices/page.tsx     ← AP Invoices
+│       │   ├── ar-invoices/page.tsx
+│       │   ├── aging-report/page.tsx
+│       │   ├── sales-orders/page.tsx
+│       │   ├── fiscal-periods/page.tsx
+│       │   └── intercompany/page.tsx
 │       ├── hr/
-│       │   ├── employees/page.tsx
-│       │   ├── leave-requests/page.tsx
+│       │   ├── employees/page.tsx    ← Co-locates employee-form.tsx, org-chart.tsx
+│       │   ├── leave-requests/page.tsx ← Co-locates leave-form.tsx, leave-table.tsx
 │       │   ├── attendance/page.tsx
-│       │   └── payroll/page.tsx
-│       ├── projects/
-│       │   ├── layout.tsx            ← Projects tab bar + KPI row
-│       │   ├── overview/page.tsx
-│       │   ├── tasks/page.tsx
-│       │   ├── resources/page.tsx
-│       │   ├── budget/page.tsx
-│       │   └── new/page.tsx
-│       └── settings/
+│       │   ├── payroll/page.tsx      ← Co-locates payslip-modal.tsx
+│       │   ├── departments/page.tsx
+│       │   ├── compliance/page.tsx
+│       │   └── org-chart/page.tsx
+│       └── projects/
+│           ├── layout.tsx            ← Projects tab bar + KPI row
+│           ├── overview/page.tsx
+│           ├── tasks/page.tsx
+│           ├── resources/page.tsx
+│           ├── budget/page.tsx
+│           ├── new/page.tsx
+│           ├── milestones/page.tsx
+│           └── [id]/page.tsx
 │
 ├── components/
-│   ├── KeycloakProvider.tsx          ← Auth context + useKeycloak hook
-│   ├── ui/
-│   │   ├── button.tsx
-│   │   ├── badge.tsx
-│   │   ├── data-table.tsx
-│   │   ├── stat-card.tsx
-│   │   ├── modal.tsx
-│   │   └── table.tsx
-│   ├── dashboard/                    ← Dashboard-specific components
-│   ├── layout/                       ← Sidebar, topbar
-│   └── landing/                      ← Landing page components
+│   ├── ui/                           ← Shared, generic primitives (kebab-case)
+│   │   ├── button.tsx, badge.tsx, card.tsx, data-table.tsx,
+│   │   │   stat-card.tsx, modal.tsx, toast.tsx, table.tsx
+│   ├── layout/                       ← Sidebar, topbar, keycloak-provider.tsx (auth context + useKeycloak hook)
+│   ├── landing/                      ← Landing page components
+│   ├── bi/                           ← BI dashboard building blocks (widget-chart, advanced-charts, mape-chart, etc.)
+│   ├── pm/                           ← Project Management components (d3-gantt-chart.tsx, etc.)
+│   └── settings/                     ← Settings page building blocks (idp-manager.tsx, etc.)
 │
 ├── lib/
-│   ├── api/
-│   │   ├── client.ts                 ← Shared fetch wrapper (token + error handling)
-│   │   ├── scm-api.ts                ← SCM endpoint functions
-│   │   ├── finance-api.ts            ← Finance endpoint functions
-│   │   ├── hr-api.ts                 ← HR endpoint functions
-│   │   └── contracts.ts              ← Shared request/response TypeScript types
+│   ├── api/                          ← One file per backend domain: audit, bi, client, contracts,
+│   │                                    finance, forecast, graphql, hr, notification, pm, scm, search,
+│   │                                    tenant, vendor-portal
+│   ├── types/                        ← One file per domain: hr.ts, bi.ts
+│   ├── providers/                    ← query-provider.tsx (TanStack Query)
 │   ├── keycloak.ts                   ← Keycloak JS singleton instance
-│   ├── current-user.ts               ← Helper to read current user from token
-│   ├── types.ts                      ← Shared frontend TypeScript types
-│   └── mock/                         ← Orphaned mock fixtures (no page imports these anymore)
+│   ├── auth.ts                       ← Auth-ready gating helpers (markAuthReady, waitForAuthReady)
+│   ├── erp-modules.ts                ← Per-tenant module entitlement helpers
+│   ├── use-roles.ts                  ← Role-check hook
+│   └── format.ts                     ← Shared formatting helpers
 │
-├── stores/                           ← (reserved for Zustand/Jotai global state)
-├── hooks/                            ← Custom React hooks
-└── styles/                           ← Global CSS / design tokens
+└── styles/                           ← Global CSS / design tokens (globals.css, grid-layout.css)
 ```
+
+Note: `hooks/` and `stores/` folders (previously reserved, empty scaffolding) were removed — the project has grown without needing either a shared custom-hooks folder or a global state store; each page manages its own local state, and the one real hook (`useKeycloak`) lives with its provider in `components/layout/keycloak-provider.tsx`.
 
 ---
 
 ## Key Conventions
 
-| Rule                                     | Why                                                                                                                                                                                    |
-| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Every page file is `"use client"`        | Data fetching uses `useEffect` + `useState` — not React Server Components — because auth token is only available client-side.                                                          |
-| Pages fetch data in `useEffect` on mount | Simple and predictable. All API calls go through `apiClient` which handles auth automatically.                                                                                         |
-| No global state store yet                | `stores/` folder exists but is empty. Each page manages its own local state with `useState`. If cross-page state is needed in future, Zustand will be added here.                      |
-| Mock data in `/lib/mock/`                | **Orphaned** — every dashboard screen now calls live APIs (see `docs/wiring-audit.md`); no page imports this folder. Kept only as reference fixtures; safe to delete.                  |
-| `ColumnDef<T>` for all tables            | All tables use the typed `DataTable` component with `ColumnDef<T>[]`. This enforces type safety — if a backend response type changes, TypeScript will highlight every affected column. |
+| Rule                                                               | Why                                                                                                                                                                                                                                                                                                                                                                               |
+| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Every page file is `"use client"`                                  | Data fetching uses `useEffect` + `useState` — not React Server Components — because auth token is only available client-side.                                                                                                                                                                                                                                                     |
+| Pages fetch data in `useEffect` on mount                           | Simple and predictable. All API calls go through `apiClient` which handles auth automatically.                                                                                                                                                                                                                                                                                    |
+| No global state store                                              | Each page manages its own local state with `useState`. The `stores/` folder was reserved for a future Zustand/Jotai store but was removed (empty, unused) — add it back if cross-page state is ever actually needed.                                                                                                                                                              |
+| No shared custom-hooks folder                                      | The `hooks/` folder was similarly reserved and removed (empty, unused). The one real hook (`useKeycloak`) lives with its provider in `components/layout/keycloak-provider.tsx` rather than a generic `hooks/` folder.                                                                                                                                                             |
+| `ColumnDef<T>` for all tables                                      | All tables use the typed `DataTable` component with `ColumnDef<T>[]`. This enforces type safety — if a backend response type changes, TypeScript will highlight every affected column.                                                                                                                                                                                            |
+| kebab-case file naming                                             | Established convention across `ui/`, `bi/`, `settings/`, and all route-local components.                                                                                                                                                                                                                                                                                          |
+| 3 charting libraries coexist deliberately                          | `echarts`/`echarts-for-react` powers BI's Power-BI-style visuals (heatmap/funnel/scatter/treemap/waterfall/gauge in `components/bi/`); `recharts` powers standard dashboard charts elsewhere; `d3` powers the PM module's custom Gantt chart layout (`components/pm/d3-gantt-chart.tsx`). Each serves a need the others don't — not redundant, not a candidate for consolidation. |
+| Some dashboard modules have no tab-bar `layout.tsx`                | `bi`, `forecast`, `home`, `notifications`, `settings` are single-page modules — no tabs needed. `finance`, `hr`, `projects`, `scm` have multiple sub-pages, hence a `layout.tsx` with a tab bar. This is intentional, not an oversight.                                                                                                                                           |
+| `create-tenant`/`vendor-portal` sit outside `(auth)`/`(dashboard)` | Genuinely different auth contexts: `create-tenant` is pre-tenant signup (no user session yet), `vendor-portal` is for external vendor users authenticated via the backend's separate `vendor-portal.guard.ts`, not tenant employees. Neither belongs in either route group.                                                                                                       |
+
+### Known follow-up (not yet done)
+
+Several page files have grown into large single-file monoliths that would benefit from decomposition into smaller components — flagged here rather than fixed, since it's a substantially larger and riskier effort than the rest of this document's cleanup: `settings/page.tsx` (1608 lines), `scm/inventory/page.tsx` (872), `finance/invoices/page.tsx` (791), `projects/new/page.tsx` (687), `home/page.tsx` (682), `projects/resources/page.tsx` (569), `projects/[id]/page.tsx` (526).

@@ -1,6 +1,6 @@
 "use client";
 
-import { Employee } from "@/lib/types";
+import { Employee } from "@/lib/types/hr";
 
 interface TreeNode {
   employee: Employee;
@@ -25,9 +25,7 @@ function buildTree(employees: Employee[]): TreeNode[] {
   }
 
   // Roots are employees with no manager, or whose manager isn't in the list.
-  const roots = employees.filter(
-    (e) => !e.reportsToId || !byId.has(e.reportsToId)
-  );
+  const roots = employees.filter((e) => !e.reportsToId || !byId.has(e.reportsToId));
   return roots.map(toNode);
 }
 

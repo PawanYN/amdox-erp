@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { Network } from "lucide-react";
-import { useKeycloak } from "@/components/KeycloakProvider";
+import { useKeycloak } from "@/components/layout/keycloak-provider";
 import { hrApi } from "@/lib/api/hr-api";
-import { Employee } from "@/lib/types";
+import { Employee } from "@/lib/types/hr";
 import { OrgChart } from "../employees/org-chart";
 
 type RawEmployee = {

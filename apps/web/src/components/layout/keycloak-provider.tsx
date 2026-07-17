@@ -9,8 +9,8 @@ import {
   useCallback,
   ReactNode,
 } from "react";
-import keycloak from "../lib/keycloak";
-import { markAuthReady } from "../lib/auth";
+import keycloak from "../../lib/keycloak";
+import { markAuthReady } from "../../lib/auth";
 
 interface KeycloakContextType {
   initialized: boolean;

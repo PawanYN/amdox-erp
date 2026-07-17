@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import keycloak from "../../lib/keycloak";
-import { useKeycloak } from "../KeycloakProvider";
+import { useKeycloak } from "./keycloak-provider";
 import { GlobalSearch, useGlobalSearchShortcut } from "./global-search";
 import { ToastHost } from "../ui/toast";
 import { notificationApi } from "../../lib/api/notification-api";

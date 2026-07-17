@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Bell, CheckCheck, Clock, Radio, Settings2, Trash2 } from "lucide-react";
-import { useKeycloak } from "@/components/KeycloakProvider";
+import { useKeycloak } from "@/components/layout/keycloak-provider";
 import {
   notificationApi,
   subscribeNotificationStream,

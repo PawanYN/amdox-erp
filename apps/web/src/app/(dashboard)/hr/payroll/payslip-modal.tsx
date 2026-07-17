@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import { PayrollRecord } from "@/lib/types";
+import { PayrollRecord } from "@/lib/types/hr";
 import { hrApi } from "@/lib/api/hr-api";
 
 function formatINR(amount: number): string {
@@ -69,9 +69,7 @@ export function PayslipModal({
               </div>
               <div className="flex justify-between">
                 <span className="text-muted">Deductions</span>
-                <span className="font-medium text-accent-red">
-                  -{formatINR(record.deductions)}
-                </span>
+                <span className="font-medium text-accent-red">-{formatINR(record.deductions)}</span>
               </div>
               <div className="flex justify-between border-t border-line pt-2 text-base">
                 <span className="font-semibold text-ink">Net pay</span>

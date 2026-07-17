@@ -17,9 +17,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge, statusToTone } from "@/components/ui/badge";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
-import { PayrollRecord } from "@/lib/types";
+import { PayrollRecord } from "@/lib/types/hr";
 import { PayslipModal } from "./payslip-modal";
-import { useKeycloak } from "@/components/KeycloakProvider";
+import { useKeycloak } from "@/components/layout/keycloak-provider";
 import { hrApi } from "@/lib/api/hr-api";
 
 function formatINR(amount: number): string {

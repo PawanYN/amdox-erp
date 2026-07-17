@@ -4,11 +4,26 @@ import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { TrendingUp, BarChart2, Loader2, CheckCircle, Clock, RefreshCw } from "lucide-react";
 import { forecastApi } from "@/lib/api/forecast-api";
+import type { MapeChartTheme } from "@/components/bi/mape-chart";
 
 // recharts (+ its d3/redux-toolkit internals) is ~370KB parsed — deferred
 // out of this page's initial bundle the same way bi/widget-chart.tsx
 // already defers echarts-for-react.
-const MapeChart = dynamic(() => import("./mape-chart"), { ssr: false });
+const MapeChart = dynamic(() => import("@/components/bi/mape-chart"), { ssr: false });
+
+const MAPE_CHART_THEME: MapeChartTheme = {
+  height: 110,
+  gridStroke: "#f1f5f9",
+  tickFontSize: 10,
+  tickFill: "#94a3b8",
+  tooltipFontSize: 12,
+  tooltipBorder: "#e2e8f0",
+  tooltipRadius: 8,
+  cursorFill: "#eff6ff",
+  barFill: "#2563eb",
+  barRadius: [3, 3, 0, 0],
+  barMaxSize: 28,
+};
 
 type ForecastStatus = {
   id: string;
@@ -190,7 +205,7 @@ export default function ForecastPage() {
             <BarChart2 size={12} className="text-blue-600" />
             MAPE by SKU — lower is better · target &lt;12%
           </p>
-          <MapeChart data={mapeData} />
+          <MapeChart data={mapeData} theme={MAPE_CHART_THEME} />
         </div>
       )}
 

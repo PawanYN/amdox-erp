@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { auditApi, type ConsentRecord, type VerifyChainResponse } from "@/lib/api/audit-api";
 import { tenantApi } from "@/lib/api/tenant-api";
-import { useKeycloak } from "@/components/KeycloakProvider";
+import { useKeycloak } from "@/components/layout/keycloak-provider";
 import { apiClient } from "@/lib/api/client";
 import { IdpManager, ExistingIdp } from "@/components/settings/idp-manager";
 

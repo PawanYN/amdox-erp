@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Scale, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useKeycloak } from "@/components/KeycloakProvider";
+import { useKeycloak } from "@/components/layout/keycloak-provider";
 import { hrApi } from "@/lib/api/hr-api";
 
 type StatutoryConfig = {

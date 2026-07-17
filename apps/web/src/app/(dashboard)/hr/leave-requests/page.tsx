@@ -3,8 +3,8 @@ import { toast } from "@/components/ui/toast";
 
 import { useState, useEffect } from "react";
 import { CalendarDays } from "lucide-react";
-import { LeaveRequest } from "@/lib/types";
-import { useKeycloak } from "@/components/KeycloakProvider";
+import { LeaveRequest } from "@/lib/types/hr";
+import { useKeycloak } from "@/components/layout/keycloak-provider";
 import { hrApi } from "@/lib/api/hr-api";
 import { LeaveTable } from "./leave-table";
 

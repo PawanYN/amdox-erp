@@ -1,7 +1,7 @@
 "use client";
 import { toast } from "@/components/ui/toast";
 
-import { useKeycloak } from "@/components/KeycloakProvider";
+import { useKeycloak } from "@/components/layout/keycloak-provider";
 import {
   Shield,
   Calendar,
