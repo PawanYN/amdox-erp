@@ -23,6 +23,30 @@
 
 CREATE EXTENSION IF NOT EXISTS timescaledb;
 
+-- TimescaleDB requires every unique constraint on a hypertable to include
+-- the partitioning column, so the old single-column `id` primary key has to
+-- become a composite (id, createdAt) key before create_hypertable will
+-- accept the table. `id` (uuid()) stays effectively unique in practice.
+-- Guarded so this migration is safe to re-run.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'AuditLog_pkey'
+  ) AND NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'AuditLog_pkey'
+      AND conkey = ARRAY(
+        SELECT attnum FROM pg_attribute
+        WHERE attrelid = '"AuditLog"'::regclass
+          AND attname IN ('id', 'createdAt')
+        ORDER BY attnum
+      )
+  ) THEN
+    ALTER TABLE "AuditLog" DROP CONSTRAINT "AuditLog_pkey";
+    ALTER TABLE "AuditLog" ADD CONSTRAINT "AuditLog_pkey" PRIMARY KEY (id, "createdAt");
+  END IF;
+END $$;
+
 -- migrate_data => true converts the existing table (and any rows already in
 -- it) into a hypertable in place; if the table is already a hypertable this
 -- is a no-op rather than an error, so this migration is safe to re-run.
