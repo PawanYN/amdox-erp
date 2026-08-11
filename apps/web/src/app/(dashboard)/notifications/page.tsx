@@ -189,10 +189,10 @@ export default function NotificationsPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <Bell size={18} className="text-slate-500" />
+            <Bell size={18} style={{color: '#6b7280'}} />
             Notifications
             {unreadCount > 0 && (
-              <span className="ml-1 h-5 min-w-5 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center px-1.5">
+              <span className="ml-1 h-5 min-w-5 rounded-full text-white text-[10px] font-bold flex items-center justify-center px-1.5" style={{background: '#1f5fa8'}}>
                 {unreadCount}
               </span>
             )}
@@ -200,13 +200,14 @@ export default function NotificationsPage() {
           <p className="page-subtitle mt-1">In-app alerts — click unread to mark as read</p>
         </div>
         <div
-          className={`flex items-center gap-1.5 text-[11px] font-medium px-2 py-1 rounded-md border ${
+          className={`flex items-center gap-1.5 text-[11px] font-medium px-2 py-1 rounded-md border`}
+          style={
             liveStatus === "live"
-              ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+              ? {color: '#059669', background: '#ecfdf5', borderColor: '#a7f3d0'}
               : liveStatus === "error"
-                ? "text-amber-700 bg-amber-50 border-amber-200"
-                : "text-slate-500 bg-slate-50 border-slate-200"
-          }`}
+                ? {color: '#d97706', background: '#fffbeb', borderColor: '#fde68a'}
+                : {color: '#6b7280', background: '#f4f6f8', borderColor: '#dfe3e8'}
+          }
           title="Server-Sent Events connection"
         >
           <Radio size={12} />
@@ -215,17 +216,17 @@ export default function NotificationsPage() {
       </div>
 
       {/* Preferences */}
-      <section className="bg-white rounded-lg border border-slate-200 shadow-card overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
-          <Settings2 size={14} className="text-slate-500" />
-          <h2 className="text-[13px] font-semibold text-slate-800">Channel preferences</h2>
-          <span className="text-[11px] text-slate-500 ml-auto">
+      <section className="bg-white rounded-lg border shadow-card overflow-hidden" style={{borderColor: '#dfe3e8'}}>
+        <div className="px-4 py-3 border-b flex items-center gap-2" style={{borderColor: '#dfe3e8'}}>
+          <Settings2 size={14} style={{color: '#6b7280'}} />
+          <h2 className="text-[13px] font-semibold" style={{color: '#2b2f36'}}>Channel preferences</h2>
+          <span className="text-[11px] ml-auto" style={{color: '#6b7280'}}>
             Opt-out model — channels default to on
           </span>
         </div>
 
         {prefsError && (
-          <div className="mx-4 mt-3 text-[12px] text-red-600 bg-red-50 border border-red-100 rounded-md px-3 py-2">
+          <div className="mx-4 mt-3 text-[12px] rounded-md px-3 py-2 border" style={{color: '#dc2626', background: '#fef2f2', borderColor: '#fca5a5'}}>
             {prefsError}
           </div>
         )}
@@ -240,14 +241,15 @@ export default function NotificationsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/80">
-                  <th className="px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                <tr className="border-b" style={{borderColor: '#dfe3e8', background: '#f4f6f8'}}>
+                  <th className="px-4 py-2 text-[11px] font-semibold uppercase tracking-wider" style={{color: '#6b7280'}}>
                     Event
                   </th>
                   {CHANNELS.map((ch) => (
                     <th
                       key={ch.id}
-                      className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500 text-center"
+                      className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-center"
+                      style={{color: '#6b7280'}}
                     >
                       {ch.label}
                     </th>
@@ -256,8 +258,8 @@ export default function NotificationsPage() {
               </thead>
               <tbody>
                 {EVENT_TYPES.map((eventType) => (
-                  <tr key={eventType} className="border-b border-slate-50 last:border-0">
-                    <td className="px-4 py-2.5 text-[12px] font-mono text-slate-700">
+                  <tr key={eventType} className="border-b last:border-0" style={{borderColor: '#dfe3e8'}}>
+                    <td className="px-4 py-2.5 text-[12px] font-mono" style={{color: '#2b2f36'}}>
                       {eventType}
                     </td>
                     {CHANNELS.map((ch) => {
@@ -272,7 +274,8 @@ export default function NotificationsPage() {
                             checked={enabled}
                             disabled={saving}
                             onChange={(e) => handleTogglePref(eventType, ch.id, e.target.checked)}
-                            className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer disabled:opacity-50"
+                            className="h-3.5 w-3.5 rounded cursor-pointer disabled:opacity-50"
+                            style={{borderColor: '#dfe3e8'}}
                           />
                         </td>
                       );
@@ -286,7 +289,7 @@ export default function NotificationsPage() {
       </section>
 
       {/* List */}
-      <div className="flex gap-1 bg-slate-100 rounded-lg p-1 w-fit">
+      <div className="flex gap-1 rounded-lg p-1 w-fit" style={{background: '#f4f6f8'}}>
         {(
           [
             { id: "all", label: "All", count: items.length },
@@ -297,19 +300,16 @@ export default function NotificationsPage() {
           <button
             key={f.id}
             onClick={() => setReadFilter(f.id)}
-            className={`text-[13px] font-medium px-3 py-1.5 rounded-md transition-colors ${
-              readFilter === f.id
-                ? "bg-white text-slate-900 shadow-sm"
-                : "text-slate-500 hover:text-slate-700"
-            }`}
+            className={`text-[13px] font-medium px-3 py-1.5 rounded-md transition-colors`}
+            style={readFilter === f.id ? {background: '#fff', color: '#2b2f36', boxShadow: '0 1px 2px rgba(0,0,0,0.05)'} : {color: '#6b7280'}}
           >
-            {f.label} <span className="text-slate-400">{f.count}</span>
+            {f.label} <span style={{color: '#9ca3af'}}>{f.count}</span>
           </button>
         ))}
       </div>
 
       {listError && (
-        <div className="text-[12px] text-red-600 bg-red-50 border border-red-100 rounded-md px-3 py-2">
+        <div className="text-[12px] rounded-md px-3 py-2 border" style={{color: '#dc2626', background: '#fef2f2', borderColor: '#fca5a5'}}>
           {listError}
         </div>
       )}
@@ -317,15 +317,15 @@ export default function NotificationsPage() {
       {loading ? (
         <div className="space-y-2">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="h-16 rounded-lg bg-slate-100 animate-pulse" />
+            <div key={i} className="h-16 rounded-lg animate-pulse" style={{background: '#f4f6f8'}} />
           ))}
         </div>
       ) : filteredItems.length === 0 ? (
-        <div className="bg-white rounded-lg border border-slate-200 shadow-card px-6 py-14 text-center">
-          <div className="h-10 w-10 rounded-lg bg-slate-100 flex items-center justify-center mx-auto mb-3">
-            <Bell size={18} className="text-slate-300" />
+        <div className="bg-white rounded-lg border shadow-card px-6 py-14 text-center" style={{borderColor: '#dfe3e8'}}>
+          <div className="h-10 w-10 rounded-lg flex items-center justify-center mx-auto mb-3" style={{background: '#f4f6f8'}}>
+            <Bell size={18} style={{color: '#d1d5db'}} />
           </div>
-          <p className="text-[13px] text-slate-500">
+          <p className="text-[13px]" style={{color: '#6b7280'}}>
             {items.length === 0
               ? "No notifications yet."
               : readFilter === "unread"
@@ -338,11 +338,8 @@ export default function NotificationsPage() {
           {filteredItems.map((n) => (
             <div
               key={n.id}
-              className={`rounded-lg border p-4 transition-all duration-150 ${
-                n.isRead
-                  ? "border-slate-100 bg-white"
-                  : "border-blue-100 bg-blue-50/40 hover:bg-blue-50 hover:border-blue-200"
-              } ${markingId === n.id || deletingId === n.id ? "opacity-50" : ""}`}
+              className={`rounded-lg border p-4 transition-all duration-150 ${markingId === n.id || deletingId === n.id ? "opacity-50" : ""}`}
+              style={n.isRead ? {borderColor: '#dfe3e8', background: '#fff'} : {borderColor: '#c7d2e0', background: '#f0f4f8'}}
             >
               <div className="flex items-start justify-between gap-3">
                 <div
@@ -358,34 +355,34 @@ export default function NotificationsPage() {
                   className={`flex items-start gap-3 min-w-0 flex-1 ${n.isRead ? "" : "cursor-pointer"}`}
                 >
                   <div
-                    className={`h-8 w-8 rounded-md flex items-center justify-center shrink-0 mt-0.5 ${
-                      n.isRead ? "bg-slate-100 text-slate-500" : "bg-blue-100 text-blue-600"
-                    }`}
+                    className={`h-8 w-8 rounded-md flex items-center justify-center shrink-0 mt-0.5`}
+                    style={n.isRead ? {background: '#f4f6f8', color: '#6b7280'} : {background: '#cce5ff', color: '#1f5fa8'}}
                   >
                     {n.isRead ? <CheckCheck size={14} /> : <Bell size={14} />}
                   </div>
                   <div className="min-w-0">
                     <p
-                      className={`text-[13px] font-semibold truncate ${n.isRead ? "text-slate-700" : "text-slate-900"}`}
+                      className={`text-[13px] font-semibold truncate`}
+                      style={{color: n.isRead ? '#6b7280' : '#2b2f36'}}
                     >
                       {n.title}
                     </p>
                     {n.body && (
-                      <p className="text-[12px] text-slate-500 mt-0.5 line-clamp-2">{n.body}</p>
+                      <p className="text-[12px] mt-0.5 line-clamp-2" style={{color: '#6b7280'}}>{n.body}</p>
                     )}
                     <div className="flex items-center gap-2 mt-1.5">
-                      <Clock size={11} className="text-slate-300" />
-                      <span className="text-[11px] text-slate-500 font-mono">
+                      <Clock size={11} style={{color: '#d1d5db'}} />
+                      <span className="text-[11px] font-mono" style={{color: '#6b7280'}}>
                         {new Date(n.createdAt).toLocaleString()}
                       </span>
-                      <span className="text-[11px] text-slate-300">·</span>
-                      <span className="text-[11px] text-slate-500">{n.eventType}</span>
+                      <span className="text-[11px]" style={{color: '#d1d5db'}}>·</span>
+                      <span className="text-[11px]" style={{color: '#6b7280'}}>{n.eventType}</span>
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   {!n.isRead && (
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 bg-blue-100 border border-blue-200 px-2 py-0.5 rounded-full">
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border" style={{color: '#1f5fa8', background: '#cce5ff', borderColor: '#9ecbff'}}>
                       Unread
                     </span>
                   )}
@@ -393,7 +390,8 @@ export default function NotificationsPage() {
                     onClick={() => handleDelete(n.id)}
                     disabled={deletingId === n.id}
                     title="Delete notification"
-                    className="p-1.5 rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
+                    className="p-1.5 rounded-md transition-colors disabled:opacity-50"
+                    style={{color: '#9ca3af'}}
                   >
                     <Trash2 size={14} />
                   </button>

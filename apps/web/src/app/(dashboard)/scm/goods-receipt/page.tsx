@@ -116,14 +116,14 @@ export default function GoodsReceiptPage() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-500">
+      <div className="rounded-md px-3 py-2 text-[11px]" style={{border: '1px solid #dfe3e8', background: '#f4f6f8', color: '#6b7280'}}>
         After goods arrive → record receipt →{" "}
-        <span className="font-mono text-blue-700">currentStock</span> increments → FIFO cost layer
-        updates → emits <span className="font-mono text-blue-700">goods.received</span>
+        <span className="font-mono" style={{color: '#1f5fa8'}}>currentStock</span> increments → FIFO cost layer
+        updates → emits <span className="font-mono" style={{color: '#1f5fa8'}}>goods.received</span>
       </div>
 
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-[12px] text-red-700">
+        <div className="rounded-lg px-4 py-3 text-[12px]" style={{border: '1px solid #fecaca', background: '#fef2f2', color: '#b91c1c'}}>
           {error}
         </div>
       )}
@@ -131,7 +131,7 @@ export default function GoodsReceiptPage() {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <Truck size={18} className="text-slate-500" />
+            <Truck size={18} style={{color: '#6b7280'}} />
             Goods Receipt
           </h1>
           <p className="page-subtitle mt-1">
@@ -139,7 +139,7 @@ export default function GoodsReceiptPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <WarehouseIcon size={14} className="text-slate-500 shrink-0" />
+          <WarehouseIcon size={14} style={{color: '#6b7280'}} className="shrink-0" />
           <label className="text-[12px] text-slate-600 sr-only" htmlFor="gr-warehouse">
             Warehouse
           </label>
@@ -148,7 +148,10 @@ export default function GoodsReceiptPage() {
             value={warehouseId}
             onChange={(e) => setWarehouseId(e.target.value)}
             disabled={warehouses.length === 0}
-            className="text-[12px] border border-slate-200 rounded-md px-2.5 py-1.5 bg-white text-slate-800 min-w-[180px] focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+            className="text-[12px] rounded-md px-2.5 py-1.5 bg-white min-w-[180px] focus:outline-none"
+            style={{border: '1px solid #dfe3e8', color: '#2b2f36'}}
+            onFocus={(e) => e.currentTarget.style.borderColor = '#1f5fa8'}
+            onBlur={(e) => e.currentTarget.style.borderColor = '#dfe3e8'}
           >
             {warehouses.length === 0 ? (
               <option value="">No warehouses</option>
@@ -166,11 +169,11 @@ export default function GoodsReceiptPage() {
 
       <div className="space-y-2">
         {receivable.length === 0 ? (
-          <div className="bg-white rounded-lg border border-slate-200 shadow-card px-6 py-14 text-center">
-            <p className="text-[13px] text-slate-500">
+          <div className="rounded-lg shadow-card px-6 py-14 text-center" style={{background: '#ffffff', border: '1px solid #dfe3e8'}}>
+            <p className="text-[13px]" style={{color: '#6b7280'}}>
               No approved purchase orders ready to receive.
             </p>
-            <p className="text-[11px] text-slate-400 mt-1">
+            <p className="text-[11px] mt-1" style={{color: '#9ca3af'}}>
               Approve a PO on the Purchase Orders tab, then return here to record receipt.
             </p>
           </div>
@@ -178,36 +181,42 @@ export default function GoodsReceiptPage() {
           receivable.map((po) => (
             <div
               key={po.id}
-              className="bg-white rounded-lg border border-slate-200 shadow-card p-4 hover:border-slate-300 transition-colors"
+              className="rounded-lg shadow-card p-4 transition-colors"
+              style={{background: '#ffffff', border: '1px solid #dfe3e8'}}
+              onMouseEnter={(e) => e.currentTarget.style.borderColor = '#b1b5be'}
+              onMouseLeave={(e) => e.currentTarget.style.borderColor = '#dfe3e8'}
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2.5 flex-wrap">
-                    <span className="font-mono text-[13px] font-semibold text-slate-900">
+                    <span className="font-mono text-[13px] font-semibold" style={{color: '#2b2f36'}}>
                       {po.poNumber}
                     </span>
                     <Badge tone={STATUS_TONE[po.status] || "inactive"}>
                       {po.status.replace(/_/g, " ")}
                     </Badge>
                     {po.project?.name && (
-                      <span className="text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5">
+                      <span className="text-[11px] rounded px-1.5 py-0.5" style={{color: '#92400e', background: '#fef3c7', border: '1px solid #fcd34d'}}>
                         {po.project.name}
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-slate-500 mt-1">
+                  <p className="text-[11px] mt-1" style={{color: '#6b7280'}}>
                     {po.vendor?.name || po.vendorId} · {new Date(po.createdAt).toLocaleDateString()}
                     {po.lines?.length != null ? ` · ${po.lines.length} line(s)` : ""}
                   </p>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
-                  <span className="font-mono font-semibold text-slate-900">
+                  <span className="font-mono font-semibold" style={{color: '#2b2f36'}}>
                     ₹{Number(po.totalAmount).toLocaleString()}
                   </span>
                   <button
                     onClick={() => receive(po.id)}
                     disabled={receivingId === po.id || !warehouseId}
-                    className="inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-md border border-blue-200 text-blue-700 hover:bg-blue-50 disabled:opacity-50 transition-colors"
+                    className="inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
+                    style={{border: '1px solid #1f5fa8', color: '#1f5fa8'}}
+                    onMouseEnter={(e) => !receivingId && (e.currentTarget.style.background = '#eff6ff')}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                   >
                     {receivingId === po.id ? (
                       <>
@@ -231,58 +240,65 @@ export default function GoodsReceiptPage() {
       {/* Receipt History — shows completed GRs with copy-able IDs */}
       {receipts.length > 0 && (
         <div className="mt-6">
-          <h2 className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider mb-2">
+          <h2 className="text-[12px] font-semibold uppercase tracking-wider mb-2" style={{color: '#6b7280'}}>
             Receipt History
           </h2>
-          <div className="rounded-lg border border-slate-200 bg-white overflow-hidden">
+          <div className="rounded-lg bg-white overflow-hidden" style={{border: '1px solid #dfe3e8'}}>
             <div className="overflow-x-auto">
               <table className="w-full text-[12px]">
                 <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50">
-                    <th className="text-left px-4 py-2 font-medium text-slate-500">GR ID</th>
-                    <th className="text-left px-4 py-2 font-medium text-slate-500">PO Number</th>
-                    <th className="text-left px-4 py-2 font-medium text-slate-500">Vendor</th>
-                    <th className="text-left px-4 py-2 font-medium text-slate-500">Received At</th>
-                    <th className="text-right px-4 py-2 font-medium text-slate-500">Amount</th>
+                  <tr style={{borderBottom: '1px solid #e5e7eb', background: '#f7f9fb'}}>
+                    <th className="text-left px-4 py-2 font-medium" style={{color: '#6b7280'}}>GR ID</th>
+                    <th className="text-left px-4 py-2 font-medium" style={{color: '#6b7280'}}>PO Number</th>
+                    <th className="text-left px-4 py-2 font-medium" style={{color: '#6b7280'}}>Vendor</th>
+                    <th className="text-left px-4 py-2 font-medium" style={{color: '#6b7280'}}>Received At</th>
+                    <th className="text-right px-4 py-2 font-medium" style={{color: '#6b7280'}}>Amount</th>
                   </tr>
                 </thead>
                 <tbody>
                   {receipts.map((gr) => (
                     <tr
                       key={gr.id}
-                      className="border-b border-slate-100 last:border-0 hover:bg-slate-50"
+                      className="last:border-0 transition-colors"
+                      style={{borderBottom: '1px solid #e5e7eb'}}
+                      onMouseEnter={(e) => e.currentTarget.style.background = '#fafbfc'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                     >
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-1.5">
                           <span
-                            className="font-mono text-[11px] text-slate-700 bg-slate-100 rounded px-1.5 py-0.5 max-w-[140px] truncate"
+                            className="font-mono text-[11px] rounded px-1.5 py-0.5 max-w-[140px] truncate"
                             title={gr.id}
+                            style={{color: '#4b5563', background: '#f3f4f6'}}
                           >
                             {gr.id.slice(0, 8)}…
                           </span>
                           <button
                             onClick={() => copyId(gr.id)}
                             title="Copy full GR ID"
-                            className="text-slate-400 hover:text-blue-600 transition-colors"
+                            className="transition-colors"
+                            style={{color: '#9ca3af'}}
+                            onMouseEnter={(e) => e.currentTarget.style.color = '#1f5fa8'}
+                            onMouseLeave={(e) => e.currentTarget.style.color = '#9ca3af'}
                           >
                             {copiedId === gr.id ? (
-                              <Check size={13} className="text-green-500" />
+                              <Check size={13} style={{color: '#16a34a'}} />
                             ) : (
                               <Copy size={13} />
                             )}
                           </button>
                         </div>
                       </td>
-                      <td className="px-4 py-2.5 font-mono text-slate-800">
+                      <td className="px-4 py-2.5 font-mono" style={{color: '#2b2f36'}}>
                         {gr.purchaseOrder?.poNumber ?? gr.purchaseOrderId.slice(0, 8)}
                       </td>
-                      <td className="px-4 py-2.5 text-slate-700">
+                      <td className="px-4 py-2.5" style={{color: '#2b2f36'}}>
                         {gr.purchaseOrder?.vendor?.name ?? "—"}
                       </td>
-                      <td className="px-4 py-2.5 text-slate-500">
+                      <td className="px-4 py-2.5" style={{color: '#6b7280'}}>
                         {new Date(gr.receivedAt).toLocaleString()}
                       </td>
-                      <td className="px-4 py-2.5 text-right font-mono text-slate-800">
+                      <td className="px-4 py-2.5 text-right font-mono" style={{color: '#2b2f36'}}>
                         {gr.purchaseOrder?.totalAmount != null
                           ? `₹${Number(gr.purchaseOrder.totalAmount).toLocaleString()}`
                           : "—"}

@@ -192,7 +192,7 @@ export default function POPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <ShoppingCart size={18} className="text-slate-500" />
+            <ShoppingCart size={18} style={{color: '#6b7280'}} />
             Purchase Orders
           </h1>
           <p className="page-subtitle mt-1">Workflow: Draft → Submitted → Approved → Received</p>
@@ -201,10 +201,10 @@ export default function POPage() {
 
       {/* Open Requisitions */}
       {pendingRequisitions.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-3">
+        <div className="rounded-lg p-4 space-y-3" style={{background: '#fef3c7', border: '1px solid #fcd34d'}}>
           <div className="flex items-center gap-2 mb-2">
-            <ClipboardList size={15} className="text-amber-600" />
-            <p className="text-[13px] font-semibold text-amber-800">
+            <ClipboardList size={15} style={{color: '#92400e'}} />
+            <p className="text-[13px] font-semibold" style={{color: '#78350f'}}>
               Open Requisitions ({pendingRequisitions.length})
             </p>
           </div>
@@ -212,19 +212,19 @@ export default function POPage() {
             {pendingRequisitions.map((req) => (
               <div
                 key={req.id}
-                className="bg-white rounded-md border border-amber-100 p-3 flex items-start justify-between gap-3"
+                className="rounded-md p-3 flex items-start justify-between gap-3" style={{background: '#ffffff', border: '1px solid #fcd34d'}}
               >
                 <div>
-                  <p className="text-[13px] font-semibold text-slate-900">
+                  <p className="text-[13px] font-semibold" style={{color: '#2b2f36'}}>
                     {req.project?.name ?? req.reason ?? "Inventory requisition"}
                   </p>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
+                  <p className="text-[11px] mt-0.5" style={{color: '#6b7280'}}>
                     {req.lines?.length ?? 0} line(s){req.reason ? ` · ${req.reason}` : ""}
                   </p>
                   <ul className="mt-2 space-y-0.5">
                     {req.lines?.map((line) => (
-                      <li key={line.id} className="text-[11px] text-slate-600">
-                        <ChevronRight size={10} className="inline text-slate-500 mr-0.5" />
+                      <li key={line.id} className="text-[11px]" style={{color: '#4b5563'}}>
+                        <ChevronRight size={10} className="inline mr-0.5" style={{color: '#6b7280'}} />
                         {line.product?.name ?? line.productId} × {Number(line.quantity)}
                       </li>
                     ))}
@@ -234,7 +234,10 @@ export default function POPage() {
                   <button
                     onClick={() => createPoFromRequisition(req)}
                     disabled={creatingPo === req.id}
-                    className="text-[12px] font-semibold px-3 py-1.5 rounded-md bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50 transition-colors shrink-0"
+                    className="text-[12px] font-semibold px-3 py-1.5 rounded-md text-white transition-colors shrink-0 disabled:opacity-50"
+                    style={{background: '#b45309'}}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#92400e'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = '#b45309'}
                   >
                     {creatingPo === req.id ? "Creating…" : "Create PO"}
                   </button>
@@ -248,42 +251,48 @@ export default function POPage() {
       {/* Purchase Orders list */}
       <div className="space-y-2">
         {poList.length === 0 ? (
-          <div className="bg-white rounded-lg border border-slate-200 shadow-card px-6 py-14 text-center">
-            <p className="text-[13px] text-slate-500">No purchase orders yet.</p>
+          <div className="rounded-lg shadow-card px-6 py-14 text-center" style={{background: '#ffffff', border: '1px solid #dfe3e8'}}>
+            <p className="text-[13px]" style={{color: '#6b7280'}}>No purchase orders yet.</p>
           </div>
         ) : (
           poList.map((po) => (
             <div
               key={po.id}
-              className="bg-white rounded-lg border border-slate-200 shadow-card p-4 hover:border-slate-300 transition-colors"
+              className="rounded-lg shadow-card p-4 transition-colors"
+              style={{background: '#ffffff', border: '1px solid #dfe3e8'}}
+              onMouseEnter={(e) => e.currentTarget.style.borderColor = '#b1b5be'}
+              onMouseLeave={(e) => e.currentTarget.style.borderColor = '#dfe3e8'}
             >
               <div className="flex items-center justify-between">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2.5">
-                    <span className="font-mono text-[13px] font-semibold text-slate-900">
+                    <span className="font-mono text-[13px] font-semibold" style={{color: '#2b2f36'}}>
                       {po.poNumber}
                     </span>
                     <Badge tone={STATUS_TONE[po.status] || "inactive"}>
                       {po.status.replace("_", " ")}
                     </Badge>
                     {po.project?.name && (
-                      <span className="text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5">
+                      <span className="text-[11px] rounded px-1.5 py-0.5" style={{color: '#92400e', background: '#fef3c7', border: '1px solid #fcd34d'}}>
                         {po.project.name}
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-slate-500 mt-1">
+                  <p className="text-[11px] mt-1" style={{color: '#6b7280'}}>
                     {po.vendor?.name || po.vendorId} · {new Date(po.createdAt).toLocaleDateString()}
                   </p>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
-                  <span className="font-mono font-semibold text-slate-900">
+                  <span className="font-mono font-semibold" style={{color: '#2b2f36'}}>
                     {formatCurrency(po.totalAmount)}
                   </span>
                   {canWrite && actionLabel[po.status] && (
                     <button
                       onClick={() => advance(po)}
-                      className="inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-md border border-blue-200 text-blue-700 hover:bg-blue-50 transition-colors"
+                      className="inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-md transition-colors"
+                      style={{border: '1px solid #1f5fa8', color: '#1f5fa8'}}
+                      onMouseEnter={(e) => e.currentTarget.style.background = '#eff6ff'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                     >
                       {actionLabel[po.status]}
                       <ArrowRight size={12} />
@@ -296,7 +305,10 @@ export default function POPage() {
                         setCancelTarget(po);
                       }}
                       title="Cancel this purchase order"
-                      className="inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-md border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
+                      className="inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-md transition-colors"
+                      style={{border: '1px solid #dc2626', color: '#dc2626'}}
+                      onMouseEnter={(e) => e.currentTarget.style.background = '#fef2f2'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                     >
                       <Ban size={12} /> Cancel
                     </button>
@@ -316,7 +328,7 @@ export default function POPage() {
       >
         <div className="space-y-3">
           <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+            <label className="text-[12px] font-medium block mb-1.5" style={{color: '#6b7280'}}>
               Which warehouse did the goods arrive at? *
             </label>
             <select
@@ -333,7 +345,7 @@ export default function POPage() {
             </select>
           </div>
           <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+            <label className="text-[12px] font-medium block mb-1.5" style={{color: '#6b7280'}}>
               Notes (optional)
             </label>
             <input
@@ -346,14 +358,20 @@ export default function POPage() {
           <div className="flex justify-end gap-2 pt-2">
             <button
               onClick={() => setReceiveTarget(null)}
-              className="text-[13px] font-medium px-3 py-1.5 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
+              className="text-[13px] font-medium px-3 py-1.5 rounded-md transition-colors"
+              style={{border: '1px solid #dfe3e8', color: '#6b7280'}}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#f4f6f8'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
             >
               Cancel
             </button>
             <button
               onClick={handleReceive}
               disabled={receiving || !receiveWarehouseId}
-              className="text-[13px] font-medium px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              className="text-[13px] font-medium px-3 py-1.5 rounded-md text-white transition-colors disabled:opacity-50"
+              style={{background: '#1f5fa8'}}
+              onMouseEnter={(e) => !receiving && !receiveWarehouseId && (e.currentTarget.style.background = '#1a4a80')}
+              onMouseLeave={(e) => e.currentTarget.style.background = '#1f5fa8'}
             >
               {receiving ? "Receiving…" : "Receive goods"}
             </button>
@@ -369,7 +387,7 @@ export default function POPage() {
       >
         <div className="space-y-3">
           <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+            <label className="text-[12px] font-medium block mb-1.5" style={{color: '#6b7280'}}>
               Reason (optional)
             </label>
             <input
@@ -382,14 +400,20 @@ export default function POPage() {
           <div className="flex justify-end gap-2 pt-2">
             <button
               onClick={() => setCancelTarget(null)}
-              className="text-[13px] font-medium px-3 py-1.5 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
+              className="text-[13px] font-medium px-3 py-1.5 rounded-md transition-colors"
+              style={{border: '1px solid #dfe3e8', color: '#6b7280'}}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#f4f6f8'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
             >
               Keep PO
             </button>
             <button
               onClick={handleCancel}
               disabled={cancelling}
-              className="inline-flex items-center gap-1.5 text-[13px] font-medium px-3 py-1.5 rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
+              className="inline-flex items-center gap-1.5 text-[13px] font-medium px-3 py-1.5 rounded-md text-white transition-colors disabled:opacity-50"
+              style={{background: '#dc2626'}}
+              onMouseEnter={(e) => !cancelling && (e.currentTarget.style.background = '#b91c1c')}
+              onMouseLeave={(e) => e.currentTarget.style.background = '#dc2626'}
             >
               <Ban size={13} /> {cancelling ? "Cancelling…" : "Cancel PO"}
             </button>

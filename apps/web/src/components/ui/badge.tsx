@@ -7,12 +7,21 @@ type BadgeTone =
   | "processed";
 
 const TONE_CLASSES: Record<BadgeTone, string> = {
-  active:    "bg-emerald-50 text-emerald-700 border border-emerald-200",
-  inactive:  "bg-slate-100  text-slate-500   border border-slate-200",
-  pending:   "bg-amber-50   text-amber-700   border border-amber-200",
-  approved:  "bg-emerald-50 text-emerald-700 border border-emerald-200",
-  rejected:  "bg-red-50     text-red-600     border border-red-200",
-  processed: "bg-blue-50    text-blue-700    border border-blue-200",
+  active:    "text-[11px] font-semibold px-2 py-0.5 rounded-full inline-flex items-center gap-1.5",
+  inactive:  "text-[11px] font-semibold px-2 py-0.5 rounded-full inline-flex items-center gap-1.5",
+  pending:   "text-[11px] font-semibold px-2 py-0.5 rounded-full inline-flex items-center gap-1.5",
+  approved:  "text-[11px] font-semibold px-2 py-0.5 rounded-full inline-flex items-center gap-1.5",
+  rejected:  "text-[11px] font-semibold px-2 py-0.5 rounded-full inline-flex items-center gap-1.5",
+  processed: "text-[11px] font-semibold px-2 py-0.5 rounded-full inline-flex items-center gap-1.5",
+};
+
+const TONE_STYLES: Record<BadgeTone, {background: string; color: string; borderColor: string}> = {
+  active:    { background: "#e6f4ea", color: "#1e7a3e", borderColor: "#1e7a3e" },
+  inactive:  { background: "#f7f9fb", color: "#6b7280", borderColor: "#dfe3e8" },
+  pending:   { background: "#fff6e0", color: "#8a6300", borderColor: "#8a6300" },
+  approved:  { background: "#e6f4ea", color: "#1e7a3e", borderColor: "#1e7a3e" },
+  rejected:  { background: "#fdecea", color: "#d0392b", borderColor: "#d0392b" },
+  processed: { background: "#e8f1fb", color: "#1f5fa8", borderColor: "#1f5fa8" },
 };
 
 const DOT_CLASSES: Record<BadgeTone, string> = {
@@ -41,11 +50,17 @@ export function Badge({
   children: React.ReactNode;
   tone: BadgeTone;
 }) {
+  const style = TONE_STYLES[tone];
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold tracking-wide ${TONE_CLASSES[tone]}`}
+      className={TONE_CLASSES[tone]}
+      style={{
+        background: style.background,
+        color: style.color,
+        border: `1px solid ${style.borderColor}`,
+      }}
     >
-      <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${DOT_CLASSES[tone]}`} />
+      <span style={{height: '6px', width: '6px', borderRadius: '50%', background: style.color, flexShrink: 0}} />
       {children}
     </span>
   );

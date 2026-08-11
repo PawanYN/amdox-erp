@@ -154,25 +154,25 @@ export default function LeaveRequestsPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <CalendarDays size={18} className="text-slate-500" />
+            <CalendarDays size={18} style={{color: '#6b7280'}} />
             Leave Requests
           </h1>
-          <p className="page-subtitle mt-1">Approval workflow for employee leave applications</p>
+          <p className="page-subtitle mt-1" style={{color: '#6b7280'}}>Approval workflow for employee leave applications</p>
         </div>
       </div>
 
       {profileError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div style={{borderColor: '#fecaca', background: '#fee2e2', color: '#dc2626'}} className="rounded-lg border px-4 py-3 text-sm">
           {profileError}
         </div>
       )}
       {listError && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <div style={{borderColor: '#fcd34d', background: '#fef3c7', color: '#92400e'}} className="rounded-lg border px-4 py-3 text-sm">
           {listError}
         </div>
       )}
       {loading && (
-        <div className="rounded-lg border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-500">
+        <div style={{borderColor: '#dfe3e8', background: '#ffffff', color: '#6b7280'}} className="rounded-lg border px-4 py-8 text-center text-sm">
           Loading leave requests…
         </div>
       )}
@@ -180,29 +180,29 @@ export default function LeaveRequestsPage() {
       {!loading && (
         <>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <div className="bg-white rounded-lg border border-slate-200 shadow-card p-5">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-1.5">
+            <div style={{background: '#ffffff', borderColor: '#dfe3e8'}} className="rounded-lg border shadow-card p-5">
+              <p style={{color: '#6b7280'}} className="text-[11px] font-semibold uppercase tracking-widest mb-1.5">
                 Total
               </p>
-              <p className="text-2xl font-semibold text-slate-900">{requests.length}</p>
+              <p style={{color: '#2b2f36'}} className="text-2xl font-semibold">{requests.length}</p>
             </div>
-            <div className="bg-amber-50 rounded-lg border border-amber-100 p-5">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-amber-600 mb-1.5">
+            <div style={{background: '#fef3c7', borderColor: '#fcd34d'}} className="rounded-lg border p-5">
+              <p style={{color: '#92400e'}} className="text-[11px] font-semibold uppercase tracking-widest mb-1.5">
                 Pending
               </p>
-              <p className="text-2xl font-semibold text-amber-700">{pending}</p>
+              <p style={{color: '#b45309'}} className="text-2xl font-semibold">{pending}</p>
             </div>
-            <div className="bg-emerald-50 rounded-lg border border-emerald-100 p-5">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-emerald-600 mb-1.5">
+            <div style={{background: '#dcfce7', borderColor: '#bbf7d0'}} className="rounded-lg border p-5">
+              <p style={{color: '#166534'}} className="text-[11px] font-semibold uppercase tracking-widest mb-1.5">
                 Approved
               </p>
-              <p className="text-2xl font-semibold text-emerald-700">{approved}</p>
+              <p style={{color: '#16a34a'}} className="text-2xl font-semibold">{approved}</p>
             </div>
-            <div className="bg-red-50 rounded-lg border border-red-100 p-5">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-red-500 mb-1.5">
+            <div style={{background: '#fee2e2', borderColor: '#fecaca'}} className="rounded-lg border p-5">
+              <p style={{color: '#991b1b'}} className="text-[11px] font-semibold uppercase tracking-widest mb-1.5">
                 Rejected
               </p>
-              <p className="text-2xl font-semibold text-red-600">{rejected}</p>
+              <p style={{color: '#dc2626'}} className="text-2xl font-semibold">{rejected}</p>
             </div>
           </div>
 

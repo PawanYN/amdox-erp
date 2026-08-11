@@ -303,7 +303,7 @@ export default function InvoicesPage() {
     {
       header: "Invoice #",
       cell: (inv) => (
-        <span className="font-mono text-[12px] font-semibold text-blue-700 bg-blue-50 border border-blue-100 rounded px-2 py-0.5">
+        <span style={{fontFamily: 'monospace', fontSize: '12px', fontWeight: 600, color: '#1f5fa8', background: '#f0f6fd', border: '1px solid #dfe3e8', borderRadius: '4px', padding: '2px 8px', display: 'inline-block'}}>
           {inv.invoiceNumber || inv.id.slice(0, 8).toUpperCase()}
         </span>
       ),
@@ -311,7 +311,7 @@ export default function InvoicesPage() {
     {
       header: "Vendor",
       cell: (inv) => (
-        <span className="text-[13px] text-slate-700">{vendorName(inv.vendorId) || "—"}</span>
+        <span style={{fontSize: '13px', color: '#2b2f36'}}>{vendorName(inv.vendorId) || "—"}</span>
       ),
     },
     {
@@ -319,16 +319,16 @@ export default function InvoicesPage() {
       cell: (inv) => {
         const po = purchaseOrders.find((p) => p.id === inv.purchaseOrderId);
         return po ? (
-          <span className="font-mono text-[12px] text-slate-600">{po.poNumber}</span>
+          <span style={{fontFamily: 'monospace', fontSize: '12px', color: '#2b2f36'}}>{po.poNumber}</span>
         ) : (
-          <span className="text-[12px] text-slate-400">—</span>
+          <span style={{fontSize: '12px', color: '#9ca3af'}}>—</span>
         );
       },
     },
     {
       header: "Issued",
       cell: (inv) => (
-        <span className="text-[13px] text-slate-500">
+        <span style={{fontSize: '13px', color: '#6b7280'}}>
           {new Date(inv.issueDate).toLocaleDateString("en-IN")}
         </span>
       ),
@@ -339,7 +339,7 @@ export default function InvoicesPage() {
         const overdue = new Date(inv.dueDate) < new Date() && inv.status !== "PAID";
         return (
           <span
-            className={`text-[13px] ${overdue ? "text-red-600 font-medium" : "text-slate-500"}`}
+            style={{fontSize: '13px', color: overdue ? '#dc2626' : '#6b7280', fontWeight: overdue ? 500 : 400}}
           >
             {new Date(inv.dueDate).toLocaleDateString("en-IN")}
           </span>
@@ -349,7 +349,7 @@ export default function InvoicesPage() {
     {
       header: "Amount",
       cell: (inv) => (
-        <span className="font-mono font-semibold text-slate-900">
+        <span style={{fontFamily: 'monospace', fontWeight: 600, color: '#2b2f36'}}>
           {formatCurrency(inv.totalAmount)}
         </span>
       ),
@@ -394,7 +394,7 @@ export default function InvoicesPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <TrendingDown size={18} className="text-slate-500" />
+            <TrendingDown size={18} style={{color: '#6b7280'}} />
             AP Invoices
           </h1>
           <p className="page-subtitle mt-1">
@@ -432,7 +432,7 @@ export default function InvoicesPage() {
         )}
       </div>
 
-      {error && <p className="text-[13px] text-red-600">{error}</p>}
+      {error && <p style={{fontSize: '13px', color: '#dc2626'}}>{error}</p>}
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         <StatCard
@@ -459,8 +459,8 @@ export default function InvoicesPage() {
       </div>
 
       {loading ? (
-        <p className="text-sm text-slate-500 flex items-center gap-2">
-          <Loader2 size={16} className="animate-spin" /> Loading invoices…
+        <p style={{fontSize: '14px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '8px'}}>
+          <Loader2 size={16} style={{animation: 'spin 1s linear infinite'}} /> Loading invoices…
         </p>
       ) : (
         <DataTable
@@ -479,11 +479,11 @@ export default function InvoicesPage() {
       >
         <div className="space-y-4">
           <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+            <label style={{fontSize: '12px', fontWeight: 500, color: '#2b2f36', display: 'block', marginBottom: '6px'}}>
               Invoice Document *
             </label>
-            <label className="flex items-center gap-2 border border-dashed border-slate-300 rounded-md px-3 py-4 text-[13px] text-slate-500 cursor-pointer hover:border-blue-300 hover:bg-blue-50/40 transition-colors">
-              <FileText size={16} className="text-slate-500 shrink-0" />
+            <label style={{display: 'flex', alignItems: 'center', gap: '8px', border: '2px dashed #dfe3e8', borderRadius: '6px', padding: '12px', fontSize: '13px', color: '#6b7280', cursor: 'pointer', transition: 'all 0.3s', outline: 'none'}} onMouseEnter={(e) => {e.currentTarget.style.borderColor = '#1f5fa8'; e.currentTarget.style.background = 'rgba(31, 95, 168, 0.04)'}} onMouseLeave={(e) => {e.currentTarget.style.borderColor = '#dfe3e8'; e.currentTarget.style.background = 'transparent'}}>
+              <FileText size={16} style={{color: '#6b7280', flexShrink: 0}} />
               <span className="truncate">{file ? file.name : "Choose PDF or image…"}</span>
               <input
                 type="file"
@@ -494,7 +494,7 @@ export default function InvoicesPage() {
             </label>
           </div>
           <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+            <label style={{fontSize: '12px', fontWeight: 500, color: '#2b2f36', display: 'block', marginBottom: '6px'}}>
               Match against goods receipt (optional)
             </label>
             <select
@@ -511,12 +511,12 @@ export default function InvoicesPage() {
                 </option>
               ))}
             </select>
-            <p className="mt-1 text-[11px] text-slate-500">
+            <p style={{marginTop: '6px', fontSize: '11px', color: '#6b7280'}}>
               Picking the delivery this bill belongs to lets the system verify and approve it
               automatically (3-way match).
             </p>
           </div>
-          {uploadError && <p className="text-[12px] text-red-600">{uploadError}</p>}
+          {uploadError && <p style={{fontSize: '12px', color: '#dc2626'}}>{uploadError}</p>}
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => setUploadOpen(false)}>
               Cancel
@@ -535,7 +535,7 @@ export default function InvoicesPage() {
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Create AP Invoice">
         <div className="space-y-3">
           <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Vendor *</label>
+            <label style={{fontSize: '12px', fontWeight: 500, color: '#2b2f36', display: 'block', marginBottom: '6px'}}>Vendor *</label>
             <select
               className={inputClasses}
               value={vendorId}
@@ -550,7 +550,7 @@ export default function InvoicesPage() {
             </select>
           </div>
           <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+            <label style={{fontSize: '12px', fontWeight: 500, color: '#2b2f36', display: 'block', marginBottom: '6px'}}>
               Invoice number *
             </label>
             <input
@@ -561,7 +561,7 @@ export default function InvoicesPage() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+              <label style={{fontSize: '12px', fontWeight: 500, color: '#2b2f36', display: 'block', marginBottom: '6px'}}>
                 Issue date
               </label>
               <input
@@ -572,7 +572,7 @@ export default function InvoicesPage() {
               />
             </div>
             <div>
-              <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+              <label style={{fontSize: '12px', fontWeight: 500, color: '#2b2f36', display: 'block', marginBottom: '6px'}}>
                 Due date
               </label>
               <input
@@ -584,7 +584,7 @@ export default function InvoicesPage() {
             </div>
           </div>
           <div className="space-y-2">
-            <label className="text-[12px] font-medium text-slate-600 block">Line items *</label>
+            <label style={{fontSize: '12px', fontWeight: 500, color: '#2b2f36', display: 'block'}}>Line items *</label>
             {lines.map((line, idx) => (
               <div key={idx} className="grid grid-cols-12 gap-2 items-end">
                 <div className="col-span-5">
@@ -625,7 +625,7 @@ export default function InvoicesPage() {
             <Button variant="outline" size="sm" onClick={addLine}>
               Add line
             </Button>
-            <p className="text-[12px] text-slate-500">
+            <p style={{fontSize: '12px', color: '#6b7280'}}>
               Total: ₹{computeTotal().toLocaleString("en-IN")}
             </p>
           </div>
@@ -643,7 +643,7 @@ export default function InvoicesPage() {
       <Modal open={paymentOpen} onClose={() => setPaymentOpen(false)} title="Record AP Payment">
         <div className="space-y-3">
           <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Invoice *</label>
+            <label style={{fontSize: '12px', fontWeight: 500, color: '#2b2f36', display: 'block', marginBottom: '6px'}}>Invoice *</label>
             <select
               className={inputClasses}
               value={paymentInvoiceId}
@@ -659,7 +659,7 @@ export default function InvoicesPage() {
             </select>
           </div>
           <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+            <label style={{fontSize: '12px', fontWeight: 500, color: '#2b2f36', display: 'block', marginBottom: '6px'}}>
               Amount (₹) *
             </label>
             <input
@@ -671,7 +671,7 @@ export default function InvoicesPage() {
             />
           </div>
           <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+            <label style={{fontSize: '12px', fontWeight: 500, color: '#2b2f36', display: 'block', marginBottom: '6px'}}>
               Bank reference
             </label>
             <input
@@ -698,23 +698,25 @@ export default function InvoicesPage() {
         description="Batch-pay selected approved invoices in full (TenantAdmin only)."
       >
         <div className="space-y-3">
-          <div className="max-h-48 overflow-y-auto border border-slate-200 rounded-md divide-y divide-slate-100">
+          <div style={{maxHeight: '192px', overflowY: 'auto', border: '1px solid #dfe3e8', borderRadius: '6px', divideY: '1px solid #f3f4f6'}}>
             {payableInvoices.length === 0 ? (
-              <p className="text-[13px] text-slate-500 p-3">No approved invoices to pay.</p>
+              <p style={{fontSize: '13px', color: '#6b7280', padding: '12px'}}>No approved invoices to pay.</p>
             ) : (
               payableInvoices.map((i) => (
                 <label
                   key={i.id}
-                  className="flex items-center gap-2 px-3 py-2 text-[13px] cursor-pointer hover:bg-slate-50"
+                  style={{display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', fontSize: '13px', cursor: 'pointer', transition: 'background-color 0.2s'}}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
                   <input
                     type="checkbox"
                     checked={selectedBatchIds.includes(i.id)}
                     onChange={() => toggleBatchSelection(i.id)}
                   />
-                  <span className="font-mono text-xs">{i.invoiceNumber}</span>
-                  <span className="text-slate-500">{vendorName(i.vendorId)}</span>
-                  <span className="ml-auto font-mono font-medium">
+                  <span style={{fontFamily: 'monospace', fontSize: '12px'}}>{i.invoiceNumber}</span>
+                  <span style={{color: '#6b7280'}}>{vendorName(i.vendorId)}</span>
+                  <span style={{marginLeft: 'auto', fontFamily: 'monospace', fontWeight: 500}}>
                     ₹{Number(i.totalAmount).toLocaleString()}
                   </span>
                 </label>
@@ -722,7 +724,7 @@ export default function InvoicesPage() {
             )}
           </div>
           <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+            <label style={{fontSize: '12px', fontWeight: 500, color: '#2b2f36', display: 'block', marginBottom: '6px'}}>
               Description
             </label>
             <input
@@ -733,7 +735,7 @@ export default function InvoicesPage() {
             />
           </div>
           <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+            <label style={{fontSize: '12px', fontWeight: 500, color: '#2b2f36', display: 'block', marginBottom: '6px'}}>
               Bank reference
             </label>
             <input
@@ -742,7 +744,7 @@ export default function InvoicesPage() {
               onChange={(e) => setBatchBankRef(e.target.value)}
             />
           </div>
-          {batchResult && <p className="text-[12px] text-emerald-700">{batchResult}</p>}
+          {batchResult && <p style={{fontSize: '12px', color: '#059669'}}>{batchResult}</p>}
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => setBatchOpen(false)}>
               Close
@@ -766,7 +768,7 @@ export default function InvoicesPage() {
       >
         <div className="space-y-3">
           <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+            <label style={{fontSize: '12px', fontWeight: 500, color: '#2b2f36', display: 'block', marginBottom: '6px'}}>
               Reason (optional)
             </label>
             <input

@@ -93,31 +93,31 @@ export default function IntercompanyPage() {
     {
       header: "From",
       cell: (t) => (
-        <span className="text-[13px] text-slate-700">{accountLabel(t.fromAccountId)}</span>
+        <span style={{fontSize: '13px', color: '#2b2f36'}}>{accountLabel(t.fromAccountId)}</span>
       ),
     },
     {
       header: "To",
       cell: (t) => (
-        <span className="text-[13px] text-slate-700">{accountLabel(t.toAccountId)}</span>
+        <span style={{fontSize: '13px', color: '#2b2f36'}}>{accountLabel(t.toAccountId)}</span>
       ),
     },
     {
       header: "Amount",
       cell: (t) => (
-        <span className="font-mono font-semibold text-slate-900">
+        <span style={{fontFamily: 'monospace', fontWeight: 600, color: '#2b2f36'}}>
           ₹{Number(t.amount).toLocaleString("en-IN")}
         </span>
       ),
     },
     {
       header: "Description",
-      cell: (t) => <span className="text-[13px] text-slate-500">{t.description || "—"}</span>,
+      cell: (t) => <span style={{fontSize: '13px', color: '#6b7280'}}>{t.description || "—"}</span>,
     },
     {
       header: "Date",
       cell: (t) => (
-        <span className="text-[13px] text-slate-500">
+        <span style={{fontSize: '13px', color: '#6b7280'}}>
           {new Date(t.createdAt).toLocaleDateString("en-IN")}
         </span>
       ),
@@ -129,7 +129,7 @@ export default function IntercompanyPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <ArrowLeftRight size={18} className="text-slate-500" />
+            <ArrowLeftRight size={18} style={{color: '#6b7280'}} />
             Intercompany Transfers
           </h1>
           <p className="page-subtitle mt-1">
@@ -141,11 +141,11 @@ export default function IntercompanyPage() {
         </Button>
       </div>
 
-      {error && <p className="text-[13px] text-red-600">{error}</p>}
+      {error && <p style={{fontSize: '13px', color: '#dc2626'}}>{error}</p>}
 
       {loading ? (
-        <p className="text-sm text-slate-500 flex items-center gap-2">
-          <Loader2 size={16} className="animate-spin" /> Loading transfers…
+        <p style={{fontSize: '14px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '8px'}}>
+          <Loader2 size={16} style={{animation: 'spin 1s linear infinite'}} /> Loading transfers…
         </p>
       ) : (
         <DataTable
@@ -159,7 +159,7 @@ export default function IntercompanyPage() {
       <Modal open={formOpen} onClose={() => setFormOpen(false)} title="New Intercompany Transfer">
         <div className="space-y-3">
           <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+            <label style={{fontSize: '12px', fontWeight: 500, color: '#2b2f36', display: 'block', marginBottom: '6px'}}>
               From account *
             </label>
             <select
@@ -175,7 +175,7 @@ export default function IntercompanyPage() {
             </select>
           </div>
           <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+            <label style={{fontSize: '12px', fontWeight: 500, color: '#2b2f36', display: 'block', marginBottom: '6px'}}>
               To account *
             </label>
             <select
@@ -191,7 +191,7 @@ export default function IntercompanyPage() {
             </select>
           </div>
           <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+            <label style={{fontSize: '12px', fontWeight: 500, color: '#2b2f36', display: 'block', marginBottom: '6px'}}>
               Amount (₹) *
             </label>
             <input
@@ -203,7 +203,7 @@ export default function IntercompanyPage() {
             />
           </div>
           <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+            <label style={{fontSize: '12px', fontWeight: 500, color: '#2b2f36', display: 'block', marginBottom: '6px'}}>
               Description
             </label>
             <input

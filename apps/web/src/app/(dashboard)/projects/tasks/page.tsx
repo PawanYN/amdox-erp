@@ -102,12 +102,13 @@ export default function ProjectsTasksPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <label className="text-[13px] font-medium text-slate-700 flex items-center gap-2">
+        <label className="text-[13px] font-medium flex items-center gap-2" style={{color: '#2b2f36'}}>
           Project
           <select
-            className="text-sm border border-slate-200 rounded-md px-2 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+            className="text-sm rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 border"
             value={projectId}
             onChange={(e) => setProjectId(e.target.value)}
+            style={{borderColor: '#dfe3e8', color: '#2b2f36'}}
           >
             <option value="">All projects</option>
             {projects.map((p) => (
@@ -117,17 +118,25 @@ export default function ProjectsTasksPage() {
             ))}
           </select>
         </label>
-        <div className="flex rounded-md border border-slate-200 overflow-hidden text-xs">
+        <div className="flex rounded-md border overflow-hidden text-xs" style={{borderColor: '#dfe3e8'}}>
           <button
             type="button"
-            className={`px-3 py-1.5 ${view === "d3" ? "bg-blue-600 text-white" : "bg-white text-slate-600"}`}
+            className={`px-3 py-1.5 transition-colors`}
+            style={{
+              backgroundColor: view === "d3" ? '#1f5fa8' : '#fff',
+              color: view === "d3" ? '#fff' : '#2b2f36'
+            }}
             onClick={() => setView("d3")}
           >
             D3 Gantt
           </button>
           <button
             type="button"
-            className={`px-3 py-1.5 ${view === "table" ? "bg-blue-600 text-white" : "bg-white text-slate-600"}`}
+            className={`px-3 py-1.5 transition-colors`}
+            style={{
+              backgroundColor: view === "table" ? '#1f5fa8' : '#fff',
+              color: view === "table" ? '#fff' : '#2b2f36'
+            }}
             onClick={() => setView("table")}
           >
             Table
@@ -136,7 +145,8 @@ export default function ProjectsTasksPage() {
         {projectId && (
           <Link
             href={`/projects/${projectId}`}
-            className="text-[12px] text-blue-600 hover:text-blue-700 hover:underline"
+            className="text-[12px] hover:underline"
+            style={{color: '#1f5fa8'}}
           >
             Open project detail →
           </Link>
@@ -144,11 +154,11 @@ export default function ProjectsTasksPage() {
       </div>
 
       {loading ? (
-        <p className="text-sm text-slate-500">Loading Gantt data…</p>
+        <p className="text-sm" style={{color: '#6b7280'}}>Loading Gantt data…</p>
       ) : view === "d3" ? (
-        <div className="border border-slate-200 rounded-lg bg-white overflow-x-auto shadow-card p-4">
+        <div className="rounded-lg bg-white overflow-x-auto p-4 border" style={{borderColor: '#dfe3e8'}}>
           {tasks.length === 0 ? (
-            <p className="p-6 text-sm text-slate-500 text-center">No tasks defined yet.</p>
+            <p className="p-6 text-sm text-center" style={{color: '#6b7280'}}>No tasks defined yet.</p>
           ) : (
             <D3GanttChart
               tasks={tasks}
@@ -157,37 +167,40 @@ export default function ProjectsTasksPage() {
               onReschedule={onReschedule}
             />
           )}
-          <p className="text-[11px] text-slate-500 mt-2">Drag task bars to reschedule dates.</p>
+          <p className="text-[11px] mt-2" style={{color: '#6b7280'}}>Drag task bars to reschedule dates.</p>
         </div>
       ) : (
-        <div className="border border-slate-200 rounded-lg bg-white shadow-card divide-y divide-slate-100">
+        <div className="rounded-lg bg-white divide-y border" style={{borderColor: '#dfe3e8'}}>
           {tasks.map((t) => (
-            <div key={t.id} className="flex items-center justify-between px-4 py-3 gap-2">
+            <div key={t.id} className="flex items-center justify-between px-4 py-3 gap-2 hover:opacity-95 transition-opacity" style={{borderBottomColor: '#f0f0f0'}}>
               <div className="flex-1 min-w-0">
                 {editingTaskId === t.id ? (
                   <div className="flex items-center gap-2">
                     <input
-                      className="flex-1 text-sm border border-slate-200 rounded px-2 py-1"
+                      className="flex-1 text-sm rounded px-2 py-1 border"
                       value={titleEdit}
                       onChange={(e) => setTitleEdit(e.target.value)}
+                      style={{borderColor: '#dfe3e8', color: '#2b2f36'}}
                     />
                     <button
                       onClick={() => handleSaveTitle(t.id)}
-                      className="text-xs px-2 py-1 rounded bg-blue-600 text-white"
+                      className="text-xs px-2 py-1 rounded"
+                      style={{background: '#1f5fa8', color: '#fff'}}
                     >
                       Save
                     </button>
                     <button
                       onClick={() => setEditingTaskId(null)}
                       className="text-xs px-2 py-1 rounded border"
+                      style={{borderColor: '#dfe3e8', color: '#2b2f36'}}
                     >
                       Cancel
                     </button>
                   </div>
                 ) : (
                   <>
-                    <p className="text-sm font-medium text-slate-900">{t.title}</p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-sm font-medium" style={{color: '#2b2f36'}}>{t.title}</p>
+                    <p className="text-xs" style={{color: '#6b7280'}}>
                       {t.startDate?.slice(0, 10)} → {t.dueDate?.slice(0, 10) || "—"}
                     </p>
                   </>
@@ -197,7 +210,8 @@ export default function ProjectsTasksPage() {
                 <select
                   value={t.status}
                   onChange={(e) => onStatusChange(t.id, e.target.value)}
-                  className="text-xs border border-slate-200 rounded px-2 py-1"
+                  className="text-xs rounded px-2 py-1 border"
+                  style={{borderColor: '#dfe3e8', color: '#2b2f36'}}
                 >
                   {STATUSES.map((s) => (
                     <option key={s} value={s}>
@@ -212,14 +226,16 @@ export default function ProjectsTasksPage() {
                         setEditingTaskId(t.id);
                         setTitleEdit(t.title);
                       }}
-                      className="p-1.5 rounded text-slate-500 hover:bg-slate-100"
+                      className="p-1.5 rounded hover:opacity-80 transition-opacity"
+                      style={{color: '#6b7280'}}
                       title="Edit task"
                     >
                       <Pencil size={14} />
                     </button>
                     <button
                       onClick={() => handleDeleteTask(t.id, t.title)}
-                      className="p-1.5 rounded text-red-500 hover:bg-red-50"
+                      className="p-1.5 rounded hover:opacity-80 transition-opacity"
+                      style={{color: '#d9534f'}}
                       title="Delete task"
                     >
                       <Trash2 size={14} />

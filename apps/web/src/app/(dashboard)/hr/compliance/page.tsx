@@ -78,77 +78,81 @@ export default function CompliancePage() {
   };
 
   if (!config) {
-    return <p className="text-sm text-slate-500">Loading compliance settings…</p>;
+    return <p className="text-sm" style={{color: '#6b7280'}}>Loading compliance settings…</p>;
   }
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="page-title flex items-center gap-2">
-          <Scale size={18} className="text-slate-500" />
+          <Scale size={18} style={{color: '#6b7280'}} />
           Statutory Compliance
         </h1>
-        <p className="page-subtitle mt-1">
+        <p className="page-subtitle mt-1" style={{color: '#6b7280'}}>
           PF, ESI, professional tax, gratuity, and income tax slabs
         </p>
       </div>
 
-      <div className="bg-white rounded-lg border border-slate-200 shadow-card p-6 space-y-4">
-        <h2 className="text-sm font-semibold text-slate-900">Statutory Rates</h2>
+      <div style={{background: '#ffffff', border: '1px solid #dfe3e8'}} className="rounded-lg shadow-card p-6 space-y-4">
+        <h2 style={{color: '#2b2f36'}} className="text-sm font-semibold">Statutory Rates</h2>
         <div className="grid grid-cols-2 gap-4">
           {FIELDS.map(({ key, label, step }) => (
-            <label key={key} className="text-xs font-medium text-slate-600">
+            <label key={key} style={{color: '#2b2f36'}} className="text-xs font-medium">
               {label}
               <input
                 type="number"
                 step={step}
-                className="mt-1 w-full border border-slate-200 rounded-md px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-md px-3 py-2 text-sm"
+                style={{borderColor: '#dfe3e8', border: '1px solid', color: '#2b2f36'}}
                 value={config[key] as number}
                 onChange={(e) => setConfig({ ...config, [key]: parseFloat(e.target.value) || 0 })}
               />
             </label>
           ))}
         </div>
-        <label className="block text-xs font-medium text-slate-600">
+        <label style={{color: '#2b2f36'}} className="block text-xs font-medium">
           Notes
           <textarea
-            className="mt-1 w-full border border-slate-200 rounded-md px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-md px-3 py-2 text-sm"
+            style={{borderColor: '#dfe3e8', border: '1px solid', color: '#2b2f36'}}
             rows={2}
             value={config.notes ?? ""}
             onChange={(e) => setConfig({ ...config, notes: e.target.value })}
           />
         </label>
-        <Button onClick={saveStatutory} disabled={saving}>
+        <Button onClick={saveStatutory} disabled={saving} style={{background: '#1f5fa8', borderColor: '#1f5fa8', color: '#fff'}}>
           {saving ? "Saving…" : "Save Statutory Config"}
         </Button>
       </div>
 
-      <div className="bg-white rounded-lg border border-slate-200 shadow-card p-6 space-y-4">
-        <h2 className="text-sm font-semibold text-slate-900">Income Tax Slabs</h2>
+      <div style={{background: '#ffffff', border: '1px solid #dfe3e8'}} className="rounded-lg shadow-card p-6 space-y-4">
+        <h2 style={{color: '#2b2f36'}} className="text-sm font-semibold">Income Tax Slabs</h2>
         <div className="grid grid-cols-4 gap-3">
           {(["name", "minSalary", "maxSalary", "rate"] as const).map((f) => (
             <input
               key={f}
               placeholder={f}
-              className="border border-slate-200 rounded-md px-3 py-2 text-sm"
+              className="rounded-md px-3 py-2 text-sm"
+              style={{borderColor: '#dfe3e8', border: '1px solid', color: '#2b2f36'}}
               value={slabForm[f]}
               onChange={(e) => setSlabForm({ ...slabForm, [f]: e.target.value })}
             />
           ))}
         </div>
-        <Button icon={<Plus size={14} />} onClick={addSlab}>
+        <Button icon={<Plus size={14} />} onClick={addSlab} style={{background: '#1f5fa8', borderColor: '#1f5fa8', color: '#fff'}}>
           Add Slab
         </Button>
-        <ul className="divide-y divide-slate-100">
+        <ul style={{borderColor: '#f3f4f6'}} className="divide-y">
           {slabs.map((s) => (
-            <li key={s.id} className="flex items-center justify-between py-2 text-sm">
+            <li key={s.id} style={{color: '#2b2f36'}} className="flex items-center justify-between py-2 text-sm">
               <span>
                 {s.name}: ₹{s.minSalary}
                 {s.maxSalary ? `–${s.maxSalary}` : "+"} @ {(s.rate * 100).toFixed(1)}%
               </span>
               <button
                 type="button"
-                className="text-red-500 hover:text-red-700"
+                style={{color: '#dc2626'}}
+                className="hover:text-red-700"
                 onClick={async () => {
                   await hrApi.deleteTaxSlab(s.id);
                   setSlabs(await hrApi.getTaxSlabs());

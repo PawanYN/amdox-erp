@@ -118,12 +118,12 @@ const CONSENT_TYPES = ["marketing", "analytics", "data_processing", "third_party
 function AdminRequired() {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center gap-4">
-      <div className="h-12 w-12 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center">
-        <ShieldAlert size={22} className="text-amber-500" />
+      <div className="h-12 w-12 rounded-full border flex items-center justify-center" style={{background: '#fff7ed', borderColor: '#fed7aa'}}>
+        <ShieldAlert size={22} style={{color: '#f59e0b'}} />
       </div>
       <div>
-        <p className="text-sm font-semibold text-slate-800">Administrator Access Required</p>
-        <p className="text-xs text-slate-500 mt-1 max-w-xs">
+        <p className="text-sm font-semibold" style={{color: '#2b2f36'}}>Administrator Access Required</p>
+        <p className="text-xs mt-1 max-w-xs" style={{color: '#6b7280'}}>
           This section is restricted to <span className="font-medium">SuperAdmin</span> and{" "}
           <span className="font-medium">TenantAdmin</span> roles. Contact your system administrator
           to request access.
@@ -497,10 +497,10 @@ export default function SettingsPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Title block */}
-      <div className="flex items-start justify-between pb-5 border-b border-slate-200">
+      <div className="flex items-start justify-between pb-5 border-b" style={{borderColor: '#dfe3e8'}}>
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <Settings2 size={18} className="text-slate-500" />
+            <Settings2 size={18} style={{color: '#6b7280'}} />
             Settings
           </h1>
           <p className="page-subtitle mt-1">
@@ -516,20 +516,20 @@ export default function SettingsPage() {
 
       {/* Success/Error Alerts */}
       {successMsg && (
-        <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg text-xs">
-          <CheckCircle2 size={16} className="text-emerald-600" />
+        <div className="flex items-center gap-2 p-3 rounded-lg text-xs border" style={{background: '#ecfdf5', borderColor: '#a7f3d0', color: '#059669'}}>
+          <CheckCircle2 size={16} style={{color: '#059669'}} />
           {successMsg}
         </div>
       )}
       {errorMsg && (
-        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 text-red-800 rounded-lg text-xs">
-          <AlertCircle size={16} className="text-red-600" />
+        <div className="flex items-center gap-2 p-3 rounded-lg text-xs border" style={{background: '#fef2f2', borderColor: '#fca5a5', color: '#dc2626'}}>
+          <AlertCircle size={16} style={{color: '#dc2626'}} />
           {errorMsg}
         </div>
       )}
 
       {/* Horizontal Tab Bar */}
-      <div className="border-b border-slate-200 flex items-center gap-1 overflow-x-auto">
+      <div className="border-b flex items-center gap-1 overflow-x-auto" style={{borderColor: '#dfe3e8'}}>
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -541,11 +541,8 @@ export default function SettingsPage() {
                 setSuccessMsg(null);
                 setErrorMsg(null);
               }}
-              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 -mb-px whitespace-nowrap transition-all ${
-                isActive
-                  ? "border-blue-600 text-blue-700"
-                  : "border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300"
-              }`}
+              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 -mb-px whitespace-nowrap transition-all`}
+              style={isActive ? {borderColor: '#1f5fa8', color: '#1f5fa8'} : {borderColor: 'transparent', color: '#6b7280'}}
             >
               <Icon size={13} />
               {tab.label}
@@ -556,48 +553,51 @@ export default function SettingsPage() {
 
       <div>
         {/* Content Area */}
-        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-card min-h-[500px]">
+        <div className="bg-white border rounded-lg p-6 shadow-card min-h-[500px]" style={{borderColor: '#dfe3e8'}}>
           {/* GENERAL SETTINGS */}
           {activeTab === "general" && (
             <div className="space-y-4">
-              <h2 className="text-sm font-semibold text-gray-900 pb-2 border-b">
+              <h2 className="text-sm font-semibold pb-2 border-b" style={{color: '#2b2f36', borderColor: '#dfe3e8'}}>
                 General Settings
               </h2>
               <div className="grid grid-cols-1 gap-4 max-w-md">
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium mb-1" style={{color: '#6b7280'}}>
                     Company Workspace Name
                   </label>
                   <input
                     type="text"
                     value={tenantConfig.name || ""}
                     onChange={(e) => setTenantConfig({ ...tenantConfig, name: e.target.value })}
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    className="w-full rounded-md border px-3 py-2 text-xs focus:ring-1 outline-none"
+                    style={{borderColor: '#dfe3e8', color: '#2b2f36'}}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium mb-1" style={{color: '#6b7280'}}>
                     Company Domain / Slug
                   </label>
                   <input
                     type="text"
                     value={tenantConfig.slug || ""}
                     disabled
-                    className="w-full rounded-md border border-gray-200 bg-gray-50 text-gray-400 px-3 py-2 text-xs cursor-not-allowed"
+                    className="w-full rounded-md border px-3 py-2 text-xs cursor-not-allowed"
+                    style={{borderColor: '#dfe3e8', background: '#f4f6f8', color: '#6b7280'}}
                   />
-                  <p className="text-[10px] text-gray-400 mt-1">
+                  <p className="text-[10px] mt-1" style={{color: '#6b7280'}}>
                     Immutable slug used for the workspace routing and realm separation.
                   </p>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium mb-1" style={{color: '#6b7280'}}>
                     ERP Active Plan
                   </label>
                   <input
                     type="text"
                     value={tenantConfig.plan || "STANDARD"}
                     disabled
-                    className="w-full rounded-md border border-gray-200 bg-gray-50 text-gray-400 px-3 py-2 text-xs cursor-not-allowed"
+                    className="w-full rounded-md border px-3 py-2 text-xs cursor-not-allowed"
+                    style={{borderColor: '#dfe3e8', background: '#f4f6f8', color: '#6b7280'}}
                   />
                 </div>
               </div>
@@ -609,7 +609,7 @@ export default function SettingsPage() {
           {activeTab === "keycloak" && isAdmin && (
             <div className="space-y-6">
               {/* Internal tabs */}
-              <div className="flex border-b border-gray-200 gap-1 pb-px overflow-x-auto">
+              <div className="flex border-b gap-1 pb-px overflow-x-auto" style={{borderColor: '#dfe3e8'}}>
                 {[
                   { id: "login", label: "Login Settings", icon: UserCheck },
                   { id: "smtp", label: "Email Server (SMTP)", icon: Mail },
@@ -622,11 +622,8 @@ export default function SettingsPage() {
                     <button
                       key={sub.id}
                       onClick={() => setActiveSubTab(sub.id)}
-                      className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b-2 -mb-px transition-all ${
-                        isActive
-                          ? "border-blue-600 text-blue-700"
-                          : "border-transparent text-slate-500 hover:text-slate-800"
-                      }`}
+                      className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b-2 -mb-px transition-all`}
+                      style={isActive ? {borderColor: '#1f5fa8', color: '#1f5fa8'} : {borderColor: 'transparent', color: '#6b7280'}}
                     >
                       <Icon size={13} />
                       {sub.label}
@@ -638,13 +635,13 @@ export default function SettingsPage() {
               {/* Subtab 1: Login Settings */}
               {activeSubTab === "login" && (
                 <div className="space-y-4">
-                  <h3 className="text-xs font-bold text-gray-800 uppercase tracking-wider">
+                  <h3 className="text-xs font-bold uppercase tracking-wider" style={{color: '#2b2f36'}}>
                     Login & Info Customization
                   </h3>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* User Registration */}
-                    <div className="flex items-center justify-between p-3 border border-gray-150 rounded-lg">
+                    <div className="flex items-center justify-between p-3 border rounded-lg" style={{borderColor: '#dfe3e8'}}>
                       <div>
                         <h4 className="text-xs font-semibold text-gray-800">User registration</h4>
                         <p className="text-[10px] text-gray-500">
@@ -1403,21 +1400,21 @@ export default function SettingsPage() {
           {/* AUDIT LOGS */}
           {activeTab === "audit" && (
             <div className="space-y-4">
-              <div className="flex flex-wrap justify-between items-center gap-3 pb-2 border-b">
-                <h2 className="text-sm font-semibold text-gray-900">Immutable Audit Trail</h2>
+              <div className="flex flex-wrap justify-between items-center gap-3 pb-2 border-b" style={{borderColor: '#dfe3e8'}}>
+                <h2 className="text-sm font-semibold" style={{color: '#2b2f36'}}>Immutable Audit Trail</h2>
                 <div className="flex items-center gap-2">
                   {chainStatus === "valid" && (
-                    <div className="flex items-center gap-1.5 text-[10px] text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100 font-medium">
+                    <div className="flex items-center gap-1.5 text-[10px] px-2.5 py-1 rounded-full border font-medium" style={{color: '#059669', background: '#ecfdf5', borderColor: '#a7f3d0'}}>
                       <ShieldCheck size={12} /> Hash Chain Verified
                     </div>
                   )}
                   {chainStatus === "invalid" && (
-                    <div className="flex items-center gap-1.5 text-[10px] text-red-600 bg-red-50 px-2.5 py-1 rounded-full border border-red-100 font-medium">
+                    <div className="flex items-center gap-1.5 text-[10px] px-2.5 py-1 rounded-full border font-medium" style={{color: '#dc2626', background: '#fef2f2', borderColor: '#fca5a5'}}>
                       <XCircle size={12} /> Chain Broken
                     </div>
                   )}
                   {chainStatus === "error" && (
-                    <div className="flex items-center gap-1.5 text-[10px] text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-100 font-medium">
+                    <div className="flex items-center gap-1.5 text-[10px] px-2.5 py-1 rounded-full border font-medium" style={{color: '#d97706', background: '#fffbeb', borderColor: '#fde68a'}}>
                       <AlertCircle size={12} /> Verify Failed
                     </div>
                   )}
@@ -1440,13 +1437,14 @@ export default function SettingsPage() {
               </div>
               {chainDetail && (
                 <p
-                  className={`text-xs ${
-                    chainStatus === "valid"
-                      ? "text-emerald-700"
+                  className={`text-xs`}
+                  style={{
+                    color: chainStatus === "valid"
+                      ? '#059669'
                       : chainStatus === "invalid"
-                        ? "text-red-600"
-                        : "text-amber-700"
-                  }`}
+                        ? '#dc2626'
+                        : '#d97706'
+                  }}
                 >
                   {chainDetail}
                 </p>
@@ -1459,7 +1457,7 @@ export default function SettingsPage() {
           {activeTab === "compliance" && (
             <div className="space-y-8">
               <div className="space-y-4">
-                <h2 className="text-sm font-semibold text-gray-900 pb-2 border-b">
+                <h2 className="text-sm font-semibold pb-2 border-b" style={{color: '#2b2f36', borderColor: '#dfe3e8'}}>
                   Data Subject Requests (GDPR)
                 </h2>
                 <div className="flex flex-wrap gap-2 items-end pb-4 border-b border-slate-100">
@@ -1500,7 +1498,7 @@ export default function SettingsPage() {
               </div>
 
               <div className="space-y-4">
-                <h2 className="text-sm font-semibold text-gray-900 pb-2 border-b">
+                <h2 className="text-sm font-semibold pb-2 border-b" style={{color: '#2b2f36', borderColor: '#dfe3e8'}}>
                   Consent Records
                 </h2>
                 <div className="flex flex-wrap gap-2 items-end pb-4 border-b border-slate-100">
@@ -1585,7 +1583,7 @@ export default function SettingsPage() {
                   </Button>
                 </div>
                 {consentError && (
-                  <div className="text-[12px] text-red-600 bg-red-50 border border-red-100 rounded-md px-3 py-2">
+                  <div className="text-[12px] rounded-md px-3 py-2 border" style={{color: '#dc2626', background: '#fef2f2', borderColor: '#fca5a5'}}>
                     {consentError}
                   </div>
                 )}

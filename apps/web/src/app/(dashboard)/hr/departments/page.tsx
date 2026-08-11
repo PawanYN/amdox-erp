@@ -97,13 +97,13 @@ export default function DepartmentsPage() {
   const columns: ColumnDef<Department>[] = [
     {
       header: "Code",
-      cell: (d) => <span className="font-mono text-xs text-slate-600">{d.code}</span>,
+      cell: (d) => <span className="font-mono text-xs" style={{color: '#2b2f36'}}>{d.code}</span>,
     },
-    { header: "Name", cell: (d) => <span className="font-semibold text-slate-900">{d.name}</span> },
+    { header: "Name", cell: (d) => <span style={{color: '#2b2f36'}} className="font-semibold">{d.name}</span> },
     {
       header: "ERP Modules",
       cell: (d) => (
-        <span className="text-[12px] text-slate-500">
+        <span className="text-[12px]" style={{color: '#6b7280'}}>
           {(d.allowedModules ?? []).length > 0
             ? (d.allowedModules ?? []).join(", ")
             : defaultModulesForCode(d.code).join(", ") || "—"}
@@ -116,13 +116,19 @@ export default function DepartmentsPage() {
         <div className="flex gap-2">
           <button
             onClick={() => openEdit(d)}
-            className="flex h-7 w-7 items-center justify-center rounded-md bg-slate-50 border border-slate-200 text-slate-600 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-colors"
+            style={{color: '#6b7280', border: '1px solid #dfe3e8', background: '#f4f6f8'}}
+            className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-blue-50 hover:border-blue-200 transition-colors"
+            onMouseEnter={(e) => {e.currentTarget.style.color = '#1f5fa8'; e.currentTarget.style.borderColor = '#1f5fa8'}}
+            onMouseLeave={(e) => {e.currentTarget.style.color = '#6b7280'; e.currentTarget.style.borderColor = '#dfe3e8'}}
           >
             <Pencil size={13} />
           </button>
           <button
             onClick={() => handleDelete(d)}
-            className="flex h-7 w-7 items-center justify-center rounded-md bg-slate-50 border border-slate-200 text-slate-600 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors"
+            style={{color: '#6b7280', border: '1px solid #dfe3e8', background: '#f4f6f8'}}
+            className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-red-50 hover:border-red-200 transition-colors"
+            onMouseEnter={(e) => {e.currentTarget.style.color = '#dc2626'; e.currentTarget.style.borderColor = '#fca5a5'}}
+            onMouseLeave={(e) => {e.currentTarget.style.color = '#6b7280'; e.currentTarget.style.borderColor = '#dfe3e8'}}
           >
             <Trash2 size={13} />
           </button>
@@ -136,14 +142,14 @@ export default function DepartmentsPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <Building2 size={18} className="text-slate-500" />
+            <Building2 size={18} style={{color: '#6b7280'}} />
             Departments
           </h1>
-          <p className="page-subtitle mt-1">
+          <p className="page-subtitle mt-1" style={{color: '#6b7280'}}>
             Manage departments and which ERP modules their employees can access
           </p>
         </div>
-        <Button icon={<Plus size={16} />} onClick={openCreate}>
+        <Button icon={<Plus size={16} />} onClick={openCreate} style={{background: '#1f5fa8', borderColor: '#1f5fa8', color: '#fff'}}>
           New Department
         </Button>
       </div>
@@ -162,35 +168,38 @@ export default function DepartmentsPage() {
       >
         <div className="space-y-4">
           <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Name *</label>
+            <label style={{color: '#2b2f36'}} className="text-[12px] font-medium block mb-1.5">Name *</label>
             <input
               className={inputClasses}
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Project Management"
+              style={{borderColor: '#dfe3e8', color: '#2b2f36'}}
             />
           </div>
           <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Code *</label>
+            <label style={{color: '#2b2f36'}} className="text-[12px] font-medium block mb-1.5">Code *</label>
             <input
               className={inputClasses}
               value={code}
               onChange={(e) => handleCodeChange(e.target.value)}
               placeholder="e.g. PM, HR, FIN, SCM"
+              style={{borderColor: '#dfe3e8', color: '#2b2f36'}}
             />
-            <p className="text-[11px] text-slate-500 mt-1">
+            <p style={{color: '#6b7280'}} className="text-[11px] mt-1">
               Standard codes (PM, HR, FIN, SCM) auto-suggest module access.
             </p>
           </div>
           <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-2">
+            <label style={{color: '#2b2f36'}} className="text-[12px] font-medium block mb-2">
               Allowed ERP modules
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {MODULE_OPTIONS.map((opt) => (
                 <label
                   key={opt.id}
-                  className="flex items-start gap-2 rounded-md border border-slate-200 px-3 py-2 cursor-pointer hover:bg-slate-50"
+                  style={{borderColor: '#dfe3e8'}}
+                  className="flex items-start gap-2 rounded-md border px-3 py-2 cursor-pointer hover:bg-slate-50"
                 >
                   <input
                     type="checkbox"
@@ -199,10 +208,10 @@ export default function DepartmentsPage() {
                     onChange={() => toggleModule(opt.id)}
                   />
                   <span>
-                    <span className="text-[13px] font-medium text-slate-800 block">
+                    <span style={{color: '#2b2f36'}} className="text-[13px] font-medium block">
                       {opt.label}
                     </span>
-                    <span className="text-[11px] text-slate-500">{opt.description}</span>
+                    <span style={{color: '#6b7280'}} className="text-[11px]">{opt.description}</span>
                   </span>
                 </label>
               ))}
@@ -212,7 +221,7 @@ export default function DepartmentsPage() {
             <Button variant="outline" onClick={() => setFormOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={loading}>
+            <Button onClick={handleSave} disabled={loading} style={{background: '#1f5fa8', borderColor: '#1f5fa8', color: '#fff'}}>
               {loading ? "Saving…" : editing ? "Update" : "Create"}
             </Button>
           </div>

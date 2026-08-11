@@ -130,19 +130,19 @@ export default function SalesOrdersPage() {
     {
       header: "Order #",
       cell: (o) => (
-        <span className="font-mono text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-100 rounded px-2 py-0.5">
+        <span style={{fontFamily: 'monospace', fontSize: '12px', fontWeight: 600, color: '#1f5fa8', background: '#f0f6fd', border: '1px solid #dfe3e8', borderRadius: '4px', padding: '2px 8px', display: 'inline-block'}}>
           {o.orderNumber}
         </span>
       ),
     },
     {
       header: "Customer",
-      cell: (o) => <span className="font-medium text-slate-900">{o.customer?.name ?? "—"}</span>,
+      cell: (o) => <span style={{fontWeight: 500, color: '#2b2f36'}}>{o.customer?.name ?? "—"}</span>,
     },
     {
       header: "Amount",
       cell: (o) => (
-        <span className="font-mono font-semibold text-slate-900">
+        <span style={{fontFamily: 'monospace', fontWeight: 600, color: '#2b2f36'}}>
           ₹{Number(o.totalAmount).toLocaleString("en-IN")}
         </span>
       ),
@@ -151,7 +151,12 @@ export default function SalesOrdersPage() {
       header: "Status",
       cell: (o) => (
         <span
-          className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${STATUS_STYLE[o.status] || "bg-slate-100 text-slate-600"}`}
+          style={{fontSize: '11px', fontWeight: 500, padding: '2px 8px', borderRadius: '12px', display: 'inline-block', ...{
+            CONFIRMED: {background: '#f0f6fd', color: '#1f5fa8'},
+            INVOICED: {background: '#f5f3ff', color: '#7c3aed'},
+            FULFILLED: {background: '#ecfdf5', color: '#059669'},
+            CANCELLED: {background: '#f3f4f6', color: '#6b7280'},
+          }[o.status] || {background: '#f3f4f6', color: '#2b2f36'}}}
         >
           {o.status}
         </span>
@@ -160,7 +165,7 @@ export default function SalesOrdersPage() {
     {
       header: "Invoices",
       cell: (o) => (
-        <span className="text-[13px] text-slate-500">
+        <span style={{fontSize: '13px', color: '#6b7280'}}>
           {o.invoices?.length ? o.invoices.map((i) => i.invoiceNumber).join(", ") : "—"}
         </span>
       ),
@@ -187,7 +192,7 @@ export default function SalesOrdersPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <ShoppingCart size={18} className="text-slate-500" />
+            <ShoppingCart size={18} style={{color: '#6b7280'}} />
             Sales Orders
           </h1>
           <p className="page-subtitle mt-1">
@@ -199,11 +204,11 @@ export default function SalesOrdersPage() {
         </Button>
       </div>
 
-      {error && <p className="text-[13px] text-red-600">{error}</p>}
+      {error && <p style={{fontSize: '13px', color: '#dc2626'}}>{error}</p>}
 
       {loading ? (
-        <p className="text-sm text-slate-500 flex items-center gap-2">
-          <Loader2 size={16} className="animate-spin" /> Loading sales orders…
+        <p style={{fontSize: '14px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '8px'}}>
+          <Loader2 size={16} style={{animation: 'spin 1s linear infinite'}} /> Loading sales orders…
         </p>
       ) : (
         <DataTable
@@ -217,7 +222,7 @@ export default function SalesOrdersPage() {
       <Modal open={formOpen} onClose={() => setFormOpen(false)} title="New Sales Order">
         <div className="space-y-3">
           <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+            <label style={{fontSize: '12px', fontWeight: 500, color: '#2b2f36', display: 'block', marginBottom: '6px'}}>
               Customer *
             </label>
             <select
@@ -237,7 +242,7 @@ export default function SalesOrdersPage() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-[12px] font-medium text-slate-600 block">Line items *</label>
+            <label style={{fontSize: '12px', fontWeight: 500, color: '#2b2f36', display: 'block'}}>Line items *</label>
             {lines.map((line, idx) => (
               <div key={idx} className="grid grid-cols-12 gap-2 items-end">
                 <div className="col-span-5">

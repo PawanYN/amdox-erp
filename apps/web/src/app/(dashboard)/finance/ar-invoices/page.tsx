@@ -137,16 +137,16 @@ export default function ArInvoicesPage() {
   const columns: ColumnDef<ArInvoice>[] = [
     {
       header: "Invoice #",
-      cell: (i) => <span className="font-mono text-xs text-slate-700">{i.invoiceNumber}</span>,
+      cell: (i) => <span style={{fontFamily: 'monospace', fontSize: '12px', color: '#2b2f36'}}>{i.invoiceNumber}</span>,
     },
     {
       header: "Customer",
-      cell: (i) => <span className="font-medium text-slate-900">{i.customer?.name ?? "—"}</span>,
+      cell: (i) => <span style={{fontWeight: 500, color: '#2b2f36'}}>{i.customer?.name ?? "—"}</span>,
     },
     {
       header: "Amount",
       cell: (i) => (
-        <span className="font-mono font-semibold text-slate-900">
+        <span style={{fontFamily: 'monospace', fontWeight: 600, color: '#2b2f36'}}>
           ₹{Number(i.totalAmount).toLocaleString("en-IN")}
         </span>
       ),
@@ -154,14 +154,20 @@ export default function ArInvoicesPage() {
     {
       header: "Due",
       cell: (i) => (
-        <span className="text-sm text-slate-500">{new Date(i.dueDate).toLocaleDateString()}</span>
+        <span style={{fontSize: '14px', color: '#6b7280'}}>{new Date(i.dueDate).toLocaleDateString()}</span>
       ),
     },
     {
       header: "Status",
       cell: (i) => (
         <span
-          className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${STATUS_STYLE[i.status] || "bg-slate-100 text-slate-600"}`}
+          style={{fontSize: '11px', fontWeight: 500, padding: '2px 8px', borderRadius: '12px', display: 'inline-block', ...{
+            DRAFT: {background: '#f3f4f6', color: '#2b2f36'},
+            OPEN: {background: '#f0f6fd', color: '#1f5fa8'},
+            PAID: {background: '#ecfdf5', color: '#059669'},
+            OVERDUE: {background: '#fef2f2', color: '#dc2626'},
+            CANCELLED: {background: '#f3f4f6', color: '#6b7280'},
+          }[i.status] || {background: '#f3f4f6', color: '#2b2f36'}}}
         >
           {i.status}
         </span>
@@ -174,7 +180,7 @@ export default function ArInvoicesPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <TrendingUp size={18} className="text-slate-500" />
+            <TrendingUp size={18} style={{color: '#6b7280'}} />
             AR Receivable
           </h1>
           <p className="page-subtitle mt-1">Customer invoices and payment recording</p>
@@ -194,8 +200,8 @@ export default function ArInvoicesPage() {
       </div>
 
       {loading ? (
-        <p className="text-sm text-slate-500 flex items-center gap-2">
-          <Loader2 size={16} className="animate-spin" /> Loading…
+        <p style={{fontSize: '14px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '8px'}}>
+          <Loader2 size={16} style={{animation: 'spin 1s linear infinite'}} /> Loading…
         </p>
       ) : (
         <DataTable
@@ -214,7 +220,7 @@ export default function ArInvoicesPage() {
         <div className="space-y-3">
           {customers.length > 0 ? (
             <div>
-              <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+              <label style={{fontSize: '12px', fontWeight: 500, color: '#2b2f36', display: 'block', marginBottom: '6px'}}>
                 Customer
               </label>
               <select
@@ -231,7 +237,7 @@ export default function ArInvoicesPage() {
             </div>
           ) : (
             <div>
-              <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+              <label style={{fontSize: '12px', fontWeight: 500, color: '#2b2f36', display: 'block', marginBottom: '6px'}}>
                 New customer name
               </label>
               <input
@@ -243,7 +249,7 @@ export default function ArInvoicesPage() {
             </div>
           )}
           <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+            <label style={{fontSize: '12px', fontWeight: 500, color: '#2b2f36', display: 'block', marginBottom: '6px'}}>
               Invoice number *
             </label>
             <input
@@ -253,7 +259,7 @@ export default function ArInvoicesPage() {
             />
           </div>
           <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+            <label style={{fontSize: '12px', fontWeight: 500, color: '#2b2f36', display: 'block', marginBottom: '6px'}}>
               Description
             </label>
             <input
@@ -264,7 +270,7 @@ export default function ArInvoicesPage() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+              <label style={{fontSize: '12px', fontWeight: 500, color: '#2b2f36', display: 'block', marginBottom: '6px'}}>
                 Issue date
               </label>
               <input
@@ -275,7 +281,7 @@ export default function ArInvoicesPage() {
               />
             </div>
             <div>
-              <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+              <label style={{fontSize: '12px', fontWeight: 500, color: '#2b2f36', display: 'block', marginBottom: '6px'}}>
                 Due date
               </label>
               <input
@@ -287,7 +293,7 @@ export default function ArInvoicesPage() {
             </div>
           </div>
           <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+            <label style={{fontSize: '12px', fontWeight: 500, color: '#2b2f36', display: 'block', marginBottom: '6px'}}>
               Total amount (₹) *
             </label>
             <input
@@ -316,7 +322,7 @@ export default function ArInvoicesPage() {
       >
         <div className="space-y-3">
           <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Invoice *</label>
+            <label style={{fontSize: '12px', fontWeight: 500, color: '#2b2f36', display: 'block', marginBottom: '6px'}}>Invoice *</label>
             <select
               className={inputClasses}
               value={paymentInvoiceId}
@@ -331,7 +337,7 @@ export default function ArInvoicesPage() {
             </select>
           </div>
           <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+            <label style={{fontSize: '12px', fontWeight: 500, color: '#2b2f36', display: 'block', marginBottom: '6px'}}>
               Amount (₹) *
             </label>
             <input
@@ -343,7 +349,7 @@ export default function ArInvoicesPage() {
             />
           </div>
           <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+            <label style={{fontSize: '12px', fontWeight: 500, color: '#2b2f36', display: 'block', marginBottom: '6px'}}>
               Bank reference
             </label>
             <input

@@ -320,8 +320,8 @@ export default function DashboardHome() {
   return (
     <div className="max-w-4xl mx-auto space-y-4 sm:space-y-5">
       {/* Persistent header: identity + clock in/out — always visible, no scrolling needed */}
-      <div className="bg-white rounded-lg border border-slate-200 shadow-card p-4 sm:p-5 flex flex-wrap items-center gap-3 sm:gap-4">
-        <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-blue-600 flex items-center justify-center text-white text-base sm:text-lg font-semibold shrink-0">
+      <div className="bg-white rounded-lg border shadow-card p-4 sm:p-5 flex flex-wrap items-center gap-3 sm:gap-4" style={{borderColor: '#dfe3e8'}}>
+        <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-full flex items-center justify-center text-white text-base sm:text-lg font-semibold shrink-0" style={{background: '#1f5fa8'}}>
           {displayName
             .split(" ")
             .map((n: string) => n[0])
@@ -330,12 +330,12 @@ export default function DashboardHome() {
             .toUpperCase()}
         </div>
         <div className="min-w-0 flex-1">
-          <h1 className="text-base sm:text-lg font-semibold text-slate-900 truncate">
+          <h1 className="text-base sm:text-lg font-semibold truncate" style={{color: '#2b2f36'}}>
             {displayName}
           </h1>
-          <p className="text-[13px] text-slate-500 truncate">{displayEmail}</p>
+          <p className="text-[13px] truncate" style={{color: '#6b7280'}}>{displayEmail}</p>
         </div>
-        <span className="inline-flex items-center gap-1.5 bg-blue-50 border border-blue-100 text-blue-700 text-[11px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider shrink-0">
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider shrink-0" style={{background: '#f4f6f8', border: '1px solid #dfe3e8', color: '#1f5fa8'}}>
           <Shield size={12} />
           {!authMeLoaded ? "…" : roleLabel}
         </span>
@@ -343,11 +343,8 @@ export default function DashboardHome() {
         {!isAdmin && profile?.id && (
           <button
             onClick={clockedIn ? handleClockOut : handleClockIn}
-            className={`shrink-0 flex items-center justify-center gap-1.5 px-3.5 py-2 text-[12px] font-semibold rounded-md transition-colors ${
-              clockedIn
-                ? "bg-white text-red-600 border border-red-200 hover:bg-red-50"
-                : "bg-emerald-700 text-white hover:bg-emerald-800"
-            }`}
+            className={`shrink-0 flex items-center justify-center gap-1.5 px-3.5 py-2 text-[12px] font-semibold rounded-md transition-colors`}
+            style={clockedIn ? {background: '#fff', color: '#2b2f36', border: '1px solid #dfe3e8'} : {background: '#1f5fa8', color: '#fff'}}
           >
             {clockedIn ? (
               <>
@@ -369,7 +366,7 @@ export default function DashboardHome() {
       </div>
 
       {/* Horizontal tab bar */}
-      <div className="border-b border-slate-200 flex items-center gap-1 overflow-x-auto">
+      <div className="border-b flex items-center gap-1 overflow-x-auto" style={{borderColor: '#dfe3e8'}}>
         {HOME_TABS.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -377,11 +374,8 @@ export default function DashboardHome() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-4 py-2.5 text-[13px] font-medium border-b-2 -mb-px whitespace-nowrap transition-colors ${
-                isActive
-                  ? "border-blue-600 text-blue-700"
-                  : "border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300"
-              }`}
+              className={`flex items-center gap-1.5 px-4 py-2.5 text-[13px] font-medium border-b-2 -mb-px whitespace-nowrap transition-colors`}
+              style={isActive ? {borderColor: '#1f5fa8', color: '#1f5fa8'} : {borderColor: 'transparent', color: '#6b7280'}}
             >
               <Icon size={13} />
               {tab.label}
@@ -392,8 +386,8 @@ export default function DashboardHome() {
 
       {/* PROFILE TAB */}
       {activeTab === "profile" && (
-        <div className="bg-white rounded-lg border border-slate-200 shadow-card p-4 sm:p-5">
-          <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider mb-4">
+        <div className="bg-white rounded-lg border shadow-card p-4 sm:p-5" style={{borderColor: '#dfe3e8'}}>
+          <p className="text-[12px] font-semibold uppercase tracking-wider mb-4" style={{color: '#6b7280'}}>
             Profile Details
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -404,10 +398,10 @@ export default function DashboardHome() {
               ["Access", accessLabel],
             ].map(([label, val]) => (
               <div key={label}>
-                <p className="text-[11px] text-slate-500 uppercase tracking-wider font-medium">
+                <p className="text-[11px] uppercase tracking-wider font-medium" style={{color: '#6b7280'}}>
                   {label}
                 </p>
-                <p className="text-[13px] text-slate-800 font-medium mt-0.5">{val}</p>
+                <p className="text-[13px] font-medium mt-0.5" style={{color: '#2b2f36'}}>{val}</p>
               </div>
             ))}
           </div>
@@ -418,56 +412,56 @@ export default function DashboardHome() {
       {activeTab === "attendance-leave" && !isAdmin && (
         <div className="space-y-4 sm:space-y-5">
           {/* Attendance summary */}
-          <div className="bg-white rounded-lg border border-slate-200 shadow-card p-4 sm:p-5">
-            <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider mb-4">
+          <div className="bg-white rounded-lg border shadow-card p-4 sm:p-5" style={{borderColor: '#dfe3e8'}}>
+            <p className="text-[12px] font-semibold uppercase tracking-wider mb-4" style={{color: '#6b7280'}}>
               Attendance — {lastMonthLabel}
             </p>
             {!attendanceLoaded ? (
-              <p className="text-[13px] text-slate-500">Loading attendance…</p>
+              <p className="text-[13px]" style={{color: '#6b7280'}}>Loading attendance…</p>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                 <div>
                   <div className="flex items-center gap-1.5 mb-1.5">
-                    <CheckCircle2 size={13} className="text-emerald-600" />
-                    <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                    <CheckCircle2 size={13} style={{color: '#10b981'}} />
+                    <p className="text-[11px] font-semibold uppercase tracking-wider" style={{color: '#6b7280'}}>
                       Present
                     </p>
                   </div>
-                  <p className="text-2xl font-bold text-slate-900">
+                  <p className="text-2xl font-bold" style={{color: '#2b2f36'}}>
                     {monthlyAttendance.present}
-                    <span className="text-[13px] font-medium text-slate-400">
+                    <span className="text-[13px] font-medium" style={{color: '#6b7280'}}>
                       /{monthlyAttendance.totalWorkdays}
                     </span>
                   </p>
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5 mb-1.5">
-                    <XCircle size={13} className="text-red-500" />
-                    <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                    <XCircle size={13} style={{color: '#ef4444'}} />
+                    <p className="text-[11px] font-semibold uppercase tracking-wider" style={{color: '#6b7280'}}>
                       Absent
                     </p>
                   </div>
-                  <p className="text-2xl font-bold text-slate-900">{monthlyAttendance.absent}</p>
+                  <p className="text-2xl font-bold" style={{color: '#2b2f36'}}>{monthlyAttendance.absent}</p>
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5 mb-1.5">
-                    <Clock size={13} className="text-amber-600" />
-                    <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                    <Clock size={13} style={{color: '#f59e0b'}} />
+                    <p className="text-[11px] font-semibold uppercase tracking-wider" style={{color: '#6b7280'}}>
                       Late
                     </p>
                   </div>
-                  <p className="text-2xl font-bold text-slate-900">{monthlyAttendance.late}</p>
+                  <p className="text-2xl font-bold" style={{color: '#2b2f36'}}>{monthlyAttendance.late}</p>
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5 mb-1.5">
-                    <Timer size={13} className="text-blue-600" />
-                    <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                    <Timer size={13} style={{color: '#1f5fa8'}} />
+                    <p className="text-[11px] font-semibold uppercase tracking-wider" style={{color: '#6b7280'}}>
                       Overtime
                     </p>
                   </div>
-                  <p className="text-2xl font-bold text-slate-900">
+                  <p className="text-2xl font-bold" style={{color: '#2b2f36'}}>
                     {monthlyAttendance.overtimeHours.toFixed(1)}
-                    <span className="text-[13px] font-medium text-slate-400"> hrs</span>
+                    <span className="text-[13px] font-medium" style={{color: '#6b7280'}}> hrs</span>
                   </p>
                 </div>
               </div>
@@ -476,46 +470,47 @@ export default function DashboardHome() {
 
           {/* Leave balance cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="bg-white rounded-lg border border-slate-200 shadow-card p-4 sm:p-5">
+            <div className="bg-white rounded-lg border shadow-card p-4 sm:p-5" style={{borderColor: '#dfe3e8'}}>
               <div className="flex items-center gap-1.5 mb-2">
-                <Calendar size={13} className="text-slate-500" />
-                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                <Calendar size={13} style={{color: '#6b7280'}} />
+                <p className="text-[11px] font-semibold uppercase tracking-wider" style={{color: '#6b7280'}}>
                   Annual Leave
                 </p>
               </div>
-              <p className="text-3xl font-bold text-slate-900">{annualBalance}</p>
-              <p className="text-[12px] text-slate-500 mt-0.5">days remaining</p>
+              <p className="text-3xl font-bold" style={{color: '#2b2f36'}}>{annualBalance}</p>
+              <p className="text-[12px] mt-0.5" style={{color: '#6b7280'}}>days remaining</p>
             </div>
-            <div className="bg-white rounded-lg border border-slate-200 shadow-card p-4 sm:p-5">
+            <div className="bg-white rounded-lg border shadow-card p-4 sm:p-5" style={{borderColor: '#dfe3e8'}}>
               <div className="flex items-center gap-1.5 mb-2">
-                <Clock size={13} className="text-slate-500" />
-                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                <Clock size={13} style={{color: '#6b7280'}} />
+                <p className="text-[11px] font-semibold uppercase tracking-wider" style={{color: '#6b7280'}}>
                   Sick Leave
                 </p>
               </div>
-              <p className="text-3xl font-bold text-slate-900">{sickBalance}</p>
-              <p className="text-[12px] text-slate-500 mt-0.5">days remaining</p>
+              <p className="text-3xl font-bold" style={{color: '#2b2f36'}}>{sickBalance}</p>
+              <p className="text-[12px] mt-0.5" style={{color: '#6b7280'}}>days remaining</p>
             </div>
           </div>
 
           {/* Leave requests */}
-          <div className="bg-white rounded-lg border border-slate-200 shadow-card p-4 sm:p-5">
+          <div className="bg-white rounded-lg border shadow-card p-4 sm:p-5" style={{borderColor: '#dfe3e8'}}>
             <div className="flex items-center justify-between mb-4">
-              <p className="text-[13px] font-semibold text-slate-900">Recent Leave Requests</p>
+              <p className="text-[13px] font-semibold" style={{color: '#2b2f36'}}>Recent Leave Requests</p>
               <button
                 onClick={() => setShowLeaveForm(!showLeaveForm)}
-                className="text-[12px] font-semibold text-white bg-blue-600 px-3 py-1.5 rounded-md hover:bg-blue-700 transition-colors"
+                className="text-[12px] font-semibold px-3 py-1.5 rounded-md transition-colors"
+                style={{background: '#1f5fa8', color: '#fff'}}
               >
                 {showLeaveForm ? "Cancel" : "Apply for Leave"}
               </button>
             </div>
 
             {showLeaveForm ? (
-              <div className="bg-slate-50 rounded-lg border border-slate-200 p-4 space-y-3 animate-fade-in-up">
-                <p className="text-[12px] font-semibold text-slate-700">New Leave Application</p>
+              <div className="bg-white rounded-lg border p-4 space-y-3 animate-fade-in-up" style={{background: '#f4f6f8', borderColor: '#dfe3e8'}}>
+                <p className="text-[12px] font-semibold" style={{color: '#2b2f36'}}>New Leave Application</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="sm:col-span-2">
-                    <label className="block text-[11px] text-slate-500 font-medium uppercase mb-1">
+                    <label className="block text-[11px] font-medium uppercase mb-1" style={{color: '#6b7280'}}>
                       Leave Type
                     </label>
                     <select
@@ -531,7 +526,7 @@ export default function DashboardHome() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[11px] text-slate-500 font-medium uppercase mb-1">
+                    <label className="block text-[11px] font-medium uppercase mb-1" style={{color: '#6b7280'}}>
                       Start Date
                     </label>
                     <input
@@ -542,7 +537,7 @@ export default function DashboardHome() {
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] text-slate-500 font-medium uppercase mb-1">
+                    <label className="block text-[11px] font-medium uppercase mb-1" style={{color: '#6b7280'}}>
                       End Date
                     </label>
                     <input
@@ -553,7 +548,7 @@ export default function DashboardHome() {
                     />
                   </div>
                   <div className="sm:col-span-2">
-                    <label className="block text-[11px] text-slate-500 font-medium uppercase mb-1">
+                    <label className="block text-[11px] font-medium uppercase mb-1" style={{color: '#6b7280'}}>
                       Reason (optional)
                     </label>
                     <input
@@ -568,7 +563,8 @@ export default function DashboardHome() {
                 <button
                   onClick={submitLeave}
                   disabled={isSubmitting || !startDate || !endDate || !leaveType}
-                  className="w-full py-2 bg-slate-900 text-white text-[12px] font-semibold rounded-md hover:bg-slate-800 transition-colors disabled:opacity-50"
+                  className="w-full py-2 text-white text-[12px] font-semibold rounded-md transition-colors disabled:opacity-50"
+                  style={{background: '#1f5fa8'}}
                 >
                   {isSubmitting ? "Submitting…" : "Submit Request"}
                 </button>
@@ -576,30 +572,32 @@ export default function DashboardHome() {
             ) : (
               <div className="space-y-2">
                 {requests.length === 0 ? (
-                  <p className="text-[13px] text-slate-500 italic">No leave requests found.</p>
+                  <p className="text-[13px] italic" style={{color: '#6b7280'}}>No leave requests found.</p>
                 ) : (
                   requests.slice(0, 5).map((req) => (
                     <div
                       key={req.id}
-                      className="flex flex-wrap items-center justify-between gap-2 py-2.5 px-3 rounded-md border border-slate-100 hover:border-slate-200 hover:bg-slate-50/50 transition-colors"
+                      className="flex flex-wrap items-center justify-between gap-2 py-2.5 px-3 rounded-md border transition-colors"
+                      style={{borderColor: '#dfe3e8'}}
                     >
                       <div className="min-w-0">
-                        <p className="text-[13px] font-semibold text-slate-800">
+                        <p className="text-[13px] font-semibold" style={{color: '#2b2f36'}}>
                           {req.leaveType?.name || "Leave"}
                         </p>
-                        <p className="text-[11px] text-slate-500 mt-0.5">
+                        <p className="text-[11px] mt-0.5" style={{color: '#6b7280'}}>
                           {new Date(req.startDate).toLocaleDateString()} –{" "}
                           {new Date(req.endDate).toLocaleDateString()}
                         </p>
                       </div>
                       <span
-                        className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                        className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider border`}
+                        style={
                           req.status === "APPROVED"
-                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                            ? {background: '#ecfdf5', color: '#059669', borderColor: '#a7f3d0'}
                             : req.status === "REJECTED"
-                              ? "bg-red-50 text-red-600 border border-red-200"
-                              : "bg-amber-50 text-amber-700 border border-amber-200"
-                        }`}
+                              ? {background: '#fef2f2', color: '#dc2626', borderColor: '#fca5a5'}
+                              : {background: '#fffbeb', color: '#d97706', borderColor: '#fde68a'}
+                        }
                       >
                         {req.status}
                       </span>
@@ -614,17 +612,17 @@ export default function DashboardHome() {
 
       {/* PAY TAB */}
       {activeTab === "pay" && !isAdmin && (
-        <div className="bg-white rounded-lg border border-slate-200 shadow-card p-4 sm:p-5">
-          <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider mb-4">
+        <div className="bg-white rounded-lg border shadow-card p-4 sm:p-5" style={{borderColor: '#dfe3e8'}}>
+          <p className="text-[12px] font-semibold uppercase tracking-wider mb-4" style={{color: '#6b7280'}}>
             Pay — {lastMonthLabel}
           </p>
 
           {payslipLoading ? (
-            <p className="text-[13px] text-slate-500">Loading payslip…</p>
+            <p className="text-[13px]" style={{color: '#6b7280'}}>Loading payslip…</p>
           ) : payslipError ? (
-            <p className="text-[13px] text-red-600">{payslipError}</p>
+            <p className="text-[13px]" style={{color: '#dc2626'}}>{payslipError}</p>
           ) : !payslip ? (
-            <p className="text-[13px] text-slate-500 italic">
+            <p className="text-[13px] italic" style={{color: '#6b7280'}}>
               No payslip has been processed for {lastMonthLabel} yet. Check back after payroll is
               run for this period.
             </p>
@@ -632,26 +630,26 @@ export default function DashboardHome() {
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider mb-1.5" style={{color: '#6b7280'}}>
                     Gross Pay
                   </p>
-                  <p className="text-2xl font-bold text-slate-900">
+                  <p className="text-2xl font-bold" style={{color: '#2b2f36'}}>
                     ₹{payslip.grossPay.toLocaleString("en-IN")}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider mb-1.5" style={{color: '#6b7280'}}>
                     Deductions
                   </p>
-                  <p className="text-2xl font-bold text-red-600">
+                  <p className="text-2xl font-bold" style={{color: '#dc2626'}}>
                     -₹{payslip.deductions.toLocaleString("en-IN")}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider mb-1.5" style={{color: '#6b7280'}}>
                     Net Pay
                   </p>
-                  <p className="text-2xl font-bold text-emerald-700">
+                  <p className="text-2xl font-bold" style={{color: '#059669'}}>
                     ₹{payslip.netPay.toLocaleString("en-IN")}
                   </p>
                 </div>
@@ -659,7 +657,8 @@ export default function DashboardHome() {
               <button
                 onClick={handleDownloadPayslip}
                 disabled={downloading}
-                className="flex items-center gap-1.5 px-3.5 py-2 text-[12px] font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3.5 py-2 text-[12px] font-semibold text-white rounded-md transition-colors disabled:opacity-50"
+                style={{background: '#1f5fa8'}}
               >
                 <Download size={13} />
                 {downloading ? "Downloading…" : "Download Payslip"}
@@ -670,8 +669,8 @@ export default function DashboardHome() {
       )}
 
       {isAdmin && activeTab !== "profile" && (
-        <div className="bg-white rounded-lg border border-slate-200 shadow-card p-4 sm:p-5">
-          <p className="text-[13px] text-slate-500 italic">
+        <div className="bg-white rounded-lg border shadow-card p-4 sm:p-5" style={{borderColor: '#dfe3e8'}}>
+          <p className="text-[13px] italic" style={{color: '#6b7280'}}>
             Admin accounts aren&apos;t linked to an employee profile, so attendance, leave, and pay
             aren&apos;t applicable here.
           </p>
