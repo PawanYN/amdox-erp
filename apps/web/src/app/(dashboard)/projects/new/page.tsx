@@ -76,6 +76,17 @@ function StepCreate({
   data: ProjectDraft;
   setData: (data: ProjectDraft) => void;
 }) {
+  const budgetNum = Number(data.budget);
+  const budgetError =
+    data.budget && budgetNum <= 0
+      ? "Budget must be greater than 0"
+      : "";
+
+  const dateError =
+    data.startDate && data.endDate && data.endDate < data.startDate
+      ? "End date must be on or after start date"
+      : "";
+
   return (
     <div className="space-y-5">
       <Field label="Project name" required>
@@ -108,6 +119,9 @@ function StepCreate({
             value={data.budget}
             onChange={(e) => setData({ ...data, budget: e.target.value })}
           />
+          {budgetError && (
+            <p className="text-red-600 text-[11px] mt-1">{budgetError}</p>
+          )}
         </Field>
         <Field label="Currency">
           <select
@@ -137,6 +151,9 @@ function StepCreate({
             value={data.endDate}
             onChange={(e) => setData({ ...data, endDate: e.target.value })}
           />
+          {dateError && (
+            <p className="text-red-600 text-[11px] mt-1">{dateError}</p>
+          )}
         </Field>
       </div>
       <EventBadge name="project.scoped" payload="Project.id, budget" />
@@ -183,7 +200,41 @@ function StepTasks({
     setNewTask({ name: "", dependsOn: "", milestoneId: "" });
   };
 
-  const hasCycle = (taskList: TaskDraft[]) => taskList.some((t) => t.dependsOn === t.id);
+  /**
+   * Detect circular dependencies in the task DAG
+   * - Direct self-dependency (A -> A)
+   * - Chain circular dependency (A -> B -> C -> A)
+   */
+  const hasCycle = (taskList: TaskDraft[]): boolean => {
+    const taskMap = new Map(taskList.map((t) => [t.id, t]));
+
+    const visited = new Set<string>();
+    const recStack = new Set<string>();
+
+    const hasCycleUtil = (taskId: string): boolean => {
+      if (recStack.has(taskId)) return true; // Back edge found
+      if (visited.has(taskId)) return false; // Already visited in this iteration
+
+      visited.add(taskId);
+      recStack.add(taskId);
+
+      const task = taskMap.get(taskId);
+      if (task?.dependsOn) {
+        const dependency = taskMap.get(task.dependsOn);
+        if (dependency && hasCycleUtil(task.dependsOn)) return true;
+      }
+
+      recStack.delete(taskId);
+      return false;
+    };
+
+    for (const task of taskList) {
+      if (!visited.has(task.id) && hasCycleUtil(task.id)) {
+        return true;
+      }
+    }
+    return false;
+  };
 
   return (
     <div className="space-y-6">
@@ -497,9 +548,21 @@ export default function ProjectCreationFlow() {
       .finally(() => setEmployeesLoading(false));
   }, [initialized, token]);
 
+  const validateStep0 = (): string | null => {
+    if (!project.name.trim()) return "Project name is required.";
+    if (!project.scope.trim()) return "Project scope is required.";
+    if (!project.budget.trim()) return "Budget is required.";
+    if (Number(project.budget) <= 0) return "Budget must be greater than 0.";
+    if (!project.startDate) return "Start date is required.";
+    if (!project.endDate) return "End date is required.";
+    if (project.endDate < project.startDate) return "End date must be on or after start date.";
+    return null;
+  };
+
   const handleLaunch = async () => {
-    if (!project.name.trim()) {
-      setSubmitError("Project name is required.");
+    const stepError = validateStep0();
+    if (stepError) {
+      setSubmitError(stepError);
       return;
     }
     setSubmitting(true);
@@ -658,8 +721,16 @@ export default function ProjectCreationFlow() {
           </button>
           {step < STEPS.length - 1 ? (
             <button
-              onClick={() => setStep((s) => s + 1)}
-              className="inline-flex items-center gap-1 text-[13px] font-medium px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+              onClick={() => {
+                if (step === 0 && validateStep0()) {
+                  setSubmitError(validateStep0());
+                  return;
+                }
+                setSubmitError(null);
+                setStep((s) => s + 1);
+              }}
+              disabled={step === 0 && Boolean(validateStep0())}
+              className="inline-flex items-center gap-1 text-[13px] font-medium px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Continue <ChevronRight size={15} />
             </button>

@@ -121,10 +121,29 @@ function AllocateModal({
 
   const submit = async () => {
     if (!employeeId || !projectId || !allocatedHours || !startDate) return;
+
+    // Validate date range
+    if (endDate && new Date(endDate) < new Date(startDate)) {
+      setError("End date must be on or after start date.");
+      return;
+    }
+
     if (tasks.length > 0 && !taskId) {
       setError("Select a task for this allocation.");
       return;
     }
+
+    // Validate allocated hours
+    const hours = Number(allocatedHours);
+    if (hours <= 0) {
+      setError("Allocated hours must be greater than 0.");
+      return;
+    }
+    if (hours > 24) {
+      setError("Allocated hours cannot exceed 24 hours per day.");
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
     try {
@@ -132,7 +151,7 @@ function AllocateModal({
         employeeId,
         projectId,
         taskId: taskId || undefined,
-        allocatedHours: Number(allocatedHours),
+        allocatedHours: hours,
         startDate,
         endDate: endDate || undefined,
       });

@@ -21,6 +21,12 @@ type Budget = {
   isOverrun: boolean;
 };
 
+/**
+ * Variance threshold: Alert when actual > budget by 10%
+ * Calculation: (actualAmount / plannedAmount) * 100 > 110
+ */
+const VARIANCE_ALERT_THRESHOLD = 110;
+
 function BudgetCard({ b }: { b: Budget }) {
   const [open, setOpen] = useState(false);
   const [lines, setLines] = useState<BudgetLine[]>([]);
@@ -40,6 +46,8 @@ function BudgetCard({ b }: { b: Budget }) {
   };
 
   const pct = b.plannedAmount > 0 ? Math.round((b.actualAmount / b.plannedAmount) * 100) : 0;
+  const variance = Math.round(pct - 100);
+  const hasVarianceAlert = pct >= VARIANCE_ALERT_THRESHOLD;
 
   return (
     <div
@@ -48,17 +56,23 @@ function BudgetCard({ b }: { b: Budget }) {
     >
       <div className="p-4">
         <div className="flex justify-between items-start">
-          <div>
+          <div className="flex-1">
             <p className="font-semibold" style={{color: '#2b2f36'}}>{b.project?.name}</p>
             <p className="text-[12px] mt-0.5" style={{color: '#6b7280'}}>
               Planned ₹{b.plannedAmount.toLocaleString()} · Actual ₹
               {b.actualAmount.toLocaleString()}
             </p>
+            {hasVarianceAlert && (
+              <p className="text-[11px] mt-2 flex items-center gap-1.5 font-medium" style={{color: '#d9534f'}}>
+                <span className="inline-block w-2 h-2 rounded-full" style={{backgroundColor: '#d9534f'}}></span>
+                Budget overrun: {variance}% over planned (threshold: 10%)
+              </p>
+            )}
           </div>
-          <div className="flex items-center gap-2">
-            {b.isOverrun && (
+          <div className="flex items-center gap-2 shrink-0">
+            {hasVarianceAlert && (
               <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{backgroundColor: '#fff5f5', color: '#d9534f'}}>
-                Overrun
+                {variance}% Over
               </span>
             )}
             <button
@@ -79,13 +93,13 @@ function BudgetCard({ b }: { b: Budget }) {
               className={`h-full rounded-full transition-all duration-500`}
               style={{
                 width: `${b.plannedAmount > 0 ? Math.min((b.actualAmount / b.plannedAmount) * 100, 100) : 0}%`,
-                backgroundColor: b.isOverrun ? '#d9534f' : '#1f5fa8'
+                backgroundColor: hasVarianceAlert ? '#d9534f' : '#1f5fa8'
               }}
             />
           </div>
           <span
             className={`text-[12px] font-mono font-semibold w-10 text-right`}
-            style={{color: b.isOverrun ? '#d9534f' : '#2b2f36'}}
+            style={{color: hasVarianceAlert ? '#d9534f' : '#2b2f36'}}
           >
             {pct}%
           </span>

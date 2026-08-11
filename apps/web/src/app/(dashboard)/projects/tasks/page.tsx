@@ -74,29 +74,49 @@ export default function ProjectsTasksPage() {
   }, [tasks]);
 
   const onStatusChange = async (taskId: string, status: string) => {
-    await pmApi.updateTaskStatus(taskId, status);
-    loadTasks(projectId || undefined);
+    try {
+      await pmApi.updateTaskStatus(taskId, status);
+      loadTasks(projectId || undefined);
+    } catch (e) {
+      console.error("Failed to update task status:", e);
+      alert(e instanceof Error ? e.message : "Failed to update task status");
+    }
   };
 
   const onReschedule = useCallback(
     async (taskId: string, startDate: string, dueDate: string) => {
-      await pmApi.updateTask(taskId, { startDate, dueDate });
-      loadTasks(projectId || undefined);
+      try {
+        await pmApi.updateTask(taskId, { startDate, dueDate });
+        loadTasks(projectId || undefined);
+      } catch (e) {
+        console.error("Failed to reschedule task:", e);
+        alert(e instanceof Error ? e.message : "Failed to reschedule task");
+      }
     },
     [projectId],
   );
 
   const handleSaveTitle = async (taskId: string) => {
     if (!titleEdit.trim()) return;
-    await pmApi.updateTask(taskId, { title: titleEdit.trim() });
-    setEditingTaskId(null);
-    loadTasks(projectId || undefined);
+    try {
+      await pmApi.updateTask(taskId, { title: titleEdit.trim() });
+      setEditingTaskId(null);
+      loadTasks(projectId || undefined);
+    } catch (e) {
+      console.error("Failed to update task title:", e);
+      alert(e instanceof Error ? e.message : "Failed to update task title");
+    }
   };
 
   const handleDeleteTask = async (taskId: string, title: string) => {
     if (!confirm(`Delete task "${title}"?`)) return;
-    await pmApi.deleteTask(taskId);
-    loadTasks(projectId || undefined);
+    try {
+      await pmApi.deleteTask(taskId);
+      loadTasks(projectId || undefined);
+    } catch (e) {
+      console.error("Failed to delete task:", e);
+      alert(e instanceof Error ? e.message : "Failed to delete task");
+    }
   };
 
   return (

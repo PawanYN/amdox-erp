@@ -187,6 +187,9 @@ function MaterialRequestDialog({
   );
 }
 
+/** Budget variance threshold: alert when actual > budget by 10% */
+const BUDGET_VARIANCE_THRESHOLD = 110;
+
 type ProjectSummary = {
   id: string;
   name: string;
@@ -378,12 +381,12 @@ export default function ProjectsOverviewPage() {
                   <span
                     className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border`}
                     style={{
-                      backgroundColor: p.budgetOverrun ? '#fff5f5' : '#f0f9ff',
-                      color: p.budgetOverrun ? '#d9534f' : '#0ea5e9',
+                      backgroundColor: p.budgetPct >= BUDGET_VARIANCE_THRESHOLD ? '#fff5f5' : '#f0f9ff',
+                      color: p.budgetPct >= BUDGET_VARIANCE_THRESHOLD ? '#d9534f' : '#0ea5e9',
                       borderColor: '#dfe3e8'
                     }}
                   >
-                    {p.budgetOverrun ? "Over budget" : "On track"}
+                    {p.budgetPct >= BUDGET_VARIANCE_THRESHOLD ? "Over budget" : "On track"}
                   </span>
                 </div>
               </div>
@@ -401,7 +404,7 @@ export default function ProjectsOverviewPage() {
                     Spent:{" "}
                     <span
                       className={`font-mono font-semibold`}
-                      style={{color: p.budgetOverrun ? '#d9534f' : '#2b2f36'}}
+                      style={{color: p.budgetPct >= BUDGET_VARIANCE_THRESHOLD ? '#d9534f' : '#2b2f36'}}
                     >
                       ₹{p.budgetActual.toLocaleString()}
                     </span>
@@ -410,11 +413,16 @@ export default function ProjectsOverviewPage() {
                 <div className="h-1.5 rounded-full overflow-hidden" style={{backgroundColor: '#f0f0f0'}}>
                   <div
                     className={`h-full rounded-full transition-all duration-300`}
-                    style={{ width: `${Math.min(p.budgetPct, 100)}%`, backgroundColor: p.budgetOverrun ? '#d9534f' : '#1f5fa8' }}
+                    style={{ width: `${Math.min(p.budgetPct, 100)}%`, backgroundColor: p.budgetPct >= BUDGET_VARIANCE_THRESHOLD ? '#d9534f' : '#1f5fa8' }}
                   />
                 </div>
                 <p className="text-[11px] text-right mt-1" style={{color: '#6b7280'}}>
                   {p.budgetPct}% utilized
+                  {p.budgetPct >= BUDGET_VARIANCE_THRESHOLD && (
+                    <span style={{color: '#d9534f', marginLeft: '4px', fontWeight: '600'}}>
+                      ({p.budgetPct - 100}% over)
+                    </span>
+                  )}
                 </p>
               </div>
             </div>
