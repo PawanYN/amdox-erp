@@ -17,19 +17,19 @@ interface DataTableProps<T> {
   columns: ColumnDef<T>[];
   keyExtractor: (row: T) => string | number;
   emptyMessage?: string;
-  resizable?: boolean; // Enable/disable column resizing (default: true)
   tableId?: string; // For localStorage persistence
+  resizable?: boolean; // Enable/disable column resizing (default: true)
 }
 
 const DEFAULT_COLUMN_WIDTH = 150;
 
-export function DataTable<T>({
+export function DataTableResizable<T>({
   data,
   columns,
   keyExtractor,
   emptyMessage = "No records found.",
-  resizable = true,
   tableId = "default-table",
+  resizable = true,
 }: DataTableProps<T>) {
   const [columnWidths, setColumnWidths] = useState<number[]>(() => {
     // Load from localStorage or use defaults
@@ -108,7 +108,6 @@ export function DataTable<T>({
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
-                  cursor: resizable && index < columns.length - 1 ? "col-resize" : "default",
                 }}
                 onMouseDown={(e) => handleMouseDown(e, index)}
               >
