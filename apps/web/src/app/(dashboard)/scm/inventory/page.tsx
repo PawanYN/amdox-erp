@@ -329,15 +329,15 @@ function StockBadge({ current, reorder }: { current: number; reorder: number }) 
   const pct = (current / (reorder || 1)) * 100;
   if (pct <= 20)
     return (
-      <span className="flex items-center gap-1 text-[11px] text-[#B4533B] font-medium">
+      <span className="flex items-center gap-1 text-[11px] font-medium" style={{color: '#b91c1c'}}>
         <AlertTriangle size={11} /> Critical
       </span>
     );
   if (pct <= 60)
     return (
-      <span className="flex items-center gap-1 text-[11px] text-[#D9A85C] font-medium">⚠ Low</span>
+      <span className="flex items-center gap-1 text-[11px] font-medium" style={{color: '#d97706'}}>⚠ Low</span>
     );
-  return <span className="text-[11px] text-[#2F6B4F] font-medium">✓ OK</span>;
+  return <span className="text-[11px] font-medium" style={{color: '#059669'}}>✓ OK</span>;
 }
 
 type InventoryItem = {
@@ -503,34 +503,37 @@ function InventoryRow({
 
   return (
     <>
-      <tr className={`border-b border-[#F0EEE7] hover:bg-[#FAFAF9]`}>
+      <tr className="transition-colors" style={{borderBottom: '1px solid #e5e7eb'}} onMouseEnter={(e) => e.currentTarget.style.background = '#fafbfc'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
         <td className="px-3 py-2">
           <div className="flex items-center gap-1">
             <button
               onClick={() => setExpanded((v) => !v)}
-              className="text-[#8A8678] hover:text-[#1E3A5F] flex-shrink-0"
+              className="flex-shrink-0 transition-colors"
+              style={{color: '#6b7280'}}
+              onMouseEnter={(e) => e.currentTarget.style.color = '#1f5fa8'}
+              onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
             >
               {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
             </button>
             <div>
-              <p className="font-medium text-[#14171F]">{item.name}</p>
-              <p className="text-[10px] text-[#8A8678] font-mono">
+              <p className="font-medium" style={{color: '#2b2f36'}}>{item.name}</p>
+              <p className="text-[10px] font-mono" style={{color: '#6b7280'}}>
                 {item.sku} · {item.category ?? "General"}
               </p>
             </div>
           </div>
         </td>
-        <td className="px-3 py-2 text-right font-mono font-medium text-[#14171F]">
+        <td className="px-3 py-2 text-right font-mono font-medium" style={{color: '#2b2f36'}}>
           {item.currentStock} {item.unit}
         </td>
-        <td className="px-3 py-2 text-right font-mono text-[#8A8678]">{item.reorderPoint}</td>
-        <td className="px-3 py-2 text-right font-mono text-[#4A4740]">₹{item.unitCost}</td>
+        <td className="px-3 py-2 text-right font-mono" style={{color: '#6b7280'}}>{item.reorderPoint}</td>
+        <td className="px-3 py-2 text-right font-mono" style={{color: '#4b5563'}}>₹{item.unitCost}</td>
         <td className="px-3 py-2 text-center">
           <StockBadge current={item.currentStock} reorder={item.reorderPoint} />
         </td>
       </tr>
       {expanded && (
-        <tr className="border-b border-[#F0EEE7]">
+        <tr style={{borderBottom: '1px solid #e5e7eb'}}>
           <td colSpan={5} className="px-4 pb-3">
             <ForecastPanel productId={item.id} productName={item.name} />
           </td>
@@ -646,7 +649,7 @@ export default function InventoryPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
-          <WarehouseIcon size={14} className="text-[#8A8678] shrink-0" />
+          <WarehouseIcon size={14} style={{color: '#6b7280'}} className="shrink-0" />
           <label htmlFor="inv-warehouse" className="sr-only">
             Filter by warehouse
           </label>
@@ -654,7 +657,10 @@ export default function InventoryPage() {
             id="inv-warehouse"
             value={selectedWarehouseId}
             onChange={(e) => setSelectedWarehouseId(e.target.value)}
-            className="text-[12px] border border-[#E4E2DC] rounded-md px-2.5 py-1.5 bg-white text-[#14171F] min-w-[200px] focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/20 focus:border-[#1E3A5F]"
+            className="text-[12px] rounded-md px-2.5 py-1.5 bg-white min-w-[200px] focus:outline-none"
+            style={{border: '1px solid #dfe3e8', color: '#2b2f36'}}
+            onFocus={(e) => e.currentTarget.style.borderColor = '#1f5fa8'}
+            onBlur={(e) => e.currentTarget.style.borderColor = '#dfe3e8'}
           >
             <option value="">All warehouses (total stock)</option>
             {warehouses.map((w) => (
@@ -705,62 +711,67 @@ export default function InventoryPage() {
       </div>
 
       {automationResult && (
-        <div className="rounded-lg border border-[#2F6B4F]/30 bg-[#2F6B4F]/5 px-4 py-3 text-[12px] text-[#2F6B4F]">
+        <div className="rounded-lg px-4 py-3 text-[12px]" style={{border: '1px solid #6ee7b7', background: '#ecfdf5', color: '#059669'}}>
           {automationResult}
         </div>
       )}
 
       {error && (
-        <div className="rounded-lg border border-[#B4533B]/30 bg-[#B4533B]/5 px-4 py-3 text-[12px] text-[#B4533B]">
+        <div className="rounded-lg px-4 py-3 text-[12px]" style={{border: '1px solid #fecaca', background: '#fef2f2', color: '#b91c1c'}}>
           {error}
         </div>
       )}
 
       {belowReorder.length > 0 && (
-        <div className="rounded-lg border border-[#B4533B]/30 bg-[#B4533B]/5 p-4">
+        <div className="rounded-lg p-4" style={{border: '1px solid #fecaca', background: '#fef2f2'}}>
           <div className="flex items-center justify-between mb-3">
-            <p className="text-[13px] font-medium text-[#B4533B] flex items-center gap-1.5">
+            <p className="text-[13px] font-medium flex items-center gap-1.5" style={{color: '#b91c1c'}}>
               <AlertTriangle size={14} /> {belowReorder.length} items below reorder point
             </p>
-            <p className="text-[11px] text-[#8A8678]">
-              emits: <span className="font-mono text-[#1E3A5F]">inventory.low_stock</span> → PR on{" "}
-              <span className="font-mono text-[#1E3A5F]">/scm/purchase-orders</span>
+            <p className="text-[11px]" style={{color: '#6b7280'}}>
+              emits: <span className="font-mono" style={{color: '#1f5fa8'}}>inventory.low_stock</span> → PR on{" "}
+              <span className="font-mono" style={{color: '#1f5fa8'}}>/scm/purchase-orders</span>
             </p>
           </div>
           <div className="space-y-2">
             {belowReorder.map((item) => (
               <div
                 key={item.sku}
-                className="flex items-center justify-between bg-white rounded-md border border-[#E4E2DC] px-3 py-2"
+                className="flex items-center justify-between bg-white rounded-md px-3 py-2"
+                style={{border: '1px solid #dfe3e8'}}
               >
                 <div>
-                  <p className="text-[13px] font-medium text-[#14171F]">{item.name}</p>
-                  <p className="text-[11px] text-[#8A8678]">{item.sku}</p>
+                  <p className="text-[13px] font-medium" style={{color: '#2b2f36'}}>{item.name}</p>
+                  <p className="text-[11px]" style={{color: '#6b7280'}}>{item.sku}</p>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="text-right">
-                    <p className="text-[12px] font-mono text-[#B4533B] font-medium">
+                    <p className="text-[12px] font-mono font-medium" style={{color: '#b91c1c'}}>
                       {item.currentStock} {item.unit}
                     </p>
-                    <p className="text-[10px] text-[#8A8678]">reorder at {item.reorderPoint}</p>
+                    <p className="text-[10px]" style={{color: '#6b7280'}}>reorder at {item.reorderPoint}</p>
                   </div>
-                  <div className="w-20 h-1.5 bg-[#F0EEE7] rounded-full overflow-hidden">
+                  <div className="w-20 h-1.5 rounded-full overflow-hidden" style={{background: '#e5e7eb'}}>
                     <div
-                      className="h-full bg-[#B4533B] rounded-full"
+                      className="h-full rounded-full"
                       style={{
                         width: `${Math.min(100, (item.currentStock / item.reorderPoint) * 100)}%`,
+                        background: '#b91c1c'
                       }}
                     />
                   </div>
                   {raised[item.sku] ? (
-                    <span className="text-[11px] text-[#2F6B4F] font-medium flex items-center gap-1">
+                    <span className="text-[11px] font-medium flex items-center gap-1" style={{color: '#059669'}}>
                       <Check size={12} /> PR {raised[item.sku].slice(0, 8)}…
                     </span>
                   ) : (
                     <button
                       onClick={() => handleRaisePr(item)}
                       disabled={raising === item.id}
-                      className="text-[12px] font-medium px-3 py-1.5 rounded-md bg-[#1E3A5F] text-white whitespace-nowrap disabled:opacity-50"
+                      className="text-[12px] font-medium px-3 py-1.5 rounded-md text-white whitespace-nowrap disabled:opacity-50"
+                      style={{background: '#1f5fa8'}}
+                      onMouseEnter={(e) => !raising && (e.currentTarget.style.background = '#1a4a80')}
+                      onMouseLeave={(e) => e.currentTarget.style.background = '#1f5fa8'}
                     >
                       {raising === item.id ? "Raising…" : "Raise PR"}
                     </button>
@@ -774,28 +785,28 @@ export default function InventoryPage() {
 
       <div>
         <div className="flex items-center justify-between mb-2">
-          <p className="text-[12px] text-[#8A8678] font-medium">
+          <p className="text-[12px] font-medium" style={{color: '#6b7280'}}>
             All Inventory Items
-            <span className="ml-1.5 text-[11px] font-normal text-[#1E3A5F]">
+            <span className="ml-1.5 text-[11px] font-normal" style={{color: '#1f5fa8'}}>
               · stock shown for {selectedWarehouseName}
             </span>
           </p>
-          <p className="text-[10px] text-[#8A8678]">
+          <p className="text-[10px]" style={{color: '#6b7280'}}>
             ▸ Expand a row to train AI demand forecast using SCM stock movement history
           </p>
         </div>
-        <div className="border border-[#E4E2DC] rounded-lg overflow-hidden">
+        <div className="rounded-lg overflow-hidden" style={{border: '1px solid #dfe3e8'}}>
           <div className="overflow-x-auto">
             <table className="w-full text-[12px]">
               <thead>
-                <tr className="bg-[#FAFAF9] border-b border-[#E4E2DC]">
-                  <th className="text-left px-3 py-2 text-[#8A8678] font-medium">SKU / Item</th>
-                  <th className="text-right px-3 py-2 text-[#8A8678] font-medium">
+                <tr style={{background: '#f7f9fb', borderBottom: '1px solid #dfe3e8'}}>
+                  <th className="text-left px-3 py-2 font-medium" style={{color: '#6b7280'}}>SKU / Item</th>
+                  <th className="text-right px-3 py-2 font-medium" style={{color: '#6b7280'}}>
                     {selectedWarehouseId ? "Stock (here)" : "Stock (all)"}
                   </th>
-                  <th className="text-right px-3 py-2 text-[#8A8678] font-medium">Reorder at</th>
-                  <th className="text-right px-3 py-2 text-[#8A8678] font-medium">Unit cost</th>
-                  <th className="text-center px-3 py-2 text-[#8A8678] font-medium">Status</th>
+                  <th className="text-right px-3 py-2 font-medium" style={{color: '#6b7280'}}>Reorder at</th>
+                  <th className="text-right px-3 py-2 font-medium" style={{color: '#6b7280'}}>Unit cost</th>
+                  <th className="text-center px-3 py-2 font-medium" style={{color: '#6b7280'}}>Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -816,33 +827,33 @@ export default function InventoryPage() {
 
       {warehouses.length > 0 && (
         <div>
-          <p className="text-[12px] text-[#8A8678] font-medium mb-2">
+          <p className="text-[12px] font-medium mb-2" style={{color: '#6b7280'}}>
             Warehouses <span className="font-normal">· click to filter stock</span>
           </p>
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setSelectedWarehouseId("")}
-              className={`flex items-center gap-2 rounded-md border px-3 py-1.5 transition-colors ${
-                selectedWarehouseId === ""
-                  ? "border-[#1E3A5F] bg-[#1E3A5F]/5"
-                  : "border-[#E4E2DC] bg-white hover:border-[#1E3A5F]/40"
-              }`}
+              className="flex items-center gap-2 rounded-md px-3 py-1.5 transition-colors"
+              style={{
+                border: selectedWarehouseId === "" ? '1px solid #1f5fa8' : '1px solid #dfe3e8',
+                background: selectedWarehouseId === "" ? '#eff6ff' : '#ffffff'
+              }}
             >
-              <span className="text-[12px] font-medium text-[#14171F]">All warehouses</span>
+              <span className="text-[12px] font-medium" style={{color: '#2b2f36'}}>All warehouses</span>
             </button>
             {warehouses.map((w) => (
               <button
                 key={w.id}
                 onClick={() => setSelectedWarehouseId((prev) => (prev === w.id ? "" : w.id))}
-                className={`flex items-center gap-2 rounded-md border px-3 py-1.5 transition-colors ${
-                  selectedWarehouseId === w.id
-                    ? "border-[#1E3A5F] bg-[#1E3A5F]/5"
-                    : "border-[#E4E2DC] bg-white hover:border-[#1E3A5F]/40"
-                }`}
+                className="flex items-center gap-2 rounded-md px-3 py-1.5 transition-colors"
+                style={{
+                  border: selectedWarehouseId === w.id ? '1px solid #1f5fa8' : '1px solid #dfe3e8',
+                  background: selectedWarehouseId === w.id ? '#eff6ff' : '#ffffff'
+                }}
               >
-                <WarehouseIcon size={12} className="text-[#8A8678]" />
-                <span className="text-[12px] font-medium text-[#14171F]">{w.name}</span>
-                {w.location && <span className="text-[11px] text-[#8A8678]">· {w.location}</span>}
+                <WarehouseIcon size={12} style={{color: '#6b7280'}} />
+                <span className="text-[12px] font-medium" style={{color: '#2b2f36'}}>{w.name}</span>
+                {w.location && <span className="text-[11px]" style={{color: '#6b7280'}}>· {w.location}</span>}
               </button>
             ))}
           </div>

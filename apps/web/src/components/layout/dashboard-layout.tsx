@@ -158,25 +158,28 @@ function TopBar({
   const parent = NAV.find((n) => n.children?.some((c) => c.id === activePage));
 
   return (
-    <header className="h-14 bg-white border-b border-slate-200 flex items-center px-3 sm:px-4 gap-2 sm:gap-3 shrink-0 z-20">
+    <header className="h-14 bg-white border-b border-dfe3e8 flex items-center px-3 sm:px-4 gap-2 sm:gap-3 shrink-0 z-20" style={{borderColor: '#dfe3e8'}}>
       <button
         type="button"
         aria-label="Open menu"
         onClick={onMenuOpen}
-        className="h-8 w-8 flex items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors md:hidden shrink-0"
+        className="h-8 w-8 flex items-center justify-center rounded-md transition-colors md:hidden shrink-0"
+        style={{color: '#6b7280'}}
+        onMouseEnter={(e) => {e.currentTarget.style.background = '#f4f6f8'; e.currentTarget.style.color = '#2b2f36'}}
+        onMouseLeave={(e) => {e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#6b7280'}}
       >
         <Menu size={18} />
       </button>
       <div className="flex items-center gap-2.5 min-w-0">
-        <div className="h-7 w-7 rounded-md bg-blue-600 flex items-center justify-center shrink-0">
+        <div className="h-7 w-7 rounded-md flex items-center justify-center shrink-0" style={{background: '#1f5fa8'}}>
           <span className="text-white text-[11px] font-bold tracking-tight">AX</span>
         </div>
-        <span className="font-semibold text-slate-900 text-[15px] tracking-tight hidden sm:block">
-          Amdox<span className="text-blue-600">ERP</span>
+        <span className="font-semibold text-[15px] tracking-tight hidden sm:block" style={{color: '#2b2f36'}}>
+          Amdox<span style={{color: '#1f5fa8'}}>ERP</span>
         </span>
       </div>
 
-      <div className="hidden md:flex items-center gap-1.5 text-[13px] text-slate-500 ml-2 min-w-0">
+      <div className="hidden md:flex items-center gap-1.5 text-[13px] ml-2 min-w-0" style={{color: '#6b7280'}}>
         <span>Amdox ERP</span>
         {parent && (
           <>
@@ -185,7 +188,7 @@ function TopBar({
           </>
         )}
         <ChevronRight size={14} className="shrink-0" />
-        <span className="text-slate-700 font-medium truncate">{current.label}</span>
+        <span className="font-medium truncate" style={{color: '#2b2f36'}}>{current.label}</span>
       </div>
 
       <div className="flex-1" />
@@ -196,7 +199,10 @@ function TopBar({
           aria-label="Search"
           title="Search (Ctrl+K)"
           onClick={onSearchOpen}
-          className="h-8 w-8 flex items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+          className="h-8 w-8 flex items-center justify-center rounded-md transition-colors"
+          style={{color: '#6b7280'}}
+          onMouseEnter={(e) => {e.currentTarget.style.background = '#f4f6f8'; e.currentTarget.style.color = '#2b2f36'}}
+          onMouseLeave={(e) => {e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#6b7280'}}
         >
           <Search size={16} />
         </button>
@@ -205,33 +211,39 @@ function TopBar({
           aria-label={unreadCount > 0 ? `Notifications (${unreadCount} unread)` : "Notifications"}
           title="Notifications"
           onClick={() => router.push("/notifications")}
-          className="relative h-8 w-8 flex items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+          className="relative h-8 w-8 flex items-center justify-center rounded-md transition-colors"
+          style={{color: '#6b7280'}}
+          onMouseEnter={(e) => {e.currentTarget.style.background = '#f4f6f8'; e.currentTarget.style.color = '#2b2f36'}}
+          onMouseLeave={(e) => {e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#6b7280'}}
         >
           <Bell size={16} />
           {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 rounded-full bg-blue-600 text-white text-[9px] font-bold flex items-center justify-center px-1">
+            <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 rounded-full text-white text-[9px] font-bold flex items-center justify-center px-1" style={{background: '#1f5fa8'}}>
               {unreadCount > 99 ? "99+" : unreadCount}
             </span>
           )}
         </button>
 
-        <span className="hidden sm:inline-flex h-8 items-center px-2.5 text-[11px] font-semibold text-slate-600 bg-slate-50 border border-slate-200 rounded-md">
+        <span className="hidden sm:inline-flex h-8 items-center px-2.5 text-[11px] font-semibold rounded-md" style={{color: '#2b2f36', background: '#f4f6f8', border: '1px solid #dfe3e8'}}>
           {roleLabel}
         </span>
 
-        <div className="h-5 w-px bg-slate-200 mx-1" />
+        <div className="h-5 w-px mx-1" style={{background: '#dfe3e8'}} />
 
         <div className="flex items-center gap-2">
-          <div className="h-7 w-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-[11px] font-semibold">
+          <div className="h-7 w-7 rounded-full flex items-center justify-center text-white text-[11px] font-semibold" style={{background: '#1f5fa8'}}>
             {initials}
           </div>
-          <span className="text-[13px] font-medium text-slate-700 hidden lg:block">{username}</span>
+          <span className="text-[13px] font-medium hidden lg:block" style={{color: '#2b2f36'}}>{username}</span>
         </div>
 
         <button
           onClick={() => confirm("Sign out of Amdox ERP?") && logout()}
           title="Sign out"
-          className="h-8 w-8 flex items-center justify-center rounded-md text-slate-500 hover:bg-red-50 hover:text-red-500 transition-colors ml-1"
+          className="h-8 w-8 flex items-center justify-center rounded-md transition-colors ml-1"
+          style={{color: '#6b7280'}}
+          onMouseEnter={(e) => {e.currentTarget.style.background = '#fdecea'; e.currentTarget.style.color = '#d0392b'}}
+          onMouseLeave={(e) => {e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#6b7280'}}
         >
           <LogOut size={15} />
         </button>
@@ -286,19 +298,23 @@ function Sidebar({
         />
       )}
       <aside
-        className={`fixed top-14 bottom-0 left-0 z-40 w-64 bg-white border-r border-slate-200 flex flex-col shrink-0 transform transition-transform duration-200 ${
+        className={`fixed top-14 bottom-0 left-0 z-40 w-64 bg-white flex flex-col shrink-0 transform transition-transform duration-200 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         } md:static md:top-auto md:bottom-auto md:z-auto md:translate-x-0 md:transition-all md:duration-200 ${
           collapsed ? "md:w-14" : "md:w-56"
         }`}
+        style={{borderRight: '1px solid #dfe3e8'}}
       >
-        <div className="flex items-center justify-between px-3 py-2.5 border-b border-slate-100 md:hidden">
-          <span className="text-[13px] font-semibold text-slate-700">Menu</span>
+        <div className="flex items-center justify-between px-3 py-2.5 md:hidden" style={{borderBottom: '1px solid #dfe3e8'}}>
+          <span className="text-[13px] font-semibold" style={{color: '#2b2f36'}}>Menu</span>
           <button
             type="button"
             aria-label="Close menu"
             onClick={onClose}
-            className="h-7 w-7 flex items-center justify-center rounded-md text-slate-500 hover:bg-slate-100"
+            className="h-7 w-7 flex items-center justify-center rounded-md transition-colors"
+            style={{color: '#6b7280'}}
+            onMouseEnter={(e) => {e.currentTarget.style.background = '#f4f6f8'}}
+            onMouseLeave={(e) => {e.currentTarget.style.background = 'transparent'}}
           >
             <X size={16} />
           </button>
@@ -316,13 +332,12 @@ function Sidebar({
                   title={collapsed ? item.label : undefined}
                   className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[13px] font-medium transition-all duration-150 ${
                     collapsed ? "justify-center" : ""
-                  } ${
-                    isActive
-                      ? "bg-blue-50 text-blue-700"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   }`}
+                  style={isActive ? {background: '#e8f1fb', color: '#12406f'} : {color: '#6b7280'}}
+                  onMouseEnter={(e) => {if(!isActive) e.currentTarget.style.background = '#f4f6f8'}}
+                  onMouseLeave={(e) => {if(!isActive) e.currentTarget.style.background = 'transparent'}}
                 >
-                  <Icon size={16} className={isActive ? "text-blue-600" : "text-slate-500"} />
+                  <Icon size={16} style={{color: isActive ? '#1f5fa8' : '#6b7280'}} />
                   {!collapsed && <span>{item.label}</span>}
                 </button>
               );
@@ -345,40 +360,38 @@ function Sidebar({
                   title={collapsed ? item.label : undefined}
                   className={`w-full flex items-center justify-between px-2.5 py-2 rounded-md text-[13px] font-medium transition-all duration-150 ${
                     collapsed ? "justify-center" : ""
-                  } ${
-                    hasActiveChild
-                      ? "text-blue-700"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   }`}
+                  style={hasActiveChild ? {color: '#12406f'} : {color: '#6b7280'}}
+                  onMouseEnter={(e) => {if(!hasActiveChild) e.currentTarget.style.background = '#f4f6f8'}}
+                  onMouseLeave={(e) => {if(!hasActiveChild) e.currentTarget.style.background = 'transparent'}}
                 >
                   <span className="flex items-center gap-2.5">
                     <Icon
                       size={16}
-                      className={hasActiveChild ? "text-blue-600" : "text-slate-500"}
+                      style={{color: hasActiveChild ? '#1f5fa8' : '#6b7280'}}
                     />
                     {!collapsed && item.label}
                   </span>
                   {!collapsed &&
                     (isOpen ? (
-                      <ChevronDown size={13} className="text-slate-500" />
+                      <ChevronDown size={13} style={{color: '#6b7280'}} />
                     ) : (
-                      <ChevronRight size={13} className="text-slate-500" />
+                      <ChevronRight size={13} style={{color: '#6b7280'}} />
                     ))}
                 </button>
 
                 {isOpen && item.children && (
-                  <div className="ml-6 mt-0.5 pl-2 border-l border-slate-100">
+                  <div className="ml-6 mt-0.5 pl-2" style={{borderLeft: '1px solid #dfe3e8'}}>
                     {item.children.map((child) => {
                       const isActive = activePage === child.id;
                       return (
                         <button
                           key={child.id}
                           onClick={() => navigate(child.id)}
-                          className={`w-full text-left px-2 py-1.5 rounded-md text-[12.5px] mb-0.5 transition-all duration-150 ${
-                            isActive
-                              ? "bg-blue-50 text-blue-700 font-semibold"
-                              : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
-                          }`}
+                          className="w-full text-left px-2 py-1.5 rounded-md text-[12.5px] mb-0.5 transition-all duration-150"
+                          style={isActive ? {background: '#e8f1fb', color: '#12406f', fontWeight: '600'} : {color: '#6b7280'}}
+                          onMouseEnter={(e) => {if(!isActive) e.currentTarget.style.background = '#f4f6f8'; if(!isActive) e.currentTarget.style.color = '#2b2f36'}}
+                          onMouseLeave={(e) => {if(!isActive) e.currentTarget.style.background = 'transparent'; if(!isActive) e.currentTarget.style.color = '#6b7280'}}
                         >
                           {child.label}
                         </button>
@@ -391,11 +404,14 @@ function Sidebar({
           })}
         </nav>
 
-        <div className="hidden md:block border-t border-slate-100 p-2">
+        <div className="hidden md:block p-2" style={{borderTop: '1px solid #dfe3e8'}}>
           <button
             onClick={() => setCollapsed((c) => !c)}
-            className="w-full flex items-center justify-center py-1.5 rounded-md text-slate-500 hover:bg-slate-50 hover:text-slate-600 transition-colors"
+            className="w-full flex items-center justify-center py-1.5 rounded-md transition-colors"
+            style={{color: '#6b7280'}}
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            onMouseEnter={(e) => {e.currentTarget.style.background = '#f4f6f8'; e.currentTarget.style.color = '#2b2f36'}}
+            onMouseLeave={(e) => {e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#6b7280'}}
           >
             {collapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
           </button>
@@ -403,7 +419,7 @@ function Sidebar({
 
         {!collapsed && (
           <div className="px-3 pb-3 pt-0">
-            <p className="text-[11px] text-slate-500 truncate">
+            <p className="text-[11px] truncate" style={{color: '#6b7280'}}>
               {roleLabel} · {departmentName}
             </p>
           </div>
@@ -441,7 +457,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const departmentName = authMe?.department?.name ?? "No Department";
 
   return (
-    <div className="h-screen flex flex-col bg-slate-50">
+    <div className="h-screen flex flex-col" style={{background: '#f4f6f8'}}>
       <TopBar
         activePage={pathname}
         onSearchOpen={openSearch}

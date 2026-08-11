@@ -68,27 +68,25 @@ export default function FiscalPeriodsPage() {
   const columns: ColumnDef<FiscalPeriod>[] = [
     {
       header: "Period",
-      cell: (p) => <span className="font-semibold text-slate-900">{p.name}</span>,
+      cell: (p) => <span style={{fontWeight: 600, color: '#2b2f36'}}>{p.name}</span>,
     },
     {
       header: "Start",
       cell: (p) => (
-        <span className="text-sm text-slate-500">{new Date(p.startDate).toLocaleDateString()}</span>
+        <span style={{fontSize: '14px', color: '#6b7280'}}>{new Date(p.startDate).toLocaleDateString()}</span>
       ),
     },
     {
       header: "End",
       cell: (p) => (
-        <span className="text-sm text-slate-500">{new Date(p.endDate).toLocaleDateString()}</span>
+        <span style={{fontSize: '14px', color: '#6b7280'}}>{new Date(p.endDate).toLocaleDateString()}</span>
       ),
     },
     {
       header: "Status",
       cell: (p) => (
         <span
-          className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
-            p.isLocked ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"
-          }`}
+          style={{fontSize: '11px', fontWeight: 500, padding: '2px 8px', borderRadius: '12px', display: 'inline-block', background: p.isLocked ? '#fef2f2' : '#ecfdf5', color: p.isLocked ? '#dc2626' : '#059669'}}
         >
           {p.isLocked ? "Locked" : "Open"}
         </span>
@@ -100,12 +98,14 @@ export default function FiscalPeriodsPage() {
         canWrite && !p.isLocked ? (
           <button
             onClick={() => handleClose(p.id, p.name)}
-            className="inline-flex items-center gap-1.5 text-[12px] font-medium px-2.5 py-1 rounded-md border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
+            style={{display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 500, padding: '4px 10px', borderRadius: '6px', border: '1px solid #fecaca', color: '#dc2626', background: 'transparent', cursor: 'pointer', transition: 'background-color 0.2s'}}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
           >
             <Lock size={12} /> Close
           </button>
         ) : (
-          <span className="text-slate-300 text-xs">—</span>
+          <span style={{color: '#d1d5db', fontSize: '12px'}}>—</span>
         ),
     },
   ];
@@ -115,7 +115,7 @@ export default function FiscalPeriodsPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <Calendar size={18} className="text-slate-500" />
+            <Calendar size={18} style={{color: '#6b7280'}} />
             Fiscal Periods
           </h1>
           <p className="page-subtitle mt-1">Open and close accounting periods</p>
@@ -128,8 +128,8 @@ export default function FiscalPeriodsPage() {
       </div>
 
       {loading ? (
-        <p className="text-sm text-slate-500 flex items-center gap-2">
-          <Loader2 size={16} className="animate-spin" /> Loading…
+        <p style={{fontSize: '14px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '8px'}}>
+          <Loader2 size={16} style={{animation: 'spin 1s linear infinite'}} /> Loading…
         </p>
       ) : (
         <DataTable
@@ -143,7 +143,7 @@ export default function FiscalPeriodsPage() {
       <Modal open={formOpen} onClose={() => setFormOpen(false)} title="Open Fiscal Period">
         <div className="space-y-3">
           <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+            <label style={{fontSize: '12px', fontWeight: 500, color: '#2b2f36', display: 'block', marginBottom: '6px'}}>
               Name * (e.g. 2026-07)
             </label>
             <input
@@ -154,7 +154,7 @@ export default function FiscalPeriodsPage() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+              <label style={{fontSize: '12px', fontWeight: 500, color: '#2b2f36', display: 'block', marginBottom: '6px'}}>
                 Start date *
               </label>
               <input
@@ -165,7 +165,7 @@ export default function FiscalPeriodsPage() {
               />
             </div>
             <div>
-              <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+              <label style={{fontSize: '12px', fontWeight: 500, color: '#2b2f36', display: 'block', marginBottom: '6px'}}>
                 End date *
               </label>
               <input

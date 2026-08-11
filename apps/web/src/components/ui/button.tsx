@@ -4,17 +4,17 @@ type ButtonVariant = "primary" | "success" | "danger" | "ghost" | "outline" | "s
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary:
-    "bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed",
+    "bg-blue-700 text-white hover:bg-blue-800 active:bg-blue-900 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed",
   secondary:
-    "bg-slate-100 text-slate-700 hover:bg-slate-200 active:bg-slate-300 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed",
+    "bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed",
   success:
-    "bg-emerald-600 text-white hover:bg-emerald-700 active:bg-emerald-800 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed",
+    "bg-green-600 text-white hover:bg-green-700 active:bg-green-800 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed",
   danger:
     "bg-white text-red-600 border border-red-200 hover:bg-red-50 hover:border-red-300 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed",
   ghost:
-    "text-slate-600 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed",
+    "text-gray-600 hover:bg-gray-100 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed",
   outline:
-    "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed",
+    "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:border-gray-300 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed",
 };
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

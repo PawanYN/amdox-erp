@@ -6,35 +6,16 @@ import { BookOpen, Landmark, PieChart, Wallet, Plus, ChevronRight } from "lucide
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/ui/stat-card";
-import { Modal, inputClasses } from "@/components/ui/modal";
+import { Modal } from "@/components/ui/modal";
+import { FormRow, FormInput, FormSelect } from "@/components/ui/form-row";
 import { financeApi, type AccountBalance } from "@/lib/api/finance-api";
 
-const TYPE_META: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  asset: { label: "Asset", color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-100" },
-  liability: {
-    label: "Liability",
-    color: "text-red-700",
-    bg: "bg-red-50",
-    border: "border-red-100",
-  },
-  equity: {
-    label: "Equity",
-    color: "text-violet-700",
-    bg: "bg-violet-50",
-    border: "border-violet-100",
-  },
-  revenue: {
-    label: "Revenue",
-    color: "text-emerald-700",
-    bg: "bg-emerald-50",
-    border: "border-emerald-100",
-  },
-  expense: {
-    label: "Expense",
-    color: "text-amber-700",
-    bg: "bg-amber-50",
-    border: "border-amber-100",
-  },
+const TYPE_META: Record<string, { label: string; color: string; bg: string; borderColor: string }> = {
+  asset: { label: "Asset", color: "#1f5fa8", bg: "#e8f1fb", borderColor: "#dfe3e8" },
+  liability: { label: "Liability", color: "#d0392b", bg: "#fdecea", borderColor: "#dfe3e8" },
+  equity: { label: "Equity", color: "#8a6300", bg: "#fff6e0", borderColor: "#dfe3e8" },
+  revenue: { label: "Revenue", color: "#1e7a3e", bg: "#e6f4ea", borderColor: "#dfe3e8" },
+  expense: { label: "Expense", color: "#8a6300", bg: "#fff6e0", borderColor: "#dfe3e8" },
 };
 
 type Account = {
@@ -54,7 +35,6 @@ type RawAccount = {
   type: string;
 };
 
-/** Credit-normal account types: display balance as credit − debit so KPIs stay positive. */
 const CREDIT_NORMAL = new Set(["liability", "equity", "revenue"]);
 
 function displayBalance(type: Account["type"], rawDebitMinusCredit: number): number {
@@ -136,27 +116,26 @@ export default function ChartOfAccountsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
       <div className="flex items-start justify-between">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <BookOpen size={18} className="text-slate-500" />
+            <BookOpen size={18} style={{color: '#6b7280'}} />
             Chart of Accounts
           </h1>
           <p className="page-subtitle mt-1">
             Standard GL account codes — double-entry bookkeeping foundation
           </p>
         </div>
-        <Button icon={<Plus size={14} />} onClick={openCreate}>
+        <button className="btn primary" onClick={openCreate} style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
+          <Plus size={14} />
           New Account
-        </Button>
+        </button>
       </div>
 
-      {/* KPI row */}
       {loading ? (
         <div className="grid grid-cols-3 gap-4">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="h-24 rounded-lg bg-slate-100 animate-pulse" />
+            <div key={i} className="h-24 rounded-lg animate-pulse" style={{background: '#f4f6f8'}} />
           ))}
         </div>
       ) : (
@@ -185,7 +164,6 @@ export default function ChartOfAccountsPage() {
         </div>
       )}
 
-      {/* Account groups */}
       <div className="space-y-3">
         {ACCOUNT_TYPES.map((type) => {
           const group = accounts.filter((a) => a.type === type);
@@ -196,51 +174,69 @@ export default function ChartOfAccountsPage() {
           return (
             <div
               key={type}
-              className="bg-white rounded-lg border border-slate-200 shadow-card overflow-hidden"
+              className="bg-white rounded-lg shadow-card overflow-hidden"
+              style={{border: '1px solid #dfe3e8'}}
             >
-              {/* Group header */}
               <button
-                className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors"
+                className="w-full flex items-center justify-between px-4 py-3 transition-colors"
+                style={{
+                  background: open ? '#f7f9fb' : 'transparent'
+                }}
+                onMouseEnter={(e) => {if (!open) e.currentTarget.style.background = '#f7f9fb'}}
+                onMouseLeave={(e) => {if (!open) e.currentTarget.style.background = 'transparent'}}
                 onClick={() => setOpenGroups((s) => ({ ...s, [type]: !s[type] }))}
               >
                 <div className="flex items-center gap-2.5">
                   <ChevronRight
                     size={14}
-                    className={`text-slate-500 transition-transform duration-150 ${open ? "rotate-90" : ""}`}
+                    style={{
+                      color: '#6b7280',
+                      transition: 'transform 0.15s',
+                      transform: open ? 'rotate(90deg)' : 'rotate(0)'
+                    }}
                   />
                   <span
-                    className={`text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize ${meta.bg} ${meta.color} ${meta.border} border`}
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      padding: '4px 8px',
+                      borderRadius: '3px',
+                      background: meta.bg,
+                      color: meta.color,
+                      border: `1px solid ${meta.borderColor}`,
+                      textTransform: 'capitalize'
+                    }}
                   >
                     {meta.label}
                   </span>
-                  <span className="text-[12px] text-slate-500">{group.length} accounts</span>
+                  <span style={{fontSize: '12px', color: '#6b7280'}}>{group.length} accounts</span>
                 </div>
-                <span className="text-[12px] font-mono text-slate-500">
+                <span style={{fontSize: '12px', fontFamily: 'monospace', color: '#6b7280'}}>
                   ₹{total.toLocaleString()}
                 </span>
               </button>
 
               {open && (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-[13px]">
-                    <tbody className="divide-y divide-slate-100">
+                  <table className="table-data" style={{width: '100%'}}>
+                    <tbody>
                       {group.length === 0 ? (
                         <tr>
-                          <td colSpan={4} className="px-4 py-3 text-[12px] text-slate-500 italic">
+                          <td colSpan={4} style={{padding: '12px 16px', fontSize: '12px', color: '#6b7280', fontStyle: 'italic'}}>
                             No {type} accounts found.
                           </td>
                         </tr>
                       ) : (
                         group.map((a) => (
-                          <tr key={a.code} className="hover:bg-slate-50/60 transition-colors">
-                            <td className="px-4 py-2.5 font-mono text-[12px] text-slate-500 w-16">
+                          <tr key={a.code} style={{borderBottom: '1px solid #f2f3f5'}}>
+                            <td style={{padding: '10px 16px', fontFamily: 'monospace', fontSize: '12px', color: '#6b7280', width: '64px'}}>
                               {a.code}
                             </td>
-                            <td className="px-4 py-2.5 font-medium text-slate-800">{a.name}</td>
-                            <td className="px-4 py-2.5 text-[12px] text-slate-500 hidden sm:table-cell">
+                            <td style={{padding: '10px 16px', fontWeight: 500, color: '#2b2f36'}}>{a.name}</td>
+                            <td style={{padding: '10px 16px', fontSize: '12px', color: '#6b7280', display: window.innerWidth < 640 ? 'none' : 'table-cell'}}>
                               {a.subType.replace(/_/g, " ")}
                             </td>
-                            <td className="px-4 py-2.5 text-right font-mono text-slate-700">
+                            <td style={{padding: '10px 16px', textAlign: 'right', fontFamily: 'monospace', color: '#2b2f36'}}>
                               ₹{a.balance.toLocaleString()}
                             </td>
                           </tr>
@@ -256,46 +252,35 @@ export default function ChartOfAccountsPage() {
       </div>
 
       <Modal open={formOpen} onClose={() => setFormOpen(false)} title="New Account">
-        <div className="space-y-4">
-          <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Code *</label>
-            <input
-              className={inputClasses}
+        <div style={{padding: '20px 24px'}}>
+          <FormRow label="Code" required>
+            <FormInput
               value={code}
               onChange={(e) => setCode(e.target.value)}
               placeholder="e.g. 1300"
             />
-          </div>
-          <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Name *</label>
-            <input
-              className={inputClasses}
+          </FormRow>
+          <FormRow label="Name" required>
+            <FormInput
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Inventory"
             />
-          </div>
-          <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Type *</label>
-            <select
-              className={inputClasses}
-              value={type}
-              onChange={(e) => setType(e.target.value as typeof type)}
-            >
+          </FormRow>
+          <FormRow label="Type" required>
+            <FormSelect value={type} onChange={(e) => setType(e.target.value as typeof type)}>
               {ACCOUNT_TYPES.map((t) => (
                 <option key={t} value={t.toUpperCase()}>
                   {TYPE_META[t].label}
                 </option>
               ))}
-            </select>
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => setFormOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave} disabled={saving}>
+            </FormSelect>
+          </FormRow>
+          <div style={{marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end'}}>
+            <button className="btn" onClick={() => setFormOpen(false)}>Cancel</button>
+            <button className="btn primary" onClick={handleSave} disabled={saving}>
               {saving ? "Saving…" : "Create"}
-            </Button>
+            </button>
           </div>
         </div>
       </Modal>

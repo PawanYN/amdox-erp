@@ -104,12 +104,12 @@ export default function ProductsPage() {
       header: "Product",
       cell: (p) => (
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 shrink-0">
+          <div className="h-8 w-8 rounded-md bg-slate-100 flex items-center justify-center shrink-0" style={{border: '1px solid #dfe3e8', color: '#6b7280'}}>
             <Package size={14} />
           </div>
           <div>
-            <p className="text-[13px] font-semibold text-slate-900">{p.name}</p>
-            <p className="text-[11px] text-slate-500 font-mono">{p.sku}</p>
+            <p className="text-[13px] font-semibold" style={{color: '#2b2f36'}}>{p.name}</p>
+            <p className="text-[11px] font-mono" style={{color: '#6b7280'}}>{p.sku}</p>
           </div>
         </div>
       ),
@@ -117,13 +117,13 @@ export default function ProductsPage() {
     {
       header: "Default Vendor",
       cell: (p) => (
-        <span className="text-[13px] text-slate-500">{p.defaultVendor?.name || "—"}</span>
+        <span className="text-[13px]" style={{color: '#6b7280'}}>{p.defaultVendor?.name || "—"}</span>
       ),
     },
     {
       header: "Unit Cost",
       cell: (p) => (
-        <span className="font-mono text-[13px] text-slate-700">
+        <span className="font-mono text-[13px]" style={{color: '#2b2f36'}}>
           ₹{Number(p.unitCost || 0).toLocaleString()}
         </span>
       ),
@@ -142,13 +142,35 @@ export default function ProductsPage() {
         <div className="flex gap-2">
           <button
             onClick={() => openEdit(p)}
-            className="flex h-7 w-7 items-center justify-center rounded-md bg-slate-50 border border-slate-200 text-slate-600 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-colors"
+            className="flex h-7 w-7 items-center justify-center rounded-md transition-colors"
+            style={{background: '#ffffff', border: '1px solid #dfe3e8', color: '#6b7280'}}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#f4f6f8';
+              e.currentTarget.style.borderColor = '#1f5fa8';
+              e.currentTarget.style.color = '#1f5fa8';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#ffffff';
+              e.currentTarget.style.borderColor = '#dfe3e8';
+              e.currentTarget.style.color = '#6b7280';
+            }}
           >
             <Pencil size={13} />
           </button>
           <button
             onClick={() => handleDelete(p)}
-            className="flex h-7 w-7 items-center justify-center rounded-md bg-slate-50 border border-slate-200 text-slate-600 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors"
+            className="flex h-7 w-7 items-center justify-center rounded-md transition-colors"
+            style={{background: '#ffffff', border: '1px solid #dfe3e8', color: '#6b7280'}}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#fef2f2';
+              e.currentTarget.style.borderColor = '#dc2626';
+              e.currentTarget.style.color = '#dc2626';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#ffffff';
+              e.currentTarget.style.borderColor = '#dfe3e8';
+              e.currentTarget.style.color = '#6b7280';
+            }}
           >
             <Trash2 size={13} />
           </button>
@@ -162,7 +184,7 @@ export default function ProductsPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <Package size={18} className="text-slate-500" />
+            <Package size={18} style={{color: '#6b7280'}} />
             Product Catalog
           </h1>
           <p className="page-subtitle mt-1">Manage SKUs, pricing and default vendors</p>
@@ -203,7 +225,7 @@ export default function ProductsPage() {
       >
         <div className="space-y-4">
           <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">SKU *</label>
+            <label className="text-[12px] font-medium block mb-1.5" style={{color: '#6b7280'}}>SKU *</label>
             <input
               className={inputClasses}
               value={sku}
@@ -212,7 +234,7 @@ export default function ProductsPage() {
             />
           </div>
           <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Name *</label>
+            <label className="text-[12px] font-medium block mb-1.5" style={{color: '#6b7280'}}>Name *</label>
             <input
               className={inputClasses}
               value={name}
@@ -221,7 +243,7 @@ export default function ProductsPage() {
             />
           </div>
           <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Unit Cost</label>
+            <label className="text-[12px] font-medium block mb-1.5" style={{color: '#6b7280'}}>Unit Cost</label>
             <input
               className={inputClasses}
               type="number"
@@ -232,7 +254,7 @@ export default function ProductsPage() {
             />
           </div>
           <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">
+            <label className="text-[12px] font-medium block mb-1.5" style={{color: '#6b7280'}}>
               Default Vendor
             </label>
             <select

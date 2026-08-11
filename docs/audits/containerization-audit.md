@@ -2,7 +2,7 @@
 
 **Started:** 2026-07-07
 **Trigger:** `docs/planning/team_assignment.md`'s Day 22 section listed multi-stage Dockerfiles as ❌ — `infra/docker/Dockerfile.api`, `Dockerfile.web`, and `Dockerfile.ml` were all 0-byte empty dead files, and the one real ML Dockerfile (`apps/ml-service/Dockerfile`) was single-stage `python:3.11-slim`, not distroless. This document records what was built, the real bugs it surfaced, and how each image was verified against the live stack (not just built).
-**Status:** Item 1 of 4 (multi-stage Dockerfiles) done and verified live for all 3 services. `docker-compose.prod.yml` (health checks + resource limits) and Trivy CI scanning are still open — see `docs/planning/team_assignment.md` Day 22.
+**Status:** All 4 items done and verified — multi-stage Dockerfiles for all 3 services, `docker-compose.prod.yml` (health checks + resource limits, 343 lines), and Trivy CI image scanning (`.github/workflows/ci.yml`'s `image-scan` job). See §6 below.
 
 ---
 
@@ -130,8 +130,8 @@ The dev compose file's `ml-service` healthcheck (`CMD curl -f http://localhost:8
 
 - Deleted `infra/docker/Dockerfile.ml` — a dead, empty duplicate. The real ML Dockerfile has always lived at `apps/ml-service/Dockerfile` (that's what `docker-compose.yml`'s `build.context` actually points at), so there was never a reason for two.
 
-## 6. What's still open (Day 22)
+## 6. What's still open (Day 22) — both items below are now done
 
-- `docker-compose.prod.yml` — file exists but is empty. Needs all 3 services wired up against the images built here, plus health checks and resource limits.
-- Trivy image scanning in CI — needs real images to scan, which now exist; not yet wired into `.github/workflows/ci.yml`.
+- ~~`docker-compose.prod.yml` — file exists but is empty. Needs all 3 services wired up against the images built here, plus health checks and resource limits.~~ **Done** — the file is now 343 lines, defining `api-db`, `api-db-replica`, `redis`, `api`, `web`, and `ml-service`, each with `healthcheck` and `deploy.resources.limits`.
+- ~~Trivy image scanning in CI — needs real images to scan, which now exist; not yet wired into `.github/workflows/ci.yml`.~~ **Done** — `.github/workflows/ci.yml` has an `image-scan` job, a matrix over `api`/`web`/`ml-service` that builds each image and scans it with `aquasecurity/trivy-action`, failing on fixable CRITICAL/HIGH findings.
 - `.dockerignore` — already done pre-existing (root `.dockerignore`, excludes `node_modules/`, `.next/`, `dist/`, `.turbo/`).

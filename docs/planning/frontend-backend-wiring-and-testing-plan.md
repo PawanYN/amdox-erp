@@ -14,15 +14,15 @@
 
 ## Current State (Summary)
 
-| Layer                | Status                                                                                  |
-| -------------------- | --------------------------------------------------------------------------------------- |
-| **Frontend ↔ API**   | ~98% wired — sales orders, intercompany, AP payments, GraphQL stats, reorder automation |
-| **Remaining gaps**   | Settings General (no save), PO New button, minor UX polish                              |
-| **Backend-only**     | None critical — all Phase 4 routes have UI                                              |
-| **Unit/e2e tests**   | **None** (0 `*.spec.ts` / `*.test.ts` files)                                            |
-| **Functional tests** | 9 JS suites — **64/64 pass** locally (`node run-authenticated.js`); not yet in CI       |
-| **CI**               | Lint, typecheck, build, security scans only — **no API or UI tests**                    |
-| **Wiring audit**     | ✅ [`docs/audits/wiring-audit.md`](../audits/wiring-audit.md) — Phase 4 updates applied |
+| Layer                | Status                                                                                        |
+| -------------------- | --------------------------------------------------------------------------------------------- |
+| **Frontend ↔ API**   | ~98% wired — sales orders, intercompany, AP payments, GraphQL stats, reorder automation       |
+| **Remaining gaps**   | Settings General (no save), minor UX polish                                                   |
+| **Backend-only**     | None critical — all Phase 4 routes have UI                                                    |
+| **Unit/e2e tests**   | 31 Vitest unit tests across 3 `*.spec.ts` files (GL, AP invoice matching, payroll deductions) |
+| **Functional tests** | 9 JS suites — **64/64 pass** locally (`node run-authenticated.js`); not yet in CI             |
+| **CI**               | Lint, typecheck, unit tests (Vitest), tenant-scoping audit, build, security scans             |
+| **Wiring audit**     | ✅ [`docs/audits/wiring-audit.md`](../audits/wiring-audit.md) — Phase 4 updates applied       |
 
 ### Module wiring at a glance
 
@@ -30,7 +30,7 @@
 | ------------- | ------- | -------------------------------------------------------------------- |
 | Finance       | WIRED   | Sales orders + intercompany + AP payments (Phase 4)                  |
 | HR            | WIRED\* | Leave `getMe()` + roles + reject; employees filter quirks            |
-| SCM           | WIRED\* | Goods-receipt + reorder automation (P1/P4); PO New button still dead |
+| SCM           | WIRED   | Goods-receipt + reorder automation (P1/P4); Create PO flow now wired |
 | Projects      | WIRED\* | Milestone due-date edit (P4); tasks lack create UI on tasks page     |
 | BI            | WIRED   | `getDataBySource` fallback in widget loader (P4)                     |
 | Forecast      | WIRED   | `/forecast` and `/scm/forecast`                                      |
@@ -67,7 +67,7 @@ Full matrix lives in [`docs/audits/wiring-audit.md`](../audits/wiring-audit.md).
 | HR            | Payroll                                      | `hrApi`                                         | `GET/POST .../hr/payroll/*`                 | ✅     |                                                         |
 | SCM           | Vendors                                      | `scmApi`                                        | `GET/POST .../scm/vendors`                  | ✅     |                                                         |
 | SCM           | Products                                     | `scmApi`                                        | `GET/POST .../scm/products`                 | ✅     |                                                         |
-| SCM           | Purchase Orders                              | `scmApi`                                        | `GET/POST .../scm/purchase-orders`          | ⚠️     | Receive wired; New PO button dead                       |
+| SCM           | Purchase Orders                              | `scmApi`                                        | `GET/POST .../scm/purchase-orders`          | ✅     | Receive wired; Create PO flow wired                     |
 | SCM           | Goods Receipt                                | `scmApi.receiveGoods`                           | `POST .../purchase-orders/:id/receive`      | ✅     | Approved PO list + warehouse picker (P1-1)              |
 | SCM           | Inventory                                    | `scmApi`                                        | `GET/POST .../scm/inventory/*`              | ⚠️     | Reorder automation UI missing                           |
 | SCM           | AP Invoices                                  | `financeApi`                                    | `GET .../finance/ap/invoices`               | ⚠️     | Reject button unwired                                   |

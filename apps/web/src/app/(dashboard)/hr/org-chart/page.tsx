@@ -53,12 +53,12 @@ export default function OrgChartPage() {
     <div className="space-y-6">
       <div>
         <h1 className="page-title flex items-center gap-2">
-          <Network size={18} className="text-slate-500" />
+          <Network size={18} style={{color: '#6b7280'}} />
           Organization Chart
         </h1>
-        <p className="page-subtitle mt-1">Reporting hierarchy across departments</p>
+        <p className="page-subtitle mt-1" style={{color: '#6b7280'}}>Reporting hierarchy across departments</p>
       </div>
-      <div className="bg-white rounded-lg border border-slate-200 shadow-card">
+      <div style={{background: '#ffffff', border: '1px solid #dfe3e8'}} className="rounded-lg shadow-card">
         <OrgChart employees={employees} />
       </div>
     </div>

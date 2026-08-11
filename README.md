@@ -10,13 +10,11 @@ LinkedIn post (full-stack development): https://www.linkedin.com/posts/agrim-gup
 
 ## 🌐 Live Demo
 
-|                         |                                                                                                |
-| ----------------------- | ---------------------------------------------------------------------------------------------- |
-| **App**                 | https://erp.92-4-86-3.sslip.io                                                                 |
-| **API docs (Swagger)**  | https://erp.92-4-86-3.sslip.io/api-docs                                                        |
-| **Identity (Keycloak)** | https://kc.92-4-86-3.sslip.io                                                                  |
-| **Tenant slug**         | `company-a`                                                                                    |
-| **Admin login**         | `admin@companya.in` / `Admin123!` (full role list: `docs/guides/company-a-employee-logins.md`) |
+|                         |                                         |
+| ----------------------- | --------------------------------------- |
+| **App**                 | https://erp.92-4-86-3.sslip.io          |
+| **API docs (Swagger)**  | https://erp.92-4-86-3.sslip.io/api-docs |
+| **Identity (Keycloak)** | https://kc.92-4-86-3.sslip.io           |
 
 Deployed on Oracle Cloud with Caddy (automatic HTTPS via Let’s Encrypt), pm2-managed production builds, and the Docker infrastructure stack (PostgreSQL 17 + TimescaleDB, Redis, Keycloak, MinIO, Elasticsearch).
 

@@ -1,6 +1,7 @@
 # C4 Component Diagram — Clean Layout Version
 
 ## How to use
+
 1. Copy the code block below
 2. Paste into **mermaid.live** or GitHub `.md` or Notion `/mermaid`
 
@@ -46,8 +47,9 @@ flowchart TB
             audit["📋 Audit Module<br/><i>TimescaleDB append-only<br/>Hash chaining · GDPR DSR</i>"]
         end
 
-        subgraph V2["V2 — De-scoped from MVP"]
+        subgraph MVP3["Shipped Modules (originally planned as V2, not de-scoped)"]
             direction LR
+            tenant["🏢 Tenant Module<br/><i>Realm provisioning<br/>Self-service IdP · MFA</i>"]
             project["📊 Project Module<br/><i>Gantt · Tasks · Budget</i>"]
             bi["📈 BI Module<br/><i>Dashboards · Reports</i>"]
             forecast["🤖 Forecasting Module<br/><i>ML service consumer</i>"]
@@ -64,7 +66,7 @@ flowchart TB
     subgraph EXT["External Systems"]
         direction LR
         idp["🏢 Identity Provider<br/><i>Azure AD · Google<br/>SAML / OIDC</i>"]
-        email["✉️ AWS SES<br/><i>Email delivery</i>"]
+        email["✉️ SMTP Provider<br/><i>Nodemailer · Mailpit in dev</i>"]
         s3["📁 AWS S3<br/><i>File storage</i>"]
         fx["💱 FX Rate API<br/><i>ECB · OpenExchangeRates</i>"]
         ml["🧠 ML Service<br/><i>Python FastAPI<br/>Prophet · LSTM</i>"]
@@ -80,6 +82,10 @@ flowchart TB
     gateway --> scm
     gateway --> notification
     gateway --> audit
+    gateway --> tenant
+    gateway --> project
+    gateway --> bi
+    gateway --> forecast
 
     %% Auth connections
     auth -.->|"SAML/OIDC"| idp
@@ -101,22 +107,35 @@ flowchart TB
     scm -.->|"Domain events"| notification
 
     %% Notification connections
-    notification -.->|"SES API"| email
+    notification -.->|"SMTP"| email
     notification -.->|"Job queue"| cache
     notification -.->|"Attachments"| s3
 
     %% Audit connections
     audit -->|"Append-only"| db
 
-    %% V2 connections (dashed = future)
+    %% Tenant connections
+    tenant -.->|"Keycloak Admin API"| idp
+    tenant -->|"Prisma"| db
+
+    %% Project connections
+    project -->|"Prisma"| db
+    project -.->|"Budget overrun events"| notification
+
+    %% BI connections
+    bi -->|"Prisma"| db
+    bi -.->|"Cache reads"| cache
+
+    %% Forecast connections
     forecast -.->|"Internal REST"| ml
     forecast -.->|"Cache predictions"| cache
+    forecast -.->|"MAPE-breach events"| notification
 
     %% Styling
     style API fill:#1e293b,stroke:#334155,color:#f8fafc
     style MVP fill:#1e3a5f,stroke:#2563eb,color:#e2e8f0
     style MVP2 fill:#1e3a5f,stroke:#2563eb,color:#e2e8f0
-    style V2 fill:#374151,stroke:#6b7280,color:#9ca3af
+    style MVP3 fill:#1e3a5f,stroke:#2563eb,color:#e2e8f0
     style DATA fill:#0f172a,stroke:#334155,color:#e2e8f0
     style EXT fill:#1a1a2e,stroke:#4b5563,color:#e2e8f0
 
@@ -130,9 +149,10 @@ flowchart TB
     style notification fill:#d97706,stroke:#b45309,color:#fff
     style audit fill:#dc2626,stroke:#b91c1c,color:#fff
 
-    style project fill:#4b5563,stroke:#6b7280,color:#9ca3af
-    style bi fill:#4b5563,stroke:#6b7280,color:#9ca3af
-    style forecast fill:#4b5563,stroke:#6b7280,color:#9ca3af
+    style tenant fill:#059669,stroke:#047857,color:#fff
+    style project fill:#059669,stroke:#047857,color:#fff
+    style bi fill:#059669,stroke:#047857,color:#fff
+    style forecast fill:#059669,stroke:#047857,color:#fff
 
     style db fill:#336791,stroke:#1e3a5f,color:#fff
     style cache fill:#dc382d,stroke:#b91c1c,color:#fff
@@ -146,14 +166,17 @@ flowchart TB
 ```
 
 ## Legend
-| Line Style | Meaning |
-|---|---|
-| **Solid arrow** (→) | Primary data flow (DB reads/writes, request routing) |
+
+| Line Style             | Meaning                                                  |
+| ---------------------- | -------------------------------------------------------- |
+| **Solid arrow** (→)    | Primary data flow (DB reads/writes, request routing)     |
 | **Dashed arrow** (-.→) | Secondary/async flow (events, external API calls, cache) |
 
 ## Layout improvements over the C4 version
+
 - `curve: basis` — smooth curved lines instead of sharp angles
-- Modules grouped into **subgraphs** (MVP row 1, MVP row 2, V2) — prevents box overlap
+- Modules grouped into **subgraphs** (MVP row 1, MVP row 2, MVP row 3) — prevents box overlap
 - Data layer and External systems in their own rows at the bottom
-- Color-coded: green = core MVP, orange = notification, red = audit, grey = V2 de-scoped
+- Color-coded: green = core modules, purple = auth, orange = notification, red = audit
 - `direction LR` inside subgraphs keeps sibling modules side-by-side
+- All 10 modules (Auth, Finance, HR, SCM, Notification, Audit, Tenant, Project, BI, Forecasting) are shipped — Tenant/Project/BI/Forecasting were originally planned as a de-scoped "V2" but all shipped alongside the rest, per `apps/api/src/app.module.ts`

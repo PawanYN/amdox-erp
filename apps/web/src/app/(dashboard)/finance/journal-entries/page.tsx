@@ -152,7 +152,7 @@ export default function JournalEntriesPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <Wallet size={18} className="text-slate-500" />
+            <Wallet size={18} style={{color: '#6b7280'}} />
             Journal Entries
           </h1>
           <p className="page-subtitle mt-1">
@@ -193,11 +193,11 @@ export default function JournalEntriesPage() {
       {/* New entry form */}
       {showForm && (
         <div className="bg-white rounded-lg border border-slate-200 shadow-card p-5 space-y-4 animate-fade-in-up">
-          <p className="text-[14px] font-semibold text-slate-900">Create Journal Entry</p>
+          <p style={{fontSize: '14px', fontWeight: 600, color: '#2b2f36'}}>Create Journal Entry</p>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-[11px] font-medium text-slate-500 uppercase mb-1">
+              <label style={{display: 'block', fontSize: '11px', fontWeight: 500, color: '#6b7280', textTransform: 'uppercase', marginBottom: '4px'}}>
                 Description *
               </label>
               <input
@@ -208,7 +208,7 @@ export default function JournalEntriesPage() {
               />
             </div>
             <div>
-              <label className="block text-[11px] font-medium text-slate-500 uppercase mb-1">
+              <label style={{display: 'block', fontSize: '11px', fontWeight: 500, color: '#6b7280', textTransform: 'uppercase', marginBottom: '4px'}}>
                 Currency
               </label>
               <select
@@ -227,21 +227,21 @@ export default function JournalEntriesPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-[12px]">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200">
-                    <th className="text-left px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                  <tr style={{background: '#f9fafb', borderBottom: '1px solid #dfe3e8'}}>
+                    <th style={{textAlign: 'left', padding: '8px 16px', fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em'}}>
                       Account
                     </th>
-                    <th className="text-right px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                    <th style={{textAlign: 'right', padding: '8px 16px', fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em'}}>
                       Debit (₹)
                     </th>
-                    <th className="text-right px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                    <th style={{textAlign: 'right', padding: '8px 16px', fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em'}}>
                       Credit (₹)
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody style={{borderTop: '1px solid #dfe3e8'}}>
                   {newEntry.lines.map((line, i) => (
-                    <tr key={i}>
+                    <tr key={i} style={{borderBottom: '1px solid #f3f4f6'}}>
                       <td className="px-3 py-2">
                         <select
                           className="input-base text-[12px] py-1.5"
@@ -276,12 +276,12 @@ export default function JournalEntriesPage() {
                       </td>
                     </tr>
                   ))}
-                  <tr className="bg-slate-50 font-semibold text-[12px]">
-                    <td className="px-4 py-2 text-slate-500">Total</td>
-                    <td className="px-4 py-2 text-right font-mono text-slate-800">
+                  <tr style={{background: '#f9fafb', fontWeight: 600, fontSize: '12px'}}>
+                    <td style={{padding: '8px 16px', color: '#6b7280'}}>Total</td>
+                    <td style={{padding: '8px 16px', textAlign: 'right', fontFamily: 'monospace', color: '#2b2f36'}}>
                       {debitTotal.toLocaleString()}
                     </td>
-                    <td className="px-4 py-2 text-right font-mono text-slate-800">
+                    <td style={{padding: '8px 16px', textAlign: 'right', fontFamily: 'monospace', color: '#2b2f36'}}>
                       {creditTotal.toLocaleString()}
                     </td>
                   </tr>
@@ -291,13 +291,13 @@ export default function JournalEntriesPage() {
           </div>
 
           {debitTotal > 0 && !isBalanced && (
-            <div className="flex items-center gap-2 text-[12px] text-red-600 bg-red-50 border border-red-100 rounded-md px-3 py-2">
+            <div style={{display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '8px 12px'}}>
               <AlertTriangle size={13} /> Debits ≠ Credits or missing accounts — cannot post until
               balanced.
             </div>
           )}
           {isBalanced && (
-            <div className="flex items-center gap-2 text-[12px] text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-md px-3 py-2">
+            <div style={{display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#059669', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '6px', padding: '8px 12px'}}>
               <Check size={13} /> Balanced — ready to post.
             </div>
           )}
@@ -320,10 +320,10 @@ export default function JournalEntriesPage() {
       {/* Entries list */}
       <div className="space-y-3">
         {loading ? (
-          <p className="text-[13px] text-slate-500">Loading journal entries…</p>
+          <p style={{fontSize: '13px', color: '#6b7280'}}>Loading journal entries…</p>
         ) : entries.length === 0 ? (
           <div className="bg-white rounded-lg border border-slate-200 shadow-card px-6 py-14 text-center">
-            <p className="text-[13px] text-slate-500">
+            <p style={{fontSize: '13px', color: '#6b7280'}}>
               No journal entries yet. Create the first one above.
             </p>
           </div>
@@ -338,17 +338,21 @@ export default function JournalEntriesPage() {
               >
                 <div className="flex items-center justify-between mb-3">
                   <div>
-                    <p className="text-[13px] font-semibold text-slate-800 font-mono">
+                    <p style={{fontSize: '13px', fontWeight: 600, color: '#2b2f36', fontFamily: 'monospace'}}>
                       {je.id.slice(0, 8).toUpperCase()}
                     </p>
-                    <p className="text-[11px] text-slate-500 mt-0.5">
+                    <p style={{fontSize: '11px', color: '#6b7280', marginTop: '4px'}}>
                       {je.entryDate} · {je.description}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-mono text-slate-500">{je.currency}</span>
+                    <span style={{fontSize: '11px', fontFamily: 'monospace', color: '#6b7280'}}>{je.currency}</span>
                     <span
-                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${STATUS_STYLE[je.status]}`}
+                      style={{fontSize: '10px', fontWeight: 600, padding: '2px 8px', borderRadius: '12px', textTransform: 'capitalize', display: 'inline-block', ...{
+                        posted: {background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0'},
+                        draft: {background: '#f3f4f6', color: '#6b7280', border: '1px solid #e5e7eb'},
+                        reversed: {background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca'},
+                      }[je.status]}}
                     >
                       {je.status}
                     </span>
@@ -358,36 +362,36 @@ export default function JournalEntriesPage() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-[12px]">
                       <thead>
-                        <tr className="bg-slate-50 border-b border-slate-100">
-                          <th className="text-left px-4 py-1.5 text-[10px] font-semibold text-slate-500 uppercase">
+                        <tr style={{background: '#f9fafb', borderBottom: '1px solid #f3f4f6'}}>
+                          <th style={{textAlign: 'left', padding: '6px 16px', fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase'}}>
                             Account
                           </th>
-                          <th className="text-right px-4 py-1.5 text-[10px] font-semibold text-slate-500 uppercase">
+                          <th style={{textAlign: 'right', padding: '6px 16px', fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase'}}>
                             Debit
                           </th>
-                          <th className="text-right px-4 py-1.5 text-[10px] font-semibold text-slate-500 uppercase">
+                          <th style={{textAlign: 'right', padding: '6px 16px', fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase'}}>
                             Credit
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-50">
+                      <tbody style={{borderTop: '1px solid #f3f4f6'}}>
                         {je.lines.map((line, i) => (
-                          <tr key={i}>
-                            <td className="px-4 py-1.5 text-slate-700">{line.accountLabel}</td>
-                            <td className="px-4 py-1.5 text-right font-mono text-slate-800">
+                          <tr key={i} style={{borderBottom: '1px solid #f9fafb'}}>
+                            <td style={{padding: '6px 16px', color: '#2b2f36'}}>{line.accountLabel}</td>
+                            <td style={{padding: '6px 16px', textAlign: 'right', fontFamily: 'monospace', color: '#2b2f36'}}>
                               {line.debit > 0 ? line.debit.toLocaleString() : "—"}
                             </td>
-                            <td className="px-4 py-1.5 text-right font-mono text-slate-800">
+                            <td style={{padding: '6px 16px', textAlign: 'right', fontFamily: 'monospace', color: '#2b2f36'}}>
                               {line.credit > 0 ? line.credit.toLocaleString() : "—"}
                             </td>
                           </tr>
                         ))}
-                        <tr className="bg-slate-50 font-semibold">
-                          <td className="px-4 py-1.5 text-slate-500 text-[11px]">Total</td>
-                          <td className="px-4 py-1.5 text-right font-mono text-slate-700">
+                        <tr style={{background: '#f9fafb', fontWeight: 600}}>
+                          <td style={{padding: '6px 16px', color: '#6b7280', fontSize: '11px'}}>Total</td>
+                          <td style={{padding: '6px 16px', textAlign: 'right', fontFamily: 'monospace', color: '#2b2f36'}}>
                             {dr.toLocaleString()}
                           </td>
-                          <td className="px-4 py-1.5 text-right font-mono text-slate-700">
+                          <td style={{padding: '6px 16px', textAlign: 'right', fontFamily: 'monospace', color: '#2b2f36'}}>
                             {cr.toLocaleString()}
                           </td>
                         </tr>

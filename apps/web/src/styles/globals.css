@@ -6,37 +6,38 @@
    ───────────────────────────────────────────────────────── */
 
 @theme {
-  /* ── Primary action color ── */
-  --color-brand-purple: #2563EB;
-  --color-brand-violet: #3B82F6;
+  /* ── Primary action color — Sankirtan darker blue ── */
+  --color-brand-primary: #1f5fa8;
+  --color-brand-dark: #12406f;
+  --color-brand-light: #e8f1fb;
 
   /* ── Text ── */
-  --color-ink:   #0F172A;   /* slate-900 */
-  --color-ink-2: #334155;   /* slate-700 */
-  --color-muted: #64748B;   /* slate-500 */
+  --color-ink:   #2b2f36;   /* dark text */
+  --color-ink-2: #555;      /* secondary text */
+  --color-muted: #6b7280;   /* muted text */
 
   /* ── Surfaces ── */
-  --color-canvas: #F8FAFC;  /* slate-50 — page bg */
-  --color-card:   #FFFFFF;  /* white — card bg */
-  --color-hover:  #F1F5F9;  /* slate-100 — hover bg */
+  --color-canvas: #f4f6f8;  /* page bg */
+  --color-card:   #ffffff;  /* card bg */
+  --color-hover:  #f7f9fb;  /* hover bg */
 
   /* ── Borders ── */
-  --color-line:   #E2E8F0;  /* slate-200 */
-  --color-line-2: #CBD5E1;  /* slate-300 */
+  --color-line:   #dfe3e8;  /* primary border */
+  --color-line-2: #e3e6ea;  /* secondary border */
 
   /* ── Status ── */
-  --color-success: #059669;
-  --color-warning: #D97706;
-  --color-danger:  #DC2626;
+  --color-success: #1e7a3e;
+  --color-warning: #8a6300;
+  --color-danger:  #d0392b;
 }
 
 /* ─────────────────────────────────────────────────────────
    Base styles
    ───────────────────────────────────────────────────────── */
 body {
-  background-color: #F8FAFC;
-  color: #0F172A;
-  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+  background-color: #f4f6f8;
+  color: #2b2f36;
+  font-family: "Segoe UI", "Inter", Arial, system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-size: 14px;
@@ -53,26 +54,26 @@ body {
 /* ─────────────────────────────────────────────────────────
    Card / elevation utilities
    ───────────────────────────────────────────────────────── */
-.bg-card { background-color: #FFFFFF; }
+.bg-card { background-color: #ffffff; border: 1px solid #dfe3e8; border-radius: 6px; }
 
 .shadow-card {
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05), 0 1px 3px 0 rgb(0 0 0 / 0.06);
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 }
 .shadow-card-hover {
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07);
 }
 .shadow-modal {
-  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.08);
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1);
 }
 .shadow-topbar {
-  box-shadow: 0 1px 0 0 #E2E8F0;
+  box-shadow: 0 1px 0 0 #dfe3e8;
 }
 
 /* ─────────────────────────────────────────────────────────
    Brand gradient (modal accent bar, progress fills)
    ───────────────────────────────────────────────────────── */
 .bg-brand-gradient {
-  background: linear-gradient(90deg, #2563EB 0%, #3B82F6 100%);
+  background: linear-gradient(90deg, #1f5fa8 0%, #2a7bc9 100%);
 }
 
 /* ─────────────────────────────────────────────────────────
@@ -110,19 +111,62 @@ body {
    ───────────────────────────────────────────────────────── */
 .input-base {
   width: 100%;
-  border: 1px solid #E2E8F0;
-  border-radius: 6px;
-  background: #FFFFFF;
-  padding: 7px 12px;
+  border: 1px solid #dfe3e8;
+  border-radius: 4px;
+  background: #ffffff;
+  padding: 7px 10px;
   font-size: 13px;
-  color: #0F172A;
+  color: #2b2f36;
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
-.input-base::placeholder { color: #94A3B8; }
+.input-base::placeholder { color: #6b7280; }
 .input-base:focus {
-  border-color: #2563EB;
-  box-shadow: 0 0 0 3px rgb(37 99 235 / 0.10);
+  border-color: #1f5fa8;
+  box-shadow: 0 0 0 3px rgb(31 95 168 / 0.10);
+}
+
+/* ─────────────────────────────────────────────────────────
+   Form row layout — Sankirtan-style 2 column
+   ───────────────────────────────────────────────────────── */
+.form-row {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f2f3f5;
+}
+.form-row:last-child { border-bottom: none; }
+.form-row label {
+  font-size: 13px;
+  color: #2b2f36;
+  font-weight: 500;
+}
+.form-row .req {
+  color: #d0392b;
+  margin-left: 2px;
+}
+.form-row input,
+.form-row select,
+.form-row textarea {
+  width: 100%;
+  max-width: 340px;
+  padding: 7px 10px;
+  border: 1px solid #dfe3e8;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: inherit;
+  color: #2b2f36;
+  background: #fff;
+  transition: border-color 0.15s ease;
+}
+.form-row input:focus,
+.form-row select:focus,
+.form-row textarea:focus {
+  border-color: #1f5fa8;
+  outline: none;
+  box-shadow: 0 0 0 3px rgb(31 95 168 / 0.10);
 }
 
 /* ─────────────────────────────────────────────────────────
@@ -137,11 +181,82 @@ body {
 .page-title {
   font-size: 18px;
   font-weight: 600;
-  color: #0F172A;
+  color: #2b2f36;
   letter-spacing: -0.01em;
 }
 .page-subtitle {
   font-size: 13px;
-  color: #64748B;
+  color: #6b7280;
   margin-top: 2px;
 }
+
+/* ─────────────────────────────────────────────────────────
+   Buttons — Sankirtan style
+   ───────────────────────────────────────────────────────── */
+.btn {
+  padding: 8px 18px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid #dfe3e8;
+  background: #fff;
+  color: #2b2f36;
+  transition: all 0.2s ease;
+}
+.btn:hover {
+  background: #f4f6f8;
+}
+.btn.primary {
+  background: #1f5fa8;
+  border-color: #1f5fa8;
+  color: #fff;
+}
+.btn.primary:hover {
+  background: #12406f;
+  border-color: #12406f;
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ─────────────────────────────────────────────────────────
+   Tables — Sankirtan style
+   ───────────────────────────────────────────────────────── */
+.table-data {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.table-data th {
+  text-align: left;
+  background: #f7f9fb;
+  color: #6b7280;
+  font-weight: 600;
+  padding: 9px 12px;
+  border-bottom: 1px solid #dfe3e8;
+}
+.table-data td {
+  padding: 9px 12px;
+  border-bottom: 1px solid #f2f3f5;
+}
+.table-data tr:hover td {
+  background: #fafbfc;
+}
+
+/* ─────────────────────────────────────────────────────────
+   Badges — Status indicators
+   ───────────────────────────────────────────────────────── */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.badge.unsettled { background: #fdecea; color: #d0392b; }
+.badge.settled { background: #e6f4ea; color: #1e7a3e; }
+.badge.partial { background: #fff6e0; color: #8a6300; }
+.badge.active { background: #e6f4ea; color: #1e7a3e; }
+.badge.inactive { background: #fdecea; color: #d0392b; }

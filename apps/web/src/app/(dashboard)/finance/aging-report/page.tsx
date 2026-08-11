@@ -32,7 +32,7 @@ export default function AgingReportPage() {
     <div className="space-y-6">
       <div>
         <h1 className="page-title flex items-center gap-2">
-          <CalendarClock size={18} className="text-slate-500" />
+          <CalendarClock size={18} style={{color: '#6b7280'}} />
           AR Aging Report
         </h1>
         <p className="page-subtitle mt-1">Outstanding receivables bucketed by age</p>
@@ -65,22 +65,22 @@ export default function AgingReportPage() {
 
           {/* Bucket breakdown */}
           <div className="bg-white rounded-lg border border-slate-200 shadow-card p-6">
-            <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider mb-5">
+            <p style={{fontSize: '12px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '20px'}}>
               Aging Buckets
             </p>
             <div className="space-y-4">
               {BUCKETS.map((b, i) => (
                 <div key={b.key}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[13px] font-medium text-slate-700">{b.label}</span>
-                    <span className={`text-[13px] font-mono font-semibold ${b.textColor}`}>
+                  <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px'}}>
+                    <span style={{fontSize: '13px', fontWeight: 500, color: '#2b2f36'}}>{b.label}</span>
+                    <span style={{fontSize: '13px', fontFamily: 'monospace', fontWeight: 600, color: b.textColor.split(' ')[1]}}>
                       ₹{bucketTotals[i].toLocaleString()}
                     </span>
                   </div>
-                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div style={{height: '8px', background: '#f3f4f6', borderRadius: '9999px', overflow: 'hidden'}}>
                     <div
-                      className={`h-full rounded-full ${b.color} transition-all duration-500`}
-                      style={{ width: `${(bucketTotals[i] / maxVal) * 100}%` }}
+                      style={{height: '100%', borderRadius: '9999px', background: b.color.split(' ')[1], transition: 'width 0.5s ease'}}
+                      style={{ height: '100%', borderRadius: '9999px', background: b.color.split(' ')[1], transition: 'width 0.5s ease', width: `${(bucketTotals[i] / maxVal) * 100}%` }}
                     />
                   </div>
                 </div>
@@ -95,11 +95,11 @@ export default function AgingReportPage() {
                 key={b.key}
                 className="bg-white rounded-lg border border-slate-200 shadow-card p-4"
               >
-                <div className="flex items-center gap-2 mb-2">
-                  <div className={`h-2 w-2 rounded-full ${b.color}`} />
-                  <span className="text-[11px] text-slate-500 font-medium">{b.label}</span>
+                <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px'}}>
+                  <div style={{height: '8px', width: '8px', borderRadius: '50%', background: b.color.split(' ')[1]}} />
+                  <span style={{fontSize: '11px', color: '#6b7280', fontWeight: 500}}>{b.label}</span>
                 </div>
-                <p className="text-xl font-semibold font-mono text-slate-900">
+                <p style={{fontSize: '20px', fontWeight: 600, fontFamily: 'monospace', color: '#2b2f36'}}>
                   ₹{bucketTotals[i].toLocaleString()}
                 </p>
               </div>

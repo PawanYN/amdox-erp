@@ -216,10 +216,13 @@ the volume).
 
 ## 5. What's still open
 
-- **`docker-compose.prod.yml` equivalent** — this implementation lives in
+- ~~**`docker-compose.prod.yml` equivalent** — this implementation lives in
   the dev compose file (`infra/docker/docker-compose.yml`); the
   prod/deployment version of the same two services is still pending on
-  the Day 22 "docker-compose.prod.yml is empty" gap.
+  the Day 22 "docker-compose.prod.yml is empty" gap.~~ **Done** —
+  `docker-compose.prod.yml` now defines both `api-db` and `api-db-replica`,
+  matching the dev compose file's replica setup (same `PRIMARY_HOST`/
+  `REPLICATION_PASSWORD` env vars, same `replica-entrypoint.sh` mount).
 - **No cloud-managed replica** (RDS/Cloud SQL read replica) — this is a
   self-hosted streaming replica matching the existing dev stack's own
   self-hosted primary; a managed cloud replica for a real deployment would

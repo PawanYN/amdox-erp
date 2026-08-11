@@ -45,9 +45,9 @@ type ForecastStatus = {
 };
 
 function MapeChip({ score }: { score: number | null }) {
-  if (score === null) return <span className="text-[11px] text-[#8A8678]">—</span>;
+  if (score === null) return <span className="text-[11px]" style={{color: '#6b7280'}}>—</span>;
   const pct = score * 100;
-  const color = pct < 10 ? "#2F6B4F" : pct < 12 ? "#D9A85C" : "#B4533B";
+  const color = pct < 10 ? "#059669" : pct < 12 ? "#d97706" : "#b91c1c";
   return (
     <span className="text-[11px] font-medium font-mono" style={{ color }}>
       {pct.toFixed(1)}%
@@ -56,16 +56,16 @@ function MapeChip({ score }: { score: number | null }) {
 }
 
 function ModelBadge({ type }: { type: string | null }) {
-  if (!type) return <span className="text-[11px] text-[#8A8678]">—</span>;
+  if (!type) return <span className="text-[11px]" style={{color: '#6b7280'}}>—</span>;
   return (
-    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#1E3A5F]/10 text-[#1E3A5F]">
+    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded" style={{background: '#eff6ff', color: '#1f5fa8'}}>
       {type}
     </span>
   );
 }
 
 function TrainedAtCell({ trainedAt }: { trainedAt: string | null }) {
-  if (!trainedAt) return <span className="text-[11px] text-[#8A8678]">Not trained</span>;
+  if (!trainedAt) return <span className="text-[11px]" style={{color: '#6b7280'}}>Not trained</span>;
   const d = new Date(trainedAt);
   const now = new Date();
   const daysDiff = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
@@ -73,11 +73,12 @@ function TrainedAtCell({ trainedAt }: { trainedAt: string | null }) {
   const stale = daysDiff > 7;
   return (
     <span
-      className={`text-[11px] flex items-center gap-1 ${stale ? "text-[#D9A85C]" : "text-[#4A4740]"}`}
+      className="text-[11px] flex items-center gap-1"
+      style={{color: stale ? "#d97706" : "#4b5563"}}
     >
-      {stale ? <Clock size={10} /> : <CheckCircle size={10} className="text-[#2F6B4F]" />}
+      {stale ? <Clock size={10} /> : <CheckCircle size={10} style={{color: '#059669'}} />}
       {label}
-      {stale && <span className="text-[10px] text-[#D9A85C]">(stale)</span>}
+      {stale && <span className="text-[10px]" style={{color: '#d97706'}}>(stale)</span>}
     </span>
   );
 }
@@ -149,7 +150,7 @@ export default function ForecastPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-48 text-[#8A8678] gap-2">
+      <div className="flex items-center justify-center h-48 gap-2" style={{color: '#6b7280'}}>
         <Loader2 size={16} className="animate-spin" />
         <span className="text-[13px]">Loading forecast status…</span>
       </div>
@@ -159,7 +160,7 @@ export default function ForecastPage() {
   return (
     <div className="space-y-5">
       {error && (
-        <div className="rounded-lg border border-[#B4533B]/30 bg-[#B4533B]/5 px-4 py-3 text-[12px] text-[#B4533B]">
+        <div className="rounded-lg px-4 py-3 text-[12px]" style={{border: '1px solid #fecaca', background: '#fef2f2', color: '#b91c1c'}}>
           {error}
         </div>
       )}
@@ -167,18 +168,21 @@ export default function ForecastPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-[13px] font-semibold text-[#14171F] flex items-center gap-2">
-            <TrendingUp size={14} className="text-[#1E3A5F]" />
+          <p className="text-[13px] font-semibold flex items-center gap-2" style={{color: '#2b2f36'}}>
+            <TrendingUp size={14} style={{color: '#1f5fa8'}} />
             AI Demand Forecast — All SKUs
           </p>
-          <p className="text-[11px] text-[#8A8678] mt-0.5">
+          <p className="text-[11px] mt-0.5" style={{color: '#6b7280'}}>
             Prophet / statistical fallback · 90-day horizon · F-06
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={load}
-            className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-md border border-[#E4E2DC] text-[#4A4740] hover:bg-[#F0EEE7]"
+            className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-md transition-colors"
+            style={{border: '1px solid #dfe3e8', color: '#4b5563'}}
+            onMouseEnter={(e) => e.currentTarget.style.background = '#f4f6f8'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
           >
             <RefreshCw size={10} />
             Refresh
@@ -186,7 +190,10 @@ export default function ForecastPage() {
           <button
             onClick={trainAllItems}
             disabled={trainAll}
-            className="inline-flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-md bg-[#1E3A5F] text-white disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-md text-white disabled:opacity-50"
+            style={{background: '#1f5fa8'}}
+            onMouseEnter={(e) => !trainAll && (e.currentTarget.style.background = '#1a4a80')}
+            onMouseLeave={(e) => e.currentTarget.style.background = '#1f5fa8'}
           >
             {trainAll ? <Loader2 size={10} className="animate-spin" /> : <BarChart2 size={10} />}
             {trainAll ? "Training all…" : "Train all SKUs"}
@@ -196,33 +203,33 @@ export default function ForecastPage() {
 
       {/* Stats cards */}
       <div className="grid grid-cols-4 gap-3">
-        <div className="rounded-lg border border-[#E4E2DC] bg-white px-4 py-3">
-          <p className="text-[10px] text-[#8A8678] font-medium uppercase tracking-wide">
+        <div className="rounded-lg bg-white px-4 py-3" style={{border: '1px solid #dfe3e8'}}>
+          <p className="text-[10px] font-medium uppercase tracking-wide" style={{color: '#6b7280'}}>
             Total SKUs
           </p>
-          <p className="text-[22px] font-bold text-[#14171F] mt-0.5">{items.length}</p>
+          <p className="text-[22px] font-bold mt-0.5" style={{color: '#2b2f36'}}>{items.length}</p>
         </div>
-        <div className="rounded-lg border border-[#E4E2DC] bg-white px-4 py-3">
-          <p className="text-[10px] text-[#8A8678] font-medium uppercase tracking-wide">Trained</p>
-          <p className="text-[22px] font-bold text-[#2F6B4F] mt-0.5">
+        <div className="rounded-lg bg-white px-4 py-3" style={{border: '1px solid #dfe3e8'}}>
+          <p className="text-[10px] font-medium uppercase tracking-wide" style={{color: '#6b7280'}}>Trained</p>
+          <p className="text-[22px] font-bold mt-0.5" style={{color: '#059669'}}>
             {trained.length}
-            <span className="text-[13px] font-normal text-[#8A8678] ml-1">/ {items.length}</span>
+            <span className="text-[13px] font-normal ml-1" style={{color: '#6b7280'}}>/ {items.length}</span>
           </p>
         </div>
-        <div className="rounded-lg border border-[#E4E2DC] bg-white px-4 py-3">
-          <p className="text-[10px] text-[#8A8678] font-medium uppercase tracking-wide">Avg MAPE</p>
+        <div className="rounded-lg bg-white px-4 py-3" style={{border: '1px solid #dfe3e8'}}>
+          <p className="text-[10px] font-medium uppercase tracking-wide" style={{color: '#6b7280'}}>Avg MAPE</p>
           <p
             className="text-[22px] font-bold mt-0.5"
-            style={{ color: avgMape !== null && avgMape * 100 < 12 ? "#2F6B4F" : "#D9A85C" }}
+            style={{ color: avgMape !== null && avgMape * 100 < 12 ? "#059669" : "#d97706" }}
           >
             {avgMape !== null ? `${(avgMape * 100).toFixed(1)}%` : "—"}
           </p>
         </div>
-        <div className="rounded-lg border border-[#E4E2DC] bg-white px-4 py-3">
-          <p className="text-[10px] text-[#8A8678] font-medium uppercase tracking-wide">
+        <div className="rounded-lg bg-white px-4 py-3" style={{border: '1px solid #dfe3e8'}}>
+          <p className="text-[10px] font-medium uppercase tracking-wide" style={{color: '#6b7280'}}>
             Stale (&gt;7d)
           </p>
-          <p className="text-[22px] font-bold text-[#D9A85C] mt-0.5">
+          <p className="text-[22px] font-bold mt-0.5" style={{color: '#d97706'}}>
             {
               trained.filter((i) => {
                 if (!i.trainedAt) return false;
@@ -235,9 +242,9 @@ export default function ForecastPage() {
 
       {/* MAPE bar chart */}
       {mapeData.length > 0 && (
-        <div className="rounded-lg border border-[#E4E2DC] bg-white p-4">
-          <p className="text-[11px] font-semibold text-[#8A8678] mb-3 flex items-center gap-1">
-            <BarChart2 size={11} className="text-[#1E3A5F]" />
+        <div className="rounded-lg bg-white p-4" style={{border: '1px solid #dfe3e8'}}>
+          <p className="text-[11px] font-semibold mb-3 flex items-center gap-1" style={{color: '#6b7280'}}>
+            <BarChart2 size={11} style={{color: '#1f5fa8'}} />
             MAPE by SKU (lower is better · target &lt;12%)
           </p>
           <MapeChart data={mapeData} theme={MAPE_CHART_THEME} />
@@ -245,25 +252,25 @@ export default function ForecastPage() {
       )}
 
       {/* SKU table */}
-      <div className="rounded-lg border border-[#E4E2DC] overflow-hidden">
+      <div className="rounded-lg overflow-hidden" style={{border: '1px solid #dfe3e8'}}>
         <div className="overflow-x-auto">
           <table className="w-full text-[12px]">
             <thead>
-              <tr className="bg-[#FAFAF9] border-b border-[#E4E2DC]">
-                <th className="text-left px-3 py-2 text-[#8A8678] font-medium">SKU / Product</th>
-                <th className="text-left px-3 py-2 text-[#8A8678] font-medium">Model</th>
-                <th className="text-right px-3 py-2 text-[#8A8678] font-medium">MAPE</th>
-                <th className="text-right px-3 py-2 text-[#8A8678] font-medium">Predictions</th>
-                <th className="text-left px-3 py-2 text-[#8A8678] font-medium">Last trained</th>
-                <th className="text-right px-3 py-2 text-[#8A8678] font-medium">Action</th>
+              <tr style={{background: '#f7f9fb', borderBottom: '1px solid #dfe3e8'}}>
+                <th className="text-left px-3 py-2 font-medium" style={{color: '#6b7280'}}>SKU / Product</th>
+                <th className="text-left px-3 py-2 font-medium" style={{color: '#6b7280'}}>Model</th>
+                <th className="text-right px-3 py-2 font-medium" style={{color: '#6b7280'}}>MAPE</th>
+                <th className="text-right px-3 py-2 font-medium" style={{color: '#6b7280'}}>Predictions</th>
+                <th className="text-left px-3 py-2 font-medium" style={{color: '#6b7280'}}>Last trained</th>
+                <th className="text-right px-3 py-2 font-medium" style={{color: '#6b7280'}}>Action</th>
               </tr>
             </thead>
             <tbody>
               {items.map((item) => (
-                <tr key={item.id} className="border-b border-[#F0EEE7] hover:bg-[#FAFAF9]">
+                <tr key={item.id} className="transition-colors" style={{borderBottom: '1px solid #e5e7eb'}} onMouseEnter={(e) => e.currentTarget.style.background = '#fafbfc'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                   <td className="px-3 py-2">
-                    <p className="font-medium text-[#14171F]">{item.name}</p>
-                    <p className="text-[10px] text-[#8A8678] font-mono">
+                    <p className="font-medium" style={{color: '#2b2f36'}}>{item.name}</p>
+                    <p className="text-[10px] font-mono" style={{color: '#6b7280'}}>
                       {item.sku} · {item.category ?? "General"}
                     </p>
                   </td>
@@ -273,11 +280,11 @@ export default function ForecastPage() {
                   <td className="px-3 py-2 text-right">
                     <MapeChip score={item.mapeScore} />
                   </td>
-                  <td className="px-3 py-2 text-right font-mono text-[#4A4740]">
+                  <td className="px-3 py-2 text-right font-mono" style={{color: '#4b5563'}}>
                     {item.predictionCount > 0 ? (
                       item.predictionCount
                     ) : (
-                      <span className="text-[#8A8678]">—</span>
+                      <span style={{color: '#6b7280'}}>—</span>
                     )}
                   </td>
                   <td className="px-3 py-2">
@@ -287,7 +294,10 @@ export default function ForecastPage() {
                     <button
                       onClick={() => trainOne(item.id)}
                       disabled={training[item.id] || trainAll}
-                      className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md bg-[#1E3A5F] text-white disabled:opacity-50"
+                      className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md text-white disabled:opacity-50"
+                      style={{background: '#1f5fa8'}}
+                      onMouseEnter={(e) => !training[item.id] && !trainAll && (e.currentTarget.style.background = '#1a4a80')}
+                      onMouseLeave={(e) => e.currentTarget.style.background = '#1f5fa8'}
                     >
                       {training[item.id] ? (
                         <Loader2 size={9} className="animate-spin" />

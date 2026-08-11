@@ -35,22 +35,31 @@
 
 ## Remaining (next sprint)
 
-- [ ] Wire `projects/new` wizard to POST `/pm/projects`
-- [ ] Invoice upload UI + `financeApi.uploadInvoice`
-- [ ] SCM inventory page: forecast train button per product
-- [ ] HR leave/attendance pages: remove dead mock imports (APIs already wired)
-- [ ] Install `@aws-sdk/client-textract` when ready for real OCR
-- [ ] Deploy + demo video (after local verification)
+All items originally listed here are now done, verified against the code:
+[x] Wire `projects/new` wizard to POST `/pm/projects` — `pmApi.createProject()` call confirmed in `apps/web/src/app/(dashboard)/projects/new/page.tsx`.
+[x] Invoice upload UI + `financeApi.uploadInvoice` — both the API method and the calling UI exist.
+[x] SCM inventory page: forecast train button per product — `forecastApi.train(productId)` wired to a button in `scm/inventory/page.tsx`.
+[x] HR leave/attendance pages: remove dead mock imports — `lib/mock/` no longer exists at all (removed this session).
+[x] Deploy + demo video — app is publicly live; demo video link is in the README.
+
+The only item still genuinely open:
+
+- [ ] Install `@aws-sdk/client-textract` when ready for real OCR (`apps/api/src/finance/ap/ocr.service.ts` intentionally lazy-`require`s it only when `OCR_PROVIDER=textract` is set — package deliberately not installed yet)
 
 ---
 
 ## Out of scope (this sprint)
 
-- Real email/SMS/webhook delivery
-- Vendor external portal
+All items originally listed here as out-of-scope were actually built:
+
+- Real email/SMS/webhook delivery — `notification/channels/{email,sms,webhook}.channel.ts` all do real dispatch (SMTP/Nodemailer, HTTP webhook, HMAC-signed webhook respectively).
+- Vendor external portal — full portal exists on both sides (`apps/api/src/scm/vendor-portal/`, `apps/web/src/app/vendor-portal/`).
+- Kubernetes / CI/CD deployment — Helm chart (`infra/helm/amdox/`) + ArgoCD GitOps manifest (`infra/argocd/amdox-prod.yaml`) both exist.
+- GraphQL gateway — `apps/api/src/infrastructure/graphql/` implements a real, auth-guarded GraphQL API.
+
+Still genuinely out of scope:
+
 - PWA / offline
-- Kubernetes / CI/CD deployment
-- GraphQL gateway
 
 ---
 

@@ -25,15 +25,15 @@ export function StatCard({
 }: StatCardProps) {
   return (
     <div
-      className="animate-fade-in-up bg-white rounded-lg border border-slate-200 p-5 shadow-card hover:shadow-card-hover transition-shadow duration-200"
-      style={{ animationDelay: delay }}
+      className="animate-fade-in-up bg-white rounded-lg p-5 shadow-card hover:shadow-card-hover transition-shadow duration-200"
+      style={{ animationDelay: delay, border: '1px solid #dfe3e8' }}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-1.5">
+          <p className="text-[11px] font-semibold uppercase tracking-widest mb-1.5" style={{color: '#6b7280'}}>
             {label}
           </p>
-          <p className="text-2xl font-semibold text-slate-900 tracking-tight">{value}</p>
+          <p className="text-2xl font-semibold tracking-tight" style={{color: '#2b2f36'}}>{value}</p>
           {delta && (
             <p
               className={`text-[11px] font-medium mt-1 ${

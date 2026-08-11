@@ -49,8 +49,9 @@
 | -------- | --------------------------------------------- |
 | Settings | General tab — no `PUT /tenant/config` save    |
 | HR       | Employees filter hides `EMP-100`              |
-| SCM      | Purchase Orders "New PO" button dead          |
 | Projects | No create-task UI on tasks page (wizard only) |
+
+**Resolved since:** SCM Purchase Orders "New PO" button — now a working "Create PO" flow (`createPoFromRequisition()` in `apps/web/src/app/(dashboard)/scm/purchase-orders/page.tsx`, calls `scmApi.createPurchaseOrder()`).
 
 ---
 

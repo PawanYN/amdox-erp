@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { StatCard } from "@/components/ui/stat-card";
 import { Modal, inputClasses } from "@/components/ui/modal";
+import { FormRow, FormInput } from "@/components/ui/form-row";
 import { scmApi } from "@/lib/api/scm-api";
 
 type BackendVendor = {
@@ -124,84 +125,20 @@ export default function VendorsPage() {
     }
   };
 
-  const columns: ColumnDef<BackendVendor>[] = [
-    {
-      header: "Vendor",
-      cell: (v) => (
-        <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 shrink-0">
-            <Building2 size={14} />
-          </div>
-          <div>
-            <p className="text-[13px] font-semibold text-slate-900">{v.name}</p>
-            <p className="text-[11px] text-slate-500">{v.email || "No email"}</p>
-          </div>
-        </div>
-      ),
-    },
-    {
-      header: "Phone",
-      cell: (v) => <span className="text-[13px] text-slate-500">{v.phone || "—"}</span>,
-    },
-    {
-      header: "Status",
-      cell: (v) => (
-        <Badge tone={v.isActive ? "active" : "inactive"}>
-          {v.isActive ? "Active" : "Inactive"}
-        </Badge>
-      ),
-    },
-    {
-      header: "Portal",
-      cell: (v) => (
-        <button
-          type="button"
-          onClick={() => handleIssuePortalKey(v)}
-          disabled={!v.email || issuingKeyFor === v.id}
-          className="inline-flex items-center gap-1.5 text-[12px] font-medium text-blue-600 hover:text-blue-700 hover:underline disabled:opacity-50 disabled:cursor-not-allowed disabled:no-underline"
-          title={v.email ? "Issue supplier portal access key" : "Add vendor email first"}
-        >
-          <KeyRound size={13} />
-          {issuingKeyFor === v.id ? "Issuing…" : "Issue key"}
-        </button>
-      ),
-    },
-    {
-      header: "Actions",
-      cell: (v) => (
-        <div className="flex gap-2">
-          <button
-            onClick={() => openEdit(v)}
-            className="flex h-7 w-7 items-center justify-center rounded-md bg-slate-50 border border-slate-200 text-slate-600 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-colors"
-          >
-            <Pencil size={13} />
-          </button>
-          <button
-            onClick={() => handleDelete(v)}
-            className="flex h-7 w-7 items-center justify-center rounded-md bg-slate-50 border border-slate-200 text-slate-600 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors"
-          >
-            <Trash2 size={13} />
-          </button>
-        </div>
-      ),
-    },
-  ];
-
-  const activeVendors = vendors.filter((v) => v.isActive).length;
-
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <Building2 size={18} className="text-slate-500" />
+            <Building2 size={18} style={{color: '#6b7280'}} />
             Vendors
           </h1>
           <p className="page-subtitle mt-1">Manage vendor profiles, contacts and portal access</p>
         </div>
-        <Button icon={<Plus size={14} />} onClick={openCreate}>
+        <button className="btn primary" onClick={openCreate} style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
+          <Plus size={14} />
           Add Vendor
-        </Button>
+        </button>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
@@ -214,61 +151,120 @@ export default function VendorsPage() {
         />
         <StatCard
           label="Active"
-          value={activeVendors}
+          value={vendors.filter((v) => v.isActive).length}
           icon={<Users size={16} />}
           gradient="from-emerald-500 to-emerald-600"
           delay="0.05s"
         />
       </div>
 
-      <DataTable
-        data={vendors}
-        columns={columns}
-        keyExtractor={(v) => v.id}
-        emptyMessage={loading ? "Loading vendors…" : "No vendors found."}
-      />
+      <div className="bg-card" style={{border: '1px solid #dfe3e8', borderRadius: '6px', overflow: 'hidden'}}>
+        <table className="table-data" style={{width: '100%'}}>
+          <thead>
+            <tr>
+              <th>Vendor</th>
+              <th>Phone</th>
+              <th>Status</th>
+              <th>Portal</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={5} style={{textAlign: 'center', padding: '40px', color: '#6b7280'}}>Loading vendors…</td></tr>
+            ) : vendors.length === 0 ? (
+              <tr><td colSpan={5} style={{textAlign: 'center', padding: '40px', color: '#6b7280'}}>No vendors found.</td></tr>
+            ) : (
+              vendors.map((v) => (
+                <tr key={v.id}>
+                  <td>
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-md border flex items-center justify-center shrink-0" style={{background: '#e8f1fb', borderColor: '#dfe3e8'}}>
+                        <Building2 size={14} style={{color: '#1f5fa8'}} />
+                      </div>
+                      <div>
+                        <p className="text-[13px] font-semibold" style={{color: '#2b2f36'}}>{v.name}</p>
+                        <p className="text-[11px]" style={{color: '#6b7280'}}>{v.email || "No email"}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td><span className="text-[13px]" style={{color: '#6b7280'}}>{v.phone || "—"}</span></td>
+                  <td><Badge tone={v.isActive ? "active" : "inactive"}>{v.isActive ? "Active" : "Inactive"}</Badge></td>
+                  <td>
+                    <button
+                      type="button"
+                      onClick={() => handleIssuePortalKey(v)}
+                      disabled={!v.email || issuingKeyFor === v.id}
+                      className="inline-flex items-center gap-1.5 text-[12px] font-medium hover:underline disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      style={{color: v.email && issuingKeyFor !== v.id ? '#1f5fa8' : '#6b7280'}}
+                      title={v.email ? "Issue supplier portal access key" : "Add vendor email first"}
+                    >
+                      <KeyRound size={13} />
+                      {issuingKeyFor === v.id ? "Issuing…" : "Issue key"}
+                    </button>
+                  </td>
+                  <td>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => openEdit(v)}
+                        className="flex h-7 w-7 items-center justify-center rounded-md border transition-colors"
+                        style={{background: '#f4f6f8', borderColor: '#dfe3e8', color: '#6b7280'}}
+                        onMouseEnter={(e) => {e.currentTarget.style.background = '#e8f1fb'; e.currentTarget.style.borderColor = '#1f5fa8'; e.currentTarget.style.color = '#1f5fa8'}}
+                        onMouseLeave={(e) => {e.currentTarget.style.background = '#f4f6f8'; e.currentTarget.style.borderColor = '#dfe3e8'; e.currentTarget.style.color = '#6b7280'}}
+                      >
+                        <Pencil size={13} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(v)}
+                        className="flex h-7 w-7 items-center justify-center rounded-md border transition-colors"
+                        style={{background: '#f4f6f8', borderColor: '#dfe3e8', color: '#6b7280'}}
+                        onMouseEnter={(e) => {e.currentTarget.style.background = '#fdecea'; e.currentTarget.style.borderColor = '#d0392b'; e.currentTarget.style.color = '#d0392b'}}
+                        onMouseLeave={(e) => {e.currentTarget.style.background = '#f4f6f8'; e.currentTarget.style.borderColor = '#dfe3e8'; e.currentTarget.style.color = '#6b7280'}}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
 
       <Modal
         open={formOpen}
         onClose={() => setFormOpen(false)}
         title={editing ? "Edit Vendor" : "Add Vendor"}
       >
-        <div className="space-y-4">
-          <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Name *</label>
-            <input
-              className={inputClasses}
+        <div style={{padding: '20px 24px'}}>
+          <FormRow label="Name" required>
+            <FormInput
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Acme Supplies"
             />
-          </div>
-          <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Email</label>
-            <input
-              className={inputClasses}
+          </FormRow>
+          <FormRow label="Email">
+            <FormInput
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="contact@vendor.com"
             />
-          </div>
-          <div>
-            <label className="text-[12px] font-medium text-slate-600 block mb-1.5">Phone</label>
-            <input
-              className={inputClasses}
+          </FormRow>
+          <FormRow label="Phone">
+            <FormInput
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="+91 98765 43210"
             />
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => setFormOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave} disabled={saving}>
+          </FormRow>
+          <div style={{marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end'}}>
+            <button className="btn" onClick={() => setFormOpen(false)}>Cancel</button>
+            <button className="btn primary" onClick={handleSave} disabled={saving}>
               {saving ? "Saving…" : editing ? "Update" : "Create"}
-            </Button>
+            </button>
           </div>
         </div>
       </Modal>
@@ -279,28 +275,27 @@ export default function VendorsPage() {
         title="Supplier portal key"
       >
         {issuedKey && (
-          <div className="space-y-4">
-            <p className="text-sm text-slate-600">
-              Key for <span className="font-semibold text-slate-900">{issuedKey.vendorName}</span>.
+          <div style={{padding: '20px 24px'}}>
+            <p style={{fontSize: '13px', color: '#6b7280', marginBottom: '12px'}}>
+              Key for <span style={{fontWeight: 600, color: '#2b2f36'}}>{issuedKey.vendorName}</span>.
               Copy it now — it is shown only once.
             </p>
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 font-mono text-sm text-slate-900 break-all select-all">
+            <div style={{borderRadius: '4px', border: '1px solid #dfe3e8', background: '#f4f6f8', padding: '12px', fontFamily: 'monospace', fontSize: '13px', color: '#2b2f36', wordBreak: 'break-all', userSelect: 'all'}}>
               {issuedKey.accessKey}
             </div>
-            <p className="text-xs text-slate-500">
-              Supplier login: <span className="font-medium">/vendor-portal</span> · tenant slug{" "}
-              <span className="font-medium">company-a</span> · vendor email · this key
+            <p style={{fontSize: '12px', color: '#6b7280', marginTop: '12px'}}>
+              Supplier login: <span style={{fontWeight: 500}}>/vendor-portal</span> · tenant slug <span style={{fontWeight: 500}}>company-a</span> · vendor email · this key
             </p>
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
+            <div style={{marginTop: '16px', display: 'flex', gap: '10px', justifyContent: 'flex-end'}}>
+              <button
+                className="btn"
                 onClick={() => {
                   void navigator.clipboard.writeText(issuedKey.accessKey);
                 }}
               >
                 Copy key
-              </Button>
-              <Button onClick={() => setIssuedKey(null)}>Done</Button>
+              </button>
+              <button className="btn primary" onClick={() => setIssuedKey(null)}>Done</button>
             </div>
           </div>
         )}

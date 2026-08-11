@@ -10,10 +10,10 @@ This document tracks naming inconsistencies, design discrepancies, or temporary 
 
 There is a mismatch in how standard roles (specifically `Tenant Admin` / `TenantAdmin`) are named across the codebase:
 
-- **Database / Tenant Service:** [tenant.service.ts](file:///w:/amdox-erp/apps/api/src/tenant/tenant.service.ts) and seeding insert the role as `'Tenant Admin'` (with a space).
-- **Controllers:** Controllers (like [vendor.controller.ts](file:///w:/amdox-erp/apps/api/src/scm/vendor/vendor.controller.ts) and [ar.controller.ts](file:///w:/amdox-erp/apps/api/src/finance/ar/ar.controller.ts)) enforce guards using `@Roles('TenantAdmin')` (without a space).
+- **Database / Tenant Service — partially resolved:** `tenant.service.ts` and `packages/db/prisma/seed.ts` now both insert the role as `'TenantAdmin'` (no space) for new tenants, matching the controllers. A one-time migration method (`provisionKcRoles()` in `tenant.service.ts`) normalizes any pre-existing tenant that still has the old spaced name. The `'Tenant Admin'` string that remains in `tenant.service.ts` is just a user's display `fullName`, unrelated to role naming.
+- **Controllers — still inconsistent:** several controllers (`payroll.controller.ts`, `leave.controller.ts`, `attendance.controller.ts`) still defensively list both `'TenantAdmin'` and `'Tenant Admin'` in `@Roles(...)`, rather than relying solely on the now-consistent stored name.
 
-### Current Temporary Workaround
+### Current Temporary Workaround (still present)
 
 In [roles.guard.ts](file:///w:/amdox-erp/apps/api/src/auth/guards/roles.guard.ts), we normalize user roles by stripping all spaces before comparing them against required roles:
 
