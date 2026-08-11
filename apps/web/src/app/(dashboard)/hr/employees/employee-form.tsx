@@ -403,7 +403,7 @@ export function EmployeeForm({
 
         <div
           style={{
-            padding: "10px 24px",
+            padding: "16px 24px 20px 24px",
             backgroundColor: `${COLORS.pageBg}99`,
             borderBottom: `1px solid ${COLORS.borders}`,
             position: "relative",
@@ -564,13 +564,13 @@ export function EmployeeForm({
             <div
               style={{
                 flex: 1,
-                padding: "20px",
+                padding: "24px",
                 display: "flex",
                 flexDirection: "column",
-                gap: "16px",
+                gap: "20px",
                 maxWidth: "65%",
                 overflowY: "auto",
-                maxHeight: "55vh",
+                maxHeight: "calc(100vh - 280px)",
               }}
             >
               {step === 1 && (
@@ -580,14 +580,14 @@ export function EmployeeForm({
                     borderRadius: "16px",
                     border: `1px solid ${COLORS.borders}`,
                     boxShadow: "0 8px 30px rgba(0,0,0,0.05)",
-                    padding: "20px",
+                    padding: "24px",
                     display: "flex",
                     flexDirection: "column",
-                    gap: "16px",
+                    gap: "20px",
                     animation: "fade-in 300ms ease-in-out",
                   }}
                 >
-                  <div>
+                  <div style={{ marginBottom: "8px" }}>
                     <h3
                       style={{
                         fontSize: "14px",
@@ -599,12 +599,12 @@ export function EmployeeForm({
                     >
                       Personal Information
                     </h3>
-                    <p style={{ fontSize: "11px", color: COLORS.muted, marginTop: "2px" }}>
+                    <p style={{ fontSize: "11px", color: COLORS.muted, marginTop: "4px" }}>
                       Provide contact information and verify identification parameters.
                     </p>
                   </div>
 
-                  <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                     <FormRow columns={2}>
                       <FormInput
                         label="First name"
@@ -630,7 +630,7 @@ export function EmployeeForm({
                       />
                     </FormRow>
 
-                    <FormRow columns={2}>
+                    <FormRow columns={2} style={{ marginTop: "8px" }}>
                       <FormInput
                         type="email"
                         label="Email Address"
@@ -656,7 +656,7 @@ export function EmployeeForm({
                       />
                     </FormRow>
 
-                    <FormRow columns={1}>
+                    <FormRow columns={1} style={{ marginTop: "8px" }}>
                       <FormInput
                         type="date"
                         label="Date of Birth"
@@ -675,14 +675,14 @@ export function EmployeeForm({
                     borderRadius: "16px",
                     border: `1px solid ${COLORS.borders}`,
                     boxShadow: "0 8px 30px rgba(0,0,0,0.05)",
-                    padding: "20px",
+                    padding: "24px",
                     display: "flex",
                     flexDirection: "column",
-                    gap: "16px",
+                    gap: "20px",
                     animation: "fade-in 300ms ease-in-out",
                   }}
                 >
-                  <div>
+                  <div style={{ marginBottom: "8px" }}>
                     <h3
                       style={{
                         fontSize: "14px",
@@ -694,12 +694,12 @@ export function EmployeeForm({
                     >
                       Job Details
                     </h3>
-                    <p style={{ fontSize: "11px", color: COLORS.muted, marginTop: "2px" }}>
+                    <p style={{ fontSize: "11px", color: COLORS.muted, marginTop: "4px" }}>
                       Specify tracking codes, department assignments, and management hierarchy.
                     </p>
                   </div>
 
-                  <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                     <FormRow columns={1}>
                       <FormInput
                         label="Job Title / Designation"
@@ -709,7 +709,7 @@ export function EmployeeForm({
                       />
                     </FormRow>
 
-                    <FormRow columns={2}>
+                    <FormRow columns={2} style={{ marginTop: "8px" }}>
                       <FormInput
                         label="Employee Code"
                         placeholder="e.g. AMX-EMP-0142"
@@ -729,7 +729,7 @@ export function EmployeeForm({
                       />
                     </FormRow>
 
-                    <FormRow columns={2}>
+                    <FormRow columns={2} style={{ marginTop: "8px" }}>
                       <FormSelect
                         label="Department"
                         required
@@ -760,7 +760,7 @@ export function EmployeeForm({
                       />
                     </FormRow>
 
-                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "8px" }}>
                       <label style={{ fontSize: "12px", fontWeight: "600", color: COLORS.text }}>
                         Employment Type <span style={{ color: COLORS.error }}>*</span>
                       </label>
@@ -769,7 +769,7 @@ export function EmployeeForm({
                           display: "flex",
                           flexWrap: "wrap",
                           gap: "10px",
-                          marginTop: "6px",
+                          marginTop: "8px",
                           animation: "fade-in 300ms ease-in-out",
                         }}
                       >
@@ -824,7 +824,7 @@ export function EmployeeForm({
                       </div>
                     </div>
 
-                    <FormRow columns={1}>
+                    <FormRow columns={1} style={{ marginTop: "8px" }}>
                       <FormInput
                         type="number"
                         label="Monthly Salary (₹)"
@@ -855,14 +855,14 @@ export function EmployeeForm({
                     borderRadius: "16px",
                     border: `1px solid ${COLORS.borders}`,
                     boxShadow: "0 8px 30px rgba(0,0,0,0.05)",
-                    padding: "20px",
+                    padding: "24px",
                     display: "flex",
                     flexDirection: "column",
-                    gap: "16px",
+                    gap: "20px",
                     animation: "fade-in 300ms ease-in-out",
                   }}
                 >
-                  <div>
+                  <div style={{ marginBottom: "8px" }}>
                     <h3
                       style={{
                         fontSize: "14px",
@@ -874,19 +874,19 @@ export function EmployeeForm({
                     >
                       ERP Access Control
                     </h3>
-                    <p style={{ fontSize: "11px", color: COLORS.muted, marginTop: "2px" }}>
+                    <p style={{ fontSize: "11px", color: COLORS.muted, marginTop: "4px" }}>
                       Configure login capability settings and assign organizational security roles.
                     </p>
                   </div>
 
-                  <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                     <div
                       style={{
                         borderRadius: "12px",
                         border: `1px solid ${COLORS.borders}`,
                         backgroundColor: `${COLORS.pageBg}66`,
-                        padding: "16px",
-                        marginTop: "4px",
+                        padding: "18px",
+                        marginTop: "8px",
                       }}
                     >
                       <div
@@ -1000,7 +1000,7 @@ export function EmployeeForm({
                             ]}
                           />
 
-                          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                             <label
                               style={{ fontSize: "12px", fontWeight: "600", color: COLORS.text }}
                             >
@@ -1010,30 +1010,32 @@ export function EmployeeForm({
                               style={{
                                 display: "flex",
                                 alignItems: "center",
-                                height: "50px",
+                                minHeight: "52px",
                                 fontSize: "12px",
-                                fontWeight: "bold",
+                                fontWeight: "600",
                                 color: COLORS.success,
-                                gap: "6px",
-                                marginTop: "4px",
+                                gap: "8px",
                                 backgroundColor: COLORS.successLight,
-                                border: `1px solid ${COLORS.success}33`,
+                                border: `1px solid ${COLORS.success}44`,
                                 borderRadius: "12px",
                                 paddingLeft: "16px",
                                 paddingRight: "16px",
+                                paddingTop: "12px",
+                                paddingBottom: "12px",
                               }}
                             >
-                              <span>✓</span> System invite instructions will dispatch via email
+                              <span style={{ fontSize: "14px", flexShrink: 0 }}>✓</span>
+                              <span>System invite instructions will dispatch via email</span>
                             </div>
                           </div>
                         </FormRow>
 
                         <div
                           style={{
-                            marginTop: "16px",
+                            marginTop: "20px",
                             display: "flex",
                             flexDirection: "column",
-                            gap: "8px",
+                            gap: "12px",
                           }}
                         >
                           <div
@@ -1041,7 +1043,7 @@ export function EmployeeForm({
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "space-between",
-                              gap: "8px",
+                              gap: "12px",
                             }}
                           >
                             <label
@@ -1083,7 +1085,7 @@ export function EmployeeForm({
                               </button>
                             )}
                           </div>
-                          <p style={{ fontSize: "11px", color: COLORS.muted }}>
+                          <p style={{ fontSize: "11px", color: COLORS.muted, lineHeight: 1.5 }}>
                             Choose which sidebar sections this person can open. Home and
                             Notifications are always included.
                           </p>
@@ -1091,7 +1093,8 @@ export function EmployeeForm({
                             style={{
                               display: "grid",
                               gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-                              gap: "8px",
+                              gap: "10px",
+                              marginTop: "8px",
                             }}
                           >
                             {MODULE_OPTIONS.map((opt) => (
@@ -1100,10 +1103,10 @@ export function EmployeeForm({
                                 style={{
                                   display: "flex",
                                   alignItems: "flex-start",
-                                  gap: "8px",
+                                  gap: "10px",
                                   borderRadius: "12px",
                                   border: `1px solid ${data.role === "TenantAdmin" ? COLORS.borders : COLORS.borders}`,
-                                  padding: "12px",
+                                  padding: "14px",
                                   backgroundColor:
                                     data.role === "TenantAdmin"
                                       ? `${COLORS.pageBg}80`
@@ -1126,14 +1129,15 @@ export function EmployeeForm({
                                 <input
                                   type="checkbox"
                                   style={{
-                                    marginTop: "2px",
+                                    marginTop: "3px",
                                     cursor: data.role === "TenantAdmin" ? "not-allowed" : "pointer",
+                                    flexShrink: 0,
                                   }}
                                   checked={data.allowedModules.includes(opt.id)}
                                   disabled={data.role === "TenantAdmin"}
                                   onChange={() => toggleModule(opt.id)}
                                 />
-                                <span style={{ display: "flex", flexDirection: "column" }}>
+                                <span style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
                                   <span
                                     style={{
                                       fontSize: "12px",
@@ -1144,7 +1148,7 @@ export function EmployeeForm({
                                   >
                                     {opt.label}
                                   </span>
-                                  <span style={{ fontSize: "10px", color: COLORS.muted }}>
+                                  <span style={{ fontSize: "10px", color: COLORS.muted, lineHeight: 1.4 }}>
                                     {opt.description}
                                   </span>
                                 </span>
@@ -1153,7 +1157,7 @@ export function EmployeeForm({
                           </div>
                           {errors.allowedModules && (
                             <span
-                              style={{ fontSize: "10px", color: COLORS.error, fontWeight: "500" }}
+                              style={{ fontSize: "11px", color: COLORS.error, fontWeight: "500", marginTop: "4px" }}
                             >
                               {errors.allowedModules}
                             </span>
@@ -1167,13 +1171,15 @@ export function EmployeeForm({
                         style={{
                           borderRadius: "12px",
                           border: `1px dashed ${COLORS.borders}`,
-                          padding: "16px",
+                          padding: "16px 18px",
                           fontSize: "12px",
                           color: COLORS.muted,
                           display: "flex",
                           alignItems: "flex-start",
-                          gap: "8px",
+                          gap: "10px",
                           backgroundColor: `${COLORS.pageBg}33`,
+                          marginTop: "12px",
+                          lineHeight: 1.5,
                         }}
                       >
                         <span
@@ -1208,10 +1214,10 @@ export function EmployeeForm({
                 flexDirection: "column",
                 justifyContent: "space-between",
                 overflowY: "auto",
-                maxHeight: "55vh",
+                maxHeight: "calc(100vh - 280px)",
               }}
             >
-              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
                 <div>
                   <h4
                     style={{
@@ -1224,7 +1230,7 @@ export function EmployeeForm({
                   >
                     Live Profile Preview
                   </h4>
-                  <p style={{ fontSize: "10px", color: COLORS.muted, marginTop: "2px" }}>
+                  <p style={{ fontSize: "10px", color: COLORS.muted, marginTop: "4px" }}>
                     Summary updates instantly.
                   </p>
                 </div>
@@ -1236,7 +1242,7 @@ export function EmployeeForm({
                     flexDirection: "column",
                     alignItems: "center",
                     textAlign: "center",
-                    padding: "20px",
+                    padding: "24px",
                     backgroundColor: COLORS.cardBg,
                     borderRadius: "16px",
                     border: `1px solid ${COLORS.borders}`,
@@ -1258,18 +1264,18 @@ export function EmployeeForm({
 
                   <div
                     style={{
-                      width: "64px",
-                      height: "64px",
+                      width: "72px",
+                      height: "72px",
                       borderRadius: "50%",
                       background: `linear-gradient(135deg, ${COLORS.primaryBlue} 0%, ${COLORS.primaryBlue}dd 100%)`,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       color: "white",
-                      fontSize: "20px",
+                      fontSize: "24px",
                       fontWeight: "800",
                       boxShadow: "0 4px 12px rgba(31, 95, 168, 0.3)",
-                      marginBottom: "12px",
+                      marginBottom: "16px",
                       transform: "scale(1)",
                       transition: "transform 300ms ease-in-out",
                       cursor: "default",
@@ -1280,11 +1286,11 @@ export function EmployeeForm({
 
                   <h4
                     style={{
-                      fontSize: "14px",
+                      fontSize: "15px",
                       fontWeight: "bold",
                       color: COLORS.text,
                       maxWidth: "100%",
-                      lineHeight: 1.2,
+                      lineHeight: 1.3,
                       textAlign: "center",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
@@ -1298,7 +1304,7 @@ export function EmployeeForm({
                       fontSize: "12px",
                       color: COLORS.muted,
                       maxWidth: "100%",
-                      marginTop: "6px",
+                      marginTop: "8px",
                       fontWeight: "normal",
                       textAlign: "center",
                       overflow: "hidden",
@@ -1309,7 +1315,7 @@ export function EmployeeForm({
                     {emailDisplay}
                   </p>
 
-                  <div style={{ marginTop: "12px" }}>
+                  <div style={{ marginTop: "16px" }}>
                     {data.needsAccess ? (
                       <span
                         style={{
@@ -1359,9 +1365,9 @@ export function EmployeeForm({
                   style={{
                     display: "flex",
                     flexDirection: "column",
-                    gap: "10px",
+                    gap: "12px",
                     backgroundColor: COLORS.cardBg,
-                    padding: "16px",
+                    padding: "20px",
                     borderRadius: "16px",
                     border: `1px solid ${COLORS.borders}33`,
                     boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
@@ -1394,7 +1400,7 @@ export function EmployeeForm({
                         justifyContent: "space-between",
                         alignItems: "center",
                         fontSize: "12px",
-                        paddingBottom: "10px",
+                        paddingBottom: "12px",
                         borderBottom: idx < 5 ? `1px solid ${COLORS.borders}33` : "none",
                       }}
                     >
@@ -1430,7 +1436,7 @@ export function EmployeeForm({
                         justifyContent: "space-between",
                         alignItems: "flex-start",
                         fontSize: "12px",
-                        paddingTop: "10px",
+                        paddingTop: "12px",
                       }}
                     >
                       <span
@@ -1469,7 +1475,7 @@ export function EmployeeForm({
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            padding: "16px 24px",
+            padding: "18px 24px",
             borderTop: `1px solid ${COLORS.borders}`,
             backgroundColor: COLORS.cardBg,
             position: "relative",
