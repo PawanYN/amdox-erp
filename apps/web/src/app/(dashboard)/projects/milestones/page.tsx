@@ -299,6 +299,11 @@ export default function ProjectsMilestonesPage() {
                         <AlertTriangle size={12} /> Overdue — action required
                       </p>
                     )}
+                    {m.alert && !m.isOverdue && (
+                      <p className="text-[11px] mt-1 flex items-center gap-1" style={{color: '#d9534f'}}>
+                        <AlertTriangle size={12} /> Alert: Check milestone status
+                      </p>
+                    )}
                   </div>
                 </div>
                 {!m.isAchieved ? (
