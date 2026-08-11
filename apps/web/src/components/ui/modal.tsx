@@ -28,33 +28,116 @@ export function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-[2px] px-4 animate-fade-in"
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 50,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(0, 0, 0, 0.40)",
+        backdropFilter: "blur(2px)",
+        padding: "16px",
+        animation: "fadeIn 0.2s ease-in-out"
+      }}
       role="dialog"
       aria-modal="true"
       aria-label={ariaLabel ?? title}
       onClick={onClose}
     >
       <div
-        className={`w-full ${width} rounded-xl bg-white shadow-modal border border-slate-200 overflow-hidden animate-fade-in-up`}
+        style={{
+          width: "100%",
+          maxWidth: width === "max-w-lg" ? "512px" : width === "max-w-md" ? "448px" : width === "max-w-xl" ? "672px" : "512px",
+          borderRadius: "12px",
+          backgroundColor: "#ffffff",
+          boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.10), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+          border: "1px solid #dfe3e8",
+          overflow: "hidden",
+          animation: "fadeInUp 0.3s ease-out"
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {!hideHeader && (
-          <div className="flex items-start justify-between border-b border-slate-100 px-5 py-4">
+          <div style={{
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            borderBottom: "1px solid #dfe3e8",
+            padding: "20px"
+          }}>
             <div>
-              <h2 className="text-[15px] font-semibold text-slate-900">{title}</h2>
-              {description && <p className="mt-0.5 text-[13px] text-slate-500">{description}</p>}
+              <h2 style={{
+                fontSize: "15px",
+                fontWeight: 600,
+                color: "#2b2f36",
+                margin: 0
+              }}>{title}</h2>
+              {description && <p style={{
+                marginTop: "4px",
+                fontSize: "13px",
+                color: "#6b7280",
+                margin: 0
+              }}>{description}</p>}
             </div>
             <button
               onClick={onClose}
               aria-label="Close"
-              className="h-7 w-7 flex items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-600 transition-colors ml-3 shrink-0"
+              style={{
+                width: "28px",
+                height: "28px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "6px",
+                color: "#6b7280",
+                border: "none",
+                background: "transparent",
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+                marginLeft: "12px",
+                flexShrink: 0
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "#f4f6f8";
+                e.currentTarget.style.color = "#2b2f36";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "transparent";
+                e.currentTarget.style.color = "#6b7280";
+              }}
             >
               <X size={16} />
             </button>
           </div>
         )}
-        <div className={flush ? "" : "px-5 py-4"}>{children}</div>
+        <div style={{
+          padding: flush ? "0" : "20px"
+        }}>{children}</div>
       </div>
+      <style>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(8px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </div>
   );
 }
@@ -69,10 +152,16 @@ export function FormField({
   children: ReactNode;
 }) {
   return (
-    <label className="block">
-      <span className="mb-1 block text-[12px] font-medium text-slate-600">
+    <label style={{ display: "block" }}>
+      <span style={{
+        marginBottom: "4px",
+        display: "block",
+        fontSize: "12px",
+        fontWeight: 500,
+        color: "#2b2f36"
+      }}>
         {label}
-        {required && <span className="text-red-500 ml-0.5">*</span>}
+        {required && <span style={{ color: "#dc2626", marginLeft: "2px" }}>*</span>}
       </span>
       {children}
     </label>

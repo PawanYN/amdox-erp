@@ -1,11 +1,26 @@
 "use client";
 
 import { FormEvent, useState, useEffect } from "react";
-import { Modal, inputClasses } from "@/components/ui/modal";
+import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
+import { FormRow, FormInput, FormSelect } from "@/components/ui/form-row";
 import { Employee, NewEmployeeInput } from "@/lib/types/hr";
 import { X } from "lucide-react";
 import { MODULE_OPTIONS, modulesForDepartment, type ErpModule } from "@/lib/erp-modules";
+
+// Sankirtan Design System Colors
+const COLORS = {
+  primaryBlue: "#1f5fa8",
+  text: "#2b2f36",
+  muted: "#6b7280",
+  borders: "#dfe3e8",
+  pageBg: "#f4f6f8",
+  cardBg: "#ffffff",
+  error: "#dc2626",
+  success: "#059669",
+  successLight: "#ecfdf5",
+  errorLight: "#fef2f2",
+};
 
 const STEPS = [
   { id: 1, label: "Personal Info", desc: "Basic details" },
@@ -260,8 +275,6 @@ export function EmployeeForm({
     if (errors.allowedModules) setErrors((prev) => ({ ...prev, allowedModules: "" }));
   }
 
-  const formInputClasses = `${inputClasses} h-[50px] px-4 bg-white hover:border-gray-300 focus:ring-4 focus:ring-brand-purple/10`;
-
   function handleClose() {
     reset();
     onClose();
@@ -277,19 +290,19 @@ export function EmployeeForm({
       flush
       width="max-w-[1000px] w-full"
     >
-      <div className="flex flex-col bg-white max-h-[92vh] w-full">
-        <div className="relative bg-gradient-to-r from-violet-600 via-brand-purple to-purple-600 py-3.5 px-6 md:px-8 flex items-center justify-between shadow-sm z-20 w-full">
-          <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-white/10 blur-2xl pointer-events-none" />
+      <div style={{ display: "flex", flexDirection: "column", backgroundColor: COLORS.cardBg, maxHeight: "92vh", width: "100%" }}>
+        <div style={{ position: "relative", backgroundColor: COLORS.primaryBlue, padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", boxShadow: "0 1px 3px rgba(0,0,0,0.1)", zIndex: 20, width: "100%" }}>
+          <div style={{ position: "absolute", top: "-48px", right: "-48px", width: "192px", height: "192px", borderRadius: "50%", backgroundColor: "rgba(255,255,255,0.1)", filter: "blur(56px)", pointerEvents: "none" }} />
 
-          <div className="relative z-10 flex flex-col justify-center">
-            <nav className="flex items-center text-[9px] font-bold text-white/80 uppercase tracking-widest gap-1">
+          <div style={{ position: "relative", zIndex: 10, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+            <nav style={{ display: "flex", alignItems: "center", fontSize: "9px", fontWeight: "bold", color: "rgba(255,255,255,0.8)", textTransform: "uppercase", letterSpacing: "0.05em", gap: "4px" }}>
               <span>HR</span>
-              <span className="opacity-40">/</span>
+              <span style={{ opacity: 0.4 }}>/</span>
               <span>Employees</span>
-              <span className="opacity-40">/</span>
-              <span className="text-white">{isEdit ? "Edit Employee" : "Add Employee"}</span>
+              <span style={{ opacity: 0.4 }}>/</span>
+              <span style={{ color: "white" }}>{isEdit ? "Edit Employee" : "Add Employee"}</span>
             </nav>
-            <h2 className="text-base font-extrabold text-white mt-0.5 tracking-tight uppercase leading-none">
+            <h2 style={{ fontSize: "16px", fontWeight: "800", color: "white", marginTop: "2px", letterSpacing: "-0.01em", textTransform: "uppercase", lineHeight: 1 }}>
               {isEdit ? "Update Employee Profile" : "Create Employee Profile"}
             </h2>
           </div>
@@ -297,19 +310,49 @@ export function EmployeeForm({
           <button
             onClick={handleClose}
             type="button"
-            className="relative z-10 h-8 w-8 rounded-full bg-white border border-gray-200/80 shadow-md flex items-center justify-center text-gray-500 hover:text-ink hover:bg-gray-50 active:scale-95 transition-all duration-200 cursor-pointer"
+            style={{
+              position: "relative",
+              zIndex: 10,
+              height: "32px",
+              width: "32px",
+              borderRadius: "50%",
+              backgroundColor: "white",
+              border: `1px solid ${COLORS.borders}`,
+              boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: COLORS.muted,
+              cursor: "pointer",
+              transition: "all 200ms ease-in-out"
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = COLORS.text;
+              e.currentTarget.style.backgroundColor = "#f9fafb";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = COLORS.muted;
+              e.currentTarget.style.backgroundColor = "white";
+            }}
             aria-label="Close modal"
           >
             <X size={14} />
           </button>
         </div>
 
-        <div className="py-2.5 px-6 md:px-8 bg-gray-50/50 border-b border-gray-200/60 relative z-10 w-full">
-          <div className="relative flex items-start justify-between w-full max-w-3xl mx-auto px-4">
-            <div className="absolute top-[24px] left-[16.7%] right-[16.7%] h-0.5 bg-gray-200/80 -translate-y-1/2 rounded-full" />
+        <div style={{ padding: "10px 24px", backgroundColor: `${COLORS.pageBg}99`, borderBottom: `1px solid ${COLORS.borders}`, position: "relative", zIndex: 10, width: "100%" }}>
+          <div style={{ position: "relative", display: "flex", alignItems: "flex-start", justifyContent: "space-between", width: "100%", maxWidth: "768px", margin: "0 auto", paddingLeft: "16px", paddingRight: "16px" }}>
+            <div style={{ position: "absolute", top: "24px", left: "16.7%", right: "16.7%", height: "2px", backgroundColor: COLORS.borders, transform: "translateY(-50%)", borderRadius: "9999px" }} />
             <div
-              className="absolute top-[24px] left-[16.7%] h-0.5 bg-purple-600 -translate-y-1/2 rounded-full transition-all duration-500 ease-in-out"
               style={{
+                position: "absolute",
+                top: "24px",
+                left: "16.7%",
+                height: "2px",
+                backgroundColor: COLORS.primaryBlue,
+                transform: "translateY(-50%)",
+                borderRadius: "9999px",
+                transition: "all 500ms cubic-bezier(0.4, 0, 0.2, 1)",
                 width: step === 1 ? "0%" : step === 2 ? "33.3%" : "66.6%",
               }}
             />
@@ -317,35 +360,65 @@ export function EmployeeForm({
               const isDone = s.id < step;
               const isActive = s.id === step;
               return (
-                <div key={s.id} className="relative z-10 flex flex-col items-center flex-1">
-                  {/* Circle Wrapper - fixed height centering aligned with connector line */}
-                  <div className="h-12 flex items-center justify-center">
+                <div key={s.id} style={{ position: "relative", zIndex: 10, display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
+                  <div style={{ height: "48px", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <div
-                      className={`rounded-full flex items-center justify-center border-2 text-xs font-bold shadow-sm transition-all duration-300 ${
-                        isDone
-                          ? "h-10 w-10 bg-emerald-500 border-emerald-500 text-white"
-                          : isActive
-                            ? "h-12 w-12 bg-brand-purple border-brand-purple text-white ring-4 ring-purple-100/50 scale-[1.02]"
-                            : "h-10 w-10 bg-white border-gray-200 text-gray-500 hover:border-gray-300"
-                      }`}
+                      style={{
+                        borderRadius: "50%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        border: "2px solid",
+                        fontSize: "12px",
+                        fontWeight: "bold",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                        transition: "all 300ms ease-in-out",
+                        ...(isDone ? {
+                          height: "40px",
+                          width: "40px",
+                          backgroundColor: COLORS.success,
+                          borderColor: COLORS.success,
+                          color: "white"
+                        } : isActive ? {
+                          height: "48px",
+                          width: "48px",
+                          backgroundColor: COLORS.primaryBlue,
+                          borderColor: COLORS.primaryBlue,
+                          color: "white",
+                          boxShadow: `0 1px 3px rgba(0,0,0,0.1), 0 0 0 4px ${COLORS.primaryBlue}22`,
+                          transform: "scale(1.02)"
+                        } : {
+                          height: "40px",
+                          width: "40px",
+                          backgroundColor: "white",
+                          borderColor: COLORS.borders,
+                          color: COLORS.muted
+                        })
+                      }}
                     >
-                      {isDone ? <span className="text-white text-sm">✓</span> : <span>{s.id}</span>}
+                      {isDone ? <span style={{ color: "white", fontSize: "14px" }}>✓</span> : <span>{s.id}</span>}
                     </div>
                   </div>
 
-                  {/* Reduced gap between stepper number and label */}
                   <span
-                    className={`mt-1 text-[10px] font-bold uppercase tracking-wider transition-colors duration-300 ${
-                      isActive
-                        ? "text-brand-purple font-extrabold underline decoration-purple-200 underline-offset-4"
+                    style={{
+                      marginTop: "4px",
+                      fontSize: "10px",
+                      fontWeight: isActive ? "800" : "bold",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      transition: "color 300ms ease-in-out",
+                      ...(isActive
+                        ? { color: COLORS.primaryBlue, textDecoration: "underline", textDecorationColor: `${COLORS.primaryBlue}33`, textUnderlineOffset: "4px" }
                         : isDone
-                          ? "text-emerald-600"
-                          : "text-gray-600"
-                    }`}
+                          ? { color: COLORS.success }
+                          : { color: COLORS.muted }
+                      )
+                    }}
                   >
                     {s.label}
                   </span>
-                  <span className="text-[9px] text-muted mt-0.5 hidden sm:block">{s.desc}</span>
+                  <span style={{ fontSize: "9px", color: COLORS.muted, marginTop: "2px", display: "none" }} className="sm:block">{s.desc}</span>
                 </div>
               );
             })}
@@ -353,229 +426,155 @@ export function EmployeeForm({
         </div>
 
         {/* Scrollable Form & Live Preview Columns Container */}
-        <div className="flex-1 overflow-hidden bg-white w-full">
-          <div className="flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-gray-100/60 h-full">
+        <div style={{ flex: 1, overflow: "hidden", backgroundColor: COLORS.cardBg, width: "100%" }}>
+          <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%" }}>
             {/* Left side: Form steps (65% dynamic width) */}
-            <div className="flex-1 p-5 space-y-4 lg:max-w-[65%] overflow-y-auto max-h-[55vh] md:max-h-[60vh] custom-scrollbar pr-2">
+            <div style={{ flex: 1, padding: "20px", display: "flex", flexDirection: "column", gap: "16px", maxWidth: "65%", overflowY: "auto", maxHeight: "55vh" }}>
               {step === 1 && (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.05)] p-5 space-y-4 animate-fade-in transition-all">
+                <div style={{ backgroundColor: COLORS.cardBg, borderRadius: "16px", border: `1px solid ${COLORS.borders}`, boxShadow: "0 8px 30px rgba(0,0,0,0.05)", padding: "20px", display: "flex", flexDirection: "column", gap: "16px", animation: "fade-in 300ms ease-in-out" }}>
                   <div>
-                    <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
+                    <h3 style={{ fontSize: "14px", fontWeight: "bold", color: COLORS.text, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                       Personal Information
                     </h3>
-                    <p className="text-[11px] text-gray-500 mt-0.5">
+                    <p style={{ fontSize: "11px", color: COLORS.muted, marginTop: "2px" }}>
                       Provide contact information and verify identification parameters.
                     </p>
                   </div>
 
-                  <div className="space-y-3.5">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                      <div className="relative pb-4">
-                        <label className="text-xs font-semibold text-gray-700">
-                          First name <span className="text-rose-500">*</span>
-                        </label>
-                        <input
-                          className={`${formInputClasses} mt-1`}
-                          placeholder="e.g. Ananya"
-                          value={data.firstName}
-                          onChange={(e) => {
-                            setData({ ...data, firstName: e.target.value });
-                            if (errors.firstName) setErrors((prev) => ({ ...prev, firstName: "" }));
-                          }}
-                        />
-                        {errors.firstName && (
-                          <span className="absolute bottom-0 left-0 text-[10px] text-rose-600 font-medium">
-                            {errors.firstName}
-                          </span>
-                        )}
-                      </div>
-                      <div className="relative pb-4">
-                        <label className="text-xs font-semibold text-gray-700">
-                          Last name <span className="text-rose-500">*</span>
-                        </label>
-                        <input
-                          className={`${formInputClasses} mt-1`}
-                          placeholder="e.g. Rao"
-                          value={data.lastName}
-                          onChange={(e) => {
-                            setData({ ...data, lastName: e.target.value });
-                            if (errors.lastName) setErrors((prev) => ({ ...prev, lastName: "" }));
-                          }}
-                        />
-                        {errors.lastName && (
-                          <span className="absolute bottom-0 left-0 text-[10px] text-rose-600 font-medium">
-                            {errors.lastName}
-                          </span>
-                        )}
-                      </div>
-                    </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                    <FormRow columns={2}>
+                      <FormInput
+                        label="First name"
+                        required
+                        placeholder="e.g. Ananya"
+                        value={data.firstName}
+                        error={errors.firstName}
+                        onChange={(e) => {
+                          setData({ ...data, firstName: e.target.value });
+                          if (errors.firstName) setErrors((prev) => ({ ...prev, firstName: "" }));
+                        }}
+                      />
+                      <FormInput
+                        label="Last name"
+                        required
+                        placeholder="e.g. Rao"
+                        value={data.lastName}
+                        error={errors.lastName}
+                        onChange={(e) => {
+                          setData({ ...data, lastName: e.target.value });
+                          if (errors.lastName) setErrors((prev) => ({ ...prev, lastName: "" }));
+                        }}
+                      />
+                    </FormRow>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                      <div className="relative pb-4">
-                        <label className="text-xs font-semibold text-gray-700">
-                          Email Address <span className="text-rose-500">*</span>
-                        </label>
-                        <input
-                          type="email"
-                          className={`${formInputClasses} mt-1`}
-                          placeholder="ananya.rao@acme.com"
-                          value={data.email}
-                          onChange={(e) => {
-                            setData({ ...data, email: e.target.value });
-                            if (errors.email) setErrors((prev) => ({ ...prev, email: "" }));
-                          }}
-                        />
-                        {errors.email ? (
-                          <span className="absolute bottom-0 left-0 text-[10px] text-rose-600 font-medium">
-                            {errors.email}
-                          </span>
-                        ) : (
-                          <span className="absolute bottom-0 left-0 text-[9px] text-gray-400 font-medium">
-                            Used for system notifications, invites & payslips.
-                          </span>
-                        )}
-                      </div>
-                      <div className="relative pb-4">
-                        <label className="text-xs font-semibold text-gray-700">Phone Number</label>
-                        <input
-                          className={`${formInputClasses} mt-1`}
-                          placeholder="+91 98765 43210"
-                          value={data.phone}
-                          onChange={(e) => setData({ ...data, phone: e.target.value })}
-                        />
-                      </div>
-                    </div>
+                    <FormRow columns={2}>
+                      <FormInput
+                        type="email"
+                        label="Email Address"
+                        required
+                        placeholder="ananya.rao@acme.com"
+                        value={data.email}
+                        error={errors.email}
+                        helperText={!errors.email ? "Used for system notifications, invites & payslips." : undefined}
+                        onChange={(e) => {
+                          setData({ ...data, email: e.target.value });
+                          if (errors.email) setErrors((prev) => ({ ...prev, email: "" }));
+                        }}
+                      />
+                      <FormInput
+                        label="Phone Number"
+                        placeholder="+91 98765 43210"
+                        value={data.phone}
+                        onChange={(e) => setData({ ...data, phone: e.target.value })}
+                      />
+                    </FormRow>
 
-                    <div className="relative pb-4">
-                      <label className="text-xs font-semibold text-gray-700">Date of Birth</label>
-                      <input
+                    <FormRow columns={1}>
+                      <FormInput
                         type="date"
-                        className={`${formInputClasses} mt-1 max-w-xs text-gray-700`}
+                        label="Date of Birth"
                         value={data.dob}
                         onChange={(e) => setData({ ...data, dob: e.target.value })}
                       />
-                    </div>
+                    </FormRow>
                   </div>
                 </div>
               )}
 
               {step === 2 && (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.05)] p-5 space-y-4 animate-fade-in transition-all">
+                <div style={{ backgroundColor: COLORS.cardBg, borderRadius: "16px", border: `1px solid ${COLORS.borders}`, boxShadow: "0 8px 30px rgba(0,0,0,0.05)", padding: "20px", display: "flex", flexDirection: "column", gap: "16px", animation: "fade-in 300ms ease-in-out" }}>
                   <div>
-                    <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
+                    <h3 style={{ fontSize: "14px", fontWeight: "bold", color: COLORS.text, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                       Job Details
                     </h3>
-                    <p className="text-[11px] text-gray-500 mt-0.5">
+                    <p style={{ fontSize: "11px", color: COLORS.muted, marginTop: "2px" }}>
                       Specify tracking codes, department assignments, and management hierarchy.
                     </p>
                   </div>
 
-                  <div className="space-y-3.5">
-                    <div className="relative pb-4">
-                      <label className="text-xs font-semibold text-gray-700">
-                        Job Title / Designation
-                      </label>
-                      <input
-                        className={`${formInputClasses} mt-1`}
+                  <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                    <FormRow columns={1}>
+                      <FormInput
+                        label="Job Title / Designation"
                         placeholder="e.g. HR Manager, Accountant"
                         value={data.designation}
                         onChange={(e) => setData({ ...data, designation: e.target.value })}
                       />
-                    </div>
+                    </FormRow>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                      <div className="relative pb-4">
-                        <label className="text-xs font-semibold text-gray-700">Employee Code</label>
-                        <input
-                          className={`${formInputClasses} mt-1`}
-                          placeholder="e.g. AMX-EMP-0142"
-                          value={data.code}
-                          onChange={(e) => setData({ ...data, code: e.target.value })}
-                        />
-                      </div>
-                      <div className="relative pb-4">
-                        <label className="text-xs font-semibold text-gray-700">
-                          Hire Date <span className="text-rose-500">*</span>
-                        </label>
-                        <input
-                          type="date"
-                          className={`${formInputClasses} mt-1 text-gray-700`}
-                          value={data.hireDate}
-                          onChange={(e) => {
-                            setData({ ...data, hireDate: e.target.value });
-                            if (errors.hireDate) setErrors((prev) => ({ ...prev, hireDate: "" }));
-                          }}
-                        />
-                        {errors.hireDate && (
-                          <span className="absolute bottom-0 left-0 text-[10px] text-rose-600 font-medium">
-                            {errors.hireDate}
-                          </span>
-                        )}
-                      </div>
-                    </div>
+                    <FormRow columns={2}>
+                      <FormInput
+                        label="Employee Code"
+                        placeholder="e.g. AMX-EMP-0142"
+                        value={data.code}
+                        onChange={(e) => setData({ ...data, code: e.target.value })}
+                      />
+                      <FormInput
+                        type="date"
+                        label="Hire Date"
+                        required
+                        value={data.hireDate}
+                        error={errors.hireDate}
+                        onChange={(e) => {
+                          setData({ ...data, hireDate: e.target.value });
+                          if (errors.hireDate) setErrors((prev) => ({ ...prev, hireDate: "" }));
+                        }}
+                      />
+                    </FormRow>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                      <div className="relative pb-4">
-                        <label className="text-xs font-semibold text-gray-700">
-                          Department <span className="text-rose-500">*</span>
-                        </label>
-                        <select
-                          className={`${formInputClasses} mt-1 ${data.departmentId ? "text-ink font-medium" : "text-muted font-normal"}`}
-                          value={data.departmentId}
-                          onChange={(e) => {
-                            setData({ ...data, departmentId: e.target.value });
-                            if (errors.departmentId)
-                              setErrors((prev) => ({ ...prev, departmentId: "" }));
-                          }}
-                        >
-                          <option value="" className="text-gray-400 bg-white">
-                            Select Department
-                          </option>
-                          {departments.map((d) => (
-                            <option
-                              key={d.id}
-                              value={d.id}
-                              className="text-gray-900 bg-white py-2 font-medium"
-                            >
-                              {d.name}
-                            </option>
-                          ))}
-                        </select>
-                        {errors.departmentId && (
-                          <span className="absolute bottom-0 left-0 text-[10px] text-rose-600 font-medium">
-                            {errors.departmentId}
-                          </span>
-                        )}
-                      </div>
+                    <FormRow columns={2}>
+                      <FormSelect
+                        label="Department"
+                        required
+                        value={data.departmentId}
+                        error={errors.departmentId}
+                        onChange={(e) => {
+                          setData({ ...data, departmentId: e.target.value });
+                          if (errors.departmentId)
+                            setErrors((prev) => ({ ...prev, departmentId: "" }));
+                        }}
+                        options={[
+                          { value: "", label: "Select Department" },
+                          ...departments.map((d) => ({ value: String(d.id), label: d.name }))
+                        ]}
+                      />
 
-                      <div className="relative pb-4">
-                        <label className="text-xs font-semibold text-gray-700">Reports To</label>
-                        <select
-                          className={`${formInputClasses} mt-1 ${data.managerId ? "text-ink font-medium" : "text-muted font-normal"}`}
-                          value={data.managerId}
-                          onChange={(e) => setData({ ...data, managerId: e.target.value })}
-                        >
-                          <option value="" className="text-gray-400 bg-white">
-                            Select Manager
-                          </option>
-                          {managers.map((m) => (
-                            <option
-                              key={m.id}
-                              value={m.id}
-                              className="text-gray-900 bg-white py-2 font-medium"
-                            >
-                              {m.name} — {m.designation || "Lead"}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
+                      <FormSelect
+                        label="Reports To"
+                        value={data.managerId}
+                        onChange={(e) => setData({ ...data, managerId: e.target.value })}
+                        options={[
+                          { value: "", label: "Select Manager" },
+                          ...managers.map((m) => ({ value: String(m.id), label: `${m.name} — ${m.designation || "Lead"}` }))
+                        ]}
+                      />
+                    </FormRow>
 
-                    <div className="relative pb-4">
-                      <label className="text-xs font-semibold text-gray-700">
-                        Employment Type <span className="text-rose-500">*</span>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      <label style={{ fontSize: "12px", fontWeight: "600", color: COLORS.text }}>
+                        Employment Type <span style={{ color: COLORS.error }}>*</span>
                       </label>
-                      <div className="flex flex-wrap gap-2.5 mt-1.5 animate-fade-in">
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginTop: "6px", animation: "fade-in 300ms ease-in-out" }}>
                         {(
                           [
                             "Full-time",
@@ -588,11 +587,39 @@ export function EmployeeForm({
                             key={type}
                             type="button"
                             onClick={() => setData({ ...data, employmentType: type })}
-                            className={`px-5 py-2 rounded-full text-xs font-bold transition-all duration-200 cursor-pointer ${
-                              data.employmentType === type
-                                ? "bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-md shadow-purple-100 hover:brightness-105"
-                                : "bg-white border border-line text-muted hover:border-gray-300 hover:bg-canvas hover:text-ink"
-                            }`}
+                            style={{
+                              padding: "8px 20px",
+                              borderRadius: "9999px",
+                              fontSize: "12px",
+                              fontWeight: "bold",
+                              cursor: "pointer",
+                              transition: "all 200ms ease-in-out",
+                              ...(data.employmentType === type
+                                ? {
+                                    backgroundColor: COLORS.primaryBlue,
+                                    color: "white",
+                                    border: "none",
+                                    boxShadow: "0 4px 12px rgba(31, 95, 168, 0.3)"
+                                  }
+                                : {
+                                    backgroundColor: "white",
+                                    border: `1px solid ${COLORS.borders}`,
+                                    color: COLORS.muted
+                                  }
+                              )
+                            }}
+                            onMouseEnter={(e) => {
+                              if (data.employmentType !== type) {
+                                e.currentTarget.style.borderColor = COLORS.muted;
+                                e.currentTarget.style.color = COLORS.text;
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (data.employmentType !== type) {
+                                e.currentTarget.style.borderColor = COLORS.borders;
+                                e.currentTarget.style.color = COLORS.muted;
+                              }
+                            }}
                           >
                             {type}
                           </button>
@@ -600,56 +627,45 @@ export function EmployeeForm({
                       </div>
                     </div>
 
-                    <div className="relative pb-4">
-                      <label className="text-xs font-semibold text-gray-700">
-                        Monthly Salary (₹)
-                      </label>
-                      <input
+                    <FormRow columns={1}>
+                      <FormInput
                         type="number"
-                        min={0}
-                        step="0.01"
-                        inputMode="decimal"
-                        className={`${formInputClasses} mt-1`}
+                        label="Monthly Salary (₹)"
                         placeholder="e.g. 65000"
+                        min="0"
+                        step="0.01"
                         value={data.salary}
+                        error={errors.salary}
+                        helperText={!errors.salary ? "Creates their pay contract — required before payroll can run for them." : undefined}
                         onChange={(e) => {
                           setData({ ...data, salary: e.target.value });
                           if (errors.salary) setErrors((prev) => ({ ...prev, salary: "" }));
                         }}
                       />
-                      {errors.salary ? (
-                        <span className="absolute bottom-0 left-0 text-[10px] text-rose-600 font-medium">
-                          {errors.salary}
-                        </span>
-                      ) : (
-                        <span className="absolute bottom-0 left-0 text-[9px] text-gray-400 font-medium">
-                          Creates their pay contract — required before payroll can run for them.
-                        </span>
-                      )}
-                    </div>
+                    </FormRow>
                   </div>
                 </div>
               )}
 
               {step === 3 && (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.05)] p-5 space-y-4 animate-fade-in transition-all">
+                <div style={{ backgroundColor: COLORS.cardBg, borderRadius: "16px", border: `1px solid ${COLORS.borders}`, boxShadow: "0 8px 30px rgba(0,0,0,0.05)", padding: "20px", display: "flex", flexDirection: "column", gap: "16px", animation: "fade-in 300ms ease-in-out" }}>
                   <div>
-                    <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
+                    <h3 style={{ fontSize: "14px", fontWeight: "bold", color: COLORS.text, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                       ERP Access Control
                     </h3>
-                    <p className="text-[11px] text-gray-500 mt-0.5">
+                    <p style={{ fontSize: "11px", color: COLORS.muted, marginTop: "2px" }}>
                       Configure login capability settings and assign organizational security roles.
                     </p>
                   </div>
 
-                  <div className="space-y-3.5">
-                    <div className="rounded-xl border border-gray-100 bg-gray-50/40 p-4 mt-1">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="space-y-0.5">
-                          <p className="text-sm font-bold text-gray-900">
+                  <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                    <div style={{ borderRadius: "12px", border: `1px solid ${COLORS.borders}`, backgroundColor: `${COLORS.pageBg}66`, padding: "16px", marginTop: "4px" }}>
+                      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px" }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                          <p style={{ fontSize: "14px", fontWeight: "bold", color: COLORS.text }}>
                             Provide ERP Portal Login Access
                           </p>
-                          <p className="text-xs text-gray-500 max-w-md leading-relaxed">
+                          <p style={{ fontSize: "12px", color: COLORS.muted, maxWidth: "400px", lineHeight: 1.5 }}>
                             Enable login credentials for this worker. Subordinate staff permissions
                             and logs can be reviewed manually by their manager if this remains
                             disabled.
@@ -664,94 +680,104 @@ export function EmployeeForm({
                             setData({ ...data, needsAccess: !data.needsAccess, role: "" });
                             setErrors({});
                           }}
-                          className={`shrink-0 h-6 w-11 rounded-full transition-colors relative block cursor-pointer border border-transparent focus:outline-none focus:ring-4 focus:ring-brand-purple/20 ${
-                            data.needsAccess ? "bg-brand-purple" : "bg-gray-200"
-                          }`}
+                          style={{
+                            flexShrink: 0,
+                            height: "24px",
+                            width: "44px",
+                            borderRadius: "9999px",
+                            transition: "background-color 200ms ease-in-out",
+                            position: "relative",
+                            border: "none",
+                            cursor: "pointer",
+                            backgroundColor: data.needsAccess ? COLORS.primaryBlue : COLORS.muted,
+                            outline: "none",
+                            boxShadow: `0 0 0 4px ${data.needsAccess ? COLORS.primaryBlue : COLORS.muted}22`
+                          }}
                         >
                           <span
-                            className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
-                              data.needsAccess ? "translate-x-5" : "translate-x-0"
-                            }`}
+                            style={{
+                              position: "absolute",
+                              top: "2px",
+                              left: "2px",
+                              height: "20px",
+                              width: "20px",
+                              borderRadius: "50%",
+                              backgroundColor: "white",
+                              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                              transition: "transform 200ms ease-in-out",
+                              transform: data.needsAccess ? "translateX(20px)" : "translateX(0)"
+                            }}
                           />
                         </button>
                       </div>
 
                       {/* Animated slide down role selector */}
                       <div
-                        className={`transition-all duration-300 ease-in-out overflow-hidden ${
-                          data.needsAccess
-                            ? "max-h-[520px] opacity-100 mt-4 pt-4 border-t border-gray-200/30 translate-y-0"
-                            : "max-h-0 opacity-0 pointer-events-none translate-y-2"
-                        }`}
+                        style={{
+                          transition: "all 300ms cubic-bezier(0.4, 0, 0.2, 1)",
+                          overflow: "hidden",
+                          maxHeight: data.needsAccess ? "520px" : "0px",
+                          opacity: data.needsAccess ? 1 : 0,
+                          pointerEvents: data.needsAccess ? "auto" : "none",
+                          marginTop: data.needsAccess ? "16px" : "0px",
+                          paddingTop: data.needsAccess ? "16px" : "0px",
+                          borderTop: data.needsAccess ? `1px solid ${COLORS.borders}33` : "none",
+                          transform: data.needsAccess ? "translateY(0)" : "translateY(8px)"
+                        }}
                       >
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="relative pb-4">
-                            <label className="text-xs font-semibold text-gray-700">
-                              Assign Role <span className="text-rose-500">*</span>
-                            </label>
-                            <select
-                              className={`${formInputClasses} mt-1 ${data.role ? "text-ink font-medium" : "text-muted font-normal"}`}
-                              value={data.role}
-                              onChange={(e) => {
-                                const role = e.target.value;
-                                const deptModules = defaultModulesForDepartment(
-                                  data.departmentId,
-                                  departments,
-                                );
-                                setData({
-                                  ...data,
-                                  role,
-                                  allowedModules:
-                                    role === "TenantAdmin"
-                                      ? MODULE_OPTIONS.map((m) => m.id)
-                                      : data.role === "TenantAdmin"
-                                        ? deptModules
-                                        : data.allowedModules.length > 0
-                                          ? data.allowedModules
-                                          : deptModules,
-                                });
-                                if (errors.role) setErrors((prev) => ({ ...prev, role: "" }));
-                              }}
-                            >
-                              <option value="" className="text-gray-400 bg-white">
-                                Select System Role
-                              </option>
-                              {ROLES.map((r) => (
-                                <option
-                                  key={r}
-                                  value={r}
-                                  className="text-gray-900 bg-white py-2 font-medium"
-                                >
-                                  {r}
-                                </option>
-                              ))}
-                            </select>
-                            {errors.role && (
-                              <span className="absolute bottom-0 left-0 text-[10px] text-rose-600 font-medium">
-                                {errors.role}
-                              </span>
-                            )}
-                          </div>
+                        <FormRow columns={2}>
+                          <FormSelect
+                            label="Assign Role"
+                            required
+                            value={data.role}
+                            error={errors.role}
+                            onChange={(e) => {
+                              const role = e.target.value;
+                              const deptModules = defaultModulesForDepartment(
+                                data.departmentId,
+                                departments,
+                              );
+                              setData({
+                                ...data,
+                                role,
+                                allowedModules:
+                                  role === "TenantAdmin"
+                                    ? MODULE_OPTIONS.map((m) => m.id)
+                                    : data.role === "TenantAdmin"
+                                      ? deptModules
+                                      : data.allowedModules.length > 0
+                                        ? data.allowedModules
+                                        : deptModules,
+                              });
+                              if (errors.role) setErrors((prev) => ({ ...prev, role: "" }));
+                            }}
+                            options={[
+                              { value: "", label: "Select System Role" },
+                              ...ROLES.map((r) => ({ value: r, label: r }))
+                            ]}
+                          />
 
-                          <div>
-                            <label className="text-xs font-semibold text-gray-700">
+                          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                            <label style={{ fontSize: "12px", fontWeight: "600", color: COLORS.text }}>
                               System Notification
                             </label>
-                            <div className="flex items-center h-[50px] text-xs font-bold text-emerald-600 gap-1.5 mt-1 bg-emerald-50/50 border border-emerald-100 rounded-xl px-4">
+                            <div style={{ display: "flex", alignItems: "center", height: "50px", fontSize: "12px", fontWeight: "bold", color: COLORS.success, gap: "6px", marginTop: "4px", backgroundColor: COLORS.successLight, border: `1px solid ${COLORS.success}33`, borderRadius: "12px", paddingLeft: "16px", paddingRight: "16px" }}>
                               <span>✓</span> System invite instructions will dispatch via email
                             </div>
                           </div>
-                        </div>
+                        </FormRow>
 
-                        <div className="mt-4 space-y-2">
-                          <div className="flex items-center justify-between gap-2">
-                            <label className="text-xs font-semibold text-gray-700">
-                              ERP Module Tabs <span className="text-rose-500">*</span>
+                        <div style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+                            <label style={{ fontSize: "12px", fontWeight: "600", color: COLORS.text }}>
+                              ERP Module Tabs <span style={{ color: COLORS.error }}>*</span>
                             </label>
                             {data.role !== "TenantAdmin" && (
                               <button
                                 type="button"
-                                className="text-[10px] font-semibold text-brand-purple hover:underline"
+                                style={{ fontSize: "10px", fontWeight: "600", color: COLORS.primaryBlue, cursor: "pointer", background: "none", border: "none", textDecoration: "none", padding: "0px", transition: "text-decoration 200ms ease-in-out" }}
+                                onMouseEnter={(e) => e.currentTarget.style.textDecoration = "underline"}
+                                onMouseLeave={(e) => e.currentTarget.style.textDecoration = "none"}
                                 onClick={() =>
                                   setData((prev) => ({
                                     ...prev,
@@ -766,32 +792,49 @@ export function EmployeeForm({
                               </button>
                             )}
                           </div>
-                          <p className="text-[11px] text-gray-500">
+                          <p style={{ fontSize: "11px", color: COLORS.muted }}>
                             Choose which sidebar sections this person can open. Home and
                             Notifications are always included.
                           </p>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "8px" }}>
                             {MODULE_OPTIONS.map((opt) => (
                               <label
                                 key={opt.id}
-                                className={`flex items-start gap-2 rounded-xl border px-3 py-2.5 ${
-                                  data.role === "TenantAdmin"
-                                    ? "border-gray-100 bg-gray-50/80 opacity-80 cursor-not-allowed"
-                                    : "border-gray-200 hover:bg-gray-50 cursor-pointer"
-                                }`}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "flex-start",
+                                  gap: "8px",
+                                  borderRadius: "12px",
+                                  border: `1px solid ${data.role === "TenantAdmin" ? COLORS.borders : COLORS.borders}`,
+                                  padding: "12px",
+                                  backgroundColor: data.role === "TenantAdmin" ? `${COLORS.pageBg}80` : "transparent",
+                                  opacity: data.role === "TenantAdmin" ? 0.8 : 1,
+                                  cursor: data.role === "TenantAdmin" ? "not-allowed" : "pointer",
+                                  transition: "background-color 200ms ease-in-out"
+                                }}
+                                onMouseEnter={(e) => {
+                                  if (data.role !== "TenantAdmin") {
+                                    e.currentTarget.style.backgroundColor = COLORS.pageBg;
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  if (data.role !== "TenantAdmin") {
+                                    e.currentTarget.style.backgroundColor = "transparent";
+                                  }
+                                }}
                               >
                                 <input
                                   type="checkbox"
-                                  className="mt-0.5"
+                                  style={{ marginTop: "2px", cursor: data.role === "TenantAdmin" ? "not-allowed" : "pointer" }}
                                   checked={data.allowedModules.includes(opt.id)}
                                   disabled={data.role === "TenantAdmin"}
                                   onChange={() => toggleModule(opt.id)}
                                 />
-                                <span>
-                                  <span className="text-[12px] font-semibold text-gray-800 block">
+                                <span style={{ display: "flex", flexDirection: "column" }}>
+                                  <span style={{ fontSize: "12px", fontWeight: "600", color: COLORS.text, display: "block" }}>
                                     {opt.label}
                                   </span>
-                                  <span className="text-[10px] text-gray-500">
+                                  <span style={{ fontSize: "10px", color: COLORS.muted }}>
                                     {opt.description}
                                   </span>
                                 </span>
@@ -799,7 +842,7 @@ export function EmployeeForm({
                             ))}
                           </div>
                           {errors.allowedModules && (
-                            <span className="text-[10px] text-rose-600 font-medium">
+                            <span style={{ fontSize: "10px", color: COLORS.error, fontWeight: "500" }}>
                               {errors.allowedModules}
                             </span>
                           )}
@@ -808,8 +851,8 @@ export function EmployeeForm({
                     </div>
 
                     {!data.needsAccess && (
-                      <div className="rounded-xl border border-dashed border-gray-200 p-4 text-xs text-gray-500 flex items-start gap-2 bg-gray-50/30">
-                        <span className="text-brand-purple font-bold text-sm leading-none mt-0.5">
+                      <div style={{ borderRadius: "12px", border: `1px dashed ${COLORS.borders}`, padding: "16px", fontSize: "12px", color: COLORS.muted, display: "flex", alignItems: "flex-start", gap: "8px", backgroundColor: `${COLORS.pageBg}33` }}>
+                        <span style={{ color: COLORS.primaryBlue, fontWeight: "bold", fontSize: "14px", lineHeight: 1, marginTop: "2px" }}>
                           ℹ
                         </span>
                         <span>
@@ -824,37 +867,37 @@ export function EmployeeForm({
             </div>
 
             {/* Right side: Live preview summary block (35% dynamic width for readability) */}
-            <div className="lg:w-[35%] bg-gradient-to-b from-gray-50/40 to-white p-6 md:p-7 flex flex-col justify-between overflow-y-auto max-h-[55vh] md:max-h-[60vh] custom-scrollbar">
-              <div className="space-y-4">
+            <div style={{ display: "none", "@media (min-width: 1024px)": { display: "block" }, width: "35%", background: `linear-gradient(180deg, ${COLORS.pageBg}66 0%, ${COLORS.cardBg} 100%)`, padding: "24px 28px", display: "flex", flexDirection: "column", justifyContent: "space-between", overflowY: "auto", maxHeight: "55vh" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                 <div>
-                  <h4 className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">
+                  <h4 style={{ fontSize: "10px", fontWeight: "800", color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                     Live Profile Preview
                   </h4>
-                  <p className="text-[10px] text-gray-500 mt-0.5">Summary updates instantly.</p>
+                  <p style={{ fontSize: "10px", color: COLORS.muted, marginTop: "2px" }}>Summary updates instantly.</p>
                 </div>
 
                 {/* Employee badge preview card */}
-                <div className="flex flex-col items-center text-center p-5 bg-white rounded-2xl border border-gray-100 shadow-[0_6px_22px_rgba(0,0,0,0.03)] relative overflow-hidden">
-                  <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-violet-500 to-purple-600" />
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "20px", backgroundColor: COLORS.cardBg, borderRadius: "16px", border: `1px solid ${COLORS.borders}`, boxShadow: "0 6px 22px rgba(0,0,0,0.03)", position: "relative", overflow: "hidden" }}>
+                  <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "6px", background: `linear-gradient(90deg, ${COLORS.primaryBlue} 0%, ${COLORS.primaryBlue}dd 100%)` }} />
 
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-violet-500 via-brand-purple to-purple-600 flex items-center justify-center text-white text-xl font-extrabold shadow-md mb-3 transform hover:scale-105 duration-300 transition-transform">
+                  <div style={{ width: "64px", height: "64px", borderRadius: "50%", background: `linear-gradient(135deg, ${COLORS.primaryBlue} 0%, ${COLORS.primaryBlue}dd 100%)`, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: "20px", fontWeight: "800", boxShadow: "0 4px 12px rgba(31, 95, 168, 0.3)", marginBottom: "12px", transform: "scale(1)", transition: "transform 300ms ease-in-out", cursor: "default" }}>
                     {initials}
                   </div>
 
-                  <h4 className="text-sm font-bold text-gray-900 truncate max-w-full leading-tight font-sans text-center">
+                  <h4 style={{ fontSize: "14px", fontWeight: "bold", color: COLORS.text, truncate: "true", maxWidth: "100%", lineHeight: 1.2, textAlign: "center" }}>
                     {nameDisplay}
                   </h4>
-                  <p className="text-xs text-gray-500 truncate max-w-full mt-1.5 font-normal text-center">
+                  <p style={{ fontSize: "12px", color: COLORS.muted, truncate: "true", maxWidth: "100%", marginTop: "6px", fontWeight: "normal", textAlign: "center" }}>
                     {emailDisplay}
                   </p>
 
-                  <div className="mt-3">
+                  <div style={{ marginTop: "12px" }}>
                     {data.needsAccess ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/50 shadow-sm animate-fade-in">
+                      <span style={{ display: "inline-flex", alignItems: "center", paddingLeft: "10px", paddingRight: "10px", paddingTop: "2px", paddingBottom: "2px", borderRadius: "9999px", fontSize: "9px", fontWeight: "bold", backgroundColor: COLORS.successLight, color: COLORS.success, border: `1px solid ${COLORS.success}33`, boxShadow: "0 1px 3px rgba(0,0,0,0.1)", animation: "fade-in 300ms ease-in-out" }}>
                         ✓ ERP Account Requested
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-gray-100 text-gray-600 border border-gray-200">
+                      <span style={{ display: "inline-flex", alignItems: "center", paddingLeft: "10px", paddingRight: "10px", paddingTop: "2px", paddingBottom: "2px", borderRadius: "9999px", fontSize: "9px", fontWeight: "bold", backgroundColor: COLORS.pageBg, color: COLORS.muted, border: `1px solid ${COLORS.borders}` }}>
                         Manual Attendance Entry
                       </span>
                     )}
@@ -862,61 +905,30 @@ export function EmployeeForm({
                 </div>
 
                 {/* Details layout matrix */}
-                <div className="space-y-2.5 bg-white p-4 rounded-2xl border border-gray-200/50 shadow-sm animate-fade-in">
-                  <div className="flex justify-between items-center text-xs pb-2.5 border-b border-gray-100/50">
-                    <span className="text-gray-400 font-extrabold uppercase tracking-wider text-[9px]">
-                      Department
-                    </span>
-                    <span className="text-gray-950 font-bold max-w-[140px] truncate text-right">
-                      {deptName}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center text-xs pb-2.5 border-b border-gray-100/50">
-                    <span className="text-gray-400 font-extrabold uppercase tracking-wider text-[9px]">
-                      Line Manager
-                    </span>
-                    <span className="text-gray-950 font-bold max-w-[140px] truncate text-right">
-                      {managerName}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center text-xs pb-2.5 border-b border-gray-100/50">
-                    <span className="text-gray-400 font-extrabold uppercase tracking-wider text-[9px]">
-                      Designation
-                    </span>
-                    <span className="text-gray-950 font-bold max-w-[140px] truncate text-right">
-                      {data.designation || "Not set"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center text-xs pb-2.5 border-b border-gray-100/50">
-                    <span className="text-gray-400 font-extrabold uppercase tracking-wider text-[9px]">
-                      Employment Unit
-                    </span>
-                    <span className="text-gray-950 font-bold text-right">
-                      {data.employmentType}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center text-xs pb-2.5 border-b border-gray-100/50">
-                    <span className="text-gray-400 font-extrabold uppercase tracking-wider text-[9px]">
-                      Monthly Salary
-                    </span>
-                    <span className="text-gray-950 font-bold text-right">
-                      {data.salary ? `₹${Number(data.salary).toLocaleString("en-IN")}` : "Not set"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center text-xs pb-2.5 border-b border-gray-100/50">
-                    <span className="text-gray-400 font-extrabold uppercase tracking-wider text-[9px]">
-                      ERP System Role
-                    </span>
-                    <span className="text-brand-purple font-extrabold text-right truncate max-w-[130px]">
-                      {data.needsAccess ? data.role || "Pending Role *" : "No Login Permitted"}
-                    </span>
-                  </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px", backgroundColor: COLORS.cardBg, padding: "16px", borderRadius: "16px", border: `1px solid ${COLORS.borders}33`, boxShadow: "0 1px 3px rgba(0,0,0,0.03)", animation: "fade-in 300ms ease-in-out" }}>
+                  {[
+                    { label: "Department", value: deptName },
+                    { label: "Line Manager", value: managerName },
+                    { label: "Designation", value: data.designation || "Not set" },
+                    { label: "Employment Unit", value: data.employmentType },
+                    { label: "Monthly Salary", value: data.salary ? `₹${Number(data.salary).toLocaleString("en-IN")}` : "Not set" },
+                    { label: "ERP System Role", value: data.needsAccess ? data.role || "Pending Role *" : "No Login Permitted", highlight: true },
+                  ].map((item, idx) => (
+                    <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px", paddingBottom: "10px", borderBottom: idx < 5 ? `1px solid ${COLORS.borders}33` : "none" }}>
+                      <span style={{ color: COLORS.muted, fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.05em", fontSize: "9px" }}>
+                        {item.label}
+                      </span>
+                      <span style={{ color: item.highlight ? COLORS.primaryBlue : COLORS.text, fontWeight: "bold", maxWidth: "140px", overflow: "hidden", textOverflow: "ellipsis", textAlign: "right" }}>
+                        {item.value}
+                      </span>
+                    </div>
+                  ))}
                   {data.needsAccess && (
-                    <div className="flex justify-between items-start text-xs pt-2.5">
-                      <span className="text-gray-400 font-extrabold uppercase tracking-wider text-[9px] shrink-0">
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", fontSize: "12px", paddingTop: "10px" }}>
+                      <span style={{ color: COLORS.muted, fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.05em", fontSize: "9px", flexShrink: 0 }}>
                         Module Tabs
                       </span>
-                      <span className="text-gray-950 font-bold text-right max-w-[150px] leading-snug">
+                      <span style={{ color: COLORS.text, fontWeight: "bold", textAlign: "right", maxWidth: "150px", lineHeight: 1.4 }}>
                         {moduleLabels}
                       </span>
                     </div>
@@ -927,23 +939,23 @@ export function EmployeeForm({
           </div>
         </div>
 
-        <div className="flex items-center justify-between py-4 px-6 md:px-8 border-t border-line bg-white relative z-10 w-full">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 24px", borderTop: `1px solid ${COLORS.borders}`, backgroundColor: COLORS.cardBg, position: "relative", zIndex: 10, width: "100%" }}>
           <Button
             type="button"
             variant="outline"
             onClick={handleBack}
             disabled={step === 1}
-            className="text-xs"
+            style={{ fontSize: "12px" }}
           >
             ← Back
           </Button>
 
-          <span className="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-extrabold text-brand-purple bg-purple-50 tracking-wider">
+          <span style={{ display: "inline-flex", alignItems: "center", paddingLeft: "16px", paddingRight: "16px", paddingTop: "6px", paddingBottom: "6px", borderRadius: "9999px", fontSize: "12px", fontWeight: "800", color: COLORS.primaryBlue, backgroundColor: `${COLORS.primaryBlue}11`, letterSpacing: "0.05em" }}>
             Step {step} of 3
           </span>
 
           {step < 3 ? (
-            <Button type="button" variant="primary" onClick={handleNext} className="text-xs">
+            <Button type="button" variant="primary" onClick={handleNext} style={{ fontSize: "12px" }}>
               Continue →
             </Button>
           ) : (
@@ -952,7 +964,7 @@ export function EmployeeForm({
               variant="primary"
               onClick={handleSubmit}
               disabled={loading}
-              className="text-xs"
+              style={{ fontSize: "12px" }}
             >
               {loading ? "Saving…" : isEdit ? "✓ Update Employee" : "✓ Save Employee"}
             </Button>
