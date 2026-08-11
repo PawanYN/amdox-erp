@@ -149,7 +149,10 @@ export default function EmployeesPage() {
       header: "Employee",
       cell: (emp) => (
         <div className="flex items-center gap-3">
-          <div style={{background: '#1f5fa8'}} className="h-8 w-8 rounded-full flex items-center justify-center text-white text-[11px] font-bold shrink-0">
+          <div
+            style={{ background: "#1f5fa8" }}
+            className="h-8 w-8 rounded-full flex items-center justify-center text-white text-[11px] font-bold shrink-0"
+          >
             {emp.name
               .split(" ")
               .map((n) => n[0])
@@ -158,8 +161,12 @@ export default function EmployeesPage() {
               .toUpperCase()}
           </div>
           <div className="min-w-0">
-            <p style={{color: '#2b2f36'}} className="text-[13px] font-semibold truncate">{emp.name}</p>
-            <p style={{color: '#6b7280'}} className="text-[11px] truncate">{emp.email}</p>
+            <p style={{ color: "#2b2f36" }} className="text-[13px] font-semibold truncate">
+              {emp.name}
+            </p>
+            <p style={{ color: "#6b7280" }} className="text-[11px] truncate">
+              {emp.email}
+            </p>
           </div>
         </div>
       ),
@@ -167,20 +174,31 @@ export default function EmployeesPage() {
     {
       header: "Department",
       cell: (emp) => (
-        <span style={{color: '#2b2f36', background: '#f7f9fb', border: '1px solid #dfe3e8'}} className="text-[12px] font-medium rounded px-2 py-0.5">
+        <span
+          style={{ color: "#2b2f36", background: "#f7f9fb", border: "1px solid #dfe3e8" }}
+          className="text-[12px] font-medium rounded px-2 py-0.5"
+        >
           {emp.department}
         </span>
       ),
     },
     {
       header: "Designation",
-      cell: (emp) => <span style={{color: '#6b7280'}} className="text-[13px]">{emp.designation || "—"}</span>,
+      cell: (emp) => (
+        <span style={{ color: "#6b7280" }} className="text-[13px]">
+          {emp.designation || "—"}
+        </span>
+      ),
     },
     {
       header: "Reports To",
       cell: (emp) => {
         const mgr = employees.find((e) => e.id === emp.reportsToId);
-        return <span style={{color: '#6b7280'}} className="text-[13px]">{mgr?.name ?? "—"}</span>;
+        return (
+          <span style={{ color: "#6b7280" }} className="text-[13px]">
+            {mgr?.name ?? "—"}
+          </span>
+        );
       },
     },
     {
@@ -195,7 +213,7 @@ export default function EmployeesPage() {
             <button
               onClick={() => handleRestore(emp)}
               title="Reactivate employee"
-              style={{color: '#16a34a', border: '1px solid #bbf7d0'}}
+              style={{ color: "#16a34a", border: "1px solid #bbf7d0" }}
               className="h-7 px-2 flex items-center gap-1 rounded-md bg-emerald-50 text-[11px] font-semibold hover:bg-emerald-100 transition-colors"
             >
               <RotateCcw size={12} />
@@ -208,20 +226,32 @@ export default function EmployeesPage() {
                   setEditingEmployee(emp);
                   setFormOpen(true);
                 }}
-                style={{color: '#6b7280', border: '1px solid #dfe3e8', background: '#f4f6f8'}}
+                style={{ color: "#6b7280", border: "1px solid #dfe3e8", background: "#f4f6f8" }}
                 className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-blue-50 hover:border-blue-200 transition-colors"
-                onMouseEnter={(e) => {e.currentTarget.style.color = '#1f5fa8'; e.currentTarget.style.borderColor = '#1f5fa8'}}
-                onMouseLeave={(e) => {e.currentTarget.style.color = '#6b7280'; e.currentTarget.style.borderColor = '#dfe3e8'}}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "#1f5fa8";
+                  e.currentTarget.style.borderColor = "#1f5fa8";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "#6b7280";
+                  e.currentTarget.style.borderColor = "#dfe3e8";
+                }}
               >
                 <Pencil size={13} />
               </button>
               <button
                 onClick={() => handleDelete(emp)}
                 title="Deactivate employee"
-                style={{color: '#6b7280', border: '1px solid #dfe3e8', background: '#f4f6f8'}}
+                style={{ color: "#6b7280", border: "1px solid #dfe3e8", background: "#f4f6f8" }}
                 className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-red-50 hover:border-red-200 transition-colors"
-                onMouseEnter={(e) => {e.currentTarget.style.color = '#dc2626'; e.currentTarget.style.borderColor = '#fca5a5'}}
-                onMouseLeave={(e) => {e.currentTarget.style.color = '#6b7280'; e.currentTarget.style.borderColor = '#dfe3e8'}}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "#dc2626";
+                  e.currentTarget.style.borderColor = "#fca5a5";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "#6b7280";
+                  e.currentTarget.style.borderColor = "#dfe3e8";
+                }}
               >
                 <Trash2 size={13} />
               </button>
@@ -295,10 +325,10 @@ export default function EmployeesPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <Users size={18} style={{color: '#6b7280'}} />
+            <Users size={18} style={{ color: "#6b7280" }} />
             Employees
           </h1>
-          <p className="page-subtitle mt-1" style={{color: '#6b7280'}}>
+          <p className="page-subtitle mt-1" style={{ color: "#6b7280" }}>
             Personal info, contracts, departments and reporting hierarchy
           </p>
         </div>
@@ -308,7 +338,7 @@ export default function EmployeesPage() {
             setEditingEmployee(null);
             setFormOpen(true);
           }}
-          style={{background: '#1f5fa8', borderColor: '#1f5fa8', color: '#fff'}}
+          style={{ background: "#1f5fa8", borderColor: "#1f5fa8", color: "#fff" }}
         >
           New Employee
         </Button>
@@ -348,12 +378,23 @@ export default function EmployeesPage() {
 
       {/* View + status filters */}
       <div className="flex flex-wrap items-center gap-3">
-        <div style={{background: '#f7f9fb', border: '1px solid #dfe3e8'}} className="flex items-center gap-1 rounded-lg p-1 w-fit">
+        <div
+          style={{ background: "#f7f9fb", border: "1px solid #dfe3e8" }}
+          className="flex items-center gap-1 rounded-lg p-1 w-fit"
+        >
           {(["list", "org-chart"] as ViewMode[]).map((v) => (
             <button
               key={v}
               onClick={() => setView(v)}
-              style={view === v ? {background: '#fff', color: '#2b2f36', boxShadow: '0 1px 2px rgba(0,0,0,0.05)'} : {color: '#6b7280'}}
+              style={
+                view === v
+                  ? {
+                      background: "#fff",
+                      color: "#2b2f36",
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                    }
+                  : { color: "#6b7280" }
+              }
               className="px-4 py-1.5 text-[13px] font-medium rounded-md transition-all duration-150 hover:text-slate-900"
             >
               {v === "list" ? "List View" : "Org Chart"}
@@ -362,7 +403,10 @@ export default function EmployeesPage() {
         </div>
 
         {view === "list" && (
-          <div style={{background: '#f7f9fb', border: '1px solid #dfe3e8'}} className="flex items-center gap-1 rounded-lg p-1 w-fit">
+          <div
+            style={{ background: "#f7f9fb", border: "1px solid #dfe3e8" }}
+            className="flex items-center gap-1 rounded-lg p-1 w-fit"
+          >
             {(
               [
                 { key: "active", label: "Active" },
@@ -373,7 +417,15 @@ export default function EmployeesPage() {
               <button
                 key={key}
                 onClick={() => setStatusFilter(key)}
-                style={statusFilter === key ? {background: '#fff', color: '#2b2f36', boxShadow: '0 1px 2px rgba(0,0,0,0.05)'} : {color: '#6b7280'}}
+                style={
+                  statusFilter === key
+                    ? {
+                        background: "#fff",
+                        color: "#2b2f36",
+                        boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                      }
+                    : { color: "#6b7280" }
+                }
                 className="px-4 py-1.5 text-[13px] font-medium rounded-md transition-all duration-150 hover:text-slate-900"
               >
                 {label}
@@ -399,7 +451,7 @@ export default function EmployeesPage() {
           }
         />
       ) : (
-        <Card style={{border: '1px solid #dfe3e8', background: '#ffffff'}}>
+        <Card>
           <OrgChart employees={activeEmployees} />
         </Card>
       )}

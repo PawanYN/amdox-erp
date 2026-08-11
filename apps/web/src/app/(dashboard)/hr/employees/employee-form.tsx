@@ -290,19 +290,80 @@ export function EmployeeForm({
       flush
       width="max-w-[1000px] w-full"
     >
-      <div style={{ display: "flex", flexDirection: "column", backgroundColor: COLORS.cardBg, maxHeight: "92vh", width: "100%" }}>
-        <div style={{ position: "relative", backgroundColor: COLORS.primaryBlue, padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", boxShadow: "0 1px 3px rgba(0,0,0,0.1)", zIndex: 20, width: "100%" }}>
-          <div style={{ position: "absolute", top: "-48px", right: "-48px", width: "192px", height: "192px", borderRadius: "50%", backgroundColor: "rgba(255,255,255,0.1)", filter: "blur(56px)", pointerEvents: "none" }} />
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          backgroundColor: COLORS.cardBg,
+          maxHeight: "92vh",
+          width: "100%",
+        }}
+      >
+        <div
+          style={{
+            position: "relative",
+            backgroundColor: COLORS.primaryBlue,
+            padding: "14px 24px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+            zIndex: 20,
+            width: "100%",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              top: "-48px",
+              right: "-48px",
+              width: "192px",
+              height: "192px",
+              borderRadius: "50%",
+              backgroundColor: "rgba(255,255,255,0.1)",
+              filter: "blur(56px)",
+              pointerEvents: "none",
+            }}
+          />
 
-          <div style={{ position: "relative", zIndex: 10, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-            <nav style={{ display: "flex", alignItems: "center", fontSize: "9px", fontWeight: "bold", color: "rgba(255,255,255,0.8)", textTransform: "uppercase", letterSpacing: "0.05em", gap: "4px" }}>
+          <div
+            style={{
+              position: "relative",
+              zIndex: 10,
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+            }}
+          >
+            <nav
+              style={{
+                display: "flex",
+                alignItems: "center",
+                fontSize: "9px",
+                fontWeight: "bold",
+                color: "rgba(255,255,255,0.8)",
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                gap: "4px",
+              }}
+            >
               <span>HR</span>
               <span style={{ opacity: 0.4 }}>/</span>
               <span>Employees</span>
               <span style={{ opacity: 0.4 }}>/</span>
               <span style={{ color: "white" }}>{isEdit ? "Edit Employee" : "Add Employee"}</span>
             </nav>
-            <h2 style={{ fontSize: "16px", fontWeight: "800", color: "white", marginTop: "2px", letterSpacing: "-0.01em", textTransform: "uppercase", lineHeight: 1 }}>
+            <h2
+              style={{
+                fontSize: "16px",
+                fontWeight: "800",
+                color: "white",
+                marginTop: "2px",
+                letterSpacing: "-0.01em",
+                textTransform: "uppercase",
+                lineHeight: 1,
+              }}
+            >
               {isEdit ? "Update Employee Profile" : "Create Employee Profile"}
             </h2>
           </div>
@@ -324,7 +385,7 @@ export function EmployeeForm({
               justifyContent: "center",
               color: COLORS.muted,
               cursor: "pointer",
-              transition: "all 200ms ease-in-out"
+              transition: "all 200ms ease-in-out",
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.color = COLORS.text;
@@ -340,9 +401,41 @@ export function EmployeeForm({
           </button>
         </div>
 
-        <div style={{ padding: "10px 24px", backgroundColor: `${COLORS.pageBg}99`, borderBottom: `1px solid ${COLORS.borders}`, position: "relative", zIndex: 10, width: "100%" }}>
-          <div style={{ position: "relative", display: "flex", alignItems: "flex-start", justifyContent: "space-between", width: "100%", maxWidth: "768px", margin: "0 auto", paddingLeft: "16px", paddingRight: "16px" }}>
-            <div style={{ position: "absolute", top: "24px", left: "16.7%", right: "16.7%", height: "2px", backgroundColor: COLORS.borders, transform: "translateY(-50%)", borderRadius: "9999px" }} />
+        <div
+          style={{
+            padding: "10px 24px",
+            backgroundColor: `${COLORS.pageBg}99`,
+            borderBottom: `1px solid ${COLORS.borders}`,
+            position: "relative",
+            zIndex: 10,
+            width: "100%",
+          }}
+        >
+          <div
+            style={{
+              position: "relative",
+              display: "flex",
+              alignItems: "flex-start",
+              justifyContent: "space-between",
+              width: "100%",
+              maxWidth: "768px",
+              margin: "0 auto",
+              paddingLeft: "16px",
+              paddingRight: "16px",
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                top: "24px",
+                left: "16.7%",
+                right: "16.7%",
+                height: "2px",
+                backgroundColor: COLORS.borders,
+                transform: "translateY(-50%)",
+                borderRadius: "9999px",
+              }}
+            />
             <div
               style={{
                 position: "absolute",
@@ -360,8 +453,25 @@ export function EmployeeForm({
               const isDone = s.id < step;
               const isActive = s.id === step;
               return (
-                <div key={s.id} style={{ position: "relative", zIndex: 10, display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
-                  <div style={{ height: "48px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <div
+                  key={s.id}
+                  style={{
+                    position: "relative",
+                    zIndex: 10,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    flex: 1,
+                  }}
+                >
+                  <div
+                    style={{
+                      height: "48px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
                     <div
                       style={{
                         borderRadius: "50%",
@@ -373,30 +483,38 @@ export function EmployeeForm({
                         fontWeight: "bold",
                         boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
                         transition: "all 300ms ease-in-out",
-                        ...(isDone ? {
-                          height: "40px",
-                          width: "40px",
-                          backgroundColor: COLORS.success,
-                          borderColor: COLORS.success,
-                          color: "white"
-                        } : isActive ? {
-                          height: "48px",
-                          width: "48px",
-                          backgroundColor: COLORS.primaryBlue,
-                          borderColor: COLORS.primaryBlue,
-                          color: "white",
-                          boxShadow: `0 1px 3px rgba(0,0,0,0.1), 0 0 0 4px ${COLORS.primaryBlue}22`,
-                          transform: "scale(1.02)"
-                        } : {
-                          height: "40px",
-                          width: "40px",
-                          backgroundColor: "white",
-                          borderColor: COLORS.borders,
-                          color: COLORS.muted
-                        })
+                        ...(isDone
+                          ? {
+                              height: "40px",
+                              width: "40px",
+                              backgroundColor: COLORS.success,
+                              borderColor: COLORS.success,
+                              color: "white",
+                            }
+                          : isActive
+                            ? {
+                                height: "48px",
+                                width: "48px",
+                                backgroundColor: COLORS.primaryBlue,
+                                borderColor: COLORS.primaryBlue,
+                                color: "white",
+                                boxShadow: `0 1px 3px rgba(0,0,0,0.1), 0 0 0 4px ${COLORS.primaryBlue}22`,
+                                transform: "scale(1.02)",
+                              }
+                            : {
+                                height: "40px",
+                                width: "40px",
+                                backgroundColor: "white",
+                                borderColor: COLORS.borders,
+                                color: COLORS.muted,
+                              }),
                       }}
                     >
-                      {isDone ? <span style={{ color: "white", fontSize: "14px" }}>✓</span> : <span>{s.id}</span>}
+                      {isDone ? (
+                        <span style={{ color: "white", fontSize: "14px" }}>✓</span>
+                      ) : (
+                        <span>{s.id}</span>
+                      )}
                     </div>
                   </div>
 
@@ -409,16 +527,30 @@ export function EmployeeForm({
                       letterSpacing: "0.05em",
                       transition: "color 300ms ease-in-out",
                       ...(isActive
-                        ? { color: COLORS.primaryBlue, textDecoration: "underline", textDecorationColor: `${COLORS.primaryBlue}33`, textUnderlineOffset: "4px" }
+                        ? {
+                            color: COLORS.primaryBlue,
+                            textDecoration: "underline",
+                            textDecorationColor: `${COLORS.primaryBlue}33`,
+                            textUnderlineOffset: "4px",
+                          }
                         : isDone
                           ? { color: COLORS.success }
-                          : { color: COLORS.muted }
-                      )
+                          : { color: COLORS.muted }),
                     }}
                   >
                     {s.label}
                   </span>
-                  <span style={{ fontSize: "9px", color: COLORS.muted, marginTop: "2px", display: "none" }} className="sm:block">{s.desc}</span>
+                  <span
+                    style={{
+                      fontSize: "9px",
+                      color: COLORS.muted,
+                      marginTop: "2px",
+                      display: "none",
+                    }}
+                    className="sm:block"
+                  >
+                    {s.desc}
+                  </span>
                 </div>
               );
             })}
@@ -429,11 +561,42 @@ export function EmployeeForm({
         <div style={{ flex: 1, overflow: "hidden", backgroundColor: COLORS.cardBg, width: "100%" }}>
           <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%" }}>
             {/* Left side: Form steps (65% dynamic width) */}
-            <div style={{ flex: 1, padding: "20px", display: "flex", flexDirection: "column", gap: "16px", maxWidth: "65%", overflowY: "auto", maxHeight: "55vh" }}>
+            <div
+              style={{
+                flex: 1,
+                padding: "20px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "16px",
+                maxWidth: "65%",
+                overflowY: "auto",
+                maxHeight: "55vh",
+              }}
+            >
               {step === 1 && (
-                <div style={{ backgroundColor: COLORS.cardBg, borderRadius: "16px", border: `1px solid ${COLORS.borders}`, boxShadow: "0 8px 30px rgba(0,0,0,0.05)", padding: "20px", display: "flex", flexDirection: "column", gap: "16px", animation: "fade-in 300ms ease-in-out" }}>
+                <div
+                  style={{
+                    backgroundColor: COLORS.cardBg,
+                    borderRadius: "16px",
+                    border: `1px solid ${COLORS.borders}`,
+                    boxShadow: "0 8px 30px rgba(0,0,0,0.05)",
+                    padding: "20px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "16px",
+                    animation: "fade-in 300ms ease-in-out",
+                  }}
+                >
                   <div>
-                    <h3 style={{ fontSize: "14px", fontWeight: "bold", color: COLORS.text, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                    <h3
+                      style={{
+                        fontSize: "14px",
+                        fontWeight: "bold",
+                        color: COLORS.text,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                      }}
+                    >
                       Personal Information
                     </h3>
                     <p style={{ fontSize: "11px", color: COLORS.muted, marginTop: "2px" }}>
@@ -475,7 +638,11 @@ export function EmployeeForm({
                         placeholder="ananya.rao@acme.com"
                         value={data.email}
                         error={errors.email}
-                        helperText={!errors.email ? "Used for system notifications, invites & payslips." : undefined}
+                        helperText={
+                          !errors.email
+                            ? "Used for system notifications, invites & payslips."
+                            : undefined
+                        }
                         onChange={(e) => {
                           setData({ ...data, email: e.target.value });
                           if (errors.email) setErrors((prev) => ({ ...prev, email: "" }));
@@ -502,9 +669,29 @@ export function EmployeeForm({
               )}
 
               {step === 2 && (
-                <div style={{ backgroundColor: COLORS.cardBg, borderRadius: "16px", border: `1px solid ${COLORS.borders}`, boxShadow: "0 8px 30px rgba(0,0,0,0.05)", padding: "20px", display: "flex", flexDirection: "column", gap: "16px", animation: "fade-in 300ms ease-in-out" }}>
+                <div
+                  style={{
+                    backgroundColor: COLORS.cardBg,
+                    borderRadius: "16px",
+                    border: `1px solid ${COLORS.borders}`,
+                    boxShadow: "0 8px 30px rgba(0,0,0,0.05)",
+                    padding: "20px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "16px",
+                    animation: "fade-in 300ms ease-in-out",
+                  }}
+                >
                   <div>
-                    <h3 style={{ fontSize: "14px", fontWeight: "bold", color: COLORS.text, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                    <h3
+                      style={{
+                        fontSize: "14px",
+                        fontWeight: "bold",
+                        color: COLORS.text,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                      }}
+                    >
                       Job Details
                     </h3>
                     <p style={{ fontSize: "11px", color: COLORS.muted, marginTop: "2px" }}>
@@ -555,7 +742,7 @@ export function EmployeeForm({
                         }}
                         options={[
                           { value: "", label: "Select Department" },
-                          ...departments.map((d) => ({ value: String(d.id), label: d.name }))
+                          ...departments.map((d) => ({ value: String(d.id), label: d.name })),
                         ]}
                       />
 
@@ -565,7 +752,10 @@ export function EmployeeForm({
                         onChange={(e) => setData({ ...data, managerId: e.target.value })}
                         options={[
                           { value: "", label: "Select Manager" },
-                          ...managers.map((m) => ({ value: String(m.id), label: `${m.name} — ${m.designation || "Lead"}` }))
+                          ...managers.map((m) => ({
+                            value: String(m.id),
+                            label: `${m.name} — ${m.designation || "Lead"}`,
+                          })),
                         ]}
                       />
                     </FormRow>
@@ -574,7 +764,15 @@ export function EmployeeForm({
                       <label style={{ fontSize: "12px", fontWeight: "600", color: COLORS.text }}>
                         Employment Type <span style={{ color: COLORS.error }}>*</span>
                       </label>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginTop: "6px", animation: "fade-in 300ms ease-in-out" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexWrap: "wrap",
+                          gap: "10px",
+                          marginTop: "6px",
+                          animation: "fade-in 300ms ease-in-out",
+                        }}
+                      >
                         {(
                           [
                             "Full-time",
@@ -599,14 +797,13 @@ export function EmployeeForm({
                                     backgroundColor: COLORS.primaryBlue,
                                     color: "white",
                                     border: "none",
-                                    boxShadow: "0 4px 12px rgba(31, 95, 168, 0.3)"
+                                    boxShadow: "0 4px 12px rgba(31, 95, 168, 0.3)",
                                   }
                                 : {
                                     backgroundColor: "white",
                                     border: `1px solid ${COLORS.borders}`,
-                                    color: COLORS.muted
-                                  }
-                              )
+                                    color: COLORS.muted,
+                                  }),
                             }}
                             onMouseEnter={(e) => {
                               if (data.employmentType !== type) {
@@ -636,7 +833,11 @@ export function EmployeeForm({
                         step="0.01"
                         value={data.salary}
                         error={errors.salary}
-                        helperText={!errors.salary ? "Creates their pay contract — required before payroll can run for them." : undefined}
+                        helperText={
+                          !errors.salary
+                            ? "Creates their pay contract — required before payroll can run for them."
+                            : undefined
+                        }
                         onChange={(e) => {
                           setData({ ...data, salary: e.target.value });
                           if (errors.salary) setErrors((prev) => ({ ...prev, salary: "" }));
@@ -648,9 +849,29 @@ export function EmployeeForm({
               )}
 
               {step === 3 && (
-                <div style={{ backgroundColor: COLORS.cardBg, borderRadius: "16px", border: `1px solid ${COLORS.borders}`, boxShadow: "0 8px 30px rgba(0,0,0,0.05)", padding: "20px", display: "flex", flexDirection: "column", gap: "16px", animation: "fade-in 300ms ease-in-out" }}>
+                <div
+                  style={{
+                    backgroundColor: COLORS.cardBg,
+                    borderRadius: "16px",
+                    border: `1px solid ${COLORS.borders}`,
+                    boxShadow: "0 8px 30px rgba(0,0,0,0.05)",
+                    padding: "20px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "16px",
+                    animation: "fade-in 300ms ease-in-out",
+                  }}
+                >
                   <div>
-                    <h3 style={{ fontSize: "14px", fontWeight: "bold", color: COLORS.text, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                    <h3
+                      style={{
+                        fontSize: "14px",
+                        fontWeight: "bold",
+                        color: COLORS.text,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                      }}
+                    >
                       ERP Access Control
                     </h3>
                     <p style={{ fontSize: "11px", color: COLORS.muted, marginTop: "2px" }}>
@@ -659,13 +880,35 @@ export function EmployeeForm({
                   </div>
 
                   <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                    <div style={{ borderRadius: "12px", border: `1px solid ${COLORS.borders}`, backgroundColor: `${COLORS.pageBg}66`, padding: "16px", marginTop: "4px" }}>
-                      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px" }}>
+                    <div
+                      style={{
+                        borderRadius: "12px",
+                        border: `1px solid ${COLORS.borders}`,
+                        backgroundColor: `${COLORS.pageBg}66`,
+                        padding: "16px",
+                        marginTop: "4px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "flex-start",
+                          justifyContent: "space-between",
+                          gap: "16px",
+                        }}
+                      >
                         <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
                           <p style={{ fontSize: "14px", fontWeight: "bold", color: COLORS.text }}>
                             Provide ERP Portal Login Access
                           </p>
-                          <p style={{ fontSize: "12px", color: COLORS.muted, maxWidth: "400px", lineHeight: 1.5 }}>
+                          <p
+                            style={{
+                              fontSize: "12px",
+                              color: COLORS.muted,
+                              maxWidth: "400px",
+                              lineHeight: 1.5,
+                            }}
+                          >
                             Enable login credentials for this worker. Subordinate staff permissions
                             and logs can be reviewed manually by their manager if this remains
                             disabled.
@@ -691,7 +934,7 @@ export function EmployeeForm({
                             cursor: "pointer",
                             backgroundColor: data.needsAccess ? COLORS.primaryBlue : COLORS.muted,
                             outline: "none",
-                            boxShadow: `0 0 0 4px ${data.needsAccess ? COLORS.primaryBlue : COLORS.muted}22`
+                            boxShadow: `0 0 0 4px ${data.needsAccess ? COLORS.primaryBlue : COLORS.muted}22`,
                           }}
                         >
                           <span
@@ -705,7 +948,7 @@ export function EmployeeForm({
                               backgroundColor: "white",
                               boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
                               transition: "transform 200ms ease-in-out",
-                              transform: data.needsAccess ? "translateX(20px)" : "translateX(0)"
+                              transform: data.needsAccess ? "translateX(20px)" : "translateX(0)",
                             }}
                           />
                         </button>
@@ -722,7 +965,7 @@ export function EmployeeForm({
                           marginTop: data.needsAccess ? "16px" : "0px",
                           paddingTop: data.needsAccess ? "16px" : "0px",
                           borderTop: data.needsAccess ? `1px solid ${COLORS.borders}33` : "none",
-                          transform: data.needsAccess ? "translateY(0)" : "translateY(8px)"
+                          transform: data.needsAccess ? "translateY(0)" : "translateY(8px)",
                         }}
                       >
                         <FormRow columns={2}>
@@ -753,31 +996,79 @@ export function EmployeeForm({
                             }}
                             options={[
                               { value: "", label: "Select System Role" },
-                              ...ROLES.map((r) => ({ value: r, label: r }))
+                              ...ROLES.map((r) => ({ value: r, label: r })),
                             ]}
                           />
 
                           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                            <label style={{ fontSize: "12px", fontWeight: "600", color: COLORS.text }}>
+                            <label
+                              style={{ fontSize: "12px", fontWeight: "600", color: COLORS.text }}
+                            >
                               System Notification
                             </label>
-                            <div style={{ display: "flex", alignItems: "center", height: "50px", fontSize: "12px", fontWeight: "bold", color: COLORS.success, gap: "6px", marginTop: "4px", backgroundColor: COLORS.successLight, border: `1px solid ${COLORS.success}33`, borderRadius: "12px", paddingLeft: "16px", paddingRight: "16px" }}>
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                height: "50px",
+                                fontSize: "12px",
+                                fontWeight: "bold",
+                                color: COLORS.success,
+                                gap: "6px",
+                                marginTop: "4px",
+                                backgroundColor: COLORS.successLight,
+                                border: `1px solid ${COLORS.success}33`,
+                                borderRadius: "12px",
+                                paddingLeft: "16px",
+                                paddingRight: "16px",
+                              }}
+                            >
                               <span>✓</span> System invite instructions will dispatch via email
                             </div>
                           </div>
                         </FormRow>
 
-                        <div style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "8px" }}>
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
-                            <label style={{ fontSize: "12px", fontWeight: "600", color: COLORS.text }}>
+                        <div
+                          style={{
+                            marginTop: "16px",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "8px",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              gap: "8px",
+                            }}
+                          >
+                            <label
+                              style={{ fontSize: "12px", fontWeight: "600", color: COLORS.text }}
+                            >
                               ERP Module Tabs <span style={{ color: COLORS.error }}>*</span>
                             </label>
                             {data.role !== "TenantAdmin" && (
                               <button
                                 type="button"
-                                style={{ fontSize: "10px", fontWeight: "600", color: COLORS.primaryBlue, cursor: "pointer", background: "none", border: "none", textDecoration: "none", padding: "0px", transition: "text-decoration 200ms ease-in-out" }}
-                                onMouseEnter={(e) => e.currentTarget.style.textDecoration = "underline"}
-                                onMouseLeave={(e) => e.currentTarget.style.textDecoration = "none"}
+                                style={{
+                                  fontSize: "10px",
+                                  fontWeight: "600",
+                                  color: COLORS.primaryBlue,
+                                  cursor: "pointer",
+                                  background: "none",
+                                  border: "none",
+                                  textDecoration: "none",
+                                  padding: "0px",
+                                  transition: "text-decoration 200ms ease-in-out",
+                                }}
+                                onMouseEnter={(e) =>
+                                  (e.currentTarget.style.textDecoration = "underline")
+                                }
+                                onMouseLeave={(e) =>
+                                  (e.currentTarget.style.textDecoration = "none")
+                                }
                                 onClick={() =>
                                   setData((prev) => ({
                                     ...prev,
@@ -796,7 +1087,13 @@ export function EmployeeForm({
                             Choose which sidebar sections this person can open. Home and
                             Notifications are always included.
                           </p>
-                          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "8px" }}>
+                          <div
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                              gap: "8px",
+                            }}
+                          >
                             {MODULE_OPTIONS.map((opt) => (
                               <label
                                 key={opt.id}
@@ -807,10 +1104,13 @@ export function EmployeeForm({
                                   borderRadius: "12px",
                                   border: `1px solid ${data.role === "TenantAdmin" ? COLORS.borders : COLORS.borders}`,
                                   padding: "12px",
-                                  backgroundColor: data.role === "TenantAdmin" ? `${COLORS.pageBg}80` : "transparent",
+                                  backgroundColor:
+                                    data.role === "TenantAdmin"
+                                      ? `${COLORS.pageBg}80`
+                                      : "transparent",
                                   opacity: data.role === "TenantAdmin" ? 0.8 : 1,
                                   cursor: data.role === "TenantAdmin" ? "not-allowed" : "pointer",
-                                  transition: "background-color 200ms ease-in-out"
+                                  transition: "background-color 200ms ease-in-out",
                                 }}
                                 onMouseEnter={(e) => {
                                   if (data.role !== "TenantAdmin") {
@@ -825,13 +1125,23 @@ export function EmployeeForm({
                               >
                                 <input
                                   type="checkbox"
-                                  style={{ marginTop: "2px", cursor: data.role === "TenantAdmin" ? "not-allowed" : "pointer" }}
+                                  style={{
+                                    marginTop: "2px",
+                                    cursor: data.role === "TenantAdmin" ? "not-allowed" : "pointer",
+                                  }}
                                   checked={data.allowedModules.includes(opt.id)}
                                   disabled={data.role === "TenantAdmin"}
                                   onChange={() => toggleModule(opt.id)}
                                 />
                                 <span style={{ display: "flex", flexDirection: "column" }}>
-                                  <span style={{ fontSize: "12px", fontWeight: "600", color: COLORS.text, display: "block" }}>
+                                  <span
+                                    style={{
+                                      fontSize: "12px",
+                                      fontWeight: "600",
+                                      color: COLORS.text,
+                                      display: "block",
+                                    }}
+                                  >
                                     {opt.label}
                                   </span>
                                   <span style={{ fontSize: "10px", color: COLORS.muted }}>
@@ -842,7 +1152,9 @@ export function EmployeeForm({
                             ))}
                           </div>
                           {errors.allowedModules && (
-                            <span style={{ fontSize: "10px", color: COLORS.error, fontWeight: "500" }}>
+                            <span
+                              style={{ fontSize: "10px", color: COLORS.error, fontWeight: "500" }}
+                            >
                               {errors.allowedModules}
                             </span>
                           )}
@@ -851,8 +1163,28 @@ export function EmployeeForm({
                     </div>
 
                     {!data.needsAccess && (
-                      <div style={{ borderRadius: "12px", border: `1px dashed ${COLORS.borders}`, padding: "16px", fontSize: "12px", color: COLORS.muted, display: "flex", alignItems: "flex-start", gap: "8px", backgroundColor: `${COLORS.pageBg}33` }}>
-                        <span style={{ color: COLORS.primaryBlue, fontWeight: "bold", fontSize: "14px", lineHeight: 1, marginTop: "2px" }}>
+                      <div
+                        style={{
+                          borderRadius: "12px",
+                          border: `1px dashed ${COLORS.borders}`,
+                          padding: "16px",
+                          fontSize: "12px",
+                          color: COLORS.muted,
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: "8px",
+                          backgroundColor: `${COLORS.pageBg}33`,
+                        }}
+                      >
+                        <span
+                          style={{
+                            color: COLORS.primaryBlue,
+                            fontWeight: "bold",
+                            fontSize: "14px",
+                            lineHeight: 1,
+                            marginTop: "2px",
+                          }}
+                        >
                           ℹ
                         </span>
                         <span>
@@ -867,37 +1199,155 @@ export function EmployeeForm({
             </div>
 
             {/* Right side: Live preview summary block (35% dynamic width for readability) */}
-            <div style={{ display: "none", "@media (min-width: 1024px)": { display: "block" }, width: "35%", background: `linear-gradient(180deg, ${COLORS.pageBg}66 0%, ${COLORS.cardBg} 100%)`, padding: "24px 28px", display: "flex", flexDirection: "column", justifyContent: "space-between", overflowY: "auto", maxHeight: "55vh" }}>
+            <div
+              className="hidden lg:flex"
+              style={{
+                width: "35%",
+                background: `linear-gradient(180deg, ${COLORS.pageBg}66 0%, ${COLORS.cardBg} 100%)`,
+                padding: "24px 28px",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                overflowY: "auto",
+                maxHeight: "55vh",
+              }}
+            >
               <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                 <div>
-                  <h4 style={{ fontSize: "10px", fontWeight: "800", color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  <h4
+                    style={{
+                      fontSize: "10px",
+                      fontWeight: "800",
+                      color: COLORS.muted,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                    }}
+                  >
                     Live Profile Preview
                   </h4>
-                  <p style={{ fontSize: "10px", color: COLORS.muted, marginTop: "2px" }}>Summary updates instantly.</p>
+                  <p style={{ fontSize: "10px", color: COLORS.muted, marginTop: "2px" }}>
+                    Summary updates instantly.
+                  </p>
                 </div>
 
                 {/* Employee badge preview card */}
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "20px", backgroundColor: COLORS.cardBg, borderRadius: "16px", border: `1px solid ${COLORS.borders}`, boxShadow: "0 6px 22px rgba(0,0,0,0.03)", position: "relative", overflow: "hidden" }}>
-                  <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "6px", background: `linear-gradient(90deg, ${COLORS.primaryBlue} 0%, ${COLORS.primaryBlue}dd 100%)` }} />
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    textAlign: "center",
+                    padding: "20px",
+                    backgroundColor: COLORS.cardBg,
+                    borderRadius: "16px",
+                    border: `1px solid ${COLORS.borders}`,
+                    boxShadow: "0 6px 22px rgba(0,0,0,0.03)",
+                    position: "relative",
+                    overflow: "hidden",
+                  }}
+                >
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: "6px",
+                      background: `linear-gradient(90deg, ${COLORS.primaryBlue} 0%, ${COLORS.primaryBlue}dd 100%)`,
+                    }}
+                  />
 
-                  <div style={{ width: "64px", height: "64px", borderRadius: "50%", background: `linear-gradient(135deg, ${COLORS.primaryBlue} 0%, ${COLORS.primaryBlue}dd 100%)`, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: "20px", fontWeight: "800", boxShadow: "0 4px 12px rgba(31, 95, 168, 0.3)", marginBottom: "12px", transform: "scale(1)", transition: "transform 300ms ease-in-out", cursor: "default" }}>
+                  <div
+                    style={{
+                      width: "64px",
+                      height: "64px",
+                      borderRadius: "50%",
+                      background: `linear-gradient(135deg, ${COLORS.primaryBlue} 0%, ${COLORS.primaryBlue}dd 100%)`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "white",
+                      fontSize: "20px",
+                      fontWeight: "800",
+                      boxShadow: "0 4px 12px rgba(31, 95, 168, 0.3)",
+                      marginBottom: "12px",
+                      transform: "scale(1)",
+                      transition: "transform 300ms ease-in-out",
+                      cursor: "default",
+                    }}
+                  >
                     {initials}
                   </div>
 
-                  <h4 style={{ fontSize: "14px", fontWeight: "bold", color: COLORS.text, truncate: "true", maxWidth: "100%", lineHeight: 1.2, textAlign: "center" }}>
+                  <h4
+                    style={{
+                      fontSize: "14px",
+                      fontWeight: "bold",
+                      color: COLORS.text,
+                      maxWidth: "100%",
+                      lineHeight: 1.2,
+                      textAlign: "center",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
                     {nameDisplay}
                   </h4>
-                  <p style={{ fontSize: "12px", color: COLORS.muted, truncate: "true", maxWidth: "100%", marginTop: "6px", fontWeight: "normal", textAlign: "center" }}>
+                  <p
+                    style={{
+                      fontSize: "12px",
+                      color: COLORS.muted,
+                      maxWidth: "100%",
+                      marginTop: "6px",
+                      fontWeight: "normal",
+                      textAlign: "center",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
                     {emailDisplay}
                   </p>
 
                   <div style={{ marginTop: "12px" }}>
                     {data.needsAccess ? (
-                      <span style={{ display: "inline-flex", alignItems: "center", paddingLeft: "10px", paddingRight: "10px", paddingTop: "2px", paddingBottom: "2px", borderRadius: "9999px", fontSize: "9px", fontWeight: "bold", backgroundColor: COLORS.successLight, color: COLORS.success, border: `1px solid ${COLORS.success}33`, boxShadow: "0 1px 3px rgba(0,0,0,0.1)", animation: "fade-in 300ms ease-in-out" }}>
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          paddingLeft: "10px",
+                          paddingRight: "10px",
+                          paddingTop: "2px",
+                          paddingBottom: "2px",
+                          borderRadius: "9999px",
+                          fontSize: "9px",
+                          fontWeight: "bold",
+                          backgroundColor: COLORS.successLight,
+                          color: COLORS.success,
+                          border: `1px solid ${COLORS.success}33`,
+                          boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                          animation: "fade-in 300ms ease-in-out",
+                        }}
+                      >
                         ✓ ERP Account Requested
                       </span>
                     ) : (
-                      <span style={{ display: "inline-flex", alignItems: "center", paddingLeft: "10px", paddingRight: "10px", paddingTop: "2px", paddingBottom: "2px", borderRadius: "9999px", fontSize: "9px", fontWeight: "bold", backgroundColor: COLORS.pageBg, color: COLORS.muted, border: `1px solid ${COLORS.borders}` }}>
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          paddingLeft: "10px",
+                          paddingRight: "10px",
+                          paddingTop: "2px",
+                          paddingBottom: "2px",
+                          borderRadius: "9999px",
+                          fontSize: "9px",
+                          fontWeight: "bold",
+                          backgroundColor: COLORS.pageBg,
+                          color: COLORS.muted,
+                          border: `1px solid ${COLORS.borders}`,
+                        }}
+                      >
                         Manual Attendance Entry
                       </span>
                     )}
@@ -905,30 +1355,105 @@ export function EmployeeForm({
                 </div>
 
                 {/* Details layout matrix */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "10px", backgroundColor: COLORS.cardBg, padding: "16px", borderRadius: "16px", border: `1px solid ${COLORS.borders}33`, boxShadow: "0 1px 3px rgba(0,0,0,0.03)", animation: "fade-in 300ms ease-in-out" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "10px",
+                    backgroundColor: COLORS.cardBg,
+                    padding: "16px",
+                    borderRadius: "16px",
+                    border: `1px solid ${COLORS.borders}33`,
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                    animation: "fade-in 300ms ease-in-out",
+                  }}
+                >
                   {[
                     { label: "Department", value: deptName },
                     { label: "Line Manager", value: managerName },
                     { label: "Designation", value: data.designation || "Not set" },
                     { label: "Employment Unit", value: data.employmentType },
-                    { label: "Monthly Salary", value: data.salary ? `₹${Number(data.salary).toLocaleString("en-IN")}` : "Not set" },
-                    { label: "ERP System Role", value: data.needsAccess ? data.role || "Pending Role *" : "No Login Permitted", highlight: true },
+                    {
+                      label: "Monthly Salary",
+                      value: data.salary
+                        ? `₹${Number(data.salary).toLocaleString("en-IN")}`
+                        : "Not set",
+                    },
+                    {
+                      label: "ERP System Role",
+                      value: data.needsAccess
+                        ? data.role || "Pending Role *"
+                        : "No Login Permitted",
+                      highlight: true,
+                    },
                   ].map((item, idx) => (
-                    <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px", paddingBottom: "10px", borderBottom: idx < 5 ? `1px solid ${COLORS.borders}33` : "none" }}>
-                      <span style={{ color: COLORS.muted, fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.05em", fontSize: "9px" }}>
+                    <div
+                      key={idx}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        fontSize: "12px",
+                        paddingBottom: "10px",
+                        borderBottom: idx < 5 ? `1px solid ${COLORS.borders}33` : "none",
+                      }}
+                    >
+                      <span
+                        style={{
+                          color: COLORS.muted,
+                          fontWeight: "800",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                          fontSize: "9px",
+                        }}
+                      >
                         {item.label}
                       </span>
-                      <span style={{ color: item.highlight ? COLORS.primaryBlue : COLORS.text, fontWeight: "bold", maxWidth: "140px", overflow: "hidden", textOverflow: "ellipsis", textAlign: "right" }}>
+                      <span
+                        style={{
+                          color: item.highlight ? COLORS.primaryBlue : COLORS.text,
+                          fontWeight: "bold",
+                          maxWidth: "140px",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          textAlign: "right",
+                        }}
+                      >
                         {item.value}
                       </span>
                     </div>
                   ))}
                   {data.needsAccess && (
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", fontSize: "12px", paddingTop: "10px" }}>
-                      <span style={{ color: COLORS.muted, fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.05em", fontSize: "9px", flexShrink: 0 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "flex-start",
+                        fontSize: "12px",
+                        paddingTop: "10px",
+                      }}
+                    >
+                      <span
+                        style={{
+                          color: COLORS.muted,
+                          fontWeight: "800",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                          fontSize: "9px",
+                          flexShrink: 0,
+                        }}
+                      >
                         Module Tabs
                       </span>
-                      <span style={{ color: COLORS.text, fontWeight: "bold", textAlign: "right", maxWidth: "150px", lineHeight: 1.4 }}>
+                      <span
+                        style={{
+                          color: COLORS.text,
+                          fontWeight: "bold",
+                          textAlign: "right",
+                          maxWidth: "150px",
+                          lineHeight: 1.4,
+                        }}
+                      >
                         {moduleLabels}
                       </span>
                     </div>
@@ -939,7 +1464,19 @@ export function EmployeeForm({
           </div>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 24px", borderTop: `1px solid ${COLORS.borders}`, backgroundColor: COLORS.cardBg, position: "relative", zIndex: 10, width: "100%" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "16px 24px",
+            borderTop: `1px solid ${COLORS.borders}`,
+            backgroundColor: COLORS.cardBg,
+            position: "relative",
+            zIndex: 10,
+            width: "100%",
+          }}
+        >
           <Button
             type="button"
             variant="outline"
@@ -950,12 +1487,32 @@ export function EmployeeForm({
             ← Back
           </Button>
 
-          <span style={{ display: "inline-flex", alignItems: "center", paddingLeft: "16px", paddingRight: "16px", paddingTop: "6px", paddingBottom: "6px", borderRadius: "9999px", fontSize: "12px", fontWeight: "800", color: COLORS.primaryBlue, backgroundColor: `${COLORS.primaryBlue}11`, letterSpacing: "0.05em" }}>
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              paddingLeft: "16px",
+              paddingRight: "16px",
+              paddingTop: "6px",
+              paddingBottom: "6px",
+              borderRadius: "9999px",
+              fontSize: "12px",
+              fontWeight: "800",
+              color: COLORS.primaryBlue,
+              backgroundColor: `${COLORS.primaryBlue}11`,
+              letterSpacing: "0.05em",
+            }}
+          >
             Step {step} of 3
           </span>
 
           {step < 3 ? (
-            <Button type="button" variant="primary" onClick={handleNext} style={{ fontSize: "12px" }}>
+            <Button
+              type="button"
+              variant="primary"
+              onClick={handleNext}
+              style={{ fontSize: "12px" }}
+            >
               Continue →
             </Button>
           ) : (

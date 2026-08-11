@@ -32,7 +32,7 @@ export default function AgingReportPage() {
     <div className="space-y-6">
       <div>
         <h1 className="page-title flex items-center gap-2">
-          <CalendarClock size={18} style={{color: '#6b7280'}} />
+          <CalendarClock size={18} style={{ color: "#6b7280" }} />
           AR Aging Report
         </h1>
         <p className="page-subtitle mt-1">Outstanding receivables bucketed by age</p>
@@ -65,22 +65,59 @@ export default function AgingReportPage() {
 
           {/* Bucket breakdown */}
           <div className="bg-white rounded-lg border border-slate-200 shadow-card p-6">
-            <p style={{fontSize: '12px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '20px'}}>
+            <p
+              style={{
+                fontSize: "12px",
+                fontWeight: 600,
+                color: "#6b7280",
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                marginBottom: "20px",
+              }}
+            >
               Aging Buckets
             </p>
             <div className="space-y-4">
               {BUCKETS.map((b, i) => (
                 <div key={b.key}>
-                  <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px'}}>
-                    <span style={{fontSize: '13px', fontWeight: 500, color: '#2b2f36'}}>{b.label}</span>
-                    <span style={{fontSize: '13px', fontFamily: 'monospace', fontWeight: 600, color: b.textColor.split(' ')[1]}}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      marginBottom: "6px",
+                    }}
+                  >
+                    <span style={{ fontSize: "13px", fontWeight: 500, color: "#2b2f36" }}>
+                      {b.label}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: "13px",
+                        fontFamily: "monospace",
+                        fontWeight: 600,
+                        color: b.textColor.split(" ")[1],
+                      }}
+                    >
                       ₹{bucketTotals[i].toLocaleString()}
                     </span>
                   </div>
-                  <div style={{height: '8px', background: '#f3f4f6', borderRadius: '9999px', overflow: 'hidden'}}>
+                  <div
+                    style={{
+                      height: "8px",
+                      background: "#f3f4f6",
+                      borderRadius: "9999px",
+                      overflow: "hidden",
+                    }}
+                  >
                     <div
-                      style={{height: '100%', borderRadius: '9999px', background: b.color.split(' ')[1], transition: 'width 0.5s ease'}}
-                      style={{ height: '100%', borderRadius: '9999px', background: b.color.split(' ')[1], transition: 'width 0.5s ease', width: `${(bucketTotals[i] / maxVal) * 100}%` }}
+                      style={{
+                        height: "100%",
+                        borderRadius: "9999px",
+                        background: b.color.split(" ")[1],
+                        transition: "width 0.5s ease",
+                        width: `${(bucketTotals[i] / maxVal) * 100}%`,
+                      }}
                     />
                   </div>
                 </div>
@@ -95,11 +132,29 @@ export default function AgingReportPage() {
                 key={b.key}
                 className="bg-white rounded-lg border border-slate-200 shadow-card p-4"
               >
-                <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px'}}>
-                  <div style={{height: '8px', width: '8px', borderRadius: '50%', background: b.color.split(' ')[1]}} />
-                  <span style={{fontSize: '11px', color: '#6b7280', fontWeight: 500}}>{b.label}</span>
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}
+                >
+                  <div
+                    style={{
+                      height: "8px",
+                      width: "8px",
+                      borderRadius: "50%",
+                      background: b.color.split(" ")[1],
+                    }}
+                  />
+                  <span style={{ fontSize: "11px", color: "#6b7280", fontWeight: 500 }}>
+                    {b.label}
+                  </span>
                 </div>
-                <p style={{fontSize: '20px', fontWeight: 600, fontFamily: 'monospace', color: '#2b2f36'}}>
+                <p
+                  style={{
+                    fontSize: "20px",
+                    fontWeight: 600,
+                    fontFamily: "monospace",
+                    color: "#2b2f36",
+                  }}
+                >
                   ₹{bucketTotals[i].toLocaleString()}
                 </p>
               </div>

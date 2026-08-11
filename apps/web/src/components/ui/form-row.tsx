@@ -1,23 +1,93 @@
 import React, { ReactNode } from "react";
 
 interface FormRowProps {
-  label: string;
+  label?: string;
   required?: boolean;
   children: ReactNode;
   className?: string;
+  columns?: number;
 }
 
-export function FormRow({ label, required = false, children, className = "" }: FormRowProps) {
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  maxWidth: "340px",
+  padding: "7px 10px",
+  border: "1px solid #dfe3e8",
+  borderRadius: "4px",
+  fontSize: "13px",
+  fontFamily: "inherit",
+  color: "#2b2f36",
+  background: "#fff",
+  transition: "border-color 0.15s ease",
+};
+
+function focusInput(
+  e: React.FocusEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
+) {
+  e.currentTarget.style.borderColor = "#1f5fa8";
+  e.currentTarget.style.boxShadow = "0 0 0 3px rgb(31 95 168 / 0.10)";
+}
+
+function blurInputElement(
+  e: React.FocusEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
+) {
+  e.currentTarget.style.borderColor = "#dfe3e8";
+  e.currentTarget.style.boxShadow = "none";
+}
+
+export function FormRow({
+  label,
+  required = false,
+  children,
+  className = "",
+  columns,
+}: FormRowProps) {
+  if (columns !== undefined) {
+    return (
+      <div
+        className={className}
+        style={{
+          display: "grid",
+          gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+          gap: "14px",
+        }}
+      >
+        {children}
+      </div>
+    );
+  }
+
   return (
-    <div className={`form-row ${className}`} style={{paddingLeft: 0, paddingRight: 0}}>
+    <div className={`form-row ${className}`} style={{ paddingLeft: 0, paddingRight: 0 }}>
       <label style={{ fontSize: "13px", color: "#2b2f36", fontWeight: 500 }}>
         {label}
-        {required && <span className="req" style={{color: '#d0392b', marginLeft: '2px'}}>*</span>}
+        {required && (
+          <span className="req" style={{ color: "#d0392b", marginLeft: "2px" }}>
+            *
+          </span>
+        )}
       </label>
       <div>{children}</div>
     </div>
   );
 }
+
+type FormInputProps = {
+  type?: string;
+  placeholder?: string;
+  value: string | number;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
+  disabled?: boolean;
+  maxLength?: number;
+  min?: string | number;
+  max?: string | number;
+  step?: string | number;
+  label?: string;
+  required?: boolean;
+  error?: string;
+  helperText?: string;
+};
 
 export function FormInput({
   type = "text",
@@ -30,47 +100,65 @@ export function FormInput({
   min,
   max,
   step,
-}: {
-  type?: string;
-  placeholder?: string;
-  value: string | number;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
-  disabled?: boolean;
-  maxLength?: number;
-  min?: string | number;
-  max?: string | number;
-  step?: string | number;
-}) {
-  return (
+  label,
+  required = false,
+  error,
+  helperText,
+}: FormInputProps) {
+  const field = (
     <input
       type={type}
       placeholder={placeholder}
       value={value}
       onChange={onChange}
-      onBlur={onBlur}
       disabled={disabled}
       maxLength={maxLength}
       min={min}
       max={max}
       step={step}
       style={{
-        width: "100%",
-        maxWidth: "340px",
-        padding: "7px 10px",
-        border: "1px solid #dfe3e8",
-        borderRadius: "4px",
-        fontSize: "13px",
-        fontFamily: "inherit",
-        color: "#2b2f36",
+        ...inputStyle,
+        maxWidth: label ? "100%" : inputStyle.maxWidth,
         background: disabled ? "#f4f6f8" : "#fff",
-        transition: "border-color 0.15s ease",
+        borderColor: error ? "#d0392b" : "#dfe3e8",
       }}
-      onFocus={(e) => { e.currentTarget.style.borderColor = "#1f5fa8"; e.currentTarget.style.boxShadow = "0 0 0 3px rgb(31 95 168 / 0.10)"; }}
-      onBlur={(e) => { e.currentTarget.style.borderColor = "#dfe3e8"; e.currentTarget.style.boxShadow = "none"; onBlur?.(e); }}
+      onFocus={focusInput}
+      onBlur={(e) => {
+        blurInputElement(e);
+        onBlur?.(e);
+      }}
     />
   );
+
+  if (!label) return field;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+      <label style={{ fontSize: "12px", fontWeight: 600, color: "#2b2f36" }}>
+        {label}
+        {required && <span style={{ color: "#d0392b", marginLeft: "2px" }}>*</span>}
+      </label>
+      {field}
+      {error ? (
+        <span style={{ fontSize: "11px", color: "#d0392b" }}>{error}</span>
+      ) : helperText ? (
+        <span style={{ fontSize: "11px", color: "#6b7280" }}>{helperText}</span>
+      ) : null}
+    </div>
+  );
 }
+
+type FormSelectProps = {
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  onBlur?: (e: React.FocusEvent<HTMLSelectElement>) => void;
+  disabled?: boolean;
+  children?: ReactNode;
+  label?: string;
+  required?: boolean;
+  error?: string;
+  options?: Array<{ value: string; label: string }>;
+};
 
 export function FormSelect({
   value,
@@ -78,37 +166,50 @@ export function FormSelect({
   onBlur,
   disabled = false,
   children,
-}: {
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
-  onBlur?: (e: React.FocusEvent<HTMLSelectElement>) => void;
-  disabled?: boolean;
-  children: ReactNode;
-}) {
-  return (
+  label,
+  required = false,
+  error,
+  options,
+}: FormSelectProps) {
+  const field = (
     <select
       value={value}
       onChange={onChange}
-      onBlur={onBlur}
       disabled={disabled}
       style={{
-        width: "100%",
-        maxWidth: "340px",
-        padding: "7px 10px",
-        border: "1px solid #dfe3e8",
-        borderRadius: "4px",
-        fontSize: "13px",
-        fontFamily: "inherit",
-        color: "#2b2f36",
+        ...inputStyle,
+        maxWidth: label ? "100%" : inputStyle.maxWidth,
         background: disabled ? "#f4f6f8" : "#fff",
-        transition: "border-color 0.15s ease",
+        borderColor: error ? "#d0392b" : "#dfe3e8",
         cursor: disabled ? "not-allowed" : "pointer",
       }}
-      onFocus={(e) => { e.currentTarget.style.borderColor = "#1f5fa8"; e.currentTarget.style.boxShadow = "0 0 0 3px rgb(31 95 168 / 0.10)"; }}
-      onBlur={(e) => { e.currentTarget.style.borderColor = "#dfe3e8"; e.currentTarget.style.boxShadow = "none"; onBlur?.(e); }}
+      onFocus={focusInput}
+      onBlur={(e) => {
+        blurInputElement(e);
+        onBlur?.(e);
+      }}
     >
-      {children}
+      {options
+        ? options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))
+        : children}
     </select>
+  );
+
+  if (!label) return field;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+      <label style={{ fontSize: "12px", fontWeight: 600, color: "#2b2f36" }}>
+        {label}
+        {required && <span style={{ color: "#d0392b", marginLeft: "2px" }}>*</span>}
+      </label>
+      {field}
+      {error ? <span style={{ fontSize: "11px", color: "#d0392b" }}>{error}</span> : null}
+    </div>
   );
 }
 
@@ -132,24 +233,18 @@ export function FormTextarea({
       placeholder={placeholder}
       value={value}
       onChange={onChange}
-      onBlur={onBlur}
       disabled={disabled}
       rows={rows}
       style={{
-        width: "100%",
-        maxWidth: "340px",
-        padding: "7px 10px",
-        border: "1px solid #dfe3e8",
-        borderRadius: "4px",
-        fontSize: "13px",
-        fontFamily: "inherit",
-        color: "#2b2f36",
+        ...inputStyle,
         background: disabled ? "#f4f6f8" : "#fff",
-        transition: "border-color 0.15s ease",
         resize: "vertical",
       }}
-      onFocus={(e) => { e.currentTarget.style.borderColor = "#1f5fa8"; e.currentTarget.style.boxShadow = "0 0 0 3px rgb(31 95 168 / 0.10)"; }}
-      onBlur={(e) => { e.currentTarget.style.borderColor = "#dfe3e8"; e.currentTarget.style.boxShadow = "none"; onBlur?.(e); }}
+      onFocus={focusInput}
+      onBlur={(e) => {
+        blurInputElement(e);
+        onBlur?.(e);
+      }}
     />
   );
 }

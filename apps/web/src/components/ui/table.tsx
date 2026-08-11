@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { CSSProperties, MouseEvent, ReactNode } from "react";
 
 export function Table({ children }: { children: ReactNode }) {
   return (
@@ -16,10 +16,22 @@ export function THead({ children }: { children: ReactNode }) {
   );
 }
 
-export function TH({ children, className = "" }: { children: ReactNode; className?: string }) {
+export function TH({
+  children,
+  className = "",
+  style,
+  onMouseDown,
+}: {
+  children: ReactNode;
+  className?: string;
+  style?: CSSProperties;
+  onMouseDown?: (e: MouseEvent<HTMLTableCellElement>) => void;
+}) {
   return (
     <th
       className={`px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 whitespace-nowrap ${className}`}
+      style={style}
+      onMouseDown={onMouseDown}
     >
       {children}
     </th>
@@ -34,8 +46,20 @@ export function TR({ children }: { children: ReactNode }) {
   return <tr className="hover:bg-slate-50/60 transition-colors duration-100">{children}</tr>;
 }
 
-export function TD({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <td className={`px-4 py-3 align-middle text-slate-700 ${className}`}>{children}</td>;
+export function TD({
+  children,
+  className = "",
+  style,
+}: {
+  children: ReactNode;
+  className?: string;
+  style?: CSSProperties;
+}) {
+  return (
+    <td className={`px-4 py-3 align-middle text-slate-700 ${className}`} style={style}>
+      {children}
+    </td>
+  );
 }
 
 export function EmptyState({ message }: { message: string }) {
