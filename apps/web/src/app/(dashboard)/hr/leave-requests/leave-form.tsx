@@ -1,8 +1,9 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
-import { Modal, FormField, inputClasses } from "@/components/ui/modal";
+import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
+import { FormRow, FormInput, FormSelect, FormTextarea } from "@/components/ui/form-row";
 import { LeaveRequest, LeaveType } from "@/lib/types/hr";
 
 const LEAVE_TYPES: LeaveType[] = ["Sick Leave", "Earned Leave", "Casual Leave", "Unpaid Leave"];
@@ -72,14 +73,20 @@ export function LeaveForm({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {!employeeId && (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <div style={{
+            borderRadius: "6px",
+            border: "1px solid #fee2e2",
+            backgroundColor: "#fef2f2",
+            padding: "10px 12px",
+            fontSize: "13px",
+            color: "#dc2626"
+          }}>
             Employee profile not loaded. Close and try again after your session is ready.
           </div>
         )}
 
-        <FormField label="Leave type">
-          <select
-            className={inputClasses}
+        <FormRow label="Leave type" required>
+          <FormSelect
             value={leaveType}
             onChange={(e) => setLeaveType(e.target.value as LeaveType)}
           >
@@ -88,48 +95,46 @@ export function LeaveForm({
                 {t}
               </option>
             ))}
-          </select>
-        </FormField>
+          </FormSelect>
+        </FormRow>
 
-        <div className="grid grid-cols-2 gap-4">
-          <FormField label="From date">
-            <input
-              required
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+          <FormRow label="From date" required>
+            <FormInput
               type="date"
-              className={inputClasses}
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
             />
-          </FormField>
-          <FormField label="To date">
-            <input
-              required
+          </FormRow>
+          <FormRow label="To date" required>
+            <FormInput
               type="date"
-              className={inputClasses}
               value={toDate}
-              min={fromDate || undefined}
               onChange={(e) => setToDate(e.target.value)}
             />
-          </FormField>
+          </FormRow>
         </div>
 
-        <div className="rounded-lg bg-canvas px-4 py-3 text-sm">
-          <span className="text-muted">Total days: </span>
-          <span className="font-semibold text-ink">{days > 0 ? days : "—"}</span>
+        <div style={{
+          borderRadius: "6px",
+          backgroundColor: "#f4f6f8",
+          padding: "12px 16px",
+          fontSize: "13px"
+        }}>
+          <span style={{ color: "#6b7280" }}>Total days: </span>
+          <span style={{ fontWeight: 600, color: "#2b2f36" }}>{days > 0 ? days : "—"}</span>
         </div>
 
-        <FormField label="Reason">
-          <textarea
-            required
-            rows={3}
-            className={inputClasses}
+        <FormRow label="Reason" required>
+          <FormTextarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="Briefly describe the reason for leave"
+            rows={3}
           />
-        </FormField>
+        </FormRow>
 
-        <div className="flex justify-end gap-3 pt-2">
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", paddingTop: "8px" }}>
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel
           </Button>

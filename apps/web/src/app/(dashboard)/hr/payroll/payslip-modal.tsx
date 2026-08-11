@@ -49,35 +49,57 @@ export function PayslipModal({
       description={record ? `${record.employeeName} · ${record.payPeriod}` : undefined}
     >
       {record && (
-        <div className="space-y-4">
-          <div className="rounded-lg border border-line bg-canvas p-6">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          <div style={{
+            borderRadius: "8px",
+            border: "1px solid #dfe3e8",
+            backgroundColor: "#f4f6f8",
+            padding: "24px"
+          }}>
+            <p style={{
+              fontSize: "11px",
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: "0.5px",
+              color: "#6b7280"
+            }}>
               Amdox Technologies — Payslip
             </p>
-            <div className="mt-4 space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted">Employee</span>
-                <span className="font-medium text-ink">{record.employeeName}</span>
+            <div style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "8px", fontSize: "13px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "#6b7280" }}>Employee</span>
+                <span style={{ fontWeight: 500, color: "#2b2f36" }}>{record.employeeName}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted">Pay period</span>
-                <span className="font-medium text-ink">{record.payPeriod}</span>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "#6b7280" }}>Pay period</span>
+                <span style={{ fontWeight: 500, color: "#2b2f36" }}>{record.payPeriod}</span>
               </div>
-              <div className="flex justify-between border-t border-line pt-2">
-                <span className="text-muted">Gross pay</span>
-                <span className="font-medium text-ink">{formatINR(record.grossPay)}</span>
+              <div style={{
+                display: "flex",
+                justifyContent: "space-between",
+                borderTop: "1px solid #dfe3e8",
+                paddingTop: "8px"
+              }}>
+                <span style={{ color: "#6b7280" }}>Gross pay</span>
+                <span style={{ fontWeight: 500, color: "#2b2f36" }}>{formatINR(record.grossPay)}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted">Deductions</span>
-                <span className="font-medium text-accent-red">-{formatINR(record.deductions)}</span>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "#6b7280" }}>Deductions</span>
+                <span style={{ fontWeight: 500, color: "#dc2626" }}>-{formatINR(record.deductions)}</span>
               </div>
-              <div className="flex justify-between border-t border-line pt-2 text-base">
-                <span className="font-semibold text-ink">Net pay</span>
-                <span className="font-bold text-ink">{formatINR(record.netPay)}</span>
+              <div style={{
+                display: "flex",
+                justifyContent: "space-between",
+                borderTop: "1px solid #dfe3e8",
+                paddingTop: "8px",
+                fontSize: "15px"
+              }}>
+                <span style={{ fontWeight: 600, color: "#2b2f36" }}>Net pay</span>
+                <span style={{ fontWeight: 700, color: "#2b2f36" }}>{formatINR(record.netPay)}</span>
               </div>
             </div>
           </div>
-          <div className="flex justify-end gap-3">
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
             <Button variant="outline" onClick={onClose}>
               Close
             </Button>
