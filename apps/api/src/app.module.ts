@@ -26,6 +26,7 @@ import { BiModule } from './bi/bi.module';
 import { ForecastModule } from './forecast/forecast.module';
 import { SearchModule } from './infrastructure/search/search.module';
 import { AppGraphqlModule } from './infrastructure/graphql/graphql.module';
+import { WorkflowModule } from './workflow/workflow.module';
 
 import { LoggerModule } from 'nestjs-pino';
 
@@ -93,6 +94,7 @@ import { LoggerModule } from 'nestjs-pino';
     ForecastModule,
     SearchModule,
     AppGraphqlModule,
+    WorkflowModule,
   ],
   controllers: [AppController],
   providers: [
