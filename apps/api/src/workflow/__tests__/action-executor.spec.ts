@@ -1,13 +1,23 @@
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ActionExecutor } from '../action-executor';
-import { GlService } from '../../finance/gl/gl.service';
-import { NotificationService } from '../../shared/services/notification.service';
+import { JournalEntryService } from '../../finance/gl/journal-entry.service';
+import { NotificationService } from '../../notification/notification.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { BadRequestException } from '@nestjs/common';
 
+// executeSendNotification resolves the interpolated "to" email against the
+// User table, so the shared Prisma client needs a mock regardless of which
+// address a given test uses.
+vi.mock('@amdox/db', () => ({
+  prisma: {
+    user: { findFirst: vi.fn().mockResolvedValue({ id: 'resolved-user-id' }) },
+  },
+}));
+
 describe('ActionExecutor', () => {
   let service: ActionExecutor;
-  let glService: GlService;
+  let journalEntryService: JournalEntryService;
   let notificationService: NotificationService;
   let eventEmitter: EventEmitter2;
 
@@ -16,28 +26,33 @@ describe('ActionExecutor', () => {
       providers: [
         ActionExecutor,
         {
-          provide: GlService,
+          provide: JournalEntryService,
           useValue: {
-            postEntries: jest.fn().mockResolvedValue({ id: 'je-001' }),
+            getAccounts: vi.fn().mockResolvedValue([
+              { id: 'acc-1300', code: '1300' },
+              { id: 'acc-2000', code: '2000' },
+            ]),
+            getOrCreateCurrentFiscalPeriod: vi.fn().mockResolvedValue({ id: 'fp-1' }),
+            createJournalEntry: vi.fn().mockResolvedValue({ id: 'je-001' }),
           },
         },
         {
           provide: NotificationService,
           useValue: {
-            send: jest.fn().mockResolvedValue({ success: true }),
+            notify: vi.fn().mockResolvedValue({ id: 'notif-001' }),
           },
         },
         {
           provide: EventEmitter2,
           useValue: {
-            emit: jest.fn(),
+            emit: vi.fn(),
           },
         },
       ],
     }).compile();
 
     service = module.get<ActionExecutor>(ActionExecutor);
-    glService = module.get<GlService>(GlService);
+    journalEntryService = module.get<JournalEntryService>(JournalEntryService);
     notificationService = module.get<NotificationService>(NotificationService);
     eventEmitter = module.get<EventEmitter2>(EventEmitter2);
   });
@@ -71,7 +86,7 @@ describe('ActionExecutor', () => {
       const result = await service.execute(action, document, context);
 
       expect(result.status).toBe('success');
-      expect(glService.postEntries).toHaveBeenCalled();
+      expect(journalEntryService.createJournalEntry).toHaveBeenCalled();
     });
 
     it('should interpolate template variables in GL entries', async () => {
@@ -95,16 +110,12 @@ describe('ActionExecutor', () => {
 
       await service.execute(action, document, context);
 
-      const calls = (glService.postEntries as jest.Mock).mock.calls;
-      expect(calls[0][0][0].debit).toBe('5000');
-      expect(calls[0][0][0].description).toBe('PO PO-001 approved');
+      const calls = (journalEntryService.createJournalEntry as Mock).mock.calls;
+      expect(calls[0][1].lines[0].debit).toBe(5000);
+      expect(calls[0][1].description).toBe('PO PO-001 approved');
     });
 
     it('should throw error if GL account not found', async () => {
-      (glService.postEntries as jest.Mock).mockRejectedValueOnce(
-        new Error('GL account 9999 not found'),
-      );
-
       const action = {
         id: 'action-3',
         type: 'post_gl' as const,
@@ -146,7 +157,7 @@ describe('ActionExecutor', () => {
       const result = await service.execute(action, document, context);
 
       expect(result.status).toBe('success');
-      expect(notificationService.send).toHaveBeenCalled();
+      expect(notificationService.notify).toHaveBeenCalled();
     });
 
     it('should interpolate template variables in notification', async () => {
@@ -170,13 +181,14 @@ describe('ActionExecutor', () => {
 
       await service.execute(action, document, context);
 
-      const calls = (notificationService.send as jest.Mock).mock.calls;
-      expect(calls[0][0].to).toBe('creator@company.com');
-      expect(calls[0][0].subject).toBe('PO PO-001 Approved');
+      const calls = (notificationService.notify as Mock).mock.calls;
+      expect(calls[0][0].title).toBe('PO PO-001 Approved');
     });
 
     it('should not throw on notification failure if failureAction is log_warning', async () => {
-      (notificationService.send as jest.Mock).mockRejectedValueOnce(new Error('Email service down'));
+      (notificationService.notify as Mock).mockRejectedValueOnce(
+        new Error('Notification service down'),
+      );
 
       const action = {
         id: 'action-6',
@@ -228,6 +240,7 @@ describe('ActionExecutor', () => {
           field: 'password', // Not whitelisted
           value: 'new-password',
         },
+        failureAction: 'block_transition' as const,
       };
 
       const document = { id: 'doc-123' };
@@ -267,12 +280,12 @@ describe('ActionExecutor', () => {
         },
       };
 
-      const document = { id: 'doc-123', totalAmount: 5000 };
+      const document = { id: 'doc-123', docId: 'doc-123', totalAmount: 5000 };
       const context = { tenantId: 'default', userId: 'user-1', docType: 'PO', docId: 'doc-123' };
 
       await service.execute(action, document, context);
 
-      const calls = (eventEmitter.emit as jest.Mock).mock.calls;
+      const calls = (eventEmitter.emit as Mock).mock.calls;
       expect(calls[0][1].poId).toBe('doc-123');
       expect(calls[0][1].amount).toBe('5000');
     });
@@ -293,10 +306,9 @@ describe('ActionExecutor', () => {
       const document = { vendor: { email: 'vendor@company.com' } };
       const context = { tenantId: 'default', userId: 'user-1', docType: 'PO', docId: 'doc-123' };
 
-      await service.execute(action, document, context);
+      const result = await service.execute(action, document, context);
 
-      const calls = (notificationService.send as jest.Mock).mock.calls;
-      expect(calls[0][0].to).toBe('vendor@company.com');
+      expect(result.result.to).toBe('vendor@company.com');
     });
 
     it('should handle array access', async () => {
@@ -311,17 +323,13 @@ describe('ActionExecutor', () => {
       };
 
       const document = {
-        lineItems: [
-          { vendorEmail: 'vendor1@company.com' },
-          { vendorEmail: 'vendor2@company.com' },
-        ],
+        lineItems: [{ vendorEmail: 'vendor1@company.com' }, { vendorEmail: 'vendor2@company.com' }],
       };
       const context = { tenantId: 'default', userId: 'user-1', docType: 'PO', docId: 'doc-123' };
 
-      await service.execute(action, document, context);
+      const result = await service.execute(action, document, context);
 
-      const calls = (notificationService.send as jest.Mock).mock.calls;
-      expect(calls[0][0].to).toBe('vendor1@company.com');
+      expect(result.result.to).toBe('vendor1@company.com');
     });
   });
 
@@ -332,9 +340,7 @@ describe('ActionExecutor', () => {
           id: 'a1',
           type: 'post_gl' as const,
           config: {
-            glEntries: [
-              { account: '1300', debit: '5000', credit: 0, description: 'Test' },
-            ],
+            glEntries: [{ account: '1300', debit: '5000', credit: 0, description: 'Test' }],
           },
         },
         {
@@ -355,8 +361,6 @@ describe('ActionExecutor', () => {
     });
 
     it('should stop on first failure if failureAction is block_transition', async () => {
-      (glService.postEntries as jest.Mock).mockRejectedValueOnce(new Error('GL error'));
-
       const actions = [
         {
           id: 'a1',

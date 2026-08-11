@@ -1,16 +1,41 @@
+import { describe, it, expect, vi, beforeAll, type Mock } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { WorkflowService } from '../workflow.service';
 import { ConditionEvaluator } from '../condition-evaluator';
 import { ActionExecutor } from '../action-executor';
-import { PrismaService } from '../../prisma/prisma.service';
+import { JournalEntryService } from '../../finance/gl/journal-entry.service';
+import { NotificationService } from '../../notification/notification.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { prisma } from '@amdox/db';
+
+// WorkflowService talks to the shared Prisma client directly (not an
+// injected PrismaService), so the whole client is mocked at module level.
+vi.mock('@amdox/db', () => ({
+  prisma: {
+    workflowDefinition: {
+      findFirst: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      updateMany: vi.fn(),
+    },
+    workflowInstance: {
+      findFirst: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+    },
+    workflowApprovalHistory: {
+      findMany: vi.fn(),
+      create: vi.fn(),
+    },
+    workflowPendingApproval: {
+      findMany: vi.fn(),
+    },
+  },
+}));
 
 describe('Workflow Engine E2E', () => {
-  let app: INestApplication;
   let workflowService: WorkflowService;
-  let prisma: PrismaService;
-  let eventEmitter: EventEmitter2;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -19,35 +44,12 @@ describe('Workflow Engine E2E', () => {
         ConditionEvaluator,
         ActionExecutor,
         EventEmitter2,
-        {
-          provide: PrismaService,
-          useValue: {
-            workflowDefinition: {
-              findFirst: jest.fn(),
-              create: jest.fn(),
-              update: jest.fn(),
-              updateMany: jest.fn(),
-            },
-            workflowInstance: {
-              findFirst: jest.fn(),
-              create: jest.fn(),
-              update: jest.fn(),
-            },
-            workflowApprovalHistory: {
-              findMany: jest.fn(),
-              create: jest.fn(),
-            },
-            workflowPendingApproval: {
-              findMany: jest.fn(),
-            },
-          },
-        },
+        { provide: JournalEntryService, useValue: {} },
+        { provide: NotificationService, useValue: {} },
       ],
     }).compile();
 
     workflowService = moduleFixture.get<WorkflowService>(WorkflowService);
-    prisma = moduleFixture.get<PrismaService>(PrismaService);
-    eventEmitter = moduleFixture.get<EventEmitter2>(EventEmitter2);
   });
 
   describe('Complete Purchase Order Approval Workflow', () => {
@@ -132,8 +134,8 @@ describe('Workflow Engine E2E', () => {
         createdBy: 'admin@company.com',
       };
 
-      (prisma.workflowDefinition.findFirst as jest.Mock).mockResolvedValueOnce(null);
-      (prisma.workflowDefinition.create as jest.Mock).mockResolvedValueOnce(mockWorkflow);
+      (prisma.workflowDefinition.findFirst as Mock).mockResolvedValueOnce(null);
+      (prisma.workflowDefinition.create as Mock).mockResolvedValueOnce(mockWorkflow);
 
       const user = {
         id: 'user-1',
@@ -164,14 +166,16 @@ describe('Workflow Engine E2E', () => {
         isActive: true,
         activatedAt: new Date(),
         activatedBy: 'admin@company.com',
+        definition: { states: [], transitions: [] },
       };
 
-      (prisma.workflowDefinition.findFirst as jest.Mock).mockResolvedValueOnce({
+      (prisma.workflowDefinition.findFirst as Mock).mockResolvedValueOnce({
         id: workflowId,
         isActive: false,
+        definition: { states: [], transitions: [] },
       });
-      (prisma.workflowDefinition.updateMany as jest.Mock).mockResolvedValueOnce({ count: 0 });
-      (prisma.workflowDefinition.update as jest.Mock).mockResolvedValueOnce(activeWorkflow);
+      (prisma.workflowDefinition.updateMany as Mock).mockResolvedValueOnce({ count: 0 });
+      (prisma.workflowDefinition.update as Mock).mockResolvedValueOnce(activeWorkflow);
 
       const user = {
         id: 'user-1',
@@ -207,10 +211,14 @@ describe('Workflow Engine E2E', () => {
         },
       };
 
-      (prisma.workflowDefinition.findFirst as jest.Mock).mockResolvedValueOnce(mockWorkflow);
-      (prisma.workflowInstance.create as jest.Mock).mockResolvedValueOnce(mockInstance);
+      (prisma.workflowDefinition.findFirst as Mock).mockResolvedValueOnce(mockWorkflow);
+      (prisma.workflowInstance.create as Mock).mockResolvedValueOnce(mockInstance);
 
-      const result = await workflowService.initializeWorkflow('PurchaseOrder', 'po-001', 'default-tenant-id');
+      const result = await workflowService.initializeWorkflow(
+        'PurchaseOrder',
+        'po-001',
+        'default-tenant-id',
+      );
 
       expect(result.docType).toBe('PurchaseOrder');
       expect(result.docId).toBe('po-001');
@@ -251,8 +259,8 @@ describe('Workflow Engine E2E', () => {
         },
       };
 
-      (prisma.workflowInstance.findFirst as jest.Mock).mockResolvedValueOnce(mockInstance);
-      (prisma.workflowDefinition.findFirst as jest.Mock).mockResolvedValueOnce(mockWorkflow);
+      (prisma.workflowInstance.findFirst as Mock).mockResolvedValueOnce(mockInstance);
+      (prisma.workflowDefinition.findFirst as Mock).mockResolvedValueOnce(mockWorkflow);
 
       const user = {
         id: 'user-1',
@@ -293,8 +301,8 @@ describe('Workflow Engine E2E', () => {
         },
       };
 
-      (prisma.workflowInstance.findFirst as jest.Mock).mockResolvedValueOnce(mockInstance);
-      (prisma.workflowDefinition.findFirst as jest.Mock).mockResolvedValueOnce(mockWorkflow);
+      (prisma.workflowInstance.findFirst as Mock).mockResolvedValueOnce(mockInstance);
+      (prisma.workflowDefinition.findFirst as Mock).mockResolvedValueOnce(mockWorkflow);
 
       const user = {
         id: 'user-2',
@@ -316,12 +324,6 @@ describe('Workflow Engine E2E', () => {
         workflowDefinitionId: workflowId,
         currentStateId: 'draft',
         currentStateLabel: 'Draft',
-      };
-
-      const targetState = {
-        id: 'approved',
-        label: 'Approved',
-        isTerminal: false,
       };
 
       const mockWorkflow = {
@@ -361,15 +363,15 @@ describe('Workflow Engine E2E', () => {
         updatedAt: new Date(),
       };
 
-      (prisma.workflowInstance.findFirst as jest.Mock)
+      (prisma.workflowInstance.findFirst as Mock)
         .mockResolvedValueOnce(mockInstance)
         .mockResolvedValueOnce(mockInstance);
 
-      (prisma.workflowDefinition.findFirst as jest.Mock).mockResolvedValueOnce(mockWorkflow);
+      (prisma.workflowDefinition.findFirst as Mock).mockResolvedValueOnce(mockWorkflow);
 
-      (prisma.workflowInstance.update as jest.Mock).mockResolvedValueOnce(updatedInstance);
+      (prisma.workflowInstance.update as Mock).mockResolvedValueOnce(updatedInstance);
 
-      (prisma.workflowApprovalHistory.create as jest.Mock).mockResolvedValueOnce({
+      (prisma.workflowApprovalHistory.create as Mock).mockResolvedValueOnce({
         id: 'apr-001',
         approvedAt: new Date(),
       });
@@ -381,7 +383,12 @@ describe('Workflow Engine E2E', () => {
         tenantId: 'default-tenant-id',
       };
 
-      const document = { id: 'po-001', lineItems: [{ id: 1 }], totalAmount: 5000, poNumber: 'PO-001' };
+      const document = {
+        id: 'po-001',
+        lineItems: [{ id: 1 }],
+        totalAmount: 5000,
+        poNumber: 'PO-001',
+      };
 
       const result = await workflowService.executeTransition(
         'PurchaseOrder',
@@ -412,13 +419,17 @@ describe('Workflow Engine E2E', () => {
         },
       ];
 
-      (prisma.workflowInstance.findFirst as jest.Mock).mockResolvedValueOnce({
+      (prisma.workflowInstance.findFirst as Mock).mockResolvedValueOnce({
         id: 'inst-001',
       });
 
-      (prisma.workflowApprovalHistory.findMany as jest.Mock).mockResolvedValueOnce(mockHistory);
+      (prisma.workflowApprovalHistory.findMany as Mock).mockResolvedValueOnce(mockHistory);
 
-      const result = await workflowService.getApprovalHistory('PurchaseOrder', 'po-001', 'default-tenant-id');
+      const result = await workflowService.getApprovalHistory(
+        'PurchaseOrder',
+        'po-001',
+        'default-tenant-id',
+      );
 
       expect(result).toHaveLength(1);
       expect(result[0].transitionLabel).toBe('Approve');
@@ -439,17 +450,53 @@ describe('Workflow Engine E2E', () => {
         name: 'Cyclic Workflow',
         docType: 'TestDoc',
         states: [
-          { id: 'a', name: 'A', label: 'A', allowEdit: true, allowDelete: false, allowTransition: true, postToGL: false, isTerminal: false },
-          { id: 'b', name: 'B', label: 'B', allowEdit: true, allowDelete: false, allowTransition: true, postToGL: false, isTerminal: false },
+          {
+            id: 'a',
+            name: 'A',
+            label: 'A',
+            allowEdit: true,
+            allowDelete: false,
+            allowTransition: true,
+            postToGL: false,
+            isTerminal: false,
+          },
+          {
+            id: 'b',
+            name: 'B',
+            label: 'B',
+            allowEdit: true,
+            allowDelete: false,
+            allowTransition: true,
+            postToGL: false,
+            isTerminal: false,
+          },
         ],
         transitions: [
-          { id: 't1', fromState: 'a', toState: 'b', label: 'Go to B', allowedRoles: [], conditions: [], actions: [], requiresApproval: false },
-          { id: 't2', fromState: 'b', toState: 'a', label: 'Back to A', allowedRoles: [], conditions: [], actions: [], requiresApproval: false }, // Cycle!
+          {
+            id: 't1',
+            fromState: 'a',
+            toState: 'b',
+            label: 'Go to B',
+            allowedRoles: [],
+            conditions: [],
+            actions: [],
+            requiresApproval: false,
+          },
+          {
+            id: 't2',
+            fromState: 'b',
+            toState: 'a',
+            label: 'Back to A',
+            allowedRoles: [],
+            conditions: [],
+            actions: [],
+            requiresApproval: false,
+          }, // Cycle!
         ],
       };
 
-      (prisma.workflowDefinition.findFirst as jest.Mock).mockResolvedValueOnce(null);
-      (prisma.workflowDefinition.create as jest.Mock).mockResolvedValueOnce({
+      (prisma.workflowDefinition.findFirst as Mock).mockResolvedValueOnce(null);
+      (prisma.workflowDefinition.create as Mock).mockResolvedValueOnce({
         id: 'wf-test',
         definition: dto,
       });

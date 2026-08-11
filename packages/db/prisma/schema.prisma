@@ -1516,3 +1516,185 @@ model SagaState {
 
   @@index([payrollRunId])
 }
+
+// ============================================================================
+// 11. WORKFLOW ENGINE
+// ============================================================================
+// tenantId is a plain scalar (not a Tenant relation) here, unlike the rest of
+// this schema, to avoid growing the already-87-line Tenant model with 8 more
+// back-relation arrays for a self-contained feature.
+
+model WorkflowDefinition {
+  id          String    @id @default(uuid())
+  tenantId    String
+  name        String
+  description String?
+  docType     String
+  isActive    Boolean   @default(false)
+  definition  Json
+  createdAt   DateTime  @default(now())
+  createdBy   String
+  updatedAt   DateTime?
+  updatedBy   String?
+  activatedAt DateTime?
+  activatedBy String?
+
+  versions  WorkflowDefinitionVersion[]
+  instances WorkflowInstance[]
+  metrics   WorkflowMetric[]
+
+  @@index([tenantId, docType])
+  @@index([isActive])
+}
+
+model WorkflowDefinitionVersion {
+  id                   String             @id @default(uuid())
+  workflowDefinitionId String
+  workflowDefinition   WorkflowDefinition @relation(fields: [workflowDefinitionId], references: [id], onDelete: Cascade)
+  tenantId             String
+  versionNumber        Int
+  definition           Json
+  changeReason         String?
+  changeSummary        String?
+  createdAt            DateTime           @default(now())
+  createdBy            String
+
+  @@unique([workflowDefinitionId, versionNumber])
+  @@index([workflowDefinitionId])
+}
+
+model WorkflowInstance {
+  id                   String             @id @default(uuid())
+  tenantId             String
+  workflowDefinitionId String
+  workflowDefinition   WorkflowDefinition @relation(fields: [workflowDefinitionId], references: [id])
+  docType              String
+  docId                String
+  currentStateId       String
+  currentStateLabel    String?
+  createdAt            DateTime           @default(now())
+  createdBy            String
+  updatedAt            DateTime           @default(now())
+
+  approvalHistory  WorkflowApprovalHistory[]
+  pendingApprovals WorkflowPendingApproval[]
+  errorLogs        WorkflowErrorLog[]
+
+  @@unique([tenantId, docType, docId])
+  @@index([tenantId, docType])
+  @@index([docId])
+  @@index([currentStateId])
+}
+
+model WorkflowApprovalHistory {
+  id                    String           @id @default(uuid())
+  workflowInstanceId    String
+  workflowInstance      WorkflowInstance @relation(fields: [workflowInstanceId], references: [id], onDelete: Cascade)
+  tenantId              String
+  fromStateId           String
+  fromStateLabel        String?
+  toStateId             String
+  toStateLabel          String?
+  transitionId          String
+  transitionLabel       String?
+  approvedBy            String
+  approvedAt            DateTime         @default(now())
+  comments              String?
+  conditionsEvaluated   Json?
+  actionsExecuted       Json?
+  documentStateSnapshot Json?
+
+  errorLogs WorkflowErrorLog[]
+
+  @@index([workflowInstanceId])
+  @@index([tenantId])
+  @@index([approvedAt])
+  @@index([approvedBy])
+}
+
+model WorkflowPendingApproval {
+  id                      String           @id @default(uuid())
+  tenantId                String
+  workflowInstanceId      String
+  workflowInstance        WorkflowInstance @relation(fields: [workflowInstanceId], references: [id], onDelete: Cascade)
+  docType                 String
+  docId                   String
+  pendingApproverRole     String?
+  pendingApproverUserId   String?
+  createdAt               DateTime         @default(now())
+  dueDate                 DateTime?
+  escalated               Boolean          @default(false)
+  escalatedAt             DateTime?
+  awaitingTransitionId    String?
+  awaitingTransitionLabel String?
+
+  @@index([tenantId, pendingApproverUserId])
+  @@index([pendingApproverRole])
+  @@index([dueDate])
+  @@index([escalated])
+}
+
+model WorkflowErrorLog {
+  id                 String                   @id @default(uuid())
+  tenantId           String
+  workflowInstanceId String?
+  workflowInstance   WorkflowInstance?        @relation(fields: [workflowInstanceId], references: [id], onDelete: Cascade)
+  approvalHistoryId  String?
+  approvalHistory    WorkflowApprovalHistory? @relation(fields: [approvalHistoryId], references: [id], onDelete: SetNull)
+  actionType         String?
+  actionId           String?
+  errorMessage       String
+  errorCode          String?
+  errorStackTrace    String?
+  retryCount         Int                      @default(0)
+  maxRetries         Int                      @default(3)
+  nextRetryAt        DateTime?
+  status             String?
+  resolvedAt         DateTime?
+  resolvedBy         String?
+  resolutionNotes    String?
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @default(now())
+
+  @@index([tenantId])
+  @@index([workflowInstanceId])
+  @@index([status])
+}
+
+model WorkflowMetric {
+  id                   String              @id @default(uuid())
+  tenantId             String
+  workflowDefinitionId String?
+  workflowDefinition   WorkflowDefinition? @relation(fields: [workflowDefinitionId], references: [id], onDelete: Cascade)
+  docType              String?
+  periodDate           DateTime            @db.Date
+  instancesCreated     Int                 @default(0)
+  instancesApproved    Int                 @default(0)
+  instancesRejected    Int                 @default(0)
+  instancesEscalated   Int                 @default(0)
+  avgApprovalTimeHours Decimal?            @db.Decimal(10, 2)
+  maxApprovalTimeHours Decimal?            @db.Decimal(10, 2)
+  slaViolations        Int                 @default(0)
+  actionErrors         Int                 @default(0)
+  transitionErrors     Int                 @default(0)
+  createdAt            DateTime            @default(now())
+
+  @@unique([tenantId, workflowDefinitionId, periodDate])
+  @@index([tenantId, docType])
+}
+
+model WorkflowAuditLog {
+  id           String   @id @default(uuid())
+  tenantId     String
+  action       String?
+  resourceType String?
+  resourceId   String?
+  userId       String
+  details      Json?
+  createdAt    DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([action])
+  @@index([userId])
+  @@index([resourceType, resourceId])
+}

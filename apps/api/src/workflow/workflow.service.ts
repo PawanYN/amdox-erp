@@ -1,6 +1,12 @@
-import { Injectable, BadRequestException, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+  Logger,
+} from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { PrismaService } from '../prisma/prisma.service';
+import { prisma } from '@amdox/db';
 import { ConditionEvaluator } from './condition-evaluator';
 import { ActionExecutor } from './action-executor';
 import {
@@ -32,7 +38,6 @@ export class WorkflowService {
   private readonly logger = new Logger(WorkflowService.name);
 
   constructor(
-    private prisma: PrismaService,
     private conditionEvaluator: ConditionEvaluator,
     private actionExecutor: ActionExecutor,
     private eventEmitter: EventEmitter2,
@@ -44,7 +49,7 @@ export class WorkflowService {
 
   async createWorkflow(dto: CreateWorkflowDto, user: User): Promise<WorkflowDefinition> {
     // Check if active workflow already exists for this docType
-    const existing = await this.prisma.workflowDefinition.findFirst({
+    const existing = await prisma.workflowDefinition.findFirst({
       where: {
         tenantId: user.tenantId,
         docType: dto.docType,
@@ -69,7 +74,7 @@ export class WorkflowService {
       transitions: dto.transitions,
     };
 
-    const workflow = await this.prisma.workflowDefinition.create({
+    const workflow = await prisma.workflowDefinition.create({
       data: {
         tenantId: user.tenantId,
         name: dto.name,
@@ -88,7 +93,7 @@ export class WorkflowService {
   }
 
   async getWorkflow(id: string, tenantId: string): Promise<WorkflowDefinition> {
-    const workflow = await this.prisma.workflowDefinition.findFirst({
+    const workflow = await prisma.workflowDefinition.findFirst({
       where: { id, tenantId },
     });
 
@@ -100,7 +105,7 @@ export class WorkflowService {
   }
 
   async getWorkflowByDocType(docType: string, tenantId: string): Promise<WorkflowDefinition> {
-    const workflow = await this.prisma.workflowDefinition.findFirst({
+    const workflow = await prisma.workflowDefinition.findFirst({
       where: { docType, tenantId, isActive: true },
     });
 
@@ -112,7 +117,7 @@ export class WorkflowService {
   }
 
   async listWorkflows(tenantId: string): Promise<WorkflowDefinition[]> {
-    const workflows = await this.prisma.workflowDefinition.findMany({
+    const workflows = await prisma.workflowDefinition.findMany({
       where: { tenantId },
       orderBy: { createdAt: 'desc' },
     });
@@ -120,14 +125,18 @@ export class WorkflowService {
     return workflows.map((w) => this.mapWorkflow(w));
   }
 
-  async updateWorkflow(id: string, dto: UpdateWorkflowDto, user: User): Promise<WorkflowDefinition> {
+  async updateWorkflow(
+    id: string,
+    dto: UpdateWorkflowDto,
+    user: User,
+  ): Promise<WorkflowDefinition> {
     const workflow = await this.getWorkflow(id, user.tenantId);
 
     if (workflow.isActive) {
       throw new BadRequestException('Cannot update active workflow. Deactivate first.');
     }
 
-    const updated = await this.prisma.workflowDefinition.update({
+    const updated = await prisma.workflowDefinition.update({
       where: { id },
       data: {
         name: dto.name ?? workflow.name,
@@ -150,7 +159,7 @@ export class WorkflowService {
     }
 
     // Deactivate any other active workflow for this docType
-    await this.prisma.workflowDefinition.updateMany({
+    await prisma.workflowDefinition.updateMany({
       where: {
         tenantId: user.tenantId,
         docType: workflow.docType,
@@ -159,7 +168,7 @@ export class WorkflowService {
       data: { isActive: false },
     });
 
-    const activated = await this.prisma.workflowDefinition.update({
+    const activated = await prisma.workflowDefinition.update({
       where: { id },
       data: {
         isActive: true,
@@ -181,7 +190,7 @@ export class WorkflowService {
       throw new BadRequestException('Cannot delete active workflow');
     }
 
-    await this.prisma.workflowDefinition.delete({ where: { id } });
+    await prisma.workflowDefinition.delete({ where: { id } });
 
     this.logger.log(`Workflow deleted: ${id}`);
   }
@@ -190,9 +199,13 @@ export class WorkflowService {
   // WORKFLOW INSTANCE MANAGEMENT
   // ========================================================================
 
-  async initializeWorkflow(docType: string, docId: string, tenantId: string): Promise<WorkflowInstance> {
+  async initializeWorkflow(
+    docType: string,
+    docId: string,
+    tenantId: string,
+  ): Promise<WorkflowInstance> {
     // Get active workflow for docType
-    const workflow = await this.prisma.workflowDefinition.findFirst({
+    const workflow = await prisma.workflowDefinition.findFirst({
       where: { docType, tenantId, isActive: true },
     });
 
@@ -203,7 +216,7 @@ export class WorkflowService {
     const definition = workflow.definition as any;
     const initialState = definition.states[0];
 
-    const instance = await this.prisma.workflowInstance.create({
+    const instance = await prisma.workflowInstance.create({
       data: {
         tenantId,
         workflowDefinitionId: workflow.id,
@@ -216,13 +229,21 @@ export class WorkflowService {
     });
 
     this.logger.debug(`Workflow initialized: ${docType}/${docId} → ${initialState.label}`);
-    this.eventEmitter.emit('workflow.instance.created', { instanceId: instance.id, docType, docId });
+    this.eventEmitter.emit('workflow.instance.created', {
+      instanceId: instance.id,
+      docType,
+      docId,
+    });
 
     return this.mapInstance(instance);
   }
 
-  async getWorkflowInstance(docType: string, docId: string, tenantId: string): Promise<WorkflowInstance> {
-    const instance = await this.prisma.workflowInstance.findFirst({
+  async getWorkflowInstance(
+    docType: string,
+    docId: string,
+    tenantId: string,
+  ): Promise<WorkflowInstance> {
+    const instance = await prisma.workflowInstance.findFirst({
       where: { docType, docId, tenantId },
     });
 
@@ -233,7 +254,11 @@ export class WorkflowService {
     return this.mapInstance(instance);
   }
 
-  async getInstanceStatus(docType: string, docId: string, tenantId: string): Promise<WorkflowStatus> {
+  async getInstanceStatus(
+    docType: string,
+    docId: string,
+    tenantId: string,
+  ): Promise<WorkflowStatus> {
     const instance = await this.getWorkflowInstance(docType, docId, tenantId);
     const workflow = await this.getWorkflow(instance.workflowDefinitionId, tenantId);
     const availableTransitions = await this.getAvailableTransitions(instance, workflow, null);
@@ -260,7 +285,9 @@ export class WorkflowService {
   ): Promise<AvailableTransition[]> {
     const definition = workflow.definition as any;
 
-    const transitions = definition.transitions.filter((t: WorkflowTransition) => t.fromState === instance.currentStateId);
+    const transitions = definition.transitions.filter(
+      (t: WorkflowTransition) => t.fromState === instance.currentStateId,
+    );
 
     return transitions.map((t: WorkflowTransition) => {
       let allowed = true;
@@ -294,7 +321,8 @@ export class WorkflowService {
   ): Promise<{ allowed: boolean; reason?: string }> {
     const definition = workflow.definition as any;
     const transition = definition.transitions.find(
-      (t: WorkflowTransition) => t.label === transitionLabel && t.fromState === instance.currentStateId,
+      (t: WorkflowTransition) =>
+        t.label === transitionLabel && t.fromState === instance.currentStateId,
     );
 
     if (!transition) {
@@ -331,7 +359,8 @@ export class WorkflowService {
 
     // Find transition
     const transition = definition.transitions.find(
-      (t: WorkflowTransition) => t.label === transitionLabel && t.fromState === instance.currentStateId,
+      (t: WorkflowTransition) =>
+        t.label === transitionLabel && t.fromState === instance.currentStateId,
     );
 
     if (!transition) {
@@ -369,7 +398,7 @@ export class WorkflowService {
     });
 
     // Update instance state
-    const updatedInstance = await this.prisma.workflowInstance.update({
+    const updatedInstance = await prisma.workflowInstance.update({
       where: { id: instance.id },
       data: {
         currentStateId: transition.toState,
@@ -379,7 +408,7 @@ export class WorkflowService {
     });
 
     // Record approval history
-    await this.prisma.workflowApprovalHistory.create({
+    await prisma.workflowApprovalHistory.create({
       data: {
         workflowInstanceId: instance.id,
         tenantId: user.tenantId,
@@ -414,7 +443,11 @@ export class WorkflowService {
     });
 
     if (targetState.isTerminal) {
-      this.eventEmitter.emit('workflow.completed', { docType, docId, finalState: transition.toState });
+      this.eventEmitter.emit('workflow.completed', {
+        docType,
+        docId,
+        finalState: transition.toState,
+      });
     }
 
     return this.mapInstance(updatedInstance);
@@ -424,10 +457,14 @@ export class WorkflowService {
   // APPROVAL HISTORY
   // ========================================================================
 
-  async getApprovalHistory(docType: string, docId: string, tenantId: string): Promise<ApprovalRecord[]> {
+  async getApprovalHistory(
+    docType: string,
+    docId: string,
+    tenantId: string,
+  ): Promise<ApprovalRecord[]> {
     const instance = await this.getWorkflowInstance(docType, docId, tenantId);
 
-    const history = await this.prisma.workflowApprovalHistory.findMany({
+    const history = await prisma.workflowApprovalHistory.findMany({
       where: { workflowInstanceId: instance.id },
       orderBy: { approvedAt: 'asc' },
     });
@@ -436,7 +473,7 @@ export class WorkflowService {
   }
 
   async getApprovalInbox(tenantId: string, userId: string): Promise<ApprovalRecord[]> {
-    const pending = await this.prisma.workflowPendingApproval.findMany({
+    const pending = await prisma.workflowPendingApproval.findMany({
       where: {
         tenantId,
         pendingApproverUserId: userId,
@@ -470,7 +507,9 @@ export class WorkflowService {
 
     for (const transition of dto.transitions || []) {
       if (!stateIds.has(transition.fromState)) {
-        throw new BadRequestException(`Transition references unknown state: ${transition.fromState}`);
+        throw new BadRequestException(
+          `Transition references unknown state: ${transition.fromState}`,
+        );
       }
       if (!stateIds.has(transition.toState)) {
         throw new BadRequestException(`Transition references unknown state: ${transition.toState}`);
@@ -508,7 +547,12 @@ export class WorkflowService {
     return false;
   }
 
-  private hasCycleDFS(node: string, graph: Map<string, Set<string>>, visited: Set<string>, stack: Set<string>): boolean {
+  private hasCycleDFS(
+    node: string,
+    graph: Map<string, Set<string>>,
+    visited: Set<string>,
+    stack: Set<string>,
+  ): boolean {
     visited.add(node);
     stack.add(node);
 

@@ -40,6 +40,6 @@ import { QUEUE_NAMES } from '../infrastructure/queues/queue-names';
     PmCostBridgeListener,
     ScmFinanceBridgeListener,
   ],
-  exports: [FxRateService, ApService],
+  exports: [FxRateService, ApService, JournalEntryService],
 })
 export class FinanceModule {}

@@ -1,17 +1,15 @@
 import { Module } from '@nestjs/common';
-import { EventEmitterModule } from '@nestjs/event-emitter';
 import { WorkflowService } from './workflow.service';
 import { WorkflowController } from './workflow.controller';
 import { ConditionEvaluator } from './condition-evaluator';
 import { ActionExecutor } from './action-executor';
-import { PrismaService } from '../prisma/prisma.service';
-import { GlService } from '../finance/gl/gl.service';
-import { NotificationService } from '../shared/services/notification.service';
+import { FinanceModule } from '../finance/finance.module';
+import { NotificationModule } from '../notification/notification.module';
 
 @Module({
-  imports: [EventEmitterModule.forRoot()],
+  imports: [FinanceModule, NotificationModule],
   controllers: [WorkflowController],
-  providers: [WorkflowService, ConditionEvaluator, ActionExecutor, PrismaService, GlService, NotificationService],
+  providers: [WorkflowService, ConditionEvaluator, ActionExecutor],
   exports: [WorkflowService, ConditionEvaluator, ActionExecutor],
 })
 export class WorkflowModule {}

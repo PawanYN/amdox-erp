@@ -12,20 +12,23 @@ import {
   BadRequestException,
   Logger,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt.guard';
 import { WorkflowService } from './workflow.service';
 import { CreateWorkflowDto, UpdateWorkflowDto } from './dto/create-workflow.dto';
 import { TransitionRequestDto, TransitionResponseDto } from './dto/transition-request.dto';
 import { WorkflowDefinition } from './entities/workflow-definition.entity';
-import { WorkflowInstance, WorkflowStatus, ApprovalRecord } from './entities/workflow-instance.entity';
+import {
+  WorkflowInstance,
+  WorkflowStatus,
+  ApprovalRecord,
+} from './entities/workflow-instance.entity';
 
 interface AuthenticatedRequest extends Request {
   user: {
     id: string;
     email: string;
-    sub: string;
-    realm_access?: { roles: string[] };
-    tenant_id?: string;
+    tenantId: string;
+    roles: string[];
   };
 }
 
@@ -44,7 +47,10 @@ export class WorkflowController {
    * Create a new workflow definition
    */
   @Post()
-  async createWorkflow(@Body() dto: CreateWorkflowDto, @Req() req: AuthenticatedRequest): Promise<WorkflowDefinition> {
+  async createWorkflow(
+    @Body() dto: CreateWorkflowDto,
+    @Req() req: AuthenticatedRequest,
+  ): Promise<WorkflowDefinition> {
     const user = this.extractUser(req);
     this.logger.log(`Creating workflow: ${dto.docType} by ${user.email}`);
     return this.workflowService.createWorkflow(dto, user);
@@ -63,7 +69,10 @@ export class WorkflowController {
    * Get specific workflow definition
    */
   @Get(':id')
-  async getWorkflow(@Param('id') id: string, @Req() req: AuthenticatedRequest): Promise<WorkflowDefinition> {
+  async getWorkflow(
+    @Param('id') id: string,
+    @Req() req: AuthenticatedRequest,
+  ): Promise<WorkflowDefinition> {
     const user = this.extractUser(req);
     return this.workflowService.getWorkflow(id, user.tenantId);
   }
@@ -86,7 +95,10 @@ export class WorkflowController {
    * Activate workflow (deactivates any other active workflow for this docType)
    */
   @Post(':id/activate')
-  async activateWorkflow(@Param('id') id: string, @Req() req: AuthenticatedRequest): Promise<WorkflowDefinition> {
+  async activateWorkflow(
+    @Param('id') id: string,
+    @Req() req: AuthenticatedRequest,
+  ): Promise<WorkflowDefinition> {
     const user = this.extractUser(req);
     this.logger.log(`Activating workflow: ${id} by ${user.email}`);
     return this.workflowService.activateWorkflow(id, user);
@@ -165,7 +177,9 @@ export class WorkflowController {
       throw new BadRequestException('transitionLabel is required');
     }
 
-    this.logger.log(`Transition requested: ${docType}/${docId} → "${dto.transitionLabel}" by ${user.email}`);
+    this.logger.log(
+      `Transition requested: ${docType}/${docId} → "${dto.transitionLabel}" by ${user.email}`,
+    );
 
     // Get the document from context (in real implementation, fetch from DB)
     // For now, we use a placeholder - actual implementation would load the real document
@@ -257,13 +271,11 @@ export class WorkflowController {
   // ========================================================================
 
   private extractUser(req: AuthenticatedRequest) {
-    const keycloakUser = req.user;
-
     return {
-      id: keycloakUser.sub || keycloakUser.id,
-      email: keycloakUser.email,
-      roles: keycloakUser.realm_access?.roles || [],
-      tenantId: keycloakUser.tenant_id || 'default-tenant-id',
+      id: req.user.id,
+      email: req.user.email,
+      roles: req.user.roles || [],
+      tenantId: req.user.tenantId,
     };
   }
 }

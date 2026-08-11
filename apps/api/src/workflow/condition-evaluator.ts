@@ -1,5 +1,6 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
-import { WorkflowCondition, ConditionEvalResult } from './entities/workflow-instance.entity';
+import { WorkflowCondition } from './entities/workflow-definition.entity';
+import { ConditionEvalResult } from './entities/workflow-instance.entity';
 import * as vm from 'vm';
 
 @Injectable()
@@ -33,7 +34,7 @@ export class ConditionEvaluator {
         result,
         errorMessage: result ? undefined : condition.errorMessage,
       };
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Condition evaluation failed: ${error.message}`, error.stack);
       throw new BadRequestException(
         `Condition evaluation failed: ${condition.errorMessage || error.message}`,
@@ -41,7 +42,10 @@ export class ConditionEvaluator {
     }
   }
 
-  async evaluateAll(conditions: WorkflowCondition[], document: any): Promise<ConditionEvalResult[]> {
+  async evaluateAll(
+    conditions: WorkflowCondition[],
+    document: any,
+  ): Promise<ConditionEvalResult[]> {
     const results = await Promise.all(
       conditions.map((condition) => this.evaluate(condition, document)),
     );
@@ -150,7 +154,7 @@ export class ConditionEvaluator {
       // 5 second timeout for safety
       const result = script.runInNewContext(sandbox, { timeout: 5000 });
       return Boolean(result);
-    } catch (error) {
+    } catch (error: any) {
       if (error.code === 'ERR_SCRIPT_EXECUTION_TIMEOUT') {
         throw new BadRequestException('Expression evaluation timeout (max 5 seconds)');
       }

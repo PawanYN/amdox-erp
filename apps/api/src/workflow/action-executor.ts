@@ -1,8 +1,10 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { WorkflowAction, ActionExecutionResult } from './entities/workflow-instance.entity';
-import { GlService } from '../finance/gl/gl.service';
-import { NotificationService } from '../shared/services/notification.service';
+import { prisma } from '@amdox/db';
+import { WorkflowAction } from './entities/workflow-definition.entity';
+import { ActionExecutionResult } from './entities/workflow-instance.entity';
+import { JournalEntryService } from '../finance/gl/journal-entry.service';
+import { NotificationService } from '../notification/notification.service';
 
 interface ExecutionContext {
   tenantId: string;
@@ -16,12 +18,16 @@ export class ActionExecutor {
   private readonly logger = new Logger(ActionExecutor.name);
 
   constructor(
-    private glService: GlService,
+    private journalEntryService: JournalEntryService,
     private notificationService: NotificationService,
     private eventEmitter: EventEmitter2,
   ) {}
 
-  async execute(action: WorkflowAction, document: any, context: ExecutionContext): Promise<ActionExecutionResult> {
+  async execute(
+    action: WorkflowAction,
+    document: any,
+    context: ExecutionContext,
+  ): Promise<ActionExecutionResult> {
     try {
       let result: any;
 
@@ -54,7 +60,7 @@ export class ActionExecutor {
         status: 'success',
         result,
       };
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Action execution failed: ${error.message}`, error.stack);
 
       if (action.failureAction === 'block_transition') {
@@ -70,7 +76,11 @@ export class ActionExecutor {
     }
   }
 
-  async executeAll(actions: WorkflowAction[], document: any, context: ExecutionContext): Promise<ActionExecutionResult[]> {
+  async executeAll(
+    actions: WorkflowAction[],
+    document: any,
+    context: ExecutionContext,
+  ): Promise<ActionExecutionResult[]> {
     const results: ActionExecutionResult[] = [];
 
     for (const action of actions) {
@@ -86,7 +96,11 @@ export class ActionExecutor {
     return results;
   }
 
-  private async executePostGl(action: WorkflowAction, document: any, context: ExecutionContext): Promise<any> {
+  private async executePostGl(
+    action: WorkflowAction,
+    document: any,
+    context: ExecutionContext,
+  ): Promise<any> {
     const glEntries = action.config.glEntries || [];
 
     if (!glEntries.length) {
@@ -95,22 +109,52 @@ export class ActionExecutor {
 
     const interpolatedEntries = glEntries.map((entry) => ({
       account: entry.account,
-      debit: this.interpolate(String(entry.debit), document),
-      credit: this.interpolate(String(entry.credit), document),
+      debit: Number(this.interpolate(String(entry.debit), document)),
+      credit: Number(this.interpolate(String(entry.credit), document)),
       description: this.interpolate(entry.description, document),
-      sourceModule: 'workflow',
-      sourceId: document.id || context.docId,
     }));
 
-    const result = await this.glService.postEntries(interpolatedEntries, context.tenantId);
+    const accounts = await this.journalEntryService.getAccounts(context.tenantId);
+    const accountsByCode = new Map(accounts.map((a) => [a.code, a]));
+
+    const lines = interpolatedEntries.map((entry) => {
+      const account = accountsByCode.get(entry.account);
+      if (!account) {
+        throw new BadRequestException(
+          `GL action references unknown account code "${entry.account}"`,
+        );
+      }
+      return { accountId: account.id, debit: entry.debit, credit: entry.credit };
+    });
+
+    const fiscalPeriod = await this.journalEntryService.getOrCreateCurrentFiscalPeriod(
+      context.tenantId,
+    );
+
+    const journalEntry = await this.journalEntryService.createJournalEntry(
+      context.tenantId,
+      {
+        fiscalPeriodId: fiscalPeriod.id,
+        reference: `WF-${context.docType}-${document.id || context.docId}`,
+        description: interpolatedEntries[0]?.description,
+        sourceModule: 'workflow',
+        sourceId: document.id || context.docId,
+        lines,
+      },
+      context.userId,
+    );
 
     return {
       glEntries: interpolatedEntries,
-      journalEntryId: result?.id,
+      journalEntryId: journalEntry.id,
     };
   }
 
-  private async executeSendNotification(action: WorkflowAction, document: any, context: ExecutionContext): Promise<any> {
+  private async executeSendNotification(
+    action: WorkflowAction,
+    document: any,
+    context: ExecutionContext,
+  ): Promise<any> {
     const to = this.interpolate(action.config.to || '', document);
     const subject = this.interpolate(action.config.subject || '', document);
     const body = this.interpolate(action.config.body || '', document);
@@ -119,17 +163,32 @@ export class ActionExecutor {
       throw new BadRequestException('Notification requires to, subject, and body');
     }
 
-    await this.notificationService.send({
-      type: 'email',
-      to,
-      subject,
-      body,
-      tenantId: context.tenantId,
-      sourceType: 'workflow',
-      sourceId: document.id || context.docId,
+    // The notification system delivers to internal users by userId, not
+    // arbitrary email addresses, so resolve `to` (an interpolated email)
+    // against the tenant's users. External recipients (e.g. a vendor email
+    // with no user account) have nowhere to be delivered — log and skip
+    // rather than fail the whole transition over an unreachable address.
+    const targetUser = await prisma.user.findFirst({
+      where: { tenantId: context.tenantId, email: to },
+      select: { id: true },
     });
 
-    return { to, subject, body };
+    if (!targetUser) {
+      this.logger.warn(
+        `Workflow notification skipped: no user found for "${to}" in tenant ${context.tenantId}`,
+      );
+      return { to, subject, body, delivered: false };
+    }
+
+    await this.notificationService.notify({
+      tenantId: context.tenantId,
+      eventType: 'workflow.notification',
+      title: subject,
+      body,
+      userId: targetUser.id,
+    });
+
+    return { to, subject, body, delivered: true };
   }
 
   private executeUpdateField(action: WorkflowAction, document: any): any {
@@ -202,7 +261,7 @@ export class ActionExecutor {
         statusCode: response.status,
         success: true,
       };
-    } catch (error) {
+    } catch (error: any) {
       throw new BadRequestException(`Webhook request failed: ${error.message}`);
     }
   }
@@ -224,7 +283,7 @@ export class ActionExecutor {
   private interpolate(template: string, document: any): string {
     if (!template) return template;
 
-    return template.replace(/\{\{([\w.\[\]]+)\}\}/g, (match, fieldPath) => {
+    return template.replace(/\{\{([\w.[\]]+)\}\}/g, (match, fieldPath) => {
       const value = this.getFieldValue(document, fieldPath);
       return value !== undefined ? String(value) : match;
     });
