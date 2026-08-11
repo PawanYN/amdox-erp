@@ -2,6 +2,7 @@
 import { toast } from "@/components/ui/toast";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Plus,
   Users,
@@ -17,16 +18,13 @@ import { Badge, statusToTone } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { StatCard } from "@/components/ui/stat-card";
-import { Employee, NewEmployeeInput } from "@/lib/types/hr";
+import { Employee } from "@/lib/types/hr";
 import { useKeycloak } from "@/components/layout/keycloak-provider";
 import { hrApi } from "@/lib/api/hr-api";
-import { EmployeeForm } from "./employee-form";
 import { OrgChart } from "./org-chart";
 
 type ViewMode = "list" | "org-chart";
 type StatusFilter = "all" | "active" | "inactive";
-
-type DepartmentOption = { id: string; name: string; code?: string; allowedModules?: string[] };
 
 type RawEmployee = {
   id: string;
@@ -71,14 +69,11 @@ function mapEmployee(emp: RawEmployee): Employee {
 }
 
 export default function EmployeesPage() {
+  const router = useRouter();
   const { token, initialized } = useKeycloak();
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [departments, setDepartments] = useState<DepartmentOption[]>([]);
   const [view, setView] = useState<ViewMode>("list");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
-  const [loading, setLoading] = useState(false);
 
   const fetchEmployees = async () => {
     if (!token) return;
@@ -89,19 +84,9 @@ export default function EmployeesPage() {
     }
   };
 
-  const fetchDepartments = async () => {
-    if (!token) return;
-    try {
-      setDepartments(await hrApi.getDepartments());
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
   useEffect(() => {
     if (initialized && token) {
       fetchEmployees();
-      fetchDepartments();
     }
   }, [initialized, token]);
 
@@ -222,10 +207,7 @@ export default function EmployeesPage() {
           ) : (
             <>
               <button
-                onClick={() => {
-                  setEditingEmployee(emp);
-                  setFormOpen(true);
-                }}
+                onClick={() => router.push(`/hr/employees/${emp.id}/edit`)}
                 style={{ color: "#6b7280", border: "1px solid #dfe3e8", background: "#f4f6f8" }}
                 className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-blue-50 hover:border-blue-200 transition-colors"
                 onMouseEnter={(e) => {
@@ -262,63 +244,6 @@ export default function EmployeesPage() {
     },
   ];
 
-  async function handleCreate(data: NewEmployeeInput) {
-    setLoading(true);
-    try {
-      const parts = data.name.trim().split(" ");
-      await hrApi.createEmployee({
-        firstName: parts[0] || "",
-        lastName: parts.slice(1).join(" ") || "",
-        email: data.email,
-        phone: data.phone,
-        dateOfBirth: data.dateOfBirth || "1990-01-01",
-        hireDate: data.startDate || new Date().toISOString().split("T")[0],
-        employmentType: data.contractType.toLowerCase().replace("-", "_"),
-        departmentId: data.department,
-        managerId: data.reportsToId || null,
-        designation: data.designation || undefined,
-        salary: data.salary,
-        currencyCode: data.currencyCode,
-        provideErpAccess: data.provideErpAccess ?? true,
-        systemRole: data.systemRole || "Employee",
-        allowedModules: data.allowedModules ?? [],
-      });
-      await fetchEmployees();
-    } catch (err) {
-      toast(err instanceof Error ? err.message : "Failed to save.", "error");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleUpdate(id: string, data: NewEmployeeInput) {
-    setLoading(true);
-    try {
-      const parts = data.name.trim().split(" ");
-      await hrApi.updateEmployee(id, {
-        firstName: parts[0] || "",
-        lastName: parts.slice(1).join(" ") || "",
-        email: data.email,
-        phone: data.phone,
-        dateOfBirth: data.dateOfBirth,
-        hireDate: data.startDate,
-        employmentType: data.contractType.toLowerCase().replace("-", "_"),
-        departmentId: data.department,
-        managerId: data.reportsToId || null,
-        designation: data.designation || undefined,
-        salary: data.salary,
-        currencyCode: data.currencyCode,
-        ...(data.allowedModules ? { allowedModules: data.allowedModules } : {}),
-        ...(data.systemRole ? { systemRole: data.systemRole } : {}),
-      });
-      await fetchEmployees();
-    } catch (err) {
-      toast(err instanceof Error ? err.message : "Failed to update.", "error");
-    } finally {
-      setLoading(false);
-    }
-  }
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -334,10 +259,7 @@ export default function EmployeesPage() {
         </div>
         <Button
           icon={<Plus size={14} />}
-          onClick={() => {
-            setEditingEmployee(null);
-            setFormOpen(true);
-          }}
+          onClick={() => router.push("/hr/employees/new")}
           style={{ background: "#1f5fa8", borderColor: "#1f5fa8", color: "#fff" }}
         >
           New Employee
@@ -455,20 +377,6 @@ export default function EmployeesPage() {
           <OrgChart employees={activeEmployees} />
         </Card>
       )}
-
-      <EmployeeForm
-        open={formOpen}
-        onClose={() => {
-          setFormOpen(false);
-          setEditingEmployee(null);
-        }}
-        managers={activeEmployees}
-        departments={departments}
-        editEmployee={editingEmployee}
-        onCreate={handleCreate}
-        onUpdate={handleUpdate}
-        loading={loading}
-      />
     </div>
   );
 }

@@ -6,6 +6,7 @@ interface FormRowProps {
   children: ReactNode;
   className?: string;
   columns?: number;
+  style?: React.CSSProperties;
 }
 
 const inputStyle: React.CSSProperties = {
@@ -41,6 +42,7 @@ export function FormRow({
   children,
   className = "",
   columns,
+  style,
 }: FormRowProps) {
   if (columns !== undefined) {
     return (
@@ -50,6 +52,7 @@ export function FormRow({
           display: "grid",
           gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
           gap: "14px",
+          ...style,
         }}
       >
         {children}
@@ -58,7 +61,7 @@ export function FormRow({
   }
 
   return (
-    <div className={`form-row ${className}`} style={{ paddingLeft: 0, paddingRight: 0 }}>
+    <div className={`form-row ${className}`} style={{ paddingLeft: 0, paddingRight: 0, ...style }}>
       <label style={{ fontSize: "13px", color: "#2b2f36", fontWeight: 500 }}>
         {label}
         {required && (
