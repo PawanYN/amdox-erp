@@ -9,13 +9,13 @@
 
 ## Admin
 
-| Field      | Value                |
-| ---------- | -------------------- |
-| Name       | Tenant Admin         |
-| Email      | `admin@companya.in`` |
-| Password   | `Admin123!`          |
-| Role       | TenantAdmin          |
-| Department | —                    |
+| Field      | Value                                         |
+| ---------- | --------------------------------------------- |
+| Name       | Tenant Admin                                  |
+| Email      | [admin@companya.in](mailto:admin@companya.in) |
+| Password   | `Admin123!`                                   |
+| Role       | TenantAdmin                                   |
+| Department | —                                             |
 
 ---
 

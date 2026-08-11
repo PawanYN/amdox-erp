@@ -40,14 +40,15 @@ The only remaining P0: recording the 5–7 min scenario-based demo video. Everyt
 
 ## 🏗️ Architecture
 
-| Doc                                          | Covers                                                                        |
-| -------------------------------------------- | ----------------------------------------------------------------------------- |
-| `docs/architecture/backend_architecture.md`  | NestJS module layout, request lifecycle, tenant isolation, RBAC guards        |
-| `docs/architecture/frontend_architecture.md` | Next.js app router structure, state management, API client layer              |
-| `docs/erd/database-erd.md` (rendered above)  | Full Prisma schema — 67 models across every module                            |
-| `docs/architecture/auth-flow.md`             | Login flow (password / Google / company SSO), auto-link, MFA — with a diagram |
-| `docs/architecture/observability.md`         | OTel + Prometheus/Grafana/Loki/Tempo stack, public dashboard URLs             |
-| `docs/c4/`                                   | C4 context/container/component diagrams                                       |
+| Doc                                          | Covers                                                                                                                                                  |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docs/architecture/backend_architecture.md`  | NestJS module layout, request lifecycle, tenant isolation, RBAC guards                                                                                  |
+| `docs/architecture/frontend_architecture.md` | Next.js app router structure, state management, API client layer                                                                                        |
+| `docs/erd/database-erd.md` (rendered above)  | Full Prisma schema — 67 models across every module                                                                                                      |
+| `docs/architecture/auth-flow.md`             | Login flow (password / Google / company SSO), auto-link, MFA — with a diagram                                                                           |
+| `docs/architecture/observability.md`         | OTel + Prometheus/Grafana/Loki/Tempo stack, public dashboard URLs                                                                                       |
+| `docs/c4/`                                   | C4 context/container/component diagrams                                                                                                                 |
+| `apps/api/src/workflow/README.md`            | Workflow Engine — configurable approval states/transitions, condition evaluation, GL posting + notification actions (Phase 1: Purchase Order approvals) |
 
 A deployment topology diagram (VM/Caddy/pm2/Docker layout) is not yet drawn — the architecture docs above describe it in prose today.
 
@@ -80,7 +81,8 @@ amdox-erp/
 │   │   │   ├── notification/
 │   │   │   ├── pm/
 │   │   │   ├── scm/                    (purchase, requisition, inventory, vendor, vendor-portal, product, automation)
-│   │   │   └── tenant/
+│   │   │   ├── tenant/
+│   │   │   └── workflow/               # approval workflow engine (states, transitions, conditions, GL/notification actions)
 │   │   ├── scripts/                    # in-package scripts, see scripts/README.md there
 │   │   └── test/
 │   ├── ml-service/                    # Python FastAPI demand-forecasting microservice
